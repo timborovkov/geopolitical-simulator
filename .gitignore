@@ -1,0 +1,13 @@
+.DS_Store
+/target/
+.env
+.env.*
+!.env.example
+*.log
+/.claude/
+/.codex/
+/.cursor/
+/.opencode/
+/worktrees/
+/.worktrees/
+/work/

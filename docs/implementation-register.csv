@@ -1,0 +1,342 @@
+requirement_id,priority,subsystem,requirement,status
+P01-01,1,Simulation kernel and command boundary,"Integer simulation clock, calendar, pause, speed levels, advance-to-date and advance-to-next-important-event.",proposed
+P01-02,1,Simulation kernel and command boundary,"Stable IDs for every actor, place, institution, agreement, asset, policy and event; no identity based on names or array positions exposed outside a store.",proposed
+P01-03,1,Simulation kernel and command boundary,"Typed units for money/currency, population, energy, goods, distances, rates and time. Explicit rounding and overflow handling.",proposed
+P01-04,1,Simulation kernel and command boundary,Explicit phase order; seeded random streams per subsystem; reproducible runs and canonical state hashes.,proposed
+P01-05,1,Simulation kernel and command boundary,"All actions enter as validated commands. UI, AI, scripts and future remote players use the same action rules.",proposed
+P01-06,1,Simulation kernel and command boundary,Domain events record accepted outcomes; rejected commands explain the failed condition.,proposed
+P01-07,1,Simulation kernel and command boundary,"Separate world truth, actor knowledge and player-visible information now, before espionage and multiplayer arrive.",proposed
+P01-08,1,Simulation kernel and command boundary,Headless executable that can load a tiny world and advance it without graphics or SQL in the inner loop.,proposed
+P02-01,2,Content schema and historical world identity,"Versioned definitions for countries, territories, offices, people, parties, organizations, goods, sectors, laws, technologies and scenario rules. Minimal dated technology eligibility is available immediately; the full research/adoption graph comes later.",proposed
+P02-02,2,Content schema and historical world identity,"Date-effective records: founding, dissolution, terms of office, membership, currency and territorial changes.",proposed
+P02-03,2,Content schema and historical world identity,"Country identity separate from government, regime, legal sovereignty, occupation, recognition and map geometry.",proposed
+P02-04,2,Content schema and historical world identity,"Source provenance, observed year, units, revisions, uncertainty and missing-data status for facts.",proposed
+P02-05,2,Content schema and historical world identity,"CSV/JSON import and validation, stable external-ID crosswalks, reproducible content packs and localization keys.",proposed
+P02-06,2,Content schema and historical world identity,A small synthetic test world plus the scaffold for the entire historical world. Synthetic fixtures make rules testable without relying on incomplete historical data.,proposed
+P02-07,2,Content schema and historical world identity,"Country-specific behavior expressed through institutional definitions and configuration, rather than scattered checks against country names.",proposed
+P03-01,3,"Saves, replay and simulation inspection","Versioned snapshot, command journal, scenario/content hash, mod order, random state and rules version.",proposed
+P03-02,3,"Saves, replay and simulation inspection","Autosave rotation, atomic completion, recovery from interrupted writes and clear missing-content errors.",proposed
+P03-03,3,"Saves, replay and simulation inspection",Migration policy; preserve the old save before conversion. Distinguish save compatibility from replay compatibility.,proposed
+P03-04,3,"Saves, replay and simulation inspection","Debug state inspector, economic ledger, AI decision log and first-divergence report.",proposed
+P03-05,3,"Saves, replay and simulation inspection","Historical statistics with bounded retention: recent fine-grained records, older aggregates and important events preserved.",proposed
+P03-06,3,"Saves, replay and simulation inspection","Save/load during construction, elections, negotiations, battles and pending legislation as those systems appear.",proposed
+P03-07,3,"Saves, replay and simulation inspection",Developer sandbox commands flagged separately from normal play; inspectability is part of the base game.,proposed
+P04-01,4,"Native desktop shell, map and navigation",Native builds and launch checks on all three operating systems from the beginning.,proposed
+P04-02,4,"Native desktop shell, map and navigation","Vector-derived world map: coastline, land, country and administrative boundaries, islands, lakes and rivers; pan, zoom, selection, search and tooltips.",proposed
+P04-03,4,"Native desktop shell, map and navigation","Separate display geometry from simulation regions. Selection must work for islands, enclaves and tiny states.",proposed
+P04-04,4,"Native desktop shell, map and navigation","Political, terrain and administrative layers first; overlay infrastructure added by later systems.",proposed
+P04-05,4,"Native desktop shell, map and navigation","Country overview, ministry navigation, sortable tables, charts, comparison tray, searchable encyclopedia and persistent selection.",proposed
+P04-06,4,"Native desktop shell, map and navigation","Keyboard navigation, key rebinding, high-DPI/UI scaling, readable compact text, Unicode/IME support and colorblind-safe encodings.",proposed
+P04-07,4,"Native desktop shell, map and navigation",Pause and speed visible at all times. Escape/back behavior and window focus must be predictable.,proposed
+P05-01,5,"Accounts, units and causal reporting","Treasury, household-sector, business-sector and foreign-sector accounts; add financial intermediaries when their rules exist.",proposed
+P05-02,5,"Accounts, units and causal reporting",Stocks versus flows; balances versus rates; nominal versus real values; local currency versus reporting currency.,proposed
+P05-03,5,"Accounts, units and causal reporting","Public spending, receipts, transfers, obligations, cash and financing; distinguish authorization, commitment and payment.",proposed
+P05-04,5,"Accounts, units and causal reporting","Physical goods accounts: production, use, inventories, losses, imports and exports.",proposed
+P05-05,5,"Accounts, units and causal reporting","Currency creation/destruction, default, depreciation, casualties and other non-conservation events must have explicit rules and ledger entries.",proposed
+P05-06,5,"Accounts, units and causal reporting","Every headline statistic exposes components, period, units, recent changes and relevant uncertainty.",proposed
+P05-07,5,"Accounts, units and causal reporting",Forecasts are separate from realized accounts; expected revenue must not be spendable cash unless a financing mechanism exists.,proposed
+P06-01,6,"Population, households and social groups","Aggregate cohorts by region, age band, employment/occupation, income and selected social attributes; do not simulate billions of individual people.",proposed
+P06-02,6,"Population, households and social groups","Births, deaths, aging, household formation and migration balances.",proposed
+P06-03,6,"Population, households and social groups","Income, savings, consumption baskets, housing costs, purchasing power, poverty, inequality and essential needs.",proposed
+P06-04,6,"Population, households and social groups","Employment status, skills, education and health; people can move between cohorts without being duplicated.",proposed
+P06-05,6,"Population, households and social groups","Political interests, issue salience, trust, perceived living standards and institutional satisfaction.",proposed
+P06-06,6,"Population, households and social groups","Overlapping group membership: a person may be a worker, parent, religious adherent and union member. Avoid double-counting population across interest groups.",proposed
+P06-07,6,"Population, households and social groups",Public estimates can differ from world truth through census quality and statistical capacity.,proposed
+P07-01,7,"Production, consumption and domestic markets","Data-driven goods and services with units, substitutability, storage, perishability and essential-use priority.",proposed
+P07-02,7,"Production, consumption and domestic markets","Sectors with labor, capital, energy and intermediate-input requirements; output limited by actual bottlenecks.",proposed
+P07-03,7,"Production, consumption and domestic markets","Agriculture, extraction, manufacturing, construction and services represented by the same framework where appropriate.",proposed
+P07-04,7,"Production, consumption and domestic markets","Prices, wages, demand response, production costs, profitability, investment, capacity utilization and closures.",proposed
+P07-05,7,"Production, consumption and domestic markets","Stockpiles, shortages, rationing, strategic reserves, imports and exports through a bounded external-market counterpart with explicit cash settlement and supply limits. Initial credit exists only through modeled debt records; full banking and trade refine these rules later.",proposed
+P07-06,7,"Production, consumption and domestic markets",Distinguish desired consumption from affordable demand and delivered consumption.,proposed
+P07-07,7,"Production, consumption and domestic markets",Bounded price-adjustment rules and settlement order; ensure oscillations are economic behavior rather than an accidental update-loop artifact.,proposed
+P08-01,8,Government institutions and legal powers,"Head of state, head of government, cabinet, ministries, civil service, legislature and courts as separate offices/bodies.",proposed
+P08-02,8,Government institutions and legal powers,"Parliamentary, presidential, semi-presidential, monarchical, one-party and military-government configurations.",proposed
+P08-03,8,Government institutions and legal powers,"Appointment, dismissal, succession, eligibility, term limits, vetoes and emergency powers.",proposed
+P08-04,8,Government institutions and legal powers,"Chambers, seat allocation, voting thresholds, quorum, committees and constitutional amendment requirements.",proposed
+P08-05,8,Government institutions and legal powers,"Federal, regional, municipal and autonomous powers; control over taxation and service delivery.",proposed
+P08-06,8,Government institutions and legal powers,Independent institutions such as central banks and election authorities have their own mandates. The player cannot directly order powers the government does not possess.,proposed
+P08-07,8,Government institutions and legal powers,"Rule-of-law, bureaucratic capacity and corruption affect implementation without becoming a universal magic multiplier.",proposed
+P08-08,8,Government institutions and legal powers,"Fully playable personalist dictatorships, single-party states, military juntas, absolute monarchies, theocracies, dominant-party and hybrid regimes alongside democracies. These are core political configurations, not optional late-game scenarios.",proposed
+P08-09,8,Government institutions and legal powers,"Separate constitutional rules from effective power: ruling-party bodies, military councils, religious authorities, security services, patronage networks and personal rule can hold actual decision rights.",proposed
+P08-10,8,Government institutions and legal powers,"Authoritarian governing routes include decrees, party/council decisions and controlled legislatures; material capacity and elite cooperation still constrain execution. Model violations or suspension of constitutional rules as explicit contested actions rather than making regime change impossible through legal validation.",proposed
+P08-11,8,Government institutions and legal powers,"Regime change in both directions: democratization, concentration of executive power, party monopoly, military takeover, restoration and negotiated transition, with distinct causes and institutional consequences.",proposed
+P09-01,9,Policy and commitment engine,"Shared lifecycle: drafted, proposed, amended, approved, funded, implementing, operating, evaluated, repealed/expired.",proposed
+P09-02,9,Policy and commitment engine,"Prerequisites, jurisdiction, legal route, administrative cost, staffing, enforcement, start date, duration and transition rules.",proposed
+P09-03,9,Policy and commitment engine,"Policy levels and thresholds; mutually exclusive choices, grandfathering, regional exemptions and interactions.",proposed
+P09-04,9,Policy and commitment engine,"Delayed effects, capacity ceilings, diminishing returns and unintended effects defined explicitly.",proposed
+P09-05,9,Policy and commitment engine,"Commitments reused by election promises, coalition agreements, contracts, treaties and project deadlines.",proposed
+P09-06,9,Policy and commitment engine,"Preview cards: legal feasibility, budget effect, affected groups, implementation bottlenecks and forecast range.",proposed
+P09-07,9,Policy and commitment engine,"Outcome inspection separates the direct effect, indirect effects, external shocks and uncertainty.",proposed
+P10-01,10,"Government budget, taxation and public debt","Budget proposal, enactment, supplementary budgets, execution and year-end reporting.",proposed
+P10-02,10,"Government budget, taxation and public debt","Income bands, corporate tax, VAT/sales tax, social contributions, excise, property/land, capital gains, inheritance, resource royalties and customs revenue.",proposed
+P10-03,10,"Government budget, taxation and public debt","Tax base, collection capacity, compliance, evasion and enforcement; a nominal tax rate is not guaranteed revenue.",proposed
+P10-04,10,"Government budget, taxation and public debt","Public wages, procurement, benefits, transfers, grants, interest, subsidies and capital spending.",proposed
+P10-05,10,"Government budget, taxation and public debt","Debt instruments with creditor, currency, maturity, interest and repayment schedule; domestic versus external debt.",proposed
+P10-06,10,"Government budget, taxation and public debt","Borrowing limits, refinancing, arrears, restructuring, default and emergency financing.",proposed
+P10-07,10,"Government budget, taxation and public debt",Automatic stabilizers and transparent fiscal forecasts under alternative assumptions.,proposed
+P10-08,10,"Government budget, taxation and public debt","Taxes and spending affect households, firms and political support through actual accounts.",proposed
+P11-01,11,"Parties, elections and political survival","Real historical party identities and leaders at the bookmark; affiliation, legal status, organization and regional support.",proposed
+P11-02,11,"Parties, elections and political survival","Multidimensional preferences: economic, social, institutional, regional and foreign-policy positions.",proposed
+P11-03,11,"Parties, elections and political survival","Electoral calendars and rules for executive, lower/upper house, regional and local elections as configured.",proposed
+P11-04,11,"Parties, elections and political survival","Constituencies, thresholds, turnout, proportional and district allocation, coalitions and confidence/support agreements.",proposed
+P11-05,11,"Parties, elections and political survival","Polls with uncertainty; campaigning, media access, funding, activists, debates and delivery of promises.",proposed
+P11-06,11,"Parties, elections and political survival","Party discipline, dissent, defections, splits, mergers, leadership contests and dissolution.",proposed
+P11-07,11,"Parties, elections and political survival","Confidence votes, caretaker governments, constructive no-confidence, dissolution and peaceful transfer of power.",proposed
+P11-08,11,"Parties, elections and political survival","Explicit country-continuation rule: default country play continues with the incoming government, constrained by its mandate. Optional office-bound challenges end on removal.",proposed
+P11-09,11,"Parties, elections and political survival","Regime-specific political survival: competitive elections, internal party leadership, elite coalitions, military backing, dynastic succession and religious appointment. Elections may be absent, restricted or noncompetitive; approval alone does not determine control.",proposed
+P11-10,11,"Parties, elections and political survival","Single-party organization: congresses, leadership bodies, factions, cadre appointments, party-state relationships, internal bargaining and succession. Model a party-led state separately from a ruler who dominates the party personally.",proposed
+P11-11,11,"Parties, elections and political survival","Ideology definitions cover liberal, conservative, social-democratic, socialist, communist, nationalist, fascist, religious-political, libertarian and other country-specific traditions, including mixed or evolving positions. Labels are data-driven families, not universal stat bonuses.",proposed
+P11-12,11,"Parties, elections and political survival","Separate leader, party, faction, public and official-state ideology; distinguish declared doctrine from implemented policy. Preferences influence economic organization, civil rights, religion, political participation, national identity and foreign policy independently.",proposed
+P11-13,11,"Parties, elections and political survival","Authoritarian governance includes patronage, co-option, censorship, political policing, controlled participation and opposition restrictions as abstract game choices with fiscal, informational, legitimacy and institutional consequences.",proposed
+P11-14,11,"Parties, elections and political survival","Dictatorship is not omnipotence: elite loyalty, credible information, administrative competence, military obedience, succession and public acquiescence remain separate pressures. Include ruler/party survival challenges alongside default country-continuation mode.",proposed
+P12-01,12,Baseline country AI and delegated administration,"Each government maintains goals, beliefs, constraints, risk appetite and commitments.",proposed
+P12-02,12,Baseline country AI and delegated administration,"First behaviors: pay obligations, maintain essential services, respond to shortages, avoid infeasible budgets and defend political viability.",proposed
+P12-03,12,Baseline country AI and delegated administration,"Candidate generation, shared validation, approximate outcome evaluation and utility ranking.",proposed
+P12-04,12,Baseline country AI and delegated administration,"Hierarchical plans with review dates, cancellation conditions, cooldowns and inertia to prevent constant reversals.",proposed
+P12-05,12,Baseline country AI and delegated administration,"Opposition, parties, institutions and basic firms use smaller role-specific agents.",proposed
+P12-06,12,Baseline country AI and delegated administration,"Player delegation by ministry with budgets, permitted actions, priorities, approval thresholds and an audit trail.",proposed
+P12-07,12,Baseline country AI and delegated administration,Debug explanations show considered alternatives and rejection reasons; normal players see only explanations consistent with their knowledge.,proposed
+P12-08,12,Baseline country AI and delegated administration,Extend this AI in every subsequent system. Do not postpone AI until the feature catalogue is complete.,proposed
+P12-09,12,Baseline country AI and delegated administration,"Regime-aware AI balances its actual survival coalition and ideology: electoral accountability, party factions, military leadership, dynastic interests or religious institutions. Do not give every country a democratic reelection objective or force convergence toward one regime.",proposed
+P13-01,13,The complete governing interface,Situation brief organized around problems and pending decisions rather than an undifferentiated notification feed.,proposed
+P13-02,13,The complete governing interface,"Ministry screens for economy, finance, society, institutions and foreign affairs, expanding with later systems.",proposed
+P13-03,13,The complete governing interface,"Policy search by problem, action, ministry or affected group; show why unavailable choices are unavailable.",proposed
+P13-04,13,The complete governing interface,"Draft comparison with baseline, distributional effects, cost, authority, implementation lag and uncertainty.",proposed
+P13-05,13,The complete governing interface,"Before/after charts, pinned indicators, regional heatmaps and sortable international comparisons.",proposed
+P13-06,13,The complete governing interface,"Actionable alerts, deduplication, severity controls, watchlists and configurable automatic pause.",proposed
+P13-07,13,The complete governing interface,Negotiation and legislation timelines; pending decisions clearly distinguished from completed actions.,proposed
+P13-08,13,The complete governing interface,"Guided first governing session: identify a problem, inspect causes, enact a feasible intervention, advance time, inspect consequences.",proposed
+P13-09,13,The complete governing interface,"Regime-aware political workspace: legislature/elections where relevant, ruling-party leadership, military council, court or religious hierarchy where relevant; show legal authority, effective power, faction support and succession risks separately.",proposed
+P14-01,14,"Utilities, energy and natural resources","Fuel deposits, reserves, extraction cost, depletion, exploration and import dependence.",proposed
+P14-02,14,"Utilities, energy and natural resources","Electricity generation by technology, fuel requirements, dispatch, network capacity, reliability and seasonal demand.",proposed
+P14-03,14,"Utilities, energy and natural resources","Coal, oil, gas, nuclear, hydro, wind, solar, geothermal, biomass and storage definitions; technology availability depends on date and research.",proposed
+P14-04,14,"Utilities, energy and natural resources","Grid interconnection, electricity contracts, outages, maintenance, reserve margin and emergency rationing.",proposed
+P14-05,14,"Utilities, energy and natural resources","Water abstraction, treatment, distribution, irrigation and scarcity.",proposed
+P14-06,14,"Utilities, energy and natural resources","Energy pricing, household assistance, industrial subsidies, efficiency standards and strategic stockpiles.",proposed
+P14-07,14,"Utilities, energy and natural resources","Shutdown, reopening, decommissioning and environmental liabilities.",proposed
+P14-08,14,"Utilities, energy and natural resources",Regional energy/resource overlays and clear explanation of the marginal bottleneck.,proposed
+P15-01,15,"Construction, transport, housing and communications","Projects need site, permissions, design, funding, workforce, materials and time; staged completion and cancellation settlement.",proposed
+P15-02,15,"Construction, transport, housing and communications","Roads, bridges, tunnels, rail, airports, ports, logistics hubs and pipelines as capacity networks.",proposed
+P15-03,15,"Construction, transport, housing and communications","Congestion, travel time, freight cost, maintenance, damage and reconstruction.",proposed
+P15-04,15,"Construction, transport, housing and communications","Housing supply, rent, rent regulation/indexation, overcrowding, land use, zoning, public housing, homelessness and urban growth.",proposed
+P15-05,15,"Construction, transport, housing and communications","Public transport, tolls, vehicle standards, electric-vehicle infrastructure and later autonomous transport.",proposed
+P15-06,15,"Construction, transport, housing and communications","Telephone, mobile, broadband, data centers, internet access and later-generation network upgrades.",proposed
+P15-07,15,"Construction, transport, housing and communications",Buildings attach to the relevant economic/service system instead of merely adding flat national bonuses.,proposed
+P16-01,16,"Public services, welfare and labor policy","Healthcare capacity, staffing, access, prevention, insurance/financing, medicines and treatment demand.",proposed
+P16-02,16,"Public services, welfare and labor policy","Education by level, attainment, teacher supply, vocational training, universities, research and skills matching.",proposed
+P16-03,16,"Public services, welfare and labor policy","Pensions, retirement age, eligibility, disability, unemployment support, child benefits and means-tested assistance.",proposed
+P16-04,16,"Public services, welfare and labor policy","Minimum wage, public wages, hours, overtime, leave, dismissal/severance, collective bargaining and workplace safety.",proposed
+P16-05,16,"Public services, welfare and labor policy","Childcare, parental leave, fertility support and long-term fiscal projections.",proposed
+P16-06,16,"Public services, welfare and labor policy",Universal income and alternative transfer designs funded through the actual fiscal system.,proposed
+P16-07,16,"Public services, welfare and labor policy","Civil-service hiring/training, digital administration and service backlogs.",proposed
+P16-08,16,"Public services, welfare and labor policy","Outcomes reported as access, quality, affordability and capacity—not only spending percentages.",proposed
+P17-01,17,"Monetary policy, banks and financial crises","Currency regimes, exchange rates, reserves, convertibility, pegs, currency unions and capital controls.",proposed
+P17-02,17,"Monetary policy, banks and financial crises","Central-bank mandate and independence; policy rate, liquidity facilities and monetary financing where legal.",proposed
+P17-03,17,"Monetary policy, banks and financial crises","Commercial-bank balance sheets, deposits, lending, loan losses, capital and liquidity; mortgage terms, interest resets and borrower-protection policies.",proposed
+P17-04,17,"Monetary policy, banks and financial crises","Inflation channels: demand, inputs/imports, monetary conditions, expectations and capacity constraints.",proposed
+P17-05,17,"Monetary policy, banks and financial crises","Deposit insurance, bank runs, liquidity support, recapitalization, resolution and sovereign-bank feedback.",proposed
+P17-06,17,"Monetary policy, banks and financial crises","Sovereign wealth funds, asset ownership and returns; foreign-currency debt exposure.",proposed
+P17-07,17,"Monetary policy, banks and financial crises","Currency conversion with explicit handling of existing contracts, deposits and debt denominations.",proposed
+P17-08,17,"Monetary policy, banks and financial crises",Financial statistics reconciled to underlying accounts; no market value counted as government cash without a transaction.,proposed
+P18-01,18,"Trade, investment and commercial policy","Bilateral goods/services trade, capacity and transport costs; access to shipping lanes and chokepoints.",proposed
+P18-02,18,"Trade, investment and commercial policy","Tariffs by product/partner, quotas, embargoes, licensing, customs unions and rules of origin.",proposed
+P18-03,18,"Trade, investment and commercial policy","Trade agreements, market access, services access, dispute procedures and withdrawal.",proposed
+P18-04,18,"Trade, investment and commercial policy","Foreign direct investment, project approval, ownership restrictions, profit repatriation and expropriation risk.",proposed
+P18-05,18,"Trade, investment and commercial policy","Sanctions by finance, trade, technology, assets and named actors; exemptions, evasion and enforcement.",proposed
+P18-06,18,"Trade, investment and commercial policy","Supply-chain dependencies, commodity shocks, strategic stockpiles and substitution.",proposed
+P18-07,18,"Trade, investment and commercial policy","Negotiated contracts with quantity, quality, price rule, delivery, term, penalties and force-majeure conditions.",proposed
+P18-08,18,"Trade, investment and commercial policy",Aid shipments and military supply use the same delivery constraints where appropriate.,proposed
+P19-01,19,"Firms, ownership and industrial policy","Aggregate ordinary enterprises; explicit strategic firms where ownership, procurement or market power matters.",proposed
+P19-02,19,"Firms, ownership and industrial policy","Public/private/mixed/cooperative and worker-owned enterprises, ownership conversion, nationalization, privatization, shares, dividends and liabilities.",proposed
+P19-03,19,"Firms, ownership and industrial policy","Market share, competition, anti-trust, subsidies, procurement, industrial strategy and research support.",proposed
+P19-04,19,"Firms, ownership and industrial policy","Firm investment, employment, wages, pricing, insolvency, mergers, acquisitions and foreign subsidiaries.",proposed
+P19-05,19,"Firms, ownership and industrial policy","Banking exposure, stock-market valuations and government financial interests.",proposed
+P19-06,19,"Firms, ownership and industrial policy","Corruption, lobbying, procurement fraud and regulatory capture tied to institutions and investigations.",proposed
+P19-07,19,"Firms, ownership and industrial policy",Tourism and cultural-sector firms reuse the same business rules.,proposed
+P19-08,19,"Firms, ownership and industrial policy","Corporate AI has solvency, profitability, investment and compliance constraints; it does not exist purely to satisfy government orders.",proposed
+P20-01,20,"Unions, civil society, media and domestic power","Labor unions, employer associations, farmers, landowners, religious organizations, NGOs and professional groups.",proposed
+P20-02,20,"Unions, civil society, media and domestic power","Military, security services, business elites and regional power centers with distinct resources and institutional access.",proposed
+P20-03,20,"Unions, civil society, media and domestic power","Membership, organization strength, funding, public trust, demands and issue priorities.",proposed
+P20-04,20,"Unions, civil society, media and domestic power","Lobbying, petitions, bargaining, strikes, demonstrations, boycotts and negotiated agreements.",proposed
+P20-05,20,"Unions, civil society, media and domestic power","Media ownership, public broadcasting, press freedom, audience reach, credibility and scandal exposure.",proposed
+P20-06,20,"Unions, civil society, media and domestic power","Propaganda, disinformation, conspiracy spread, fact-checking and literacy as competing information processes.",proposed
+P20-07,20,"Unions, civil society, media and domestic power","Public order response, escalation/de-escalation and consequences for trust, rights and economic activity.",proposed
+P20-08,20,"Unions, civil society, media and domestic power","Leaders can make commitments, but their delivery still requires policy implementation.",proposed
+P21-01,21,"Civil rights, justice and social legislation","Citizenship, voting rights, equality and discrimination, privacy, surveillance and freedom of association.",proposed
+P21-02,21,"Civil rights, justice and social legislation","Speech, press, internet access, religious practice and separation of religion/state.",proposed
+P21-03,21,"Civil rights, justice and social legislation","Family/marriage/adoption rules, reproductive healthcare, surrogacy, gender recognition and end-of-life policy.",proposed
+P21-04,21,"Civil rights, justice and social legislation","Alcohol, tobacco, cannabis, other controlled substances, gambling and sex-work regulation.",proposed
+P21-05,21,"Civil rights, justice and social legislation","Child protection, child labor, school attendance and age-based legal rules.",proposed
+P21-06,21,"Civil rights, justice and social legislation","Police staffing/training/oversight, courts, prosecution, legal aid, prisons, sentencing and rehabilitation.",proposed
+P21-07,21,"Civil rights, justice and social legislation","Criminal responsibility, capital/corporal punishment, facial recognition and social-credit-style systems as policy options with modeled institutional and social consequences.",proposed
+P21-08,21,"Civil rights, justice and social legislation","Differentiate legality, enforcement, actual prevalence and reporting quality. Avoid making ideology determine outcomes by hidden fiat.",proposed
+P22-01,22,"Migration, citizenship and integration",Internal migration and international flows by origin/destination and reason.,proposed
+P22-02,22,"Migration, citizenship and integration","Economic, education, family, asylum and humanitarian routes; temporary versus permanent status.",proposed
+P22-03,22,"Migration, citizenship and integration","Visas, residency, work permission, naturalization, birthright citizenship and dual-nationality rules.",proposed
+P22-04,22,"Migration, citizenship and integration","Border capacity, irregular migration, trafficking, detention, regularization, returns and bilateral transit agreements.",proposed
+P22-05,22,"Migration, citizenship and integration","Refugees, displacement, resettlement, reception capacity and integration services.",proposed
+P22-06,22,"Migration, citizenship and integration","Labor-market matching, housing/service pressure, remittances and diaspora links.",proposed
+P22-07,22,"Migration, citizenship and integration","Migration preferences respond to safety, jobs, family networks and legal routes; it is not a single country attractiveness score.",proposed
+P23-01,23,Diplomacy and binding agreements,"Bilateral relations decomposed into trust, threat, disputes, dependency, ideological affinity and public opinion.",proposed
+P23-02,23,Diplomacy and binding agreements,"Recognition, embassies, diplomatic rank, meetings, state visits and negotiation agendas.",proposed
+P23-03,23,Diplomacy and binding agreements,"Treaties represented by clauses, signatories, ratification, duration, obligations, monitoring and remedies.",proposed
+P23-04,23,Diplomacy and binding agreements,"Aid, loans, guarantees, access, bases, intelligence sharing, defense commitments and research cooperation.",proposed
+P23-05,23,Diplomacy and binding agreements,"AI proposal generation, counteroffers, reservation values and acceptance reasons.",proposed
+P23-06,23,Diplomacy and binding agreements,"Credibility, reputation and domestic approval constraints; secret terms stored in restricted information views.",proposed
+P23-07,23,Diplomacy and binding agreements,Summits and multilateral bargaining use the same proposal/commitment framework.,proposed
+P23-08,23,Diplomacy and binding agreements,Foreign influence emerges from concrete dependencies and relationships; no universal percentage that automatically buys another country.,proposed
+P24-01,24,"International organizations, unions and blocs","Generic organization engine: charter, members/observers, accession, suspension, withdrawal, offices, councils, voting, budget and mandate.",proposed
+P24-02,24,"International organizations, unions and blocs","UN General Assembly/Security Council, vetoes, rotating seats, recognition/admission, resolutions, sanctions and peacekeeping authorization.",proposed
+P24-03,24,"International organizations, unions and blocs","IMF/World Bank-style lending, conditions and development projects; WTO-style trade commitments and disputes.",proposed
+P24-04,24,"International organizations, unions and blocs","NATO-style defense and consultation, military cooperation and accession.",proposed
+P24-05,24,"International organizations, unions and blocs","EU institutions, legislation, budget, cohesion funding, accession, common market, customs, monetary arrangements and integration/withdrawal paths.",proposed
+P24-06,24,"International organizations, unions and blocs","Regional and economic organizations: ASEAN, OAS, Arab League, OAU/AU transitions, CIS, Mercosur, regional development banks and trade areas.",proposed
+P24-07,24,"International organizations, unions and blocs","Producer coordination, G7/G20-style summits, non-aligned cooperation, later BRICS-style institutions and custom organizations.",proposed
+P24-08,24,"International organizations, unions and blocs","Health, education, labor, children, culture and humanitarian agencies linked to their actual simulation domains.",proposed
+P24-09,24,"International organizations, unions and blocs",All membership and existence dates come from the bookmark. Later organizations can emerge through rules or scenario conditions.,proposed
+P25-01,25,"Military establishment, procurement and logistics","Service branches, formations, personnel, recruitment, reserves, conscription, training, morale and readiness.",proposed
+P25-02,25,"Military establishment, procurement and logistics","Equipment stocks, age, condition, maintenance, ammunition, fuel and spare parts.",proposed
+P25-03,25,"Military establishment, procurement and logistics","Domestic/foreign procurement, production lines, industrial capacity, delivery schedules, upgrades and export restrictions.",proposed
+P25-04,25,"Military establishment, procurement and logistics","Private military companies and contracted forces: payment, mission limits, command authority, accountability, reliability and termination.",proposed
+P25-05,25,"Military establishment, procurement and logistics","Bases, ports and airfields with capacity, access agreements, rent, supply links and notice periods.",proposed
+P25-06,25,"Military establishment, procurement and logistics","Doctrine, command structure, loyalty, civilian oversight and mobilization.",proposed
+P25-07,25,"Military establishment, procurement and logistics","Strategic logistics graph; supply and deployment constrained by routes, lift, access and infrastructure.",proposed
+P25-08,25,"Military establishment, procurement and logistics","Land, air, sea, missile and support roles; unit design only as detailed as decisions warrant.",proposed
+P25-09,25,"Military establishment, procurement and logistics",Military expenditure reconciles with treasury and industry; nominal unit count does not equal usable strength.,proposed
+P26-01,26,Conventional warfare and operational AI,"War participants, goals, escalation, declarations, intervention and rules of engagement.",proposed
+P26-02,26,Conventional warfare and operational AI,"Operational areas, fronts, territorial control, movement and supply; map geometry remains independent of state ownership.",proposed
+P26-03,26,Conventional warfare and operational AI,"Combat aggregates by forces and objectives, with terrain, weather, reconnaissance, readiness and logistics.",proposed
+P26-04,26,Conventional warfare and operational AI,"Land maneuver, air missions/interception, naval movement/blockade, amphibious operations and long-range strikes.",proposed
+P26-05,26,Conventional warfare and operational AI,"Fortifications, trenches, obstacles, mines, air/missile defense and electronic warfare.",proposed
+P26-06,26,Conventional warfare and operational AI,"Drones, unmanned surface/subsurface/ground systems, AWACS, jamming and swarms gated by technology and industrial capability.",proposed
+P26-07,26,Conventional warfare and operational AI,"Casualties, displaced civilians, infrastructure damage, war expenditure, public support and war exhaustion.",proposed
+P26-08,26,Conventional warfare and operational AI,Orders to military staff with objectives and constraints; manual interventions coexist with operational delegation.,proposed
+P26-09,26,Conventional warfare and operational AI,"Tactical city encounters and street fighting remain an optional later presentation of these rules, not a separate incompatible simulation.",proposed
+P27-01,27,"Peace, occupation and territorial transitions","Ceasefires, armistices, peace conferences and third-party mediation.",proposed
+P27-02,27,"Peace, occupation and territorial transitions","Negotiated territory, demilitarization, reparations, resource rights, neutrality, guarantees, prisoner exchange and force limits.",proposed
+P27-03,27,"Peace, occupation and territorial transitions","Occupation administration, resistance, civilian services, reconstruction and withdrawal.",proposed
+P27-04,27,"Peace, occupation and territorial transitions","Annexation, independence, federation, confederation, merger, partition, autonomy and referendums.",proposed
+P27-05,27,"Peace, occupation and territorial transitions","Atomic transfer rules for people, territory, debt, cash, facilities, military assets, contracts and institutions.",proposed
+P27-06,27,"Peace, occupation and territorial transitions","Legality, control and recognition tracked separately; unresolved claims survive a map recolor.",proposed
+P27-07,27,"Peace, occupation and territorial transitions","Enforcement, monitoring, violations and renewed conflict require explicit conditions.",proposed
+P27-08,27,"Peace, occupation and territorial transitions",AI accepts limited settlements when appropriate instead of requiring total conquest.,proposed
+P28-01,28,"Intelligence, covert action and cyber","Agencies, budgets, staff, foreign networks, collection priorities and counterintelligence.",proposed
+P28-02,28,"Intelligence, covert action and cyber","Estimates with confidence, age, source quality and possible deception; fog of war applies to economics and politics too.",proposed
+P28-03,28,"Intelligence, covert action and cyber","Reconnaissance, industrial/technical espionage, influence operations, sabotage and support to foreign factions.",proposed
+P28-04,28,"Intelligence, covert action and cyber","Operations require preparation, access, resources and time, with distinct success, detection and attribution.",proposed
+P28-05,28,"Intelligence, covert action and cyber","Cyber capability, infrastructure exposure, defensive investment, persistent access, incident response and recovery.",proposed
+P28-06,28,"Intelligence, covert action and cyber","Economic, electoral, communications, logistics and military disruption expressed as high-level game effects.",proposed
+P28-07,28,"Intelligence, covert action and cyber","Diplomatic, domestic and escalation consequences of exposure.",proposed
+P28-08,28,"Intelligence, covert action and cyber",Omniscient debugging is a separate tool; a normal player or AI should not see hidden operation truth.,proposed
+P29-01,29,"Organized crime, insurgency and internal conflict","Illicit markets, demand, production, routes, laundering, corruption and state capacity.",proposed
+P29-02,29,"Organized crime, insurgency and internal conflict","Criminal networks/cartels with finances, territorial reach, resilience and relationships.",proposed
+P29-03,29,"Organized crime, insurgency and internal conflict","Customs, financial investigation, specialist policing, prevention, treatment, prisons, extradition and informant systems.",proposed
+P29-04,29,"Organized crime, insurgency and internal conflict","Terrorist threats and hostage crises abstracted through intelligence, preparedness and response choices.",proposed
+P29-05,29,"Organized crime, insurgency and internal conflict","Rebel organization, grievances, recruitment, funding, territorial control and external support.",proposed
+P29-06,29,"Organized crime, insurgency and internal conflict","Coups, defections, civil war, negotiations, demobilization and reintegration.",proposed
+P29-07,29,"Organized crime, insurgency and internal conflict","Emergency measures and repression have effects on legitimacy, organization, reporting and longer-term stability.",proposed
+P29-08,29,"Organized crime, insurgency and internal conflict",No automatic conversion from low approval to armed rebellion; escalation needs modeled organization and conditions.,proposed
+P30-01,30,"Climate, ecology, agriculture and disasters","Emissions by sector/fuel, cumulative climate drivers, regional exposure and uncertainty.",proposed
+P30-02,30,"Climate, ecology, agriculture and disasters","Environmental regulation, carbon pricing, standards, subsidies and international climate commitments.",proposed
+P30-03,30,"Climate, ecology, agriculture and disasters","Adaptation, coastal protection, water management and disaster preparedness.",proposed
+P30-04,30,"Climate, ecology, agriculture and disasters","Drought, flood, wildfire, storms, earthquakes and other hazards with geographically appropriate exposure.",proposed
+P30-05,30,"Climate, ecology, agriculture and disasters","Agriculture, yields, irrigation, fertilizer, soil, land use, fisheries, food security and strategic food stocks.",proposed
+P30-06,30,"Climate, ecology, agriculture and disasters","Forests, deforestation, habitat, biodiversity, pollution, waste, recycling, plastics and ocean impacts.",proposed
+P30-07,30,"Climate, ecology, agriculture and disasters","Animal welfare: farming standards, hunting, wildlife protection, testing and entertainment rules.",proposed
+P30-08,30,"Climate, ecology, agriculture and disasters","Migration, health, fiscal and supply consequences feed the existing systems; disaster relief uses real capacity.",proposed
+P30-09,30,"Climate, ecology, agriculture and disasters","Climate negotiations, common funds and compliance reuse organization/treaty machinery.",proposed
+P31-01,31,"Epidemics, public health and demographic change","Disease spread at cohort/region level, contact patterns, severity, immunity and healthcare capacity.",proposed
+P31-02,31,"Epidemics, public health and demographic change","Testing, surveillance, masks, vaccines, treatments, hospital capacity and risk communication.",proposed
+P31-03,31,"Epidemics, public health and demographic change","Targeted restrictions, schools/workplaces/events, travel and border measures with economic/social consequences.",proposed
+P31-04,31,"Epidemics, public health and demographic change","Vaccine research, manufacturing, procurement and distribution; international cooperation.",proposed
+P31-05,31,"Epidemics, public health and demographic change","Chronic illness, prevention, nutrition, environmental exposure and causes of mortality.",proposed
+P31-06,31,"Epidemics, public health and demographic change","Aging, fertility, longevity and projections of health, education, pensions and labor supply.",proposed
+P31-07,31,"Epidemics, public health and demographic change",Preparedness and shock scenarios remain configurable; historical outbreaks are not inevitable on the same date after history diverges.,proposed
+P31-08,31,"Epidemics, public health and demographic change","Optional deliberately caused biological-threat scenarios at abstract crisis/response level, with detection uncertainty and international consequences; no operational biological detail.",proposed
+P32-01,32,"Research, technology and structural change","Technology graph with prerequisites, knowledge, institutions, skilled labor, funding and physical capability.",proposed
+P32-02,32,"Research, technology and structural change","Public research, universities, firms, international projects, technology transfer and diffusion.",proposed
+P32-03,32,"Research, technology and structural change","Distinguish discovery, prototype, commercialization, adoption and productive deployment.",proposed
+P32-04,32,"Research, technology and structural change","Automation/robotics, AI adoption, labor displacement/retraining, productivity and distributional consequences.",proposed
+P32-05,32,"Research, technology and structural change","Energy/storage, medicine, agriculture, materials, communications, transport and defense technologies.",proposed
+P32-06,32,"Research, technology and structural change","Standards, patents/licensing, export controls and dependency on critical inputs.",proposed
+P32-07,32,"Research, technology and structural change",Long-horizon or speculative technologies flagged separately and enabled by scenario rules.,proposed
+P32-08,32,"Research, technology and structural change",Future availability responds to research and economic conditions rather than a hard-coded calendar unlock alone.,proposed
+P33-01,33,"Nuclear strategy, arms control and strategic deterrence","Civil nuclear infrastructure, fuel supply and separate strategic-program status.",proposed
+P33-02,33,"Nuclear strategy, arms control and strategic deterrence","Delivery-system inventories, readiness, detection, warning, doctrines and command authority.",proposed
+P33-03,33,"Nuclear strategy, arms control and strategic deterrence","Deterrence, extended guarantees, escalation perceptions and crisis communication.",proposed
+P33-04,33,"Nuclear strategy, arms control and strategic deterrence","Arms-control treaties, inspection, limits, verification, withdrawal and disarmament.",proposed
+P33-05,33,"Nuclear strategy, arms control and strategic deterrence","Proliferation, sanctions, diplomacy and domestic political constraints.",proposed
+P33-06,33,"Nuclear strategy, arms control and strategic deterrence","Strategic-use consequences include damage, humanitarian crises, environmental effects and international response.",proposed
+P33-07,33,"Nuclear strategy, arms control and strategic deterrence",Keep all of this at strategic game abstraction; no engineering of real weapons is necessary for the mechanic.,proposed
+P34-01,34,Space and advanced strategic infrastructure,"Space agencies, launch infrastructure, launch vehicles, budgets and procurement.",proposed
+P34-02,34,Space and advanced strategic infrastructure,"Communications, positioning, weather and reconnaissance satellites with coverage, maintenance and lifetime.",proposed
+P34-03,34,Space and advanced strategic infrastructure,"Launch failure, constellation degradation, debris, anti-satellite conflict and replacement capacity.",proposed
+P34-04,34,Space and advanced strategic infrastructure,International science missions and prestige grounded in research and resource costs.,proposed
+P34-05,34,Space and advanced strategic infrastructure,"Lunar activity, space resources, Mars and advanced orbital projects as optional future-era content.",proposed
+P34-06,34,Space and advanced strategic infrastructure,"Settlement logistics, supplies, administration, political status and autonomy if off-world settlements are enabled.",proposed
+P34-07,34,Space and advanced strategic infrastructure,"Reuse projects, trade, logistics, science and territorial-administration primitives rather than inventing an unrelated minigame.",proposed
+P35-01,35,"Tourism, culture, sport and soft power","Visitor flows, spending, accommodation, transport access, seasonality and capacity.",proposed
+P35-02,35,"Tourism, culture, sport and soft power","Heritage, parks, conservation, safety, sanitation and environmental carrying capacity.",proposed
+P35-03,35,"Tourism, culture, sport and soft power","Culture, creative industries, language/cultural exchange and public funding.",proposed
+P35-04,35,"Tourism, culture, sport and soft power","Sporting organizations, bids, hosting, infrastructure, security, costs and reputational outcomes.",proposed
+P35-05,35,"Tourism, culture, sport and soft power","Cultural/sporting boycotts, international exchange and tourism diplomacy.",proposed
+P35-06,35,"Tourism, culture, sport and soft power","Soft power decomposed into attraction, access, credibility and networks, with limited and explainable diplomatic effects.",proposed
+P35-07,35,"Tourism, culture, sport and soft power","These features use the production, mobility, construction and event engines rather than arbitrary cash rewards.",proposed
+P36-01,36,Historical world completion and differentiated countries,"Complete the eligible-country and territory register for the 2000 bookmark; every omission, special status or unplayable entity explicitly recorded.",proposed
+P36-02,36,Historical world completion and differentiated countries,"Validate office-holders, major parties, cabinets, institutions, elections, currencies, treaties and organization memberships against that date.",proposed
+P36-03,36,Historical world completion and differentiated countries,"Curate subnational geography, population, industries, resources, infrastructure and armed forces to the selected simulation granularity.",proposed
+P36-04,36,Historical world completion and differentiated countries,"Add country-specific institutional configurations, political movements and strategic circumstances.",proposed
+P36-05,36,Historical world completion and differentiated countries,"Preserve universal system support: distinct country content should add context and constraints, not be required to make basic government work.",proposed
+P36-06,36,Historical world completion and differentiated countries,"Country selection displays data completeness, difficulty context and special rules. Missing facts remain labeled estimates, never invented certainty.",proposed
+P36-07,36,Historical world completion and differentiated countries,Historical names/facts coexist with generated future personalities and alternate outcomes.,proposed
+P37-01,37,"Scenarios, bookmarks and campaign tools",Default 2000 sandbox with configurable historical pressure versus open divergence.,proposed
+P37-02,37,"Scenarios, bookmarks and campaign tools","Additional independently validated bookmarks; changing the start date is a dataset change, not just changing the clock.",proposed
+P37-03,37,"Scenarios, bookmarks and campaign tools","Scenario definitions: setup overlays, objectives, constraints, actors, triggers, events, failure/success conditions and scoring.",proposed
+P37-04,37,"Scenarios, bookmarks and campaign tools","Economic scenarios: recession, banking crisis, sovereign debt, inflation, industrialization, energy dependence, household living costs and trade disruption.",proposed
+P37-05,37,"Scenarios, bookmarks and campaign tools","Political scenarios: election, coalition, constitutional reform, democratic transition, federalism, reunification and institutional breakdown.",proposed
+P37-06,37,"Scenarios, bookmarks and campaign tools","Security scenarios: regional war, territorial dispute, peace negotiation, insurgency, nuclear crisis and maritime disruption.",proposed
+P37-07,37,"Scenarios, bookmarks and campaign tools","Social scenarios: health emergency, migration, education, crime, inequality and demographic transition.",proposed
+P37-08,37,"Scenarios, bookmarks and campaign tools","Environmental scenarios: decarbonization, disaster recovery, drought/food security and climate cooperation.",proposed
+P37-09,37,"Scenarios, bookmarks and campaign tools","Scientific/cultural scenarios: technological leadership, international infrastructure, tourism and major events.",proposed
+P37-10,37,"Scenarios, bookmarks and campaign tools","Optional speculative scenarios: future crises, altered institutions and off-world politics; explicitly separate from historical claims.",proposed
+P37-11,37,"Scenarios, bookmarks and campaign tools",Trigger historical-inspired events by conditions where possible. Historical mode can weight choices without guaranteeing the original outcome.,proposed
+P37-12,37,"Scenarios, bookmarks and campaign tools","Campaign chronicle, meaningful comparisons, custom objectives and optional post-defeat observation/continuation.",proposed
+P38-01,38,"Editors, modding and scenario inspection","Content editing for countries, borders/control, actors, laws, organizations, economy, technology and scenario setup.",proposed
+P38-02,38,"Editors, modding and scenario inspection","Conditional events with schema validation, references, clear error locations and a deterministic execution budget.",proposed
+P38-03,38,"Editors, modding and scenario inspection","Custom names, flags, portraits, colors, icons, localization and map styles.",proposed
+P38-04,38,"Editors, modding and scenario inspection","Simulation mods with explicit dependencies, load order, overrides and compatibility declarations.",proposed
+P38-05,38,"Editors, modding and scenario inspection","Sandbox inspector with controlled mutations, instant events and reproducible scenario fixtures.",proposed
+P38-06,38,"Editors, modding and scenario inspection",Mod content hashes in saves/replays; safe handling of missing and conflicting packs.,proposed
+P38-07,38,"Editors, modding and scenario inspection",Begin with declarative content. Add sandboxed scripting only where declarative rules cannot express the needed behavior.,proposed
+P38-08,38,"Editors, modding and scenario inspection","Local import/export first; optional Workshop distribution later, without making Steam mandatory for normal mod use.",proposed
+P39-01,39,Full AI depth and long-campaign behavior,"Strategic doctrine changes after elections, regime changes, threats and major economic shifts.",proposed
+P39-02,39,Full AI depth and long-campaign behavior,"Negotiation across linked issues, coalition bargaining, deception under incomplete information and treaty compliance decisions.",proposed
+P39-03,39,Full AI depth and long-campaign behavior,Multi-year investment and infrastructure planning; scenario-aware crisis responses.,proposed
+P39-04,39,Full AI depth and long-campaign behavior,"Military plans coordinated with political war aims, logistics and feasible peace terms.",proposed
+P39-05,39,Full AI depth and long-campaign behavior,Distinct personalities without irrational randomness; institutional checks can override a leader’s preference.,proposed
+P39-06,39,Full AI depth and long-campaign behavior,AI budgets expressed in bounded candidate evaluations; relevant-country detail can increase without breaking basic world obligations.,proposed
+P39-07,39,Full AI depth and long-campaign behavior,"Automated campaigns compare outcomes and detect loops, stagnation, universal bankruptcies, endless wars or unrealistic convergence.",proposed
+P39-08,39,Full AI depth and long-campaign behavior,"Difficulty changes planning quality, uncertainty or resources only through declared settings; no undisclosed access to hidden world truth.",proposed
+P40-01,40,"Presentation, learning and accessibility polish","Consistent map language, icons, flags, charts, typography, spacing, audio cues and color usage.",proposed
+P40-02,40,"Presentation, learning and accessibility polish",Rich tooltips and encyclopedia entries linked to live state and formulas.,proposed
+P40-03,40,"Presentation, learning and accessibility polish","Visual explanation of flows: money, trade, electricity, logistics, migration and political support.",proposed
+P40-04,40,"Presentation, learning and accessibility polish","Configurable dashboards, comparisons, saved filters, bookmarks, layout persistence and multiple-display behavior where supported.",proposed
+P40-05,40,"Presentation, learning and accessibility polish","Interactive tutorials for budget, lawmaking, diplomacy, logistics and crisis response.",proposed
+P40-06,40,"Presentation, learning and accessibility polish","Keyboard-only completion of core tasks, accessible focus order, text alternatives, scalable interface and non-color cues.",proposed
+P40-07,40,"Presentation, learning and accessibility polish","Localization, bidirectional/complex-script assessment, readable large-number formatting and unambiguous dates/units.",proposed
+P40-08,40,"Presentation, learning and accessibility polish",Actual accessibility and platform issues are addressed as encountered from Priority 04; this priority completes consistency across all systems.,proposed
+P41-01,41,Multiplayer product implementation,Headless authoritative server using the existing simulation and command validators.,proposed
+P41-02,41,Multiplayer product implementation,Hosted sessions and dedicated servers; version/content/mod agreement before joining.,proposed
+P41-03,41,Multiplayer product implementation,"Country assignment, AI takeover, reconnect, save/resume, spectators and optional cooperative government roles.",proposed
+P41-04,41,Multiplayer product implementation,Per-player filtered snapshots/deltas; hidden intelligence never sent to unauthorized clients.,proposed
+P41-05,41,Multiplayer product implementation,"Ordered/idempotent commands, authentication, rate limits, validation and rejection feedback.",proposed
+P41-06,41,Multiplayer product implementation,"Shared pause/speed policy, readiness, handling of disconnected players and simultaneous negotiations.",proposed
+P41-07,41,Multiplayer product implementation,"Transport, discovery, relay/NAT support and optional Steam integration selected against actual platform needs.",proposed
+P41-08,41,Multiplayer product implementation,Desync diagnostics and replay support; server authority removes the need for every client to simulate all hidden world state.,proposed
+P41-09,41,Multiplayer product implementation,"Multiplayer-specific balance and exploit checks on gifts, loans, collusion, trade loops and repeated commands.",proposed
+P42-01,42,Optional player careers and extra presentation modes,"Opposition-party leadership, electoral climb and government transition using the existing political system.",proposed
+P42-02,42,Optional player careers and extra presentation modes,"Corporate leadership using existing firms, production, finance and regulation.",proposed
+P42-03,42,Optional player careers and extra presentation modes,"Personal wealth, property, donations, influence and scandals when relevant to an explicit role.",proposed
+P42-04,42,Optional player careers and extra presentation modes,"Multi-country single-player control, observer mode and custom role permissions.",proposed
+P42-05,42,Optional player careers and extra presentation modes,"Optional tactical/city views, ceremonial events and geography challenges.",proposed
+P42-06,42,Optional player careers and extra presentation modes,Keep the default government game complete without requiring these additional player perspectives.,proposed
