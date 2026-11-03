@@ -173,6 +173,18 @@ pub fn save(path: &Path, world: &World, content: &Content) -> Result<(), String>
         format!("Save failed: {error}. Existing snapshots are retained for recovery.")
     })
 }
+/// Save the active campaign and retain a unique archived snapshot before a user
+/// explicitly replaces it with a new campaign. Later backup rotation cannot
+/// overwrite this archive.
+pub fn save_before_new_campaign(
+    path: &Path,
+    world: &World,
+    content: &Content,
+) -> Result<std::path::PathBuf, String> {
+    let bytes = encode(world, content)?;
+    save(path, world, content)?;
+    preserve_bytes(path, "before-new-campaign", &bytes).map_err(|error| format!("Current campaign saved, but campaign archive failed: {error}. New campaign was not started."))
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RecoveryKind {
     Primary,

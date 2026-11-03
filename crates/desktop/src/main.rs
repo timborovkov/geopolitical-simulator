@@ -7,6 +7,7 @@ mod help;
 mod inspector;
 mod map;
 mod markets;
+mod new_game;
 mod settings;
 use eframe::egui::{self, Color32, RichText, Stroke, Vec2};
 use sim_core::{persistence, *};
@@ -59,6 +60,7 @@ struct GameApp {
     help: help::Help,
     cashflows: cashflows::CashFlows,
     bundled_catalog: bool,
+    new_setup: Option<new_game::Setup>,
 }
 impl GameApp {
     fn new(
@@ -124,6 +126,7 @@ impl GameApp {
             help: help::Help::default(),
             cashflows: cashflows::CashFlows::default(),
             bundled_catalog: false,
+            new_setup: None,
         }
     }
     fn advance(&mut self, days: u32) {
@@ -287,6 +290,109 @@ impl GameApp {
             persistence::recovery_candidates(&path, &self.content)
         };
     }
+    fn open_new_campaign(&mut self) {
+        if !self.recovery.is_empty() {
+            self.status = "Close save recovery before starting a new campaign.".into();
+            return;
+        }
+        self.pause();
+        match new_game::Setup::new(
+            &self.content,
+            &self.selected,
+            self.seed,
+            self.bundled_catalog,
+        ) {
+            Ok(setup) => self.new_setup = Some(setup),
+            Err(error) => self.status = error,
+        }
+    }
+    fn begin_new_campaign(
+        &mut self,
+        setup: &new_game::Setup,
+        save_current: bool,
+    ) -> Result<(), String> {
+        if self.pending.is_some() {
+            return Err("Wait for the current advance to stop at a day boundary.".into());
+        }
+        let world = setup.prepare()?;
+        let archive = if save_current {
+            if let Some(current) = &self.world {
+                let path = PathBuf::from(&self.save_path);
+                if let Some(parent) = path
+                    .parent()
+                    .filter(|parent| !parent.as_os_str().is_empty())
+                {
+                    std::fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+                }
+                Some(persistence::save_before_new_campaign(
+                    &path,
+                    current,
+                    &self.content,
+                )?)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        self.seed = world.seed;
+        self.scenario = world.scenario;
+        self.selected = world.player.clone();
+        self.target_date = date((world.day + 30).min(MAX_DAY));
+        self.content = setup.content.clone();
+        self.world = Some(world);
+        self.save_path = setup.save_path.clone();
+        self.tab = Tab::Overview;
+        self.speed = 0;
+        self.last_tick = Instant::now();
+        self.recovery.clear();
+        self.search.clear();
+        self.policy = "energy".into();
+        self.value = 1;
+        self.money = (self
+            .content
+            .country(&self.selected)
+            .expect("new country")
+            .gdp
+            / 100)
+            .max(1);
+        self.show_ledger = false;
+        self.map = map::WorldMap::new();
+        self.analysis = analysis::Analysis::default();
+        self.cashflows = cashflows::CashFlows::default();
+        self.inspector = inspector::Inspector::default();
+        self.help = help::Help::default();
+        self.status = archive.map_or_else(
+            || "New campaign started, paused.".into(),
+            |path| {
+                format!(
+                    "New campaign started, paused. Previous campaign archived at {}",
+                    path.display()
+                )
+            },
+        );
+        Ok(())
+    }
+    fn new_campaign_dialog(&mut self, ctx: &egui::Context) {
+        let Some(mut setup) = self.new_setup.take() else {
+            return;
+        };
+        match setup.show(
+            ctx,
+            self.world.is_some(),
+            self.pending.is_none(),
+            &self.save_path,
+        ) {
+            new_game::Choice::Waiting => self.new_setup = Some(setup),
+            new_game::Choice::Cancel => {}
+            new_game::Choice::Start { save_current } => {
+                if let Err(error) = self.begin_new_campaign(&setup, save_current) {
+                    setup.error = Some(error);
+                    self.new_setup = Some(setup);
+                }
+            }
+        }
+    }
     fn playback_label(&self) -> String {
         if let Some(job) = &self.pending {
             if job.is_stopping() {
@@ -320,6 +426,7 @@ impl GameApp {
                 if self.developer_mode { ui.colored_label(Color32::LIGHT_YELLOW, "Developer mode"); }
                 if self.world.as_ref().is_some_and(World::is_developer_modified) { ui.colored_label(Color32::LIGHT_YELLOW, "DEVELOPER-MODIFIED"); }
                 if ui.button("Settings [F1]").clicked() { self.pause(); self.tab = Tab::Settings; }
+                if self.world.is_some() && ui.add_enabled(self.recovery.is_empty(), egui::Button::new("New campaign")).clicked() { self.open_new_campaign(); }
             });
             if self.world.is_some() {
                 ui.horizontal_wrapped(|ui| {
@@ -1382,7 +1489,11 @@ impl GameApp {
                     Tab::Inspector => self.developer_inspector(ui),
                 });
         });
-        self.process_shortcuts(ctx);
+        let setup_open = self.new_setup.is_some();
+        self.new_campaign_dialog(ctx);
+        if !setup_open {
+            self.process_shortcuts(ctx);
+        }
         if self.speed > 0 || self.pending.is_some() {
             ctx.request_repaint_after(Duration::from_millis(50));
         }
@@ -1481,6 +1592,152 @@ fn main() -> eframe::Result {
 #[cfg(test)]
 mod interface_tests {
     use super::*;
+    #[test]
+    fn saving_before_a_new_campaign_archives_exact_active_state_outside_backup_rotation() {
+        let classic = Content::classic_bundled().unwrap();
+        let mut old = World::new(&classic, CountryId("GBR".into()), 17).unwrap();
+        old.issue(
+            &classic,
+            Action::Enact {
+                policy: "energy".into(),
+                value: 1,
+            },
+        )
+        .unwrap();
+        old.advance(&classic, 31).unwrap();
+        let expected_old = old.hash();
+        let dir = std::env::temp_dir().join(format!("geosim-new-campaign-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let active_path = dir.join("current.json");
+        let ctx = egui::Context::default();
+        let mut app = GameApp::from_context(&ctx, classic, settings::Preferences::default());
+        app.world = Some(old);
+        app.save_path = active_path.display().to_string();
+        app.bundled_catalog = true;
+        let mut setup = new_game::Setup::new(&app.content, &app.selected, 42, true).unwrap();
+        setup.player = CountryId("CHN".into());
+        setup.scenario = Scenario::FiscalSupplyCrisis;
+        setup.save_path = dir.join("new.json").display().to_string();
+        let expected_new = setup.prepare().unwrap().hash();
+        app.begin_new_campaign(&setup, true).unwrap();
+        assert_eq!(app.world.as_ref().unwrap().hash(), expected_new);
+        assert_eq!(app.content.rules, 3);
+        assert_eq!(app.selected.0, "CHN");
+        assert_eq!(app.speed, 0);
+        let archive = dir.join("current.json.before-new-campaign-1");
+        let archived_bytes = std::fs::read(&archive).unwrap();
+        assert_eq!(
+            persistence::load_bundled(&archive).unwrap().1.hash(),
+            expected_old
+        );
+        assert_eq!(
+            persistence::load_bundled(&active_path).unwrap().1.hash(),
+            expected_old
+        );
+        for _ in 0..2 {
+            app.world
+                .as_mut()
+                .unwrap()
+                .advance(&app.content, 1)
+                .unwrap();
+            persistence::save(&active_path, app.world.as_ref().unwrap(), &app.content).unwrap();
+        }
+        assert_eq!(std::fs::read(&archive).unwrap(), archived_bytes);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn failed_save_and_invalid_new_setup_leave_the_active_campaign_unchanged() {
+        let content = Content::bundled().unwrap();
+        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        world.advance(&content, 10).unwrap();
+        let expected = world.hash();
+        let dir = std::env::temp_dir().join(format!(
+            "geosim-new-campaign-failure-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("current.json");
+        persistence::save(&path, &world, &content).unwrap();
+        let original = std::fs::read(&path).unwrap();
+        std::fs::write(path.with_extension("json.tmp"), "interrupted").unwrap();
+        let ctx = egui::Context::default();
+        let mut app =
+            GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+        app.world = Some(world);
+        app.save_path = path.display().to_string();
+        let mut setup = new_game::Setup::new(&content, &CountryId("CHN".into()), 42, true).unwrap();
+        setup.save_path = dir.join("new.json").display().to_string();
+        assert!(app.begin_new_campaign(&setup, true).is_err());
+        assert_eq!(app.world.as_ref().unwrap().hash(), expected);
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+        setup.seed = "invalid seed".into();
+        assert!(app.begin_new_campaign(&setup, false).is_err());
+        assert_eq!(app.world.as_ref().unwrap().hash(), expected);
+        assert_eq!(app.content.hash(), content.hash());
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn new_campaign_modal_blocks_time_shortcuts_and_escape_cancels_without_losing_context() {
+        for scale in [1.0, 1.4] {
+            let content = Content::bundled().unwrap();
+            let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+            let expected = world.hash();
+            let ctx = egui::Context::default();
+            let mut app = GameApp::from_context(&ctx, content, settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            app.world = Some(world);
+            app.tab = Tab::Treasury;
+            app.open_new_campaign();
+            let input = egui::RawInput {
+                focused: true,
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1280.0 / scale, 800.0 / scale),
+                )),
+                ..Default::default()
+            };
+            let output = ctx.run(input.clone(), |ctx| app.render(ctx));
+            for label in ["Save and start", "Start without saving", "Cancel"] {
+                let shape = output.shapes.iter().find(|shape| matches!(&shape.shape, egui::Shape::Text(text) if text.galley.text() == label)).expect("modal action is painted");
+                if let egui::Shape::Text(text) = &shape.shape {
+                    assert!(
+                        shape
+                            .clip_rect
+                            .contains_rect(text.galley.rect.translate(text.pos.to_vec2())),
+                        "{label} is clipped at scale {scale}"
+                    );
+                }
+            }
+            let key = |key| egui::Event::Key {
+                key,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            };
+            let _ = ctx.run(
+                egui::RawInput {
+                    events: vec![key(egui::Key::N)],
+                    ..input.clone()
+                },
+                |ctx| app.render(ctx),
+            );
+            assert!(app.new_setup.is_some());
+            assert!(app.pending.is_none());
+            assert_eq!(app.speed, 0);
+            let _ = ctx.run(
+                egui::RawInput {
+                    events: vec![key(egui::Key::Escape)],
+                    ..input
+                },
+                |ctx| app.render(ctx),
+            );
+            assert!(app.new_setup.is_none());
+            assert!(app.tab == Tab::Treasury);
+            assert_eq!(app.world.as_ref().unwrap().hash(), expected);
+        }
+    }
     #[test]
     fn bundled_loading_keeps_classic_rules_and_explicit_pack_selection_stays_pinned() {
         let current = Content::bundled().unwrap();
