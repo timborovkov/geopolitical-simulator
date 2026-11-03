@@ -168,13 +168,10 @@ def build_commitments():
     return pack
 
 
-def build_cabinet():
-    pack = build_commitments()
-    pack.update(schema=7, rules=7, id="synthetic-cabinet-v7", name="Fictional ministerial appointments",
-                description="Authored ministerial portfolios and generated candidates. Appointments require current authority and cabinet continuity; fees and political costs constrain choices. Skill affects preparation of new proposals only. Initial unassigned portfolios use permanent civil service; no claim about historical vacancies or ministerial careers is made.")
+def cabinet_rules(countries, source="synthetic-original", source_version="authored-cabinet-v1"):
     portfolios = []
     candidates = []
-    for country in pack["countries"]:
+    for country in countries:
         for key, title, policies in [("finance", "Finance ministry", ["income_tax", "services", "welfare"]),
                                      ("supply", "Supply ministry", ["energy", "agriculture"]),
                                      ("administration", "Cabinet administration", ["administration"])]:
@@ -183,9 +180,16 @@ def build_cabinet():
             for kind, skill, acceptability in [("professional",85,40),("consensus",55,85)]:
                 candidates.append(dict(person=f"generated:{country['id']}:{key}:{kind}", office=office,
                     name=f"Generated {country['id']} {key} {kind} nominee", skill=skill, acceptability=acceptability))
-    pack["cabinet"] = dict(portfolios=portfolios, candidates=candidates, appointment_cost_bps=2,
+    return dict(portfolios=portfolios, candidates=candidates, appointment_cost_bps=2,
                            dismissal_cost_bps=1, cooldown_days=90, vacancy_preparation_days=30,
-                           source="synthetic-original", source_version="authored-cabinet-v1")
+                           source=source, source_version=source_version)
+
+
+def build_cabinet():
+    pack = build_commitments()
+    pack.update(schema=7, rules=7, id="synthetic-cabinet-v7", name="Fictional ministerial appointments",
+                description="Authored ministerial portfolios and generated candidates. Appointments require current authority and cabinet continuity; fees and political costs constrain choices. Skill affects preparation of new proposals only. Initial unassigned portfolios use permanent civil service; no claim about historical vacancies or ministerial careers is made.")
+    pack["cabinet"] = cabinet_rules(pack["countries"])
     return pack
 
 
@@ -244,6 +248,17 @@ def build_commitment_starter():
     return pack
 
 
+def build_cabinet_starter():
+    pack = build_commitment_starter()
+    pack.update(schema=7, rules=7, id="initial-2000-cabinet-v7", name="A New Century · cabinet government")
+    pack["description"] += " Ministerial portfolios, generated nominees and preparation rules are authored gameplay definitions, not historical ministry rosters or vacancy claims. Unassigned portfolios use permanent civil service. Earlier campaigns retain their exact original rules."
+    source = "authored-cabinet-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model",
+                                description="Original functional portfolios, generated candidate profiles, eligibility, appointment/dismissal costs and preparation delays. No historical ministerial staffing or career claims."))
+    pack["cabinet"] = cabinet_rules(pack["countries"], source, "ministerial-portfolios-v1")
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -257,7 +272,8 @@ def main():
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),
-                           ("initial-2000-commitments.json", build_commitment_starter())]:
+                           ("initial-2000-commitments.json", build_commitment_starter()),
+                           ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"
         if args.check:

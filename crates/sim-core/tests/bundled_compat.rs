@@ -13,11 +13,11 @@ fn published_constitutional_pack_keeps_its_no_order_campaign_golden() {
 }
 
 #[test]
-fn commitment_starter_preserves_prior_country_policy_and_reference_data() {
+fn cabinet_starter_preserves_prior_country_policy_and_reference_data() {
     let current = Content::bundled().unwrap();
     let classic = Content::classic_bundled().unwrap();
-    assert_eq!(current.schema, 6);
-    assert_eq!(current.rules, 6);
+    assert_eq!(current.schema, 7);
+    assert_eq!(current.rules, 7);
     assert_eq!(classic.rules, 2);
     assert_eq!(current.countries, classic.countries);
     assert_eq!(current.policies, classic.policies);
@@ -44,7 +44,14 @@ fn commitment_starter_preserves_prior_country_policy_and_reference_data() {
     assert_eq!(current.policies, constitution.policies);
     assert_eq!(current.facts, constitution.facts);
     assert_eq!(current.constitutions, constitution.constitutions);
-    for pack in [current, constitution, finance, market, classic] {
+    let commitment = Content::commitment_bundled().unwrap();
+    assert_eq!(commitment.rules, 6);
+    assert!(commitment.cabinet.is_none());
+    assert_eq!(current.countries, commitment.countries);
+    assert_eq!(current.policies, commitment.policies);
+    assert_eq!(current.facts, commitment.facts);
+    assert_eq!(current.commitments, commitment.commitments);
+    for pack in [current, commitment, constitution, finance, market, classic] {
         assert_eq!(Content::bundled_for_hash(pack.hash()).unwrap(), pack);
     }
 }
@@ -84,7 +91,7 @@ fn bundled_recovery_selects_exact_pack_and_preserves_converted_backup_bytes() {
     assert_eq!(std::fs::read(&backup).unwrap(), original);
     let candidates = persistence::recovery_candidates_bundled(&path);
     assert_eq!(candidates.len(), 2);
-    assert_eq!(candidates[0].rules, Some(6));
+    assert_eq!(candidates[0].rules, Some(7));
     assert_eq!(
         candidates[0].content_id.as_deref(),
         Some(current.id.as_str())
@@ -157,8 +164,8 @@ fn preserved_market_pack_replays_and_recovers_without_financing_migration() {
     let market_bytes = persistence::encode(&original, &market).unwrap();
     std::fs::write(&backup, &market_bytes).unwrap();
     let candidates = persistence::recovery_candidates_bundled(&path);
-    assert_eq!(candidates[0].rules, Some(6));
-    assert_eq!(candidates[0].schema, Some(7));
+    assert_eq!(candidates[0].rules, Some(7));
+    assert_eq!(candidates[0].schema, Some(8));
     assert_eq!(candidates[1].rules, Some(3));
     assert_eq!(candidates[1].schema, Some(4));
     let (resolved, restored) = persistence::restore_bundled(&path, &backup).unwrap();
@@ -201,8 +208,8 @@ fn preserved_financing_pack_keeps_its_golden_and_pending_loan_when_restored_from
     let old_bytes = persistence::encode(&pending, &finance).unwrap();
     std::fs::write(&backup, &old_bytes).unwrap();
     let candidates = persistence::recovery_candidates_bundled(&path);
-    assert_eq!(candidates[0].rules, Some(6));
-    assert_eq!(candidates[0].schema, Some(7));
+    assert_eq!(candidates[0].rules, Some(7));
+    assert_eq!(candidates[0].schema, Some(8));
     assert_eq!(candidates[1].rules, Some(4));
     assert_eq!(candidates[1].schema, Some(5));
     let (resolved, mut restored) = persistence::restore_bundled(&path, &backup).unwrap();
@@ -265,7 +272,7 @@ fn earlier_constitutional_pending_request_recovers_without_policy_lifecycle_migr
     let earlier_bytes = persistence::encode(&pending, &earlier).unwrap();
     std::fs::write(&backup, &earlier_bytes).unwrap();
     let candidates = persistence::recovery_candidates_bundled(&path);
-    assert_eq!(candidates[0].schema, Some(7));
+    assert_eq!(candidates[0].schema, Some(8));
     assert_eq!(candidates[1].schema, Some(6));
     let (resolved, mut restored) = persistence::restore_bundled(&path, &backup).unwrap();
     assert_eq!(resolved, earlier);
@@ -297,5 +304,70 @@ fn published_commitment_starter_keeps_its_no_order_campaign_golden() {
     let mut world = World::new(&content, CountryId("GBR".into()), 2000).unwrap();
     world.advance(&content, 360).unwrap();
     assert_eq!(world.hash(), 0xdaf70b17cc0d2ff0);
+    persistence::replay(&world, &content).unwrap();
+}
+
+#[test]
+fn earlier_commitment_amendment_recovers_without_new_preparation_delays() {
+    let earlier = Content::commitment_bundled().unwrap();
+    let mut pending = World::new(&earlier, CountryId("GBR".into()), 17).unwrap();
+    pending
+        .issue(
+            &earlier,
+            Action::Enact {
+                policy: "income_tax".into(),
+                value: 30,
+            },
+        )
+        .unwrap();
+    pending.advance(&earlier, 3).unwrap();
+    pending
+        .issue(
+            &earlier,
+            Action::AmendCommitment {
+                request: CommitmentId(1),
+                value: 32,
+            },
+        )
+        .unwrap();
+    assert_eq!(pending.hash(), 0xbb5fb19faa310498);
+    let current = Content::bundled().unwrap();
+    let current_world = World::new(&current, pending.player.clone(), 42).unwrap();
+    let dir =
+        std::env::temp_dir().join(format!("geosim-commitment-recovery-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("mixed.json");
+    persistence::save(&path, &current_world, &current).unwrap();
+    let current_bytes = std::fs::read(&path).unwrap();
+    let backup = path.with_extension("json.bak");
+    let earlier_bytes = persistence::encode(&pending, &earlier).unwrap();
+    std::fs::write(&backup, &earlier_bytes).unwrap();
+    let candidates = persistence::recovery_candidates_bundled(&path);
+    assert_eq!(candidates[0].schema, Some(8));
+    assert_eq!(candidates[1].schema, Some(7));
+    let (resolved, mut restored) = persistence::restore_bundled(&path, &backup).unwrap();
+    assert_eq!(resolved, earlier);
+    assert!(restored.player_country().cabinet.is_none());
+    assert_eq!(restored.player_country().projects[0].due_day, 51);
+    restored.advance(&resolved, 78).unwrap();
+    assert_eq!(restored.hash(), 0x6e1b17c01398b1ec);
+    assert_eq!(std::fs::read(&backup).unwrap(), earlier_bytes);
+    assert_eq!(
+        std::fs::read(dir.join("mixed.json.before-recovery-1")).unwrap(),
+        current_bytes
+    );
+    persistence::replay(&restored, &resolved).unwrap();
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn published_cabinet_starter_keeps_its_no_order_campaign_golden() {
+    let content =
+        Content::from_json(include_str!("../../../data/initial-2000-cabinet.json")).unwrap();
+    assert_eq!(content.cabinet.as_ref().unwrap().portfolios.len(), 45);
+    assert_eq!(content.cabinet.as_ref().unwrap().candidates.len(), 90);
+    let mut world = World::new(&content, CountryId("GBR".into()), 2000).unwrap();
+    world.advance(&content, 360).unwrap();
+    assert_eq!(world.hash(), 0xbec8276e0de88b7d);
     persistence::replay(&world, &content).unwrap();
 }

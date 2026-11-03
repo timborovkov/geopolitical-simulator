@@ -4,6 +4,7 @@ use sim_core::*;
 #[derive(Clone, Copy, PartialEq)]
 enum Pack {
     Current,
+    Commitment,
     Constitution,
     Finance,
     Market,
@@ -94,9 +95,10 @@ impl Setup {
                 if active { ui.label(format!("Save active campaign to: {current_save_path}. A separate archived snapshot will also be retained.")); }
                 if self.bundled_catalog {
                     let previous = self.pack;
-                    let pack_label = match self.pack { Pack::Current => "Default · policy commitments", Pack::Constitution => "Earlier · political transitions", Pack::Finance => "Earlier · borrowing and prices", Pack::Market => "Earlier · prices only", _ => "Classic · fixed prices" };
-                    egui::ComboBox::from_label("World pack").selected_text(pack_label).show_ui(ui, |ui| {
-                        ui.selectable_value(&mut self.pack, Pack::Current, "Default · policy commitments");
+                    let pack_label = match self.pack { Pack::Current => "Default · ministries and policies", Pack::Commitment => "Earlier · policy commitments", Pack::Constitution => "Earlier · political transitions", Pack::Finance => "Earlier · borrowing and prices", Pack::Market => "Earlier · prices only", _ => "Classic · fixed prices" };
+                    egui::ComboBox::from_label("World pack").height(260.0).selected_text(pack_label).show_ui(ui, |ui| {
+                        ui.selectable_value(&mut self.pack, Pack::Current, "Default · ministries and policies");
+                        ui.selectable_value(&mut self.pack, Pack::Commitment, "Earlier · policy commitments");
                         ui.selectable_value(&mut self.pack, Pack::Constitution, "Earlier · political transitions");
                         ui.selectable_value(&mut self.pack, Pack::Finance, "Earlier · borrowing and prices");
                         ui.selectable_value(&mut self.pack, Pack::Market, "Earlier · prices only");
@@ -104,7 +106,7 @@ impl Setup {
                     });
                     if self.pack != previous {
                         let old_default = format!("saves/campaign-v{}.json", sim_core::persistence::snapshot_schema_for_rules(self.content.rules));
-                        match match self.pack { Pack::Classic => Content::classic_bundled(), Pack::Constitution => Content::constitution_bundled(), Pack::Finance => Content::finance_bundled(), Pack::Market => Content::market_bundled(), _ => Content::bundled() } {
+                        match match self.pack { Pack::Classic => Content::classic_bundled(), Pack::Commitment => Content::commitment_bundled(), Pack::Constitution => Content::constitution_bundled(), Pack::Finance => Content::finance_bundled(), Pack::Market => Content::market_bundled(), _ => Content::bundled() } {
                             Ok(content) => {
                                 if content.country(&self.player).is_none() { self.player = content.countries[0].id.clone(); }
                                 if self.save_path == old_default { self.save_path = format!("saves/campaign-v{}.json", sim_core::persistence::snapshot_schema_for_rules(content.rules)); }
