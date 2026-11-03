@@ -31,9 +31,12 @@ fn check(w: &World, c: &Content) {
 fn amendment_pays_restarts_consent_and_preserves_direct_and_observed_history() {
     let c = fixture();
     let mut w = start(&c, "AUR");
+    let forecast = w.preview(&c, &w.player, "income_tax", 32).unwrap();
     let id = enact(&mut w, &c, "income_tax", 30);
     w.advance(&c, 3).unwrap();
     let p = w.preview_amendment(&c, &w.player, id, 32).unwrap();
+    assert_eq!(p.annual_budget_change, forecast.annual_budget_change);
+    assert_eq!(p.household_impacts, forecast.household_impacts);
     assert_eq!(p.fee, Money(2));
     assert_eq!(p.consent_day, 17);
     let before = w.player_country().accounts.treasury;
@@ -335,7 +338,7 @@ fn immediate_route_after_regime_change_funds_an_amendment_without_a_stale_pendin
 }
 #[test]
 fn legacy_rules_keep_hashes_and_reject_lifecycle_orders_and_malformed_state() {
-    let c = Content::bundled().unwrap();
+    let c = Content::constitution_bundled().unwrap();
     let mut old = start(&c, "GBR");
     let hash = old.hash();
     assert!(

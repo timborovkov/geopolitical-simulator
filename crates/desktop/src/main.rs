@@ -282,6 +282,7 @@ impl GameApp {
                     3 => "Relative-price campaign loaded. Simulation paused.",
                     4 => "Institutional-financing campaign loaded. Simulation paused.",
                     5 => "Constitutional-transition campaign loaded. Simulation paused.",
+                    6 => "Policy-lifecycle campaign loaded. Simulation paused.",
                     _ => "Campaign loaded. Simulation paused.",
                 }
                 .into();
@@ -1816,7 +1817,7 @@ mod interface_tests {
         let expected_new = setup.prepare().unwrap().hash();
         app.begin_new_campaign(&setup, true).unwrap();
         assert_eq!(app.world.as_ref().unwrap().hash(), expected_new);
-        assert_eq!(app.content.rules, 5);
+        assert_eq!(app.content.rules, 6);
         assert_eq!(app.selected.0, "CHN");
         assert_eq!(app.speed, 0);
         let archive = dir.join("current.json.before-new-campaign-1");

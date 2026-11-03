@@ -25,6 +25,9 @@ impl Panel {
                     match world.preview_amendment(content,&world.player,CommitmentId(p.id),*value) {
                         Ok(preview)=>{
                             ui.label(format!("Pay {}m administration now; consent restarts to {}, delivery {}. {}",preview.fee.0,date(preview.consent_day),date(preview.due_day),preview.route));
+                            ui.label(format!("After delivery versus current operating levels: annual net expenditure change {:+}m (forecast).",preview.annual_budget_change.0));
+                            for impact in &preview.household_impacts {ui.label(format!("{}: {:+}m/day disposable income",impact.group,impact.daily_disposable_change.0));}
+                            ui.small("Forecast holds opening GDP, collection and funded wages constant; shocks, prices and other pending changes can alter outcomes.");
                             if ui.button("Submit paid amendment").clicked() {action=Some(Action::AmendCommitment{request:CommitmentId(p.id),value:*value});}
                         }
                         Err(reason)=>{ui.small(format!("Amendment: {reason}"));}
@@ -46,13 +49,13 @@ impl Panel {
             for r in records.iter().rev() {
                 egui::CollapsingHeader::new(format!("#{} · {} · {:?} · paid {}m",r.id.0,content.policy(&r.project.policy).expect("policy").name,r.stage(),r.paid.0)).id_salt(r.id.0).show(ui,|ui| {
                     for m in &r.milestones {ui.label(format!("{} · {:?} · level {}",date(m.day),m.stage,m.value));}
-                    for e in &r.direct_effects {ui.label(format!("Direct delivered change: {} from {} to {}",e.field,e.before,e.after));}
+                    for e in &r.direct_effects {ui.label(format!("Direct delivered change: {} from {} to {}",effect_label(&e.field),e.before,e.after));}
                     if let Some(day)=r.review_due {ui.label(format!("Observed outcome review due {}",date(day)));}
                     if let Some(e)=&r.evaluation {
                         ui.strong(format!("Observed review · {}",date(e.day)));
-                        if let Some(before)=&e.before {ui.label(format!("Before delivery: revenue {}m/day · spending {}m/day · food {}% · energy {}% · external shock {}",before.revenue.0,before.spending.0,before.food_coverage,before.energy_coverage,before.shock));}
+                        if let Some(before)=&e.before {ui.label(format!("Before delivery: revenue {}m/day · spending {}m/day · food {}% · energy {}% · external disruption {} capacity points",before.revenue.0,before.spending.0,before.food_coverage,before.energy_coverage,before.shock));}
                         else {ui.label("No pre-delivery settlement was available at this bookmark.");}
-                        ui.label(format!("Review day: revenue {}m/day · spending {}m/day · food {}% · energy {}% · external shock {}",e.after.revenue.0,e.after.spending.0,e.after.food_coverage,e.after.energy_coverage,e.after.shock));
+                        ui.label(format!("Review day: revenue {}m/day · spending {}m/day · food {}% · energy {}% · external disruption {} capacity points",e.after.revenue.0,e.after.spending.0,e.after.food_coverage,e.after.energy_coverage,e.after.shock));
                         ui.label(format!("Approval {}% to {}%; {} other programme deliveries during this window.",e.approval_before,e.approval_after,e.other_deliveries));
                         ui.small("Observed differences also reflect prices, other policies and external shocks. They are not an isolated causal effect or a forecast guarantee.");
                     }
@@ -62,6 +65,22 @@ impl Panel {
         action
     }
 }
+
+fn effect_label(field: &str) -> &str {
+    match field {
+        "income_tax" => "Income tax (% of wages)",
+        "services" => "Services (% of GDP)",
+        "welfare" => "Welfare (% of GDP)",
+        "energy_capacity" => "Domestic energy capacity (%)",
+        "food_capacity" => "Domestic food capacity (%)",
+        "administration" => "Administration (%)",
+        "legislative_support" => "Legislative support",
+        "elite_support" => "Elite backing",
+        "council_support" => "Council backing",
+        _ => field,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -211,6 +211,18 @@ def build_constitution_starter():
     return pack
 
 
+def build_commitment_starter():
+    pack = build_constitution_starter()
+    pack.update(schema=6, rules=6, id="initial-2000-commitments-v6", name="A New Century · policy commitments")
+    pack["description"] += " Policy amendments, withdrawal, history and observed reviews use authored rules-6 procedures. Existing campaigns retain their exact original rules."
+    source = "authored-commitments-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model",
+                                description="Original amendment administration costs, per-proposal limits and observed-review intervals. These are game assumptions, not historical legislative or contracting rules."))
+    pack["commitments"] = build_commitments()["commitments"]
+    pack["commitments"].update(source=source, source_version="policy-commitments-v1")
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -222,7 +234,8 @@ def main():
                            ("synthetic-commitment-test.json", build_commitments()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
-                           ("initial-2000-constitutions.json", build_constitution_starter())]:
+                           ("initial-2000-constitutions.json", build_constitution_starter()),
+                           ("initial-2000-commitments.json", build_commitment_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"
         if args.check:

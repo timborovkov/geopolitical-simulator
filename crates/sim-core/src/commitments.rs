@@ -92,6 +92,8 @@ pub struct AmendmentPreview {
     pub consent_day: u32,
     pub due_day: u32,
     pub route: String,
+    pub annual_budget_change: Money,
+    pub household_impacts: Vec<HouseholdImpact>,
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CancellationPreview {
@@ -161,11 +163,19 @@ impl World {
             .checked_add(definition.days + (100 - c.administration) as u32 / 2)
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Implementation would exceed the campaign calendar")?;
+        let (annual_budget_change, household_impacts) = crate::rules::policy_forecast(
+            content.country(id).ok_or("Missing country definition")?,
+            c,
+            &p.policy,
+            value,
+        );
         Ok(AmendmentPreview {
             fee,
             consent_day,
             due_day,
             route: government.label(),
+            annual_budget_change,
+            household_impacts,
         })
     }
     pub fn preview_cancellation(

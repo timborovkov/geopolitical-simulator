@@ -50,15 +50,6 @@ impl World {
                 cost.0
             ));
         }
-        let annual = match policy {
-            "income_tax" => {
-                -(d.gdp * 70 / 100 * i64::from(value - c.tax) * i64::from(c.administration) / 10000)
-            }
-            "services" => d.gdp * i64::from(value - c.services) / 100,
-            "welfare" => d.gdp * i64::from(value - c.welfare) / 100,
-            "energy" | "agriculture" => d.gdp / 1000,
-            _ => 0,
-        };
         let consent_delay = if policy == "coalition" {
             0
         } else {
@@ -69,40 +60,7 @@ impl World {
         } else {
             Money((cost.0 / 10).max(1))
         };
-        let daily = d.gdp / 365;
-        let household_impacts = d
-            .households
-            .iter()
-            .map(|h| {
-                let change = match policy {
-                    "income_tax" => {
-                        -(daily * 70 / 100
-                            * h.income_share
-                            * i64::from(value - c.tax)
-                            * i64::from(c.administration)
-                            / 1000000)
-                    }
-                    "services" if h.id == "public" => daily * i64::from(value - c.services) / 100,
-                    "welfare" => {
-                        daily
-                            * i64::from(value - c.welfare)
-                            * if h.id == "vulnerable" {
-                                80
-                            } else if h.id == "workers" {
-                                20
-                            } else {
-                                0
-                            }
-                            / 10000
-                    }
-                    _ => 0,
-                };
-                HouseholdImpact {
-                    group: h.name.clone(),
-                    daily_disposable_change: Money(change),
-                }
-            })
-            .collect();
+        let (annual, household_impacts) = policy_forecast(d, c, policy, value);
         if content.commitments.is_some()
             && self
                 .day
@@ -114,7 +72,7 @@ impl World {
         Ok(PolicyPreview {
             cost,
             delay: consent_delay + p.days + (100 - c.administration) as u32 / 2,
-            annual_budget_change: Money(annual),
+            annual_budget_change: annual,
             route: government.label(),
             consent_delay,
             upfront_payment,
@@ -1016,4 +974,57 @@ impl World {
             ),
         }
     }
+}
+
+/// Shared unchanged-policy forecast; amendment previews compare with operating levels.
+pub(crate) fn policy_forecast(
+    d: &CountryDefinition,
+    c: &Country,
+    policy: &str,
+    value: i32,
+) -> (Money, Vec<HouseholdImpact>) {
+    let annual = match policy {
+        "income_tax" => {
+            -(d.gdp * 70 / 100 * i64::from(value - c.tax) * i64::from(c.administration) / 10000)
+        }
+        "services" => d.gdp * i64::from(value - c.services) / 100,
+        "welfare" => d.gdp * i64::from(value - c.welfare) / 100,
+        "energy" | "agriculture" => d.gdp / 1000,
+        _ => 0,
+    };
+    let daily = d.gdp / 365;
+    let household_impacts = d
+        .households
+        .iter()
+        .map(|h| {
+            let change = match policy {
+                "income_tax" => {
+                    -(daily * 70 / 100
+                        * h.income_share
+                        * i64::from(value - c.tax)
+                        * i64::from(c.administration)
+                        / 1000000)
+                }
+                "services" if h.id == "public" => daily * i64::from(value - c.services) / 100,
+                "welfare" => {
+                    daily
+                        * i64::from(value - c.welfare)
+                        * if h.id == "vulnerable" {
+                            80
+                        } else if h.id == "workers" {
+                            20
+                        } else {
+                            0
+                        }
+                        / 10000
+                }
+                _ => 0,
+            };
+            HouseholdImpact {
+                group: h.name.clone(),
+                daily_disposable_change: Money(change),
+            }
+        })
+        .collect();
+    (Money(annual), household_impacts)
 }
