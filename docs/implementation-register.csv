@@ -27,7 +27,7 @@ P04-03,4,"Native desktop shell, map and navigation","Separate display geometry f
 P04-04,4,"Native desktop shell, map and navigation","Political, terrain and administrative layers first; overlay infrastructure added by later systems.",partial
 P04-05,4,"Native desktop shell, map and navigation","Country overview, ministry navigation, sortable tables, charts, comparison tray, searchable encyclopedia and persistent selection.",partial
 P04-06,4,"Native desktop shell, map and navigation","Keyboard navigation, key rebinding, high-DPI/UI scaling, readable compact text, Unicode/IME support and colorblind-safe encodings.",partial
-P04-07,4,"Native desktop shell, map and navigation",Pause and speed visible at all times. Escape/back behavior and window focus must be predictable.,proposed
+P04-07,4,"Native desktop shell, map and navigation",Pause and speed visible at all times. Escape/back behavior and window focus must be predictable.,partial
 P05-01,5,"Accounts, units and causal reporting","Treasury, household-sector, business-sector and foreign-sector accounts; add financial intermediaries when their rules exist.",partial
 P05-02,5,"Accounts, units and causal reporting",Stocks versus flows; balances versus rates; nominal versus real values; local currency versus reporting currency.,partial
 P05-03,5,"Accounts, units and causal reporting","Public spending, receipts, transfers, obligations, cash and financing; distinguish authorization, commitment and payment.",partial

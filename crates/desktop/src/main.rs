@@ -2,6 +2,7 @@ mod advance;
 mod analysis;
 mod charts;
 mod geometry;
+mod help;
 mod inspector;
 mod map;
 mod settings;
@@ -53,6 +54,7 @@ struct GameApp {
     preferences: settings::Preferences,
     developer_mode: bool,
     inspector: inspector::Inspector,
+    help: help::Help,
 }
 impl GameApp {
     fn new(cc: &eframe::CreationContext<'_>, content: Content, developer_mode: bool) -> Self {
@@ -105,6 +107,7 @@ impl GameApp {
             preferences,
             developer_mode: false,
             inspector: inspector::Inspector::default(),
+            help: help::Help::default(),
         }
     }
     fn advance(&mut self, days: u32) {
@@ -248,47 +251,67 @@ impl GameApp {
             }
         }
     }
+    fn playback_label(&self) -> String {
+        if let Some(job) = &self.pending {
+            if job.is_stopping() {
+                "Stopping at next day boundary".into()
+            } else {
+                format!(
+                    "Advancing {} / {} days",
+                    job.completed.load(std::sync::atomic::Ordering::Relaxed),
+                    job.requested
+                )
+            }
+        } else if self.speed == 0 {
+            "Paused".into()
+        } else {
+            format!("Running · {} days per step", self.speed)
+        }
+    }
     fn top(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("command_bar").show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.label(RichText::new("STATECRAFT").size(23.0).strong().color(MINT));
-                ui.label(RichText::new("A NEW CENTURY").color(MUTED));
-                if self.developer_mode { ui.colored_label(Color32::LIGHT_YELLOW, "Developer mode"); }
-                if self.world.as_ref().is_some_and(World::is_developer_modified) { ui.colored_label(Color32::LIGHT_YELLOW, "DEVELOPER-MODIFIED"); }
-                if ui.button("Settings [F1]").clicked(){self.pause();self.tab=Tab::Settings;}
-                ui.separator();
                 if let Some(w) = &self.world {
                     ui.strong(date(w.day));
                     ui.label(format!("Governing {} · {}", w.player.0, w.scenario.id()));
-                    if ui
-                        .button(format!("{} [{}]",if self.speed==0&&self.pending.is_none(){"Play"}else{"Pause"},self.preferences.active.pause.name()))
-                        .clicked()
-                    {
-                        if self.speed>0||self.pending.is_some(){self.pause();}else{self.speed=1;}
+                    ui.strong(self.playback_label());
+                    if ui.button(format!("{} [{}]", if self.speed == 0 && self.pending.is_none() { "Play" } else { "Pause" }, self.preferences.active.pause.name())).clicked() {
+                        if self.speed > 0 || self.pending.is_some() { self.pause(); } else { self.speed = 1; }
                         self.last_tick = Instant::now();
                     }
-                    for (days, label) in [(1, "1×"), (7, "7×"), (30, "30×")] {
-                        if ui.selectable_label(self.speed == days, label).clicked() {
-                            self.speed = days;
+                } else { ui.label(format!("{} · Offline single player", self.content.start)); }
+                if self.developer_mode { ui.colored_label(Color32::LIGHT_YELLOW, "Developer mode"); }
+                if self.world.as_ref().is_some_and(World::is_developer_modified) { ui.colored_label(Color32::LIGHT_YELLOW, "DEVELOPER-MODIFIED"); }
+                if ui.button("Settings [F1]").clicked() { self.pause(); self.tab = Tab::Settings; }
+            });
+            if self.world.is_some() {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label("Automatic step:");
+                    for (days, label) in [(1, "1 day"), (7, "7 days"), (30, "30 days")] {
+                        if ui.selectable_label(self.speed == days, label).on_hover_text("Start automatic progression at this many days per step. Important events can stop it earlier.").clicked() { self.speed = days; }
+                    }
+                    for (days, label) in [(1, "+1 day"), (30, "+30 days")] {
+                        if ui.add_enabled(self.pending.is_none(), egui::Button::new(label)).clicked() { self.speed = 0; self.advance(days); }
+                    }
+                    if ui.add_enabled(self.pending.is_none(), egui::Button::new("Next event")).clicked() {
+                        self.speed = 0;
+                        let remaining = MAX_DAY - self.world.as_ref().expect("world").day;
+                        self.start_advance(365.min(remaining), true);
+                    }
+                    ui.add(egui::TextEdit::singleline(&mut self.target_date).desired_width(95.0).hint_text("YYYY-MM-DD"));
+                    if ui.add_enabled(self.pending.is_none(), egui::Button::new("Advance to date")).clicked() {
+                        match parse_date(&self.target_date) {
+                            Ok(day) => {
+                                let current = self.world.as_ref().expect("world").day;
+                                if day < current { self.status = "Choose a future date; load a save to return to an earlier state.".into(); }
+                                else { self.speed = 0; self.advance(day - current); }
+                            }
+                            Err(error) => self.status = error,
                         }
                     }
-                    if ui.button("+1 day").clicked() {
-                        self.advance(1);
-                    }
-                    if ui.button("+30 days").clicked() {
-                        self.advance(30);
-                    }
-                    if ui.add_enabled(self.pending.is_none(),egui::Button::new("Next event")).clicked(){self.speed=0;let remaining=MAX_DAY-self.world.as_ref().expect("world").day;self.start_advance(365.min(remaining),true);}
-                    ui.add(egui::TextEdit::singleline(&mut self.target_date).desired_width(95.0).hint_text("YYYY-MM-DD"));
-                    if ui.add_enabled(self.pending.is_none(),egui::Button::new("Advance to date")).clicked(){
-                        match parse_date(&self.target_date){Ok(day)=>{let current=self.world.as_ref().expect("world").day;if day<current{self.status="Choose a future date; load a save to return to an earlier state.".into();}else{self.speed=0;self.advance(day-current);}},Err(error)=>self.status=error}
-                    }
-                    if let Some(job)=&self.pending{ui.label(format!("Advancing {} / {} days",job.completed.load(std::sync::atomic::Ordering::Relaxed),job.requested));if ui.button("Stop at next day").clicked(){self.pause();}}
-
-                } else {
-                    ui.label(format!("{} · Offline single player", self.content.start));
-                }
-            });
+                });
+            }
         });
         egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
@@ -1078,7 +1101,28 @@ impl GameApp {
             });
         }
     }
-    fn guide(&self, ui: &mut egui::Ui) {
+    fn guide(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal_wrapped(|ui| {
+            ui.selectable_value(&mut self.help.reference, false, "First mandate walkthrough");
+            ui.selectable_value(&mut self.help.reference, true, "Search game reference");
+        });
+        ui.separator();
+        if self.help.reference {
+            if let Some(destination) = self.help.show(ui, &self.content) {
+                if let Some(country) = destination.country {
+                    self.selected = country;
+                }
+                if let Some(policy) = destination.policy {
+                    self.value = self.content.policy(&policy).expect("reference policy").min;
+                    self.policy = policy;
+                }
+                self.tab = destination.tab;
+                if self.tab == Tab::Settings {
+                    self.pause();
+                }
+            }
+            return;
+        }
         ui.heading("Learn your first mandate");
         for (title, text) in [
             (
@@ -1331,6 +1375,50 @@ fn main() -> eframe::Result {
 mod interface_tests {
     use super::*;
     #[test]
+    fn focus_loss_and_escape_pause_while_preserving_country_and_map_context() {
+        let content =
+            Content::from_json(include_str!("../../../data/synthetic-test.json")).unwrap();
+        let world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+        let ctx = egui::Context::default();
+        let mut app = GameApp::from_context(&ctx, content, settings::Preferences::default());
+        app.world = Some(world);
+        app.selected = CountryId("BOR".into());
+        app.map.camera.zoom = 3.0;
+        app.map.camera.longitude = 40.0;
+        app.tab = Tab::Policies;
+        app.speed = 7;
+        let _ = ctx.run(
+            egui::RawInput {
+                focused: false,
+                ..Default::default()
+            },
+            |ctx| app.render(ctx),
+        );
+        assert_eq!(app.speed, 0);
+        assert_eq!(app.playback_label(), "Paused");
+        app.start_advance(0, false);
+        let _ = ctx.run(
+            egui::RawInput {
+                focused: true,
+                events: vec![egui::Event::Key {
+                    key: egui::Key::Escape,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: egui::Modifiers::NONE,
+                }],
+                ..Default::default()
+            },
+            |ctx| app.process_shortcuts(ctx),
+        );
+        assert!(app.pending.as_ref().unwrap().is_stopping());
+        assert_eq!(app.playback_label(), "Stopping at next day boundary");
+        assert!(app.tab == Tab::Overview);
+        assert_eq!(app.selected.0, "BOR");
+        assert_eq!(app.map.camera.zoom, 3.0);
+        assert_eq!(app.map.camera.longitude, 40.0);
+    }
+    #[test]
     fn inspector_requires_explicit_host_capability_even_for_a_modified_save() {
         let content = Content::bundled().unwrap();
         let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
@@ -1408,10 +1496,14 @@ mod interface_tests {
                         Tab::Politics,
                         Tab::Chronicle,
                         Tab::Guide,
+                        Tab::Guide,
                         Tab::Settings,
                         Tab::Inspector,
                     ] {
                         app.tab = tab;
+                        if tab == Tab::Guide {
+                            app.help.reference = !app.help.reference;
+                        }
                         let input = egui::RawInput {
                             screen_rect: Some(egui::Rect::from_min_size(
                                 egui::Pos2::ZERO,

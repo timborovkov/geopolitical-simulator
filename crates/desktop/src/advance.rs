@@ -85,6 +85,9 @@ impl AdvanceJob {
     pub fn stop(&self) {
         self.stop.store(true, Ordering::Relaxed);
     }
+    pub fn is_stopping(&self) -> bool {
+        self.stop.load(Ordering::Relaxed)
+    }
 }
 impl Drop for AdvanceJob {
     fn drop(&mut self) {
