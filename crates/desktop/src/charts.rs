@@ -89,19 +89,52 @@ fn nearest(points: &[(u32, f64)], day: u32) -> Option<(u32, f64)> {
 #[derive(Default)]
 pub struct Chart {
     cursor: Option<u32>,
+    hover_position: Option<Pos2>,
 }
 impl Chart {
     pub fn show(&mut self, ui: &mut egui::Ui, metric: Metric, series: &[Series]) {
-        ui.strong(metric.label());
+        self.draw(
+            ui,
+            metric.label(),
+            series,
+            matches!(metric, Metric::Approval | Metric::Needs),
+            false,
+        );
+    }
+    pub fn show_funding_forecast(&mut self, ui: &mut egui::Ui, series: &[Series]) {
+        self.draw(
+            ui,
+            "Uncommitted funding balance · hypothetical forecast · million credits",
+            series,
+            false,
+            true,
+        );
+    }
+    fn draw(
+        &mut self,
+        ui: &mut egui::Ui,
+        title: &str,
+        series: &[Series],
+        percent: bool,
+        forecast: bool,
+    ) {
+        ui.strong(title);
         let Some((first, last, low, high)) = bounds(series) else {
             ui.label("No published observations in this period. Advance to the first statistical review; unknown history is not a zero series.");
             return;
         };
         let padding = ((high - low) * 0.08).max(1.0);
-        let (min, max) = if matches!(metric, Metric::Approval | Metric::Needs) {
+        let (min, max) = if percent {
             (0.0, 100.0)
         } else {
-            ((low - padding).max(0.0), high + padding)
+            (
+                if forecast {
+                    low - padding
+                } else {
+                    (low - padding).max(0.0)
+                },
+                high + padding,
+            )
         };
         let (rect, response) =
             ui.allocate_exact_size(Vec2::new(ui.available_width(), 220.0), Sense::click());
@@ -133,6 +166,20 @@ impl Chart {
                 format!("{value:.0}"),
                 egui::FontId::monospace(11.0),
                 Color32::LIGHT_GRAY,
+            );
+        }
+        if forecast && min < 0.0 && max > 0.0 {
+            let y = map(first, 0.0).y;
+            painter.line_segment(
+                [Pos2::new(plot.left(), y), Pos2::new(plot.right(), y)],
+                Stroke::new(1.5_f32, Color32::LIGHT_YELLOW),
+            );
+            painter.text(
+                Pos2::new(plot.right(), y - 2.0),
+                egui::Align2::RIGHT_BOTTOM,
+                "0 · funding threshold",
+                egui::FontId::monospace(11.0),
+                Color32::LIGHT_YELLOW,
             );
         }
         for (day, align) in [
@@ -174,6 +221,7 @@ impl Chart {
         }
         if response.hovered()
             && let Some(pointer) = response.hover_pos()
+            && (self.hover_position != Some(pointer) || response.clicked())
         {
             self.cursor = Some(
                 first
@@ -182,6 +230,7 @@ impl Chart {
                         .round() as u32,
             );
         }
+        self.hover_position = response.hover_pos();
         if response.has_focus() {
             let delta = ui.input(|i| {
                 i32::from(i.key_pressed(egui::Key::ArrowRight))
@@ -189,8 +238,9 @@ impl Chart {
             });
             if delta != 0 {
                 self.cursor = Some(
-                    (self.cursor.unwrap_or(first) as i64 + i64::from(delta) * 30)
-                        .clamp(i64::from(first), i64::from(last)) as u32,
+                    (self.cursor.unwrap_or(first) as i64
+                        + i64::from(delta) * if forecast { 1 } else { 30 })
+                    .clamp(i64::from(first), i64::from(last)) as u32,
                 );
             }
         }
@@ -202,8 +252,13 @@ impl Chart {
                 Stroke::new(1.0_f32, Color32::WHITE),
             );
             ui.label(format!(
-                "Inspection date {} · nearest available observation per series",
-                sim_core::date(day)
+                "Inspection date {} · nearest available {} per series",
+                sim_core::date(day),
+                if forecast {
+                    "scenario point"
+                } else {
+                    "observation"
+                }
             ));
             for (index, s) in series.iter().enumerate() {
                 if let Some((observed, value)) = nearest(&s.points, day) {
@@ -218,11 +273,11 @@ impl Chart {
             for (index, s) in series.iter().enumerate() {
                 ui.colored_label(
                     colors[index % colors.len()],
-                    format!("{}: {} observations", s.label, s.points.len()),
+                    format!("{}: {} points", s.label, s.points.len()),
                 );
             }
         });
-        ui.small("Monthly point observations; output is that release day's flow. Click then use Left/Right to inspect; vertical axes show units and scale.");
+        ui.small(if forecast { "Daily hypothetical funding balances; negative values are funding gaps, not overdrafts. Click then use Left/Right to inspect one day at a time." } else { "Monthly point observations; output is that release day's flow. Click then use Left/Right to inspect; vertical axes show units and scale." });
         egui::CollapsingHeader::new("Inspect chart values").show(ui, |ui| {
             for s in series {
                 ui.strong(&s.label);
@@ -236,6 +291,58 @@ impl Chart {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn keyboard_inspection_keeps_its_date_when_the_mouse_stays_still() {
+        let ctx = egui::Context::default();
+        let mut chart = Chart::default();
+        let data = vec![Series {
+            label: "forecast".into(),
+            points: (0..=90)
+                .map(|day| (day, 1000.0 - f64::from(day) * 20.0))
+                .collect(),
+        }];
+        let input = egui::RawInput {
+            focused: true,
+            screen_rect: Some(Rect::from_min_size(Pos2::ZERO, Vec2::new(900.0, 500.0))),
+            ..Default::default()
+        };
+        let draw = |chart: &mut Chart, ctx: &egui::Context| {
+            egui::CentralPanel::default().show(ctx, |ui| chart.show_funding_forecast(ui, &data));
+        };
+        let _ = ctx.run(input.clone(), |ctx| draw(&mut chart, ctx));
+        let position = Pos2::new(450.0, 100.0);
+        let mut click = input.clone();
+        click.events = vec![
+            egui::Event::PointerMoved(position),
+            egui::Event::PointerButton {
+                pos: position,
+                button: egui::PointerButton::Primary,
+                pressed: true,
+                modifiers: egui::Modifiers::NONE,
+            },
+            egui::Event::PointerButton {
+                pos: position,
+                button: egui::PointerButton::Primary,
+                pressed: false,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ];
+        let _ = ctx.run(click, |ctx| draw(&mut chart, ctx));
+        let initial = chart.cursor.unwrap();
+        assert!(initial > 0 && initial < 89);
+        let mut arrow = input.clone();
+        arrow.events = vec![egui::Event::Key {
+            key: egui::Key::ArrowRight,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        }];
+        let _ = ctx.run(arrow, |ctx| draw(&mut chart, ctx));
+        assert_eq!(chart.cursor, Some(initial + 1));
+        let _ = ctx.run(input, |ctx| draw(&mut chart, ctx));
+        assert_eq!(chart.cursor, Some(initial + 1));
+    }
     #[test]
     fn date_coordinates_preserve_irregular_observations() {
         let data = vec![Series {

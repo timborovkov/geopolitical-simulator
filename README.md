@@ -74,6 +74,8 @@ In **Treasury & accounts**, expand **Trace realized cash transfers** to compare 
 
 The household screen reports dated income pressure, actual food delivery and a group-mean income Gini, alongside income/basket coverage and cash/basket buffers. These use modeled disjoint groups: they do not estimate individual poverty or inequality within groups. Opening-state indicators remain unavailable until the first settlement. The terminal's `households` command reports the same aggregate indicators.
 
+Treasury's **Funding outlook** shows available cash and how many whole days it covers the current deficit. Expand its interactive chart to compare no new borrowing with conditional approval of the selected or pending ordinary loan, including extra interest. Negative forecast balances indicate funding gaps, not an overdraft. This unchanged-policy scenario excludes shocks, price changes, arrears repayments and pending program delivery. The terminal provides `outlook [DAYS]`. Blocked borrowing and policy previews link to a governing-support agreement; funding failures link to Treasury. Opening a preview issues no order.
+
 Use **New campaign** in the command bar to choose a country, seed and scenario without restarting. Default launches can choose current, earlier market or classic packs; an explicit `--content` stays pinned. **Save and start** validates the new setup, saves the active game and retains a unique `.before-new-campaign-N` archive before replacing it. **Start without saving** explicitly discards unsaved progress. Cancel/Escape returns to the paused game; failed saves or invalid setup leave it active.
 
 ## Save, recover and replay

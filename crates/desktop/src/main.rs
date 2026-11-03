@@ -3,6 +3,7 @@ mod analysis;
 mod cashflows;
 mod charts;
 mod financing;
+mod funding;
 mod geometry;
 mod help;
 mod inspector;
@@ -49,6 +50,7 @@ struct GameApp {
     pause_alerts: bool,
     save_path: String,
     money: i64,
+    funding_chart: charts::Chart,
     sort_gdp: bool,
     show_ledger: bool,
     recovery: Vec<persistence::RecoveryCandidate>,
@@ -115,6 +117,7 @@ impl GameApp {
             pause_alerts: true,
             save_path,
             money: 1000,
+            funding_chart: charts::Chart::default(),
             sort_gdp: false,
             show_ledger: false,
             recovery: Vec::new(),
@@ -360,6 +363,7 @@ impl GameApp {
         self.show_ledger = false;
         self.map = map::WorldMap::new();
         self.analysis = analysis::Analysis::default();
+        self.funding_chart = charts::Chart::default();
         self.cashflows = cashflows::CashFlows::default();
         self.inspector = inspector::Inspector::default();
         self.help = help::Help::default();
@@ -885,7 +889,9 @@ impl GameApp {
                         "Cash now: {}m · delivery: {} days · annual net expenditure change: {:+}m",
                         preview.cost.0, preview.delay, preview.annual_budget_change.0
                     ));
-                    ui.label(format!("Authority: {}", preview.route));
+                    if self.policy == "coalition" {
+                        ui.label("Authority: Direct governing negotiation; backing changes after delivery.");
+                    } else { ui.label(format!("Authority: {}", preview.route)); }
                     ui.label(format!("Paid upfront {}m; reserve {}m until consent in {} days. Reserved money cannot fund other obligations.",preview.upfront_payment.0,preview.cost.0-preview.upfront_payment.0,preview.consent_delay));
                     ui.strong("Direct household income change after delivery · forecast m/day");
                     for impact in &preview.household_impacts {ui.label(format!("{}: {:+}m",impact.group,impact.daily_disposable_change.0));}
@@ -910,6 +916,23 @@ impl GameApp {
             }
             Err(e) => {
                 ui.colored_label(Color32::LIGHT_YELLOW, format!("Cannot approve: {e}"));
+                let definition = self.content.country(&self.selected).expect("country");
+                if definition
+                    .government
+                    .check(c, &self.policy, self.value)
+                    .is_err()
+                    && self.content.policy("coalition").is_some()
+                    && ui.button("Review governing-support agreement").clicked()
+                {
+                    self.policy = "coalition".into();
+                    self.value = self.content.policy("coalition").expect("policy").min;
+                }
+                if (definition.gdp * p.cost_bps / 10000).max(1)
+                    > c.accounts.treasury.0 - c.committed_cash.0
+                    && ui.button("Review treasury and financing").clicked()
+                {
+                    self.tab = Tab::Treasury;
+                }
             }
         }
         ui.separator();
@@ -1080,6 +1103,37 @@ impl GameApp {
             .country(&self.selected)
             .expect("country")
             .clone();
+        if funding::show(ui, &self.content, w, self.money, &mut self.funding_chart) {
+            self.policy = "coalition".into();
+            self.value = self
+                .content
+                .policy("coalition")
+                .expect("coalition policy")
+                .min;
+            self.tab = Tab::Policies;
+        }
+        let mut finance_action = financing::show(ui, &self.content, w, &mut self.money);
+        if self.content.finance.is_none() {
+            ui.horizontal_wrapped(|ui| {
+                ui.label("Principal (m)");
+                ui.add(
+                    egui::DragValue::new(&mut self.money)
+                        .range(1..=d.gdp / 10)
+                        .speed((d.gdp / 10000).max(1) as f64),
+                );
+                if ui.button("Issue loan").clicked() {
+                    finance_action = Some(Action::Borrow {
+                        amount: Money(self.money),
+                    });
+                }
+                if ui.button("Repay debt").clicked() {
+                    finance_action = Some(Action::Repay {
+                        amount: Money(self.money),
+                    });
+                }
+            });
+        }
+        ui.separator();
         egui::Grid::new("accounts")
             .striped(true)
             .min_col_width(180.0)
@@ -1140,30 +1194,6 @@ impl GameApp {
             }
         });
         ui.small(format!("Reconciliation: sector cash {}m = opening {}m. External debt uses explicit principal records and 4% annual interest. Borrowing ceiling: {}m.",c.accounts.total(),c.opening_money.0,d.gdp*3/2));
-        let finance_action = financing::show(ui, &self.content, w, &mut self.money);
-        if let Some(action) = finance_action {
-            self.issue(action);
-        }
-        if self.content.finance.is_none() {
-            ui.horizontal_wrapped(|ui| {
-                ui.label("Principal (m)");
-                ui.add(
-                    egui::DragValue::new(&mut self.money)
-                        .range(1..=d.gdp / 10)
-                        .speed((d.gdp / 10000).max(1) as f64),
-                );
-                if ui.button("Issue loan").clicked() {
-                    self.issue(Action::Borrow {
-                        amount: Money(self.money),
-                    });
-                }
-                if ui.button("Repay debt").clicked() {
-                    self.issue(Action::Repay {
-                        amount: Money(self.money),
-                    });
-                }
-            });
-        }
         ui.separator();
         ui.checkbox(
             &mut self.show_ledger,
@@ -1205,6 +1235,9 @@ impl GameApp {
                     e.reason
                 ));
             }
+        }
+        if let Some(action) = finance_action {
+            self.issue(action);
         }
     }
     fn politics(&mut self, ui: &mut egui::Ui) {
@@ -1275,6 +1308,14 @@ impl GameApp {
                 ui.end_row();
             }
         });
+        if c.is_some()
+            && self.content.policy("coalition").is_some()
+            && ui.button("Review governing-support agreement").clicked()
+        {
+            self.policy = "coalition".into();
+            self.value = self.content.policy("coalition").expect("policy").min;
+            self.tab = Tab::Policies;
+        }
         ui.separator();
         ui.label("Authority thresholds are content-defined. Parliamentary support can trigger an early confidence election after three weak monthly reviews. Party councils review cadre backing; royal councils can block a spending expansion above 4 GDP points without 65 backing. Consent is rechecked before construction. Country play continues after leadership changes.");
         ui.label("Cohort needs, disposable income, taxes, employment and funded services affect opinion. Parliamentary support, elite backing and council backing are distinct. Seat allocation, succession and preferences remain scenario approximations.");
@@ -1597,6 +1638,92 @@ fn main() -> eframe::Result {
 #[cfg(test)]
 mod interface_tests {
     use super::*;
+    #[test]
+    fn blocked_borrowing_links_to_a_support_preview_without_issuing_an_order_or_leaking_foreign_cash()
+     {
+        for scale in [1.0, 1.4] {
+            let content =
+                Content::from_json(include_str!("../../../data/synthetic-finance-test.json"))
+                    .unwrap();
+            let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+            world
+                .issue(
+                    &content,
+                    Action::EmergencyBorrow {
+                        amount: Money(1000),
+                    },
+                )
+                .unwrap();
+            let expected = world.hash();
+            let ctx = egui::Context::default();
+            let mut app = GameApp::from_context(&ctx, content, settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            app.world = Some(world);
+            app.tab = Tab::Treasury;
+            let input = egui::RawInput {
+                focused: true,
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1440.0 / scale, 940.0 / scale),
+                )),
+                ..Default::default()
+            };
+            let output = ctx.run(input.clone(), |ctx| app.render(ctx));
+            let position = output
+                .shapes
+                .iter()
+                .find_map(|shape| {
+                    if let egui::Shape::Text(text) = &shape.shape
+                        && text.galley.text() == "Review governing-support agreement"
+                    {
+                        let center = text.pos + text.galley.size() / 2.0;
+                        assert!(shape.clip_rect.contains(center));
+                        Some(center)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap();
+            let mut click = input.clone();
+            click.events = vec![
+                egui::Event::PointerMoved(position),
+                egui::Event::PointerButton {
+                    pos: position,
+                    button: egui::PointerButton::Primary,
+                    pressed: true,
+                    modifiers: egui::Modifiers::NONE,
+                },
+                egui::Event::PointerButton {
+                    pos: position,
+                    button: egui::PointerButton::Primary,
+                    pressed: false,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ];
+            let _ = ctx.run(click, |ctx| app.render(ctx));
+            assert!(app.tab == Tab::Policies);
+            assert_eq!(app.policy, "coalition");
+            assert_eq!(app.world.as_ref().unwrap().hash(), expected);
+            let output = ctx.run(input.clone(), |ctx| app.render(ctx));
+            assert!(output.shapes.iter().any(|shape| matches!(&shape.shape, egui::Shape::Text(text) if text.galley.text().contains("Authority: Direct governing negotiation"))));
+            app.selected = CountryId("BOR".into());
+            app.tab = Tab::Treasury;
+            let output = ctx.run(input, |ctx| app.render(ctx));
+            let text = output
+                .shapes
+                .iter()
+                .filter_map(|shape| match &shape.shape {
+                    egui::Shape::Text(text) => Some(text.galley.text()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            assert!(!text.contains("Funding outlook"));
+            assert!(!text.contains("Uncommitted cash"));
+            assert!(!text.contains("Review governing-support agreement"));
+            assert_eq!(app.world.as_ref().unwrap().hash(), expected);
+        }
+    }
     #[test]
     fn saving_before_a_new_campaign_archives_exact_active_state_outside_backup_rotation() {
         let classic = Content::classic_bundled().unwrap();

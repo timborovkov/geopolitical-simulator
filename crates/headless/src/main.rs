@@ -125,7 +125,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nfinance | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if developer {
                         println!(
@@ -180,10 +180,13 @@ fn play(
                     let policy = words.get(1).ok_or("Missing policy ID")?.to_string();
                     let value = number(words.get(2))?;
                     if words[0] == "preview" {
-                        println!(
-                            "{:?}",
-                            world.preview(content, &world.player, &policy, value)?
-                        );
+                        let mut preview = world.preview(content, &world.player, &policy, value)?;
+                        if policy == "coalition" {
+                            preview.route =
+                                "Direct governing negotiation; backing changes after delivery"
+                                    .into();
+                        }
+                        println!("{preview:?}");
                     } else {
                         world.issue(content, Action::Enact { policy, value })?;
                         println!("Commitment accepted.");
@@ -213,6 +216,55 @@ fn play(
                         amount: Money(number(words.get(1))?),
                     },
                 )?,
+                "outlook" => {
+                    let horizon = if words.len() > 1 {
+                        number(words.get(1))?
+                    } else {
+                        90_u32.min(MAX_DAY - world.day)
+                    };
+                    let loan = world
+                        .player_country()
+                        .financing
+                        .as_ref()
+                        .and_then(|state| state.pending.as_ref())
+                        .map(|request| LoanAssumption {
+                            amount: request.amount,
+                            decision_day: request.decision_day,
+                        });
+                    let plan = world.funding_outlook(content, horizon, loan)?;
+                    println!(
+                        "Unchanged-policy funding scenario, not available money or an approval guarantee. Excludes shocks, price changes, arrears repayment and pending program delivery."
+                    );
+                    println!(
+                        "Available cash {}m · balance {:+}m/day · deficit runway {}",
+                        plan.available_cash.0,
+                        plan.daily_balance.0,
+                        plan.covered_days.map_or_else(
+                            || "balanced or positive run rate".into(),
+                            |days| format!("{days} fully covered days")
+                        )
+                    );
+                    for point in plan.points.iter().filter(|point| {
+                        point.day == world.day
+                            || point.day == world.day + horizon
+                            || loan.is_some_and(|loan| point.day == loan.decision_day)
+                    }) {
+                        println!(
+                            "{}: without borrowing {}m · conditional approval {}m (negative = funding gap)",
+                            date(point.day),
+                            point.without_loan.0,
+                            point.if_approved.0
+                        );
+                    }
+                    if let Some(loan) = loan {
+                        println!(
+                            "Pending {}m on {} IF approved · additional interest {}m/day",
+                            loan.amount.0,
+                            date(loan.decision_day),
+                            plan.additional_daily_interest.0
+                        );
+                    }
+                }
                 "finance" => {
                     if let Some(financing) = &world.player_country().financing {
                         println!("Borrowing authority · pending funds are not treasury cash");

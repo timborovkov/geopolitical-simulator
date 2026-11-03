@@ -11,6 +11,7 @@ mod knowledge;
 mod living_standards;
 mod markets;
 mod model;
+mod outlook;
 pub mod persistence;
 mod rules;
 mod units;
@@ -26,6 +27,7 @@ pub use knowledge::*;
 pub use living_standards::*;
 pub use markets::*;
 pub use model::*;
+pub use outlook::*;
 pub use units::*;
 
 /// FNV-1a, fixed byte order. A reproducibility checksum, not a security primitive.
