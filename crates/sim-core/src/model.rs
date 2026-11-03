@@ -162,9 +162,15 @@ pub struct Country {
     pub commitments: Option<Vec<CommitmentRecord>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cabinet: Option<Cabinet>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub electoral_authority: Option<ElectoralAuthority>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
+    RequestElection,
+    WithdrawElectionRequest {
+        request: ElectionRequestId,
+    },
     Appoint {
         office: OfficeId,
         person: PersonId,
@@ -379,6 +385,9 @@ impl World {
                             .cabinet
                             .as_ref()
                             .map(|rules| Cabinet::new(rules, &d.id, start_day)),
+                        electoral_authority: content.elections.as_ref().map(|rules| {
+                            ElectoralAuthority::new(rules, d.regime.clone(), start_day)
+                        }),
                         energy_stock: Energy::ZERO,
                         food_stock: Food::ZERO,
                         report: DailyReport::default(),
@@ -532,6 +541,16 @@ impl World {
         for (index, entry) in self.journal.iter().enumerate() {
             let command = &entry.command;
             let valid_action = match &command.action {
+                Action::RequestElection => content.elections.is_some(),
+                Action::WithdrawElectionRequest { request } => {
+                    content.elections.is_some()
+                        && request.0 > 0
+                        && request.0 < command.id
+                        && self.journal.get(request.0 as usize - 1).is_some_and(|e| {
+                            e.command.issuer == command.issuer
+                                && matches!(e.command.action, Action::RequestElection)
+                        })
+                }
                 Action::Appoint { office, person } => {
                     content.cabinet.as_ref().is_some_and(|rules| {
                         rules
@@ -652,6 +671,7 @@ impl World {
             }
             self.validate_commitments(content, id)?;
             self.validate_cabinet(content, id)?;
+            self.validate_electoral_authority(content, id)?;
             if id != &c.id
                 || c.accounts.checked_total() != Some(c.opening_money.0)
                 || c.opening_money.0 != d.gdp / 20 + d.gdp / 3 + d.gdp / 2 + d.gdp * 3

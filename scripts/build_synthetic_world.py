@@ -193,6 +193,21 @@ def build_cabinet():
     return pack
 
 
+def build_elections():
+    pack = build_cabinet()
+    pack.update(schema=8, rules=8, id="synthetic-elections-v8", name="Fictional electoral authorities",
+                description="Authored independent electoral authority mandates. Governments may request an early poll only within configured powers and intervals. Announced polls cannot be withdrawn by government order or used to postpone an earlier legal poll. Polls retain the simplified 100-seat model; no national electoral law, turnout or integrity certification is claimed.")
+    boreal = next(c for c in pack["countries"] if c["id"] == "BOR")
+    boreal.update(regime="presidential", government=dict(route="legislature", threshold=51,
+                 council_threshold=0, consent_days=21, leadership_review_days=None))
+    pack["elections"] = dict(mandates=[dict(authority=f"authority:{c['id']}:elections", country=c["id"],
+                             title=f"{c['id']} electoral authority", snap_forms=["parliamentary", "semi_presidential"])
+                             for c in pack["countries"]], decision_days=7, campaign_days=60,
+                             minimum_interval_days=365, regular_term_years=4, administration_cost_bps=5,
+                             source="synthetic-original", source_version="authored-electoral-mandates-v1")
+    return pack
+
+
 def build_market_starter():
     pack = json.loads((ROOT / "data/initial-2000.json").read_text(encoding="utf-8"))
     pack.update(schema=3, rules=3, id="initial-2000-markets-v3",
@@ -269,6 +284,7 @@ def main():
                            ("synthetic-constitution-test.json", build_constitutions()),
                            ("synthetic-commitment-test.json", build_commitments()),
                            ("synthetic-cabinet-test.json", build_cabinet()),
+                           ("synthetic-election-test.json", build_elections()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

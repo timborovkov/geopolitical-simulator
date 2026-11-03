@@ -136,7 +136,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if developer {
                         println!(
@@ -265,6 +265,43 @@ fn play(
                     content,
                     Action::Borrow {
                         amount: Money(number(words.get(1))?),
+                    },
+                )?,
+                "elections" => {
+                    let rules = content
+                        .elections
+                        .as_ref()
+                        .ok_or("This campaign has no electoral authority workflow")?;
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(
+                            rules.mandate(&world.player).ok_or("Missing mandate")?
+                        )
+                        .map_err(|e| e.to_string())?
+                    );
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(
+                            world
+                                .player_country()
+                                .electoral_authority
+                                .as_ref()
+                                .ok_or("Missing authority")?
+                        )
+                        .map_err(|e| e.to_string())?
+                    );
+                    println!(
+                        "Announced polls cannot be withdrawn by government order. Model results use 100 seats; no turnout, national electoral law or integrity certification is modeled."
+                    );
+                }
+                "preview-election" => {
+                    println!("{:?}", world.preview_election(content, &world.player)?)
+                }
+                "request-election" => world.issue(content, Action::RequestElection)?,
+                "withdraw-election" => world.issue(
+                    content,
+                    Action::WithdrawElectionRequest {
+                        request: ElectionRequestId(number(words.get(1))?),
                     },
                 )?,
                 "cabinet" => {

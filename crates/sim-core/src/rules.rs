@@ -125,6 +125,10 @@ impl World {
             .ok_or("Missing country content")?;
         let id = command.issuer.clone();
         match &command.action {
+            Action::RequestElection => {
+                self.request_election(content, &id, ElectionRequestId(command.id))?
+            }
+            Action::WithdrawElectionRequest { request } => self.withdraw_election(&id, *request)?,
             Action::Appoint { office, person } => {
                 self.request_appointment(content, &id, AppointmentId(command.id), office, person)?
             }
@@ -272,6 +276,8 @@ impl World {
             self.day += 1;
             for id in &ids {
                 self.resolve_constitution(content, id);
+                self.sync_electoral_mandate(content, id);
+                self.resolve_election_requests(content, id);
                 self.cabinet_succession(id);
                 self.resolve_appointments(content, id);
                 self.resolve_consents(content, id);
@@ -280,12 +286,18 @@ impl World {
                 self.settle(content, id);
                 self.evaluate_commitments(id);
                 self.review_budget(content, id);
+                let election_due = self.countries[id].next_election == Some(self.day);
+                let previous_government = self.countries[id].government_number;
                 if self.day.is_multiple_of(30)
-                    || self.countries[id].next_election == Some(self.day)
+                    || election_due
                     || self.countries[id].next_leadership_review == Some(self.day)
                 {
                     self.politics(content, id);
+                    if election_due {
+                        self.record_electoral_poll(content, id, previous_government);
+                    }
                 }
+                self.sync_electoral_mandate(content, id);
                 self.cabinet_succession(id);
             }
             if self.day.is_multiple_of(30) {
@@ -815,7 +827,11 @@ impl World {
                 0
             };
             if c.confidence_crises >= 3 && regime == Regime::Parliamentary {
-                c.next_election = Some(self.day + 1);
+                // An independent authority must conduct the poll already due today.
+                // Earlier rule packs keep their published confidence timing.
+                if content.elections.is_none() || c.next_election != Some(self.day) {
+                    c.next_election = Some(self.day + 1);
+                }
                 c.confidence_crises = 0;
             }
         }
@@ -907,6 +923,7 @@ impl World {
     }
     fn ai_turn(&mut self, content: &Content, id: &CountryId) {
         self.ai_appointments(content, id);
+        self.ai_election_request(content, id);
         let c = &self.countries[id];
         let d = content.country(id).expect("country");
         let government = self

@@ -5,6 +5,7 @@ mod cashflows;
 mod charts;
 mod commitments;
 mod constitutions;
+mod elections;
 mod financing;
 mod funding;
 mod geometry;
@@ -287,6 +288,7 @@ impl GameApp {
                     5 => "Constitutional-transition campaign loaded. Simulation paused.",
                     6 => "Policy-lifecycle campaign loaded. Simulation paused.",
                     7 => "Ministerial-appointment campaign loaded. Simulation paused.",
+                    8 => "Electoral-authority campaign loaded. Simulation paused.",
                     _ => "Campaign loaded. Simulation paused.",
                 }
                 .into();
@@ -870,6 +872,21 @@ impl GameApp {
             report.government_title,
             report.government.label()
         ));
+        if let Some(authority) = &report.electoral_authority {
+            ui.label(format!(
+                "{} · next poll {}",
+                authority.title,
+                authority
+                    .next_poll
+                    .map_or_else(|| "None within the playable calendar".into(), date)
+            ));
+            if let Some(poll) = &authority.last_poll {
+                ui.label(format!(
+                    "Last modeled poll: {}. Allocation uses the scenario's 100-seat rule.",
+                    date(poll.day)
+                ));
+            }
+        }
         if let Some(ministers) = &report.ministers {
             for minister in ministers {
                 ui.label(format!(
@@ -1397,6 +1414,11 @@ impl GameApp {
         ui.label("Cohort needs, disposable income, taxes, employment and funded services affect opinion. Parliamentary support, elite backing and council backing are distinct. Seat allocation, succession and preferences remain scenario approximations.");
         if let Some(world) = &self.world
             && let Some(action) = self.cabinet_panel.show(ui, &self.content, world)
+        {
+            self.issue(action);
+        }
+        if let Some(world) = &self.world
+            && let Some(action) = elections::show(ui, &self.content, world)
         {
             self.issue(action);
         }
