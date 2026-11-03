@@ -1,5 +1,6 @@
 mod advance;
 mod analysis;
+mod briefing;
 mod cabinet;
 mod cashflows;
 mod charts;
@@ -71,6 +72,7 @@ struct GameApp {
     cashflows: cashflows::CashFlows,
     bundled_catalog: bool,
     new_setup: Option<new_game::Setup>,
+    briefing: briefing::Briefing,
 }
 impl GameApp {
     fn new(
@@ -141,6 +143,7 @@ impl GameApp {
             cashflows: cashflows::CashFlows::default(),
             bundled_catalog: false,
             new_setup: None,
+            briefing: briefing::Briefing::default(),
         }
     }
     fn advance(&mut self, days: u32) {
@@ -1586,6 +1589,16 @@ impl GameApp {
             self.last_tick = Instant::now();
         }
         self.top(ctx);
+        let mut opened_chronicle = false;
+        if self.pending.is_none()
+            && self.speed == 0
+            && let Some(world) = &self.world
+            && self.briefing.show(ctx, world)
+        {
+            self.selected = world.player.clone();
+            self.tab = Tab::Chronicle;
+            opened_chronicle = true;
+        }
         self.sidebar(ctx);
         if !self.recovery.is_empty() {
             let mut chosen = None;
@@ -1623,25 +1636,25 @@ impl GameApp {
             }
         }
         egui::CentralPanel::default().show(ctx, |ui| {
-            egui::ScrollArea::vertical()
-                .id_salt("main_scroll")
-                .show(ui, |ui| match self.tab {
-                    Tab::Overview => self.overview(ui),
-                    Tab::Policies => self.policies(ui),
-                    Tab::Treasury => self.treasury(ui),
-                    Tab::Society => self.society(ui),
-                    Tab::Analysis => self.analysis.show(
-                        ui,
-                        &self.content,
-                        self.world.as_ref(),
-                        &mut self.selected,
-                    ),
-                    Tab::Politics => self.politics(ui),
-                    Tab::Chronicle => self.chronicle(ui),
-                    Tab::Guide => self.guide(ui),
-                    Tab::Settings => self.preferences.show(ui),
-                    Tab::Inspector => self.developer_inspector(ui),
-                });
+            let mut scroll = egui::ScrollArea::vertical().id_salt("main_scroll");
+            if opened_chronicle {
+                scroll = scroll.vertical_scroll_offset(0.0);
+            }
+            scroll.show(ui, |ui| match self.tab {
+                Tab::Overview => self.overview(ui),
+                Tab::Policies => self.policies(ui),
+                Tab::Treasury => self.treasury(ui),
+                Tab::Society => self.society(ui),
+                Tab::Analysis => {
+                    self.analysis
+                        .show(ui, &self.content, self.world.as_ref(), &mut self.selected)
+                }
+                Tab::Politics => self.politics(ui),
+                Tab::Chronicle => self.chronicle(ui),
+                Tab::Guide => self.guide(ui),
+                Tab::Settings => self.preferences.show(ui),
+                Tab::Inspector => self.developer_inspector(ui),
+            });
         });
         let setup_open = self.new_setup.is_some();
         self.new_campaign_dialog(ctx);
@@ -1746,6 +1759,117 @@ fn main() -> eframe::Result {
 #[cfg(test)]
 mod interface_tests {
     use super::*;
+    #[test]
+    fn event_briefs_are_owner_only_dismissible_and_open_the_owned_chronicle_without_commands() {
+        for scale in [1.0, 1.4] {
+            let content =
+                Content::from_json(include_str!("../../../data/synthetic-election-test.json"))
+                    .unwrap();
+            let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+            world.events.push(Event {
+                day: 0,
+                country: world.player.clone(),
+                important: true,
+                text: "OWN IMPORTANT DECISION".into(),
+            });
+            world.events.push(Event {
+                day: 0,
+                country: CountryId("BOR".into()),
+                important: true,
+                text: "PRIVATE FOREIGN DECISION".into(),
+            });
+            let ctx = egui::Context::default();
+            let mut app = GameApp::from_context(&ctx, content, settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            app.selected = CountryId("BOR".into());
+            app.tab = Tab::Politics;
+            app.world = Some(world);
+            let input = egui::RawInput {
+                focused: true,
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1000.0 / scale, 700.0 / scale),
+                )),
+                ..Default::default()
+            };
+            let text = |output: &egui::FullOutput| {
+                output
+                    .shapes
+                    .iter()
+                    .filter_map(|shape| match &shape.shape {
+                        egui::Shape::Text(t) => Some(t.galley.text()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            };
+            let click = |app: &mut GameApp, output: &egui::FullOutput, label: &str| {
+                let position = output
+                    .shapes
+                    .iter()
+                    .find_map(|shape| match &shape.shape {
+                        egui::Shape::Text(t) if t.galley.text() == label => {
+                            let center = t.pos + t.galley.size() / 2.0;
+                            assert!(shape.clip_rect.contains(center));
+                            Some(center)
+                        }
+                        _ => None,
+                    })
+                    .unwrap();
+                for pressed in [true, false] {
+                    let mut frame = input.clone();
+                    frame.events = vec![
+                        egui::Event::PointerMoved(position),
+                        egui::Event::PointerButton {
+                            pos: position,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ];
+                    let _ = ctx.run(frame, |ctx| app.render(ctx));
+                }
+            };
+            let original = app.world.as_ref().unwrap().hash();
+            let output = ctx.run(input.clone(), |ctx| app.render(ctx));
+            assert!(
+                text(&output).contains("OWN IMPORTANT DECISION"),
+                "{}",
+                text(&output)
+            );
+            assert!(!text(&output).contains("PRIVATE FOREIGN DECISION"));
+            click(&mut app, &output, "Dismiss brief");
+            let output = ctx.run(input.clone(), |ctx| app.render(ctx));
+            assert!(!text(&output).contains("OWN IMPORTANT DECISION"));
+            assert_eq!(app.world.as_ref().unwrap().hash(), original);
+            // A foreign notice cannot reopen an acknowledged owner brief.
+            app.world.as_mut().unwrap().events.push(Event {
+                day: 0,
+                country: CountryId("BOR".into()),
+                important: true,
+                text: "ANOTHER PRIVATE FOREIGN DECISION".into(),
+            });
+            let output = ctx.run(input.clone(), |ctx| app.render(ctx));
+            assert!(!text(&output).contains("OWN IMPORTANT DECISION"));
+            app.world.as_mut().unwrap().events.push(Event {
+                day: 0,
+                country: CountryId("AUR".into()),
+                important: true,
+                text: "NEW OWN IMPORTANT DECISION".into(),
+            });
+            let expected = app.world.as_ref().unwrap().hash();
+            let output = ctx.run(input.clone(), |ctx| app.render(ctx));
+            assert!(text(&output).contains("NEW OWN IMPORTANT DECISION"));
+            click(&mut app, &output, "Open chronicle");
+            assert_eq!(app.selected.0, "AUR");
+            assert!(app.tab == Tab::Chronicle);
+            let output = ctx.run(input, |ctx| app.render(ctx));
+            assert!(text(&output).contains("Chronicle & decisions"));
+            assert!(text(&output).contains("NEW OWN IMPORTANT DECISION"));
+            assert!(!text(&output).contains("PRIVATE FOREIGN DECISION"));
+            assert_eq!(app.world.as_ref().unwrap().hash(), expected);
+        }
+    }
     #[test]
     fn blocked_borrowing_links_to_a_support_preview_without_issuing_an_order_or_leaking_foreign_cash()
      {
