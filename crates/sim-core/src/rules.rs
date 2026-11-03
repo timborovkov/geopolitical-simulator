@@ -103,6 +103,14 @@ impl World {
                 }
             })
             .collect();
+        if content.commitments.is_some()
+            && self
+                .day
+                .checked_add(consent_delay + p.days + (100 - c.administration) as u32 / 2)
+                .is_none_or(|day| day > MAX_DAY)
+        {
+            return Err("Implementation would exceed the campaign calendar".into());
+        }
         Ok(PolicyPreview {
             cost,
             delay: consent_delay + p.days + (100 - c.administration) as u32 / 2,
@@ -150,6 +158,12 @@ impl World {
             .ok_or("Missing country content")?;
         let id = command.issuer.clone();
         match &command.action {
+            Action::AmendCommitment { request, value } => {
+                self.amend_commitment(content, &id, *request, *value)?
+            }
+            Action::CancelCommitment { request } => {
+                self.cancel_commitment(content, &id, *request)?
+            }
             Action::Enact { policy, value } => {
                 let preview = self.preview(content, &id, policy, *value)?;
                 let next_project = self
@@ -182,6 +196,7 @@ impl World {
                         PolicyStage::AwaitingConsent
                     },
                 });
+                self.record_proposal(&id, command.id);
                 self.next_project = next_project;
                 self.event(&id,true,format!("Proposed {} via {}. Paid {}m upfront, reserved {}m; consent {} and operating due {}.",content.policy(policy).expect("policy").name,preview.route,preview.upfront_payment.0,reserved.0,date(self.day+preview.consent_delay),date(self.day+preview.delay)));
             }
@@ -287,8 +302,9 @@ impl World {
                 self.resolve_constitution(content, id);
                 self.resolve_consents(content, id);
                 self.resolve_borrowing(content, id);
-                self.complete_projects(id);
+                self.complete_projects(content, id);
                 self.settle(content, id);
+                self.evaluate_commitments(id);
                 self.review_budget(content, id);
                 if self.day.is_multiple_of(30)
                     || self.countries[id].next_election == Some(self.day)
@@ -344,7 +360,7 @@ impl World {
         }
         Ok(self.day - start)
     }
-    fn complete_projects(&mut self, id: &CountryId) {
+    fn complete_projects(&mut self, content: &Content, id: &CountryId) {
         let c = self.countries.get_mut(id).expect("country");
         let mut completed = Vec::new();
         c.projects.retain(|p| {
@@ -356,6 +372,10 @@ impl World {
             }
         });
         for p in completed {
+            let before = content
+                .commitments
+                .as_ref()
+                .map(|_| self.countries[id].clone());
             let c = self.countries.get_mut(id).expect("country");
             match p.policy.as_str() {
                 "income_tax" => c.tax = p.value,
@@ -370,6 +390,9 @@ impl World {
                     c.council_support = (c.council_support + 12).min(100);
                 }
                 _ => unreachable!("validated policy"),
+            }
+            if let Some(before) = before {
+                self.record_delivery(content, id, &p, &before);
             }
             self.event(
                 id,

@@ -37,6 +37,9 @@ fn entries(content: &Content) -> Vec<Entry> {
     ].into_iter().map(|(title, body, tab)| Entry {
         title: title.into(), body: body.into(), destination: Destination { tab, country: None, policy: None }
     }).collect();
+    if content.commitments.is_some() {
+        entries.push(Entry { title: "Amendment, withdrawal and outcome review".into(), body: "Pending policy levels can be amended before consent: pay administration and restart consent and delivery. The amendment limit applies to each proposal. Withdrawal releases only reserved cash; commissioned payments remain spent and no capacity is delivered. Funded withdrawal requires current authority. History retains proposals, amendments, funding, refusal, delivery, replacement and observed reviews. Direct setting changes are separated from observations affected by other programmes, prices and external shocks. Replacing a tax, service or welfare level repeals the previous level; existing physical capacity is not removed.".into(), destination: Destination { tab: Tab::Policies, country: None, policy: None } });
+    }
     entries.extend(content.policies.iter().map(|policy| Entry {
         title: format!("Policy · {}", policy.name),
         body: format!("{} {} Affected groups: {}. Allowed values {}–{}; base implementation {} days; capital cost {} basis points of opening GDP. Authority and administration may add delay: use the live preview before committing.", policy.id, policy.description, policy.groups, policy.min, policy.max, policy.days, policy.cost_bps),

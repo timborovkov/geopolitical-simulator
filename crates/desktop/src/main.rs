@@ -2,6 +2,7 @@ mod advance;
 mod analysis;
 mod cashflows;
 mod charts;
+mod commitments;
 mod constitutions;
 mod financing;
 mod funding;
@@ -53,6 +54,7 @@ struct GameApp {
     money: i64,
     funding_chart: charts::Chart,
     constitution_panel: constitutions::Panel,
+    commitment_panel: commitments::Panel,
     sort_gdp: bool,
     show_ledger: bool,
     recovery: Vec<persistence::RecoveryCandidate>,
@@ -121,6 +123,7 @@ impl GameApp {
             money: 1000,
             funding_chart: charts::Chart::default(),
             constitution_panel: constitutions::Panel::default(),
+            commitment_panel: commitments::Panel::default(),
             sort_gdp: false,
             show_ledger: false,
             recovery: Vec::new(),
@@ -370,6 +373,7 @@ impl GameApp {
         self.analysis = analysis::Analysis::default();
         self.funding_chart = charts::Chart::default();
         self.constitution_panel = constitutions::Panel::default();
+        self.commitment_panel = commitments::Panel::default();
         self.cashflows = cashflows::CashFlows::default();
         self.inspector = inspector::Inspector::default();
         self.help = help::Help::default();
@@ -977,6 +981,14 @@ impl GameApp {
             }
         }
         ui.separator();
+        if let Some(w) = &self.world
+            && self.content.commitments.is_some()
+        {
+            if let Some(action) = self.commitment_panel.show(ui, &self.content, w) {
+                self.issue(action);
+            }
+            return;
+        }
         ui.heading("Committed programs");
         if let Some(w) = &self.world {
             let c = &w.countries[&self.selected];

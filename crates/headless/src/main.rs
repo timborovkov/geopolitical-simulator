@@ -80,11 +80,19 @@ fn status(world: &World, content: &Content) {
             .label()
     );
     for p in &c.projects {
+        let paid = c
+            .commitments
+            .as_ref()
+            .and_then(|records| records.iter().find(|r| r.id.0 == p.id))
+            .map_or(p.cost.0 - p.reserved.0, |r| r.paid.0);
         println!(
-            "Pending {} = {} · paid {}m · due {}",
+            "Pending #{} · {} = {} · {} · paid {}m · reserved {}m · due {}",
+            p.id,
             p.policy,
             p.value,
-            p.cost.0,
+            p.stage.label(),
+            paid,
+            p.reserved.0,
             date(p.due_day)
         );
     }
@@ -128,7 +136,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if developer {
                         println!(
@@ -197,6 +205,42 @@ fn play(
                     } else {
                         world.issue(content, Action::Enact { policy, value })?;
                         println!("Commitment accepted.");
+                    }
+                }
+                "commitments" => {
+                    let records = world
+                        .player_country()
+                        .commitments
+                        .as_ref()
+                        .ok_or("This campaign has no commitment lifecycle")?;
+                    for record in records {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(record).map_err(|e| e.to_string())?
+                        );
+                    }
+                    println!(
+                        "Direct delivered changes are recorded separately. Outcome reviews compare observed settlement days; other policies, prices and external shocks also affect them. They are not causal estimates."
+                    );
+                }
+                "amend" | "preview-amend" => {
+                    let request = CommitmentId(number(words.get(1))?);
+                    let value = number(words.get(2))?;
+                    let preview =
+                        world.preview_amendment(content, &world.player, request, value)?;
+                    if words[0] == "preview-amend" {
+                        println!("{preview:?}");
+                    } else {
+                        world.issue(content, Action::AmendCommitment { request, value })?;
+                    }
+                }
+                "withdraw" | "preview-withdraw" => {
+                    let request = CommitmentId(number(words.get(1))?);
+                    let preview = world.preview_cancellation(content, &world.player, request)?;
+                    if words[0] == "preview-withdraw" {
+                        println!("{preview:?}");
+                    } else {
+                        world.issue(content, Action::CancelCommitment { request })?;
                     }
                 }
                 "advance" => {

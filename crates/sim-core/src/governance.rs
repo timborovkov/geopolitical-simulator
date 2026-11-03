@@ -70,6 +70,14 @@ pub enum PolicyStage {
     AwaitingConsent,
     Implementing,
 }
+impl PolicyStage {
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::AwaitingConsent => "Awaiting consent",
+            Self::Implementing => "Implementing",
+        }
+    }
+}
 impl World {
     pub(crate) fn resolve_consents(&mut self, content: &Content, id: &CountryId) {
         let government = self
@@ -114,6 +122,7 @@ impl World {
                         .expect("project");
                     p.stage = PolicyStage::Implementing;
                     p.reserved = Money(0);
+                    self.record_consent(id, &project, true);
                     self.event(id,true,format!("{} received institutional consent. {}m paid to contractors; construction due {}.",project.policy,paid,date(project.due_day)));
                 }
                 Err(reason) => {
@@ -122,6 +131,7 @@ impl World {
                         .expect("country")
                         .projects
                         .retain(|p| p.id != project.id);
+                    self.record_consent(id, &project, false);
                     self.event(id,true,format!("{} refused at consent: {reason}. Released {}m of reserved cash; proposal administration costs remain paid.",project.policy,project.reserved.0));
                 }
             }

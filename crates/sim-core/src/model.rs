@@ -158,9 +158,18 @@ pub struct Country {
     pub financing: Option<Financing>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub constitution: Option<Constitution>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub commitments: Option<Vec<CommitmentRecord>>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
+    AmendCommitment {
+        request: CommitmentId,
+        value: i32,
+    },
+    CancelCommitment {
+        request: CommitmentId,
+    },
     Enact {
         policy: String,
         value: i32,
@@ -353,6 +362,7 @@ impl World {
                         next_election: d.regime.competitive().then_some(start_day + 730),
                         government_number: 1,
                         projects: Vec::new(),
+                        commitments: content.commitments.as_ref().map(|_| Vec::new()),
                         energy_stock: Energy::ZERO,
                         food_stock: Food::ZERO,
                         report: DailyReport::default(),
@@ -509,6 +519,18 @@ impl World {
                 Action::Enact { policy, value } => content
                     .policy(policy)
                     .is_some_and(|definition| (definition.min..=definition.max).contains(value)),
+                Action::AmendCommitment { request, .. } | Action::CancelCommitment { request } => {
+                    content.commitments.is_some()
+                        && self
+                            .countries
+                            .get(&command.issuer)
+                            .and_then(|c| c.commitments.as_ref())
+                            .is_some_and(|records| {
+                                records
+                                    .iter()
+                                    .any(|r| r.id == *request && r.proposal_command < command.id)
+                            })
+                }
                 Action::Borrow { amount } | Action::Repay { amount } => {
                     (1..=1_000_000_000_000).contains(&amount.0)
                 }
@@ -585,6 +607,7 @@ impl World {
                 (Some(financing), Some(_)) => financing.validate(self, content, id)?,
                 _ => return Err("Country financing differs from campaign rules/content".into()),
             }
+            self.validate_commitments(content, id)?;
             if id != &c.id
                 || c.accounts.checked_total() != Some(c.opening_money.0)
                 || c.opening_money.0 != d.gdp / 20 + d.gdp / 3 + d.gdp / 2 + d.gdp * 3

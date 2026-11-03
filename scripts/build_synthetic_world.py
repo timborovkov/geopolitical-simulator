@@ -159,6 +159,15 @@ def build_constitutions():
     return pack
 
 
+def build_commitments():
+    pack = build_constitutions()
+    pack.update(schema=6, rules=6, id="synthetic-commitments-v6", name="Fictional policy lifecycle",
+                description="Authored commitment lifecycle fixture: paid amendments restart consent, withdrawal releases only unspent reservations, and operating programmes retain direct changes and observed outcome reviews. These are game assumptions, not historical legislative or contracting procedures.")
+    pack["commitments"] = dict(amendment_fee_bps=1000, maximum_amendments=3, evaluation_days=30,
+                               source="synthetic-original", source_version="authored-commitments-v1")
+    return pack
+
+
 def build_market_starter():
     pack = json.loads((ROOT / "data/initial-2000.json").read_text(encoding="utf-8"))
     pack.update(schema=3, rules=3, id="initial-2000-markets-v3",
@@ -210,6 +219,7 @@ def main():
                            ("synthetic-market-test.json", build_markets()),
                            ("synthetic-finance-test.json", build_finance()),
                            ("synthetic-constitution-test.json", build_constitutions()),
+                           ("synthetic-commitment-test.json", build_commitments()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter())]:

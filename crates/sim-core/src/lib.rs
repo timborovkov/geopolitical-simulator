@@ -1,6 +1,7 @@
 //! Deterministic, daily geopolitical simulation. No wall clock, rendering or I/O.
 mod budget;
 mod calendar;
+mod commitments;
 mod constitution;
 mod content;
 mod developer;
@@ -18,6 +19,7 @@ mod rules;
 mod units;
 pub use budget::*;
 pub use calendar::*;
+pub use commitments::*;
 pub use constitution::*;
 pub use content::*;
 pub use developer::*;
