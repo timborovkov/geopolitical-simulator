@@ -60,6 +60,8 @@ Money is expressed in millions of constant-2000 USD-equivalent game credits. Dis
 
 An entirely fictional [three-government fixture](data/synthetic-test.json) offers identical opening economies under parliamentary, party-council and royal authority. It has no historical-data dependencies. Launch it with `cargo run -p headless --release --locked -- --content data/synthetic-test.json --country AUR --interactive`, or pass the same `--content` option to the desktop. Rebuild it offline with `python3 scripts/build_synthetic_world.py`; `--check` verifies reproducibility. Its map markers are arbitrary test locations, not territorial claims.
 
+The [dated fictional fixture](data/synthetic-dated-test.json) starts on 2001-07-15 and demonstrates people, separate office roles, collective leadership, explicit vacancy, unknown incumbency and primary-currency records. Use its path with the same `--content` command. Records initialize the selected bookmark; future reference handovers do not force campaign outcomes. Custom starts must allow a five-calendar-year review by 2100-01-01. The default historical starter remains 2000-01-01; historical office-term coverage has not been completed.
+
 ## Save, recover and replay
 
 The desktop writes manual saves to the path in its sidebar, initially `saves/campaign-v2.json`. Every crossed 30-day reporting boundary writes `saves/autosave-COUNTRY-SCENARIO-v2.json`. A completed save replaces the primary file using a temporary file and retains the previous snapshot as `.json.bak`. Use **Inspect recovery snapshots** to review the primary, pending write, backup or interrupted backup/recovery stage before restoring. Originals are archived before recovery; a damaged primary never replaces the last validated backup. Interrupted writes block ordinary replacement until explicitly resolved. Saves include content/rules hashes, commands, projects and deterministic shock state; incompatible or damaged files fail without replacing the active campaign.
@@ -88,6 +90,7 @@ A reproducible successful crisis strategy can also be inspected and run:
 ```sh
 cargo run -p headless --example recovery --release --locked
 cargo run -p headless --example recovery --release --locked -- --content data/synthetic-test.json
+cargo run -p headless --example recovery --release --locked -- --content data/synthetic-dated-test.json
 ```
 
 This example borrows for runway, proposes tax/spending reforms, builds supply and administrative capacity, maintains support and repays debt when affordable. It uses the same validators, costs and delays as a player. The seed-17 acceptance run establishes that every initial country has a recovery path; it is not a universal optimal AI or a guarantee of balance for every seed. See [development progress](docs/development-progress.md) for the full remaining scope.

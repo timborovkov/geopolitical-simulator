@@ -58,19 +58,61 @@ def build():
                 facts=[], countries=countries, policies=policies)
 
 
+def build_temporal():
+    pack = build()
+    pack.update(id="synthetic-dated-v2", name="Dated fictional institutions", start="2001-07-15",
+                description="Entirely fictional date-effective office/currency fixture. Historical reference terms initialize the bookmark; future records do not force campaign transitions. A one-day reference handover makes boundary behavior inspectable. Statistics and institutions are authored, not historical observations.")
+    pack["countries"][0].update(governing_office="office:aurora:government",
+                                executive="Fictional Steward B", office="First Minister of Aurora", currency="AUT")
+    def period(start, end=None):
+        return dict(valid_from=start, valid_to=end)
+    def provenance(**fields):
+        return dict(**fields, source="synthetic-original", source_version="fictional-records-v1", quality="authored")
+    offices = [provenance(id=f"office:aurora:{identifier}", country="AUR", title=title, role=role,
+                          required=required, validity=period("1990-01-01"))
+               for identifier, title, role, required in [
+                   ("government", "First Minister of Aurora", "head_of_government", True),
+                   ("state", "Aurora Council", "head_of_state", True),
+                   ("speaker", "Assembly Speaker", "legislature", True),
+                   ("auditor", "Independent Auditor", "independent_institution", False)]]
+    terms = [provenance(id=f"term:aurora:{identifier}", office="office:aurora:government",
+                        holder=dict(kind="person", person=f"person:aurora:{identifier}"), validity=validity)
+             for identifier, validity in [
+                 ("a", period("1990-01-01", "2001-07-15")),
+                 ("b", period("2001-07-15", "2001-07-16")),
+                 ("c", period("2001-07-16"))]]
+    terms.extend([
+        provenance(id="term:aurora:council", office="office:aurora:state",
+                   holder=dict(kind="collective", name="Fictional Aurora Council",
+                               members=["person:aurora:a", "person:aurora:c"]), validity=period("1990-01-01")),
+        provenance(id="term:aurora:speaker-vacancy", office="office:aurora:speaker",
+                   holder=dict(kind="vacant"), validity=period("1990-01-01")),
+    ])
+    pack["identities"] = dict(
+        people=[provenance(id=f"person:aurora:{identifier}", name=f"Fictional Steward {identifier.upper()}")
+                for identifier in ["a", "b", "c"]],
+        offices=offices, terms=terms,
+        currencies=[provenance(id=f"currency:aurora:{identifier}", country="AUR", code=code, validity=validity)
+                    for identifier, code, validity in [
+                        ("old", "AUT", period("1990-01-01", "2001-07-16")),
+                        ("new", "NEW-AUT", period("2001-07-16"))]])
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    target = ROOT / "data/synthetic-test.json"
-    expected = json.dumps(build(), ensure_ascii=False, indent=2) + "\n"
-    if args.check:
-        if not target.exists() or target.read_text(encoding="utf-8") != expected:
-            raise SystemExit("Synthetic pack is stale: run python3 scripts/build_synthetic_world.py")
-        print("Synthetic pack matches its authored definitions.")
-    else:
-        target.write_text(expected, encoding="utf-8")
-        print("Built three fictional governments without historical-source dependencies.")
+    for filename, pack in [("synthetic-test.json", build()), ("synthetic-dated-test.json", build_temporal())]:
+        target = ROOT / "data" / filename
+        expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"
+        if args.check:
+            if not target.exists() or target.read_text(encoding="utf-8") != expected:
+                raise SystemExit(f"{filename} is stale: run python3 scripts/build_synthetic_world.py")
+            print(f"{filename} matches its authored definitions.")
+        else:
+            target.write_text(expected, encoding="utf-8", newline="\n")
+            print(f"Built {filename} without historical-source dependencies.")
 
 
 if __name__ == "__main__":

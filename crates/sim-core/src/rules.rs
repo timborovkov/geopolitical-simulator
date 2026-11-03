@@ -231,6 +231,7 @@ impl World {
         if days > 3660 || self.day.saturating_add(days) > MAX_DAY {
             return Err("Advance 0..3660 days within the 100-year campaign limit".into());
         }
+        let review_day = content.review_day()?;
         let ids: Vec<_> = self.countries.keys().cloned().collect();
         for _ in 0..days {
             self.day += 1;
@@ -254,7 +255,7 @@ impl World {
                 }
             }
             self.ledger.retain(|e| e.day + 30 >= self.day);
-            if self.day >= 1827 && !self.milestone_reported {
+            if self.day >= review_day && !self.milestone_reported {
                 let c = self.player_country();
                 let won = c.report.food_coverage >= 90
                     && c.report.energy_coverage >= 90

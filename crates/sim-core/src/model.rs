@@ -231,6 +231,7 @@ impl World {
         if content.country(&player).is_none() {
             return Err("Unknown player country".into());
         }
+        let start_day = content.start_day()?;
         let countries = content
             .countries
             .iter()
@@ -265,10 +266,13 @@ impl World {
                         committed_cash: Money(0),
                         council_support: 65,
                         confidence_crises: 0,
-                        next_leadership_review: d.government.leadership_review_days,
+                        next_leadership_review: d
+                            .government
+                            .leadership_review_days
+                            .map(|days| start_day + days),
                         budget: BudgetPeriod {
-                            start_day: 0,
-                            end_day: crate::budget::next_fiscal_end(0),
+                            start_day,
+                            end_day: crate::budget::next_fiscal_end(start_day),
                             opening_cash: accounts.treasury,
                             forecast: BudgetForecast {
                                 daily_revenue: Money(
@@ -312,7 +316,7 @@ impl World {
                         coalition: d.coalition.clone(),
                         executive: d.executive.clone(),
                         seats,
-                        next_election: d.regime.competitive().then_some(730),
+                        next_election: d.regime.competitive().then_some(start_day + 730),
                         government_number: 1,
                         projects: Vec::new(),
                         energy_stock: Energy::ZERO,
@@ -328,7 +332,7 @@ impl World {
             content_hash: content.hash(),
             seed,
             scenario,
-            day: 0,
+            day: start_day,
             player: player.clone(),
             countries,
             next_command: 1,
@@ -442,14 +446,16 @@ impl World {
         if self.rules != RULES_VERSION || self.content_hash != content.hash() {
             return Err("Rules or content pack mismatch".into());
         }
-        if self.day > MAX_DAY
+        let start_day = content.start_day()?;
+        if self.day < start_day
+            || self.day > MAX_DAY
             || !self.countries.contains_key(&self.player)
             || self.countries.len() != content.countries.len()
             || self.next_command != self.journal.len() as u64 + 1
         {
             return Err("Invalid world clock, player, roster or command sequence".into());
         }
-        let mut previous_day = 0;
+        let mut previous_day = start_day;
         for (index, entry) in self.journal.iter().enumerate() {
             let command = &entry.command;
             let valid_action = match &command.action {
@@ -600,13 +606,16 @@ impl World {
                     .map(|p| i128::from(p.reserved.0))
                     .sum::<i128>()
                     != i128::from(c.committed_cash.0)
+                || c.budget.start_day < start_day
                 || c.budget.start_day > self.day
                 || c.budget.end_day <= self.day
                 || c.budget.end_day > MAX_DAY + 366
                 || !c.budget.valid_ranges()
                 || c.budget.expected_cash() != c.accounts.treasury.0
                 || c.budget_reviews.iter().any(|r| {
-                    !r.period.valid_ranges() || r.period.expected_cash() != r.closing_cash.0
+                    r.period.start_day < start_day
+                        || !r.period.valid_ranges()
+                        || r.period.expected_cash() != r.closing_cash.0
                 })
                 || c.budget_reviews.len() > 10
                 || c.next_leadership_review.is_some_and(|day| day <= self.day)
@@ -617,7 +626,8 @@ impl World {
                 ));
             }
             if c.history.iter().any(|o| {
-                o.day > self.day
+                o.day < start_day
+                    || o.day > self.day
                     || !(0..=100).contains(&o.approval)
                     || !(0..=100).contains(&o.needs)
                     || [o.treasury.0, o.debt.0, o.output.0]
@@ -685,52 +695,5 @@ pub fn date(day: u32) -> String {
 
 /// Strict Gregorian date input for the supported bookmark/campaign range.
 pub fn parse_date(input: &str) -> Result<u32, String> {
-    if input.len() != 10
-        || input.as_bytes()[4] != b'-'
-        || input.as_bytes()[7] != b'-'
-        || !input
-            .bytes()
-            .enumerate()
-            .all(|(i, b)| i == 4 || i == 7 || b.is_ascii_digit())
-    {
-        return Err("Use YYYY-MM-DD".into());
-    }
-    let year: u32 = input[..4].parse().map_err(|_| "Invalid year")?;
-    let month: usize = input[5..7].parse().map_err(|_| "Invalid month")?;
-    let day: u32 = input[8..].parse().map_err(|_| "Invalid day")?;
-    if !(2000..=2100).contains(&year) || !(1..=12).contains(&month) {
-        return Err("Date must fall within the 2000–2100 campaign range".into());
-    }
-    let leap = year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400));
-    let months = [
-        31,
-        if leap { 29 } else { 28 },
-        31,
-        30,
-        31,
-        30,
-        31,
-        31,
-        30,
-        31,
-        30,
-        31,
-    ];
-    if day == 0 || day > months[month - 1] {
-        return Err("Invalid day for this month".into());
-    }
-    let elapsed: u32 = (2000..year)
-        .map(|y| {
-            if y.is_multiple_of(4) && (!y.is_multiple_of(100) || y.is_multiple_of(400)) {
-                366
-            } else {
-                365
-            }
-        })
-        .sum();
-    let result = elapsed + months[..month - 1].iter().sum::<u32>() + day - 1;
-    if result > MAX_DAY {
-        return Err("Date exceeds 2100-01-01".into());
-    }
-    Ok(result)
+    input.parse::<CivilDate>()?.campaign_day()
 }

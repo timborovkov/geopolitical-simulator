@@ -12,6 +12,8 @@ The goal is the full documented game. The current implementation is a playable f
 - This work passed the full local validation: 48 unit/integration tests, one compile-fail dimension check, strict lints/docs, native release compilation and successful seed-17 recovery/replay in all 15 starter countries and three fictional governments. A terminal playtest also exercised an unreformed deficit, growing arrears, pending construction, duplicate-policy rejection and save/load/replay. Hosted cross-platform CI remains unverified.
 - Reference-country mapping now adds pinned Natural Earth outlines for the 15 starters, with island/hole triangulation, polygon selection and dated overlay fills. Tests distinguish the Lesotho interior hole, overseas parts, both sides of the antimeridian, non-roster territory and fictional marker-only packs. The source release is not certified as 2000 borders; historical sovereignty/control and administrative geometry remain incomplete.
 - The map checkpoint passed 52 unit/integration tests plus the compile-fail dimension check and the full local validation script. Native Linux release checks selected Brazil away from its marker, loaded a saved campaign, displayed approval fills, selected France's land and preserved the camera across page changes. Source compilation and manifest validation also run offline; hosted macOS/Windows results remain unverified.
+- Dated-content work adds Gregorian source dates, later bookmarks with correctly initialized fiscal/election clocks, calendar-year mandate deadlines and optional typed people/office/primary-currency records. The fictional dated fixture distinguishes required incumbents, collectives, explicit vacancy and unknown status. Overlaps, gaps, broken references and stale assembled identities are rejected. Future reference records do not force campaign history. Historical office-term coverage, effective powers, country lifecycles and territorial/membership chronology remain incomplete.
+- This checkpoint passed 63 unit/integration tests plus the compile-fail check and the full validation script, including both fictional bookmarks' recovery campaigns. A pre-change version-2 snapshot loaded and replayed unchanged. Native Linux/software-Vulkan checks displayed the dated office records, began on 2001-07-15 with first-settlement values marked unavailable, and advanced to 2001-07-16 while retaining the campaign's incumbent. No sourced historical office dates were invented for the default roster.
 - Historical identity/coverage and major gameplay systems still require implementation and source review. Source facts, authored calibration, forecasts and simulated outcomes must remain distinguishable.
 
 ## Complete priority inventory
@@ -19,7 +21,7 @@ The goal is the full documented game. The current implementation is a playable f
 | Priority | System | Requirements touched / total | Status |
 |---|---|---:|---|
 | 01 | Simulation kernel and command boundary | 8 / 8 | Partial |
-| 02 | Content schema and historical world identity | 5 / 7 | Partial |
+| 02 | Content schema and historical world identity | 6 / 7 | Partial |
 | 03 | Saves, replay and simulation inspection | 6 / 7 | Partial |
 | 04 | Native desktop shell, map and navigation | 6 / 7 | Partial |
 | 05 | Accounts, units and causal reporting | 7 / 7 | Partial |

@@ -1,0 +1,531 @@
+{
+  "schema": 2,
+  "id": "synthetic-dated-v2",
+  "name": "Dated fictional institutions",
+  "start": "2001-07-15",
+  "description": "Entirely fictional date-effective office/currency fixture. Historical reference terms initialize the bookmark; future records do not force campaign transitions. A one-day reference handover makes boundary behavior inspectable. Statistics and institutions are authored, not historical observations.",
+  "sources": [
+    {
+      "id": "synthetic-original",
+      "quality": "authored_synthetic_fixture",
+      "description": "Original fictional content for repeatable rules tests; no historical claims."
+    }
+  ],
+  "facts": [],
+  "countries": [
+    {
+      "id": "AUR",
+      "name": "Aurora Republic (fictional)",
+      "capital": "Aurora Republic test capital",
+      "regime": "parliamentary",
+      "executive": "Fictional Steward B",
+      "office": "First Minister of Aurora",
+      "currency": "AUT",
+      "population": 1000000,
+      "gdp": 100000,
+      "tax": 24,
+      "services": 9,
+      "welfare": 4,
+      "energy": 80,
+      "food": 80,
+      "capacity": 70,
+      "approval": 55,
+      "longitude": 0,
+      "latitude": 30,
+      "ruling_party": "AUR-1",
+      "coalition": [
+        "AUR-1"
+      ],
+      "parties": [
+        {
+          "id": "AUR-1",
+          "name": "Aurora Republic body 1",
+          "leader": "Fictional delegate AUR-1",
+          "ideology": "Authored test profile",
+          "seats": 60
+        },
+        {
+          "id": "AUR-2",
+          "name": "Aurora Republic body 2",
+          "leader": "Fictional delegate AUR-2",
+          "ideology": "Authored test profile",
+          "seats": 40
+        }
+      ],
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      },
+      "quality": "authored_synthetic_fixture",
+      "identity_source": "synthetic-original",
+      "economic_source": "synthetic-original",
+      "governing_office": "office:aurora:government"
+    },
+    {
+      "id": "BOR",
+      "name": "Boreal Union (fictional)",
+      "capital": "Boreal Union test capital",
+      "regime": "single_party",
+      "executive": "Fictional delegate BOR-1",
+      "office": "Test governing office",
+      "currency": "TEST",
+      "population": 1000000,
+      "gdp": 100000,
+      "tax": 24,
+      "services": 9,
+      "welfare": 4,
+      "energy": 80,
+      "food": 80,
+      "capacity": 70,
+      "approval": 55,
+      "longitude": 40,
+      "latitude": 30,
+      "ruling_party": "BOR-1",
+      "coalition": [
+        "BOR-1"
+      ],
+      "parties": [
+        {
+          "id": "BOR-1",
+          "name": "Boreal Union body 1",
+          "leader": "Fictional delegate BOR-1",
+          "ideology": "Authored test profile",
+          "seats": 60
+        },
+        {
+          "id": "BOR-2",
+          "name": "Boreal Union body 2",
+          "leader": "Fictional delegate BOR-2",
+          "ideology": "Authored test profile",
+          "seats": 40
+        }
+      ],
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "party_council",
+        "threshold": 55,
+        "consent_days": 21,
+        "council_threshold": 50,
+        "leadership_review_days": 360
+      },
+      "quality": "authored_synthetic_fixture",
+      "identity_source": "synthetic-original",
+      "economic_source": "synthetic-original"
+    },
+    {
+      "id": "COR",
+      "name": "Coral Crown (fictional)",
+      "capital": "Coral Crown test capital",
+      "regime": "absolute_monarchy",
+      "executive": "Fictional delegate COR-1",
+      "office": "Test governing office",
+      "currency": "TEST",
+      "population": 1000000,
+      "gdp": 100000,
+      "tax": 24,
+      "services": 9,
+      "welfare": 4,
+      "energy": 80,
+      "food": 80,
+      "capacity": 70,
+      "approval": 55,
+      "longitude": 80,
+      "latitude": 30,
+      "ruling_party": "COR-1",
+      "coalition": [
+        "COR-1"
+      ],
+      "parties": [
+        {
+          "id": "COR-1",
+          "name": "Coral Crown body 1",
+          "leader": "Fictional delegate COR-1",
+          "ideology": "Authored test profile",
+          "seats": 60
+        },
+        {
+          "id": "COR-2",
+          "name": "Coral Crown body 2",
+          "leader": "Fictional delegate COR-2",
+          "ideology": "Authored test profile",
+          "seats": 40
+        }
+      ],
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "royal_decree",
+        "threshold": 50,
+        "consent_days": 0,
+        "council_threshold": 45,
+        "leadership_review_days": 360
+      },
+      "quality": "authored_synthetic_fixture",
+      "identity_source": "synthetic-original",
+      "economic_source": "synthetic-original"
+    }
+  ],
+  "policies": [
+    {
+      "id": "income_tax",
+      "name": "Income tax reform",
+      "min": 10,
+      "max": 45,
+      "days": 30,
+      "cost_bps": 2,
+      "description": "Change the wage tax rate.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "services",
+      "name": "Public service budget",
+      "min": 4,
+      "max": 18,
+      "days": 60,
+      "cost_bps": 8,
+      "description": "Authorize annual service spending as a GDP percentage.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "welfare",
+      "name": "Household safety net",
+      "min": 0,
+      "max": 12,
+      "days": 30,
+      "cost_bps": 3,
+      "description": "Authorize targeted transfers as a GDP percentage.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "energy",
+      "name": "Energy capacity program",
+      "min": 1,
+      "max": 1,
+      "days": 90,
+      "cost_bps": 50,
+      "description": "Add 15 energy capacity points after implementation.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "agriculture",
+      "name": "Food resilience program",
+      "min": 1,
+      "max": 1,
+      "days": 120,
+      "cost_bps": 35,
+      "description": "Add 15 food capacity points after implementation.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "administration",
+      "name": "Civil service modernization",
+      "min": 1,
+      "max": 1,
+      "days": 180,
+      "cost_bps": 40,
+      "description": "Add 8 administration points after implementation.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "coalition",
+      "name": "Negotiate governing support",
+      "min": 1,
+      "max": 1,
+      "days": 45,
+      "cost_bps": 10,
+      "description": "Negotiate support through the configured governing route.",
+      "groups": "Fictional household and governing groups"
+    }
+  ],
+  "identities": {
+    "people": [
+      {
+        "id": "person:aurora:a",
+        "name": "Fictional Steward A",
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "person:aurora:b",
+        "name": "Fictional Steward B",
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "person:aurora:c",
+        "name": "Fictional Steward C",
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      }
+    ],
+    "offices": [
+      {
+        "id": "office:aurora:government",
+        "country": "AUR",
+        "title": "First Minister of Aurora",
+        "role": "head_of_government",
+        "required": true,
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": null
+        },
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "office:aurora:state",
+        "country": "AUR",
+        "title": "Aurora Council",
+        "role": "head_of_state",
+        "required": true,
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": null
+        },
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "office:aurora:speaker",
+        "country": "AUR",
+        "title": "Assembly Speaker",
+        "role": "legislature",
+        "required": true,
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": null
+        },
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "office:aurora:auditor",
+        "country": "AUR",
+        "title": "Independent Auditor",
+        "role": "independent_institution",
+        "required": false,
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": null
+        },
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      }
+    ],
+    "terms": [
+      {
+        "id": "term:aurora:a",
+        "office": "office:aurora:government",
+        "holder": {
+          "kind": "person",
+          "person": "person:aurora:a"
+        },
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": "2001-07-15"
+        },
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "term:aurora:b",
+        "office": "office:aurora:government",
+        "holder": {
+          "kind": "person",
+          "person": "person:aurora:b"
+        },
+        "validity": {
+          "valid_from": "2001-07-15",
+          "valid_to": "2001-07-16"
+        },
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "term:aurora:c",
+        "office": "office:aurora:government",
+        "holder": {
+          "kind": "person",
+          "person": "person:aurora:c"
+        },
+        "validity": {
+          "valid_from": "2001-07-16",
+          "valid_to": null
+        },
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "term:aurora:council",
+        "office": "office:aurora:state",
+        "holder": {
+          "kind": "collective",
+          "name": "Fictional Aurora Council",
+          "members": [
+            "person:aurora:a",
+            "person:aurora:c"
+          ]
+        },
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": null
+        },
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "term:aurora:speaker-vacancy",
+        "office": "office:aurora:speaker",
+        "holder": {
+          "kind": "vacant"
+        },
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": null
+        },
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      }
+    ],
+    "currencies": [
+      {
+        "id": "currency:aurora:old",
+        "country": "AUR",
+        "code": "AUT",
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": "2001-07-16"
+        },
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "currency:aurora:new",
+        "country": "AUR",
+        "code": "NEW-AUT",
+        "validity": {
+          "valid_from": "2001-07-16",
+          "valid_to": null
+        },
+        "source": "synthetic-original",
+        "source_version": "fictional-records-v1",
+        "quality": "authored"
+      }
+    ]
+  }
+}

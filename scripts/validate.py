@@ -90,6 +90,7 @@ def main():
             ["cargo", "run", "-p", "headless", "--release", "--locked", "--", "--verify"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-test.json"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-dated-test.json"],
         ]
     env = dict(os.environ, RUSTDOCFLAGS="-D warnings")
     for command in commands:

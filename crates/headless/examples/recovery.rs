@@ -18,7 +18,8 @@ fn play(content: &Content, country: &str, seed: u64) -> Result<(), String> {
     let id = CountryId(country.into());
     let definition = content.country(&id).ok_or("country")?;
     let mut world = World::new_scenario(content, id, seed, Scenario::FiscalSupplyCrisis)?;
-    while world.day < 1827 {
+    let review_day = content.review_day()?;
+    while world.day < review_day {
         let c = world.player_country();
         let forecast = c.forecast(definition);
         let gap = forecast.daily_spending.0 + forecast.daily_interest.0 - forecast.daily_revenue.0;
@@ -59,7 +60,7 @@ fn play(content: &Content, country: &str, seed: u64) -> Result<(), String> {
             let amount = Money((definition.gdp / 20).min(c.debt.0));
             world.issue(content, Action::Repay { amount })?;
         }
-        world.advance(content, (1827 - world.day).min(30))?;
+        world.advance(content, (review_day - world.day).min(30))?;
     }
     world.validate(content)?;
     persistence::replay(&world, content)?;

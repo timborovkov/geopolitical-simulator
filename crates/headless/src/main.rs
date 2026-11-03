@@ -28,14 +28,18 @@ fn status(world: &World, content: &Content) {
         "Tax {}% | services {}% GDP | welfare {}% GDP | energy {}% | food {}% | administration {}%",
         c.tax, c.services, c.welfare, c.energy_capacity, c.food_capacity, c.administration
     );
-    println!(
-        "Last day: revenue {}m | spending {}m | interest {}m | energy delivered {}% | food delivered {}%",
-        c.report.revenue.0,
-        c.report.spending.0,
-        c.report.interest.0,
-        c.report.energy_coverage,
-        c.report.food_coverage
-    );
+    if world.day == content.start_day().expect("validated bookmark") {
+        println!("Opening state: advance one day for realized fiscal and supply flows.");
+    } else {
+        println!(
+            "Last day: revenue {}m | spending {}m | interest {}m | energy delivered {}% | food delivered {}%",
+            c.report.revenue.0,
+            c.report.spending.0,
+            c.report.interest.0,
+            c.report.energy_coverage,
+            c.report.food_coverage
+        );
+    }
     println!(
         "Reserved {}m | council/cadre backing {} | authority {}",
         c.committed_cash.0,
@@ -59,7 +63,8 @@ fn number<T: std::str::FromStr>(text: Option<&&str>) -> Result<T, String> {
 }
 fn play(world: &mut World, content: &Content) -> Result<(), String> {
     println!(
-        "Statecraft · playable terminal. Type help. Reference GDP/population have dated source records; remaining values are authored."
+        "Statecraft · {} · bookmark {}. Type help; data lists observation sources and authored assumptions.",
+        content.name, content.start
     );
     status(world, content);
     loop {
@@ -227,6 +232,10 @@ fn play(world: &mut World, content: &Content) -> Result<(), String> {
                     }
                 }
                 "data" => {
+                    println!(
+                        "Bookmark primary currency: {} (identity metadata; values use game reporting credits).",
+                        content.country(&world.player).expect("player").currency
+                    );
                     for f in content.facts.iter().filter(|f| f.country == world.player) {
                         println!(
                             "{}: {} {} ({}) → {} · {}@{} · {}",
@@ -241,8 +250,29 @@ fn play(world: &mut World, content: &Content) -> Result<(), String> {
                         );
                     }
                     println!(
-                        "Other fields are authored; source metadata and mirror limitations are in data/reference-observations.json."
+                        "Inspect each source and quality label; seed values without observations may use authored assumptions."
                     );
+                    for office in content.bookmark_offices(&world.player) {
+                        println!(
+                            "Bookmark {} · {} · {}: {}",
+                            content.start,
+                            office.role.label(),
+                            office.title,
+                            office.holder
+                        );
+                        if let Some(term) = office.term {
+                            println!(
+                                "Reference from {} until {} (exclusive) · {:?} · source {}@{}; future records do not force campaign transitions.",
+                                term.validity.valid_from,
+                                term.validity
+                                    .valid_to
+                                    .map_or_else(|| "open-ended".into(), |date| date.to_string()),
+                                term.quality,
+                                term.source,
+                                term.source_version
+                            );
+                        }
+                    }
                 }
                 "history" => {
                     for o in &world.player_country().history {

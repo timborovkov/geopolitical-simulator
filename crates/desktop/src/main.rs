@@ -70,6 +70,8 @@ impl GameApp {
         style.spacing.button_padding = Vec2::new(12.0, 7.0);
         ctx.set_style(style);
         let selected = content.countries[0].id.clone();
+        let target_date =
+            date((content.start_day().expect("validated bookmark") + 30).min(MAX_DAY));
         ctx.set_zoom_factor(preferences.active.ui_scale);
         Self {
             content,
@@ -93,7 +95,7 @@ impl GameApp {
             recovery: Vec::new(),
             analysis: analysis::Analysis::default(),
             pending: None,
-            target_date: "2000-02-01".into(),
+            target_date,
             preferences,
         }
     }
@@ -278,7 +280,7 @@ impl GameApp {
                     if let Some(job)=&self.pending{ui.label(format!("Advancing {} / {} days",job.completed.load(std::sync::atomic::Ordering::Relaxed),job.requested));if ui.button("Stop at next day").clicked(){self.pause();}}
 
                 } else {
-                    ui.label("1 January 2000 · Offline single player");
+                    ui.label(format!("{} · Offline single player", self.content.start));
                 }
             });
         });
@@ -401,13 +403,27 @@ impl GameApp {
             for fact in facts {ui.label(format!("{}: {} {} ({} observation; source {}). Applied {}. {}",fact.field,fact.original_value,fact.original_units,fact.observation_period,fact.source,fact.applied_value,fact.transformation));ui.small(format!("Pinned mirror revision {}. Primary API not independently reconciled.",fact.source_version));}
             ui.small("Debt, capacities, household profiles, seats, preferences and political rules are authored. Identity names remain a starter curation; all simulated outcomes branch from the bookmark.");
         });
+        let offices = self.content.bookmark_offices(&self.selected);
+        if !offices.is_empty() {
+            ui.collapsing(format!("Reference offices at {}", self.content.start), |ui| {
+                ui.label("Reference terms initialize the bookmark. Campaign succession follows simulated institutions; future reference records do not force a change.");
+                ui.label(format!("Primary currency identity: {}. Monetary values use game reporting credits; exchange rates are not modeled.", d.currency));
+                for office in &offices {
+                    ui.strong(format!("{} · {}: {}", office.role.label(), office.title, office.holder));
+                    if let Some(term) = &office.term {
+                        ui.small(format!("Reference from {} until {} (end excluded) · {:?} · source {}@{}", term.validity.valid_from,
+                            term.validity.valid_to.map_or_else(|| "open-ended".into(), |date| date.to_string()), term.quality, term.source, term.source_version));
+                    } else { ui.small("No incumbent record at the bookmark; this is unknown, not a recorded vacancy."); }
+                }
+            });
+        }
         if self.foreign_report(ui) {
             return;
         }
         if self.world.is_none() {
             ui.add_space(10.0);
             ui.heading("Your first mandate");
-            ui.label("Keep food and energy needs at 90%, approval at 50%, clear arrears and debt below opening GDP by January 2005. Continue as the country after elections or leadership changes.");
+            ui.label(format!("Keep food and energy needs at 90%, approval at 50%, clear arrears and debt below opening GDP by {}. Continue as the country after elections or leadership changes.", date(self.content.review_day().expect("validated bookmark"))));
             ui.horizontal_wrapped(|ui| {
                 metric(
                     ui,
@@ -455,7 +471,7 @@ impl GameApp {
                 metric(
                     ui,
                     "Energy / food delivered",
-                    if w.day == 0 {
+                    if w.day == self.content.start_day().expect("validated bookmark") {
                         "Awaiting first settlement".into()
                     } else {
                         format!(
@@ -465,7 +481,7 @@ impl GameApp {
                     },
                 );
             });
-            if w.day > 0 {
+            if w.day > self.content.start_day().expect("validated bookmark") {
                 ui.label(format!(
                     "Last day: output {}m · tax receipts {}m · payments {}m · unpaid {}m",
                     c.report.output.0,
@@ -504,7 +520,9 @@ impl GameApp {
         let Some(world) = &self.world else {
             return;
         };
-        if self.selected != world.player || world.day == 0 {
+        if self.selected != world.player
+            || world.day == self.content.start_day().expect("validated bookmark")
+        {
             return;
         }
         let c = world.player_country();
@@ -730,7 +748,7 @@ impl GameApp {
         };
         let c = &w.countries[&self.selected];
         let d = self.content.country(&self.selected).expect("country");
-        if w.day == 0 {
+        if w.day == self.content.start_day().expect("validated bookmark") {
             ui.label("Opening state: advance one day for realized income, baskets and delivery.");
         }
         egui::ScrollArea::horizontal().show(ui, |ui| {
@@ -1258,48 +1276,57 @@ mod interface_tests {
     use super::*;
     #[test]
     fn every_screen_renders_at_compact_and_scaled_sizes_without_mutating_campaign() {
-        let content = Content::bundled().unwrap();
-        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
-        world.advance(&content, 360).unwrap();
-        let expected = world.hash();
-        for scale in [1.0, 1.4] {
-            let ctx = egui::Context::default();
-            let mut app =
-                GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
-            ctx.set_zoom_factor(scale);
-            for selected in [None, Some("GBR"), Some("CHN")] {
-                app.world = selected.map(|_| world.clone());
-                app.selected = CountryId(selected.unwrap_or("GBR").into());
-                for tab in [
-                    Tab::Overview,
-                    Tab::Policies,
-                    Tab::Society,
-                    Tab::Treasury,
-                    Tab::Analysis,
-                    Tab::Politics,
-                    Tab::Chronicle,
-                    Tab::Guide,
-                    Tab::Settings,
-                ] {
-                    app.tab = tab;
-                    let input = egui::RawInput {
-                        screen_rect: Some(egui::Rect::from_min_size(
-                            egui::Pos2::ZERO,
-                            egui::vec2(1280.0 / scale, 800.0 / scale),
-                        )),
-                        focused: true,
-                        ..Default::default()
-                    };
-                    let output = ctx.run(input, |ctx| app.render(ctx));
-                    assert!(!output.shapes.is_empty());
-                    assert!(
-                        output
-                            .shapes
-                            .iter()
-                            .all(|shape| shape.clip_rect.is_finite())
-                    );
-                    if let Some(w) = &app.world {
-                        assert_eq!(w.hash(), expected);
+        for (content, own, foreign) in [
+            (Content::bundled().unwrap(), "GBR", "CHN"),
+            (
+                Content::from_json(include_str!("../../../data/synthetic-dated-test.json"))
+                    .unwrap(),
+                "AUR",
+                "BOR",
+            ),
+        ] {
+            let mut world = World::new(&content, CountryId(own.into()), 17).unwrap();
+            world.advance(&content, 360).unwrap();
+            let expected = world.hash();
+            for scale in [1.0, 1.4] {
+                let ctx = egui::Context::default();
+                let mut app =
+                    GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+                ctx.set_zoom_factor(scale);
+                for selected in [None, Some(own), Some(foreign)] {
+                    app.world = selected.map(|_| world.clone());
+                    app.selected = CountryId(selected.unwrap_or(own).into());
+                    for tab in [
+                        Tab::Overview,
+                        Tab::Policies,
+                        Tab::Society,
+                        Tab::Treasury,
+                        Tab::Analysis,
+                        Tab::Politics,
+                        Tab::Chronicle,
+                        Tab::Guide,
+                        Tab::Settings,
+                    ] {
+                        app.tab = tab;
+                        let input = egui::RawInput {
+                            screen_rect: Some(egui::Rect::from_min_size(
+                                egui::Pos2::ZERO,
+                                egui::vec2(1280.0 / scale, 800.0 / scale),
+                            )),
+                            focused: true,
+                            ..Default::default()
+                        };
+                        let output = ctx.run(input, |ctx| app.render(ctx));
+                        assert!(!output.shapes.is_empty());
+                        assert!(
+                            output
+                                .shapes
+                                .iter()
+                                .all(|shape| shape.clip_rect.is_finite())
+                        );
+                        if let Some(w) = &app.world {
+                            assert_eq!(w.hash(), expected);
+                        }
                     }
                 }
             }

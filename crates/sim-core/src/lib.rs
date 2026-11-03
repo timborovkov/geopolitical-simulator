@@ -1,17 +1,21 @@
 //! Deterministic, daily geopolitical simulation. No wall clock, rendering or I/O.
 mod budget;
+mod calendar;
 mod content;
 mod governance;
 mod households;
+mod identity;
 mod knowledge;
 mod model;
 pub mod persistence;
 mod rules;
 mod units;
 pub use budget::*;
+pub use calendar::*;
 pub use content::*;
 pub use governance::*;
 pub use households::*;
+pub use identity::*;
 pub use knowledge::*;
 pub use model::*;
 pub use units::*;

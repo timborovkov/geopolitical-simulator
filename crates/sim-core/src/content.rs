@@ -55,6 +55,8 @@ pub struct CountryDefinition {
     pub regime: Regime,
     pub executive: String,
     pub office: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub governing_office: Option<crate::OfficeId>,
     pub currency: String,
     pub population: u64,
     pub gdp: i64,
@@ -118,6 +120,8 @@ pub struct Content {
     pub facts: Vec<HistoricalFact>,
     pub countries: Vec<CountryDefinition>,
     pub policies: Vec<PolicyDefinition>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub identities: Option<crate::IdentityCatalogue>,
 }
 impl Content {
     pub fn bundled() -> Result<Self, String> {
@@ -129,7 +133,9 @@ impl Content {
         if header.get("schema").and_then(|v| v.as_u64()) != Some(2) {
             return Err("Unsupported content schema: expected version 2 with household and government definitions".into());
         }
-        let content: Self = serde_json::from_str(json).map_err(|e| format!("Content JSON: {e}"))?;
+        let mut content: Self =
+            serde_json::from_str(json).map_err(|e| format!("Content JSON: {e}"))?;
+        content.assemble_bookmark()?;
         content.validate()?;
         Ok(content)
     }
@@ -142,11 +148,79 @@ impl Content {
     pub fn hash(&self) -> u64 {
         crate::stable_hash(&serde_json::to_vec(self).expect("content serialization"))
     }
+    pub fn start_day(&self) -> Result<u32, String> {
+        crate::parse_date(&self.start)
+    }
+    pub fn at_bookmark(&self, start: &str) -> Result<Self, String> {
+        let mut content = self.clone();
+        content.start = start.into();
+        content.assemble_bookmark()?;
+        content.validate()?;
+        Ok(content)
+    }
+    fn assemble_bookmark(&mut self) -> Result<(), String> {
+        self.start_day()?;
+        self.review_day()?;
+        if let Some(identities) = &self.identities {
+            identities.validate(self)?;
+            let date = self.start.parse()?;
+            for country in &mut self.countries {
+                identities.resolve(country, date)?;
+            }
+        }
+        Ok(())
+    }
+    pub fn bookmark_offices(&self, country: &CountryId) -> Vec<crate::BookmarkOffice> {
+        self.identities
+            .as_ref()
+            .map_or_else(Vec::new, |identities| {
+                identities.offices_at(country, self.start.parse().expect("validated bookmark"))
+            })
+    }
+    pub fn review_day(&self) -> Result<u32, String> {
+        self.start
+            .parse::<crate::CivilDate>()?
+            .anniversary(5)?
+            .campaign_day()
+            .map_err(|_| "Bookmark must permit a five-year review no later than 2100-01-01".into())
+    }
     pub fn validate(&self) -> Result<(), String> {
-        if self.schema != 2 || self.start != "2000-01-01" || self.countries.is_empty() {
+        if self.schema != 2 || self.countries.is_empty() {
             return Err("Unsupported content schema, bookmark or empty roster".into());
         }
+        self.start_day()?;
+        self.review_day()?;
+        if let Some(identities) = &self.identities {
+            identities.validate(self)?;
+            let date = self.start.parse()?;
+            for country in &self.countries {
+                let mut resolved = country.clone();
+                identities.resolve(&mut resolved, date)?;
+                if resolved.executive != country.executive
+                    || resolved.office != country.office
+                    || resolved.currency != country.currency
+                {
+                    return Err(
+                        "Stale bookmark identity cache; assemble the content for its start date"
+                            .into(),
+                    );
+                }
+            }
+        } else if self
+            .countries
+            .iter()
+            .any(|country| country.governing_office.is_some())
+        {
+            return Err("Governing-office reference requires an identity catalogue".into());
+        }
         let sources: BTreeSet<_> = self.sources.iter().map(|s| &s.id).collect();
+        if sources.len() != self.sources.len()
+            || self.sources.iter().any(|source| {
+                source.id.is_empty() || source.quality.is_empty() || source.description.is_empty()
+            })
+        {
+            return Err("Duplicate or incomplete source definition".into());
+        }
         let mut ids = BTreeSet::new();
         let mut party_ids = BTreeSet::new();
         for c in &self.countries {
@@ -215,14 +289,25 @@ impl Content {
             }
         }
         let mut fact_keys = BTreeSet::new();
+        let bookmark_year = self.start.parse::<crate::CivilDate>()?.year();
         for fact in &self.facts {
             let c = self
                 .country(&fact.country)
                 .ok_or("Observation references absent country")?;
             if !fact_keys.insert((&fact.country, &fact.field))
                 || !sources.contains(&fact.source)
-                || fact.observation_period != "2000"
+                || fact.observation_period.len() != 4
+                || !fact
+                    .observation_period
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit())
+                || fact
+                    .observation_period
+                    .parse::<u16>()
+                    .ok()
+                    .is_none_or(|year| year == 0 || year > bookmark_year)
                 || fact.source_version.is_empty()
+                || fact.quality.is_empty()
                 || fact.original_value.is_empty()
                 || fact.transformation.is_empty()
                 || match fact.field.as_str() {
