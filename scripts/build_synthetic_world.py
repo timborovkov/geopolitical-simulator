@@ -1,6 +1,7 @@
 """Rebuild test fixtures and the market starter from committed inputs, without network access."""
 import argparse
 import json
+from import_reference_data import apply_manifest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -289,6 +290,14 @@ def build_election_starter():
     return pack
 
 
+def build_observed_starter():
+    pack = build_election_starter()
+    pack.update(id="initial-2000-observed-v8", name="A New Century · expanded observations")
+    pack["description"] += " Population observations cover all 15 starter countries and GDP covers 14, from the pinned World Bank mirrors. North Korean GDP retains its explicit authored calibration. Annual observations are bookmark proxies; primary sources have not been independently reconciled."
+    manifest = json.loads((ROOT / "data/starter-observations.json").read_text(encoding="utf-8"))
+    return apply_manifest(pack, manifest)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -305,6 +314,7 @@ def main():
                            ("initial-2000-constitutions.json", build_constitution_starter()),
                            ("initial-2000-commitments.json", build_commitment_starter()),
                            ("initial-2000-elections.json", build_election_starter()),
+                           ("initial-2000-observed.json", build_observed_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

@@ -1,9 +1,23 @@
 use eframe::egui;
 use sim_core::*;
 
+/// Keep the expanded roster's manual files separate from the preserved rules-8 baseline.
+pub fn default_save_path(content: &Content) -> String {
+    let suffix = if content.id == "initial-2000-observed-v8" {
+        "-observed"
+    } else {
+        ""
+    };
+    format!(
+        "saves/campaign{suffix}-v{}.json",
+        sim_core::persistence::snapshot_schema_for_rules(content.rules)
+    )
+}
+
 #[derive(Clone, Copy, PartialEq)]
 enum Pack {
     Current,
+    Electoral,
     Cabinet,
     Commitment,
     Constitution,
@@ -44,10 +58,7 @@ impl Setup {
         } else {
             content.countries[0].id.clone()
         };
-        let save_path = format!(
-            "saves/campaign-v{}.json",
-            sim_core::persistence::snapshot_schema_for_rules(content.rules)
-        );
+        let save_path = default_save_path(&content);
         Ok(Self {
             content,
             player: selected,
@@ -96,9 +107,10 @@ impl Setup {
                 if active { ui.label(format!("Save active campaign to: {current_save_path}. A separate archived snapshot will also be retained.")); }
                 if self.bundled_catalog {
                     let previous = self.pack;
-                    let pack_label = match self.pack { Pack::Current => "Default · elections and government", Pack::Cabinet => "Earlier · ministries and policies", Pack::Commitment => "Earlier · policy commitments", Pack::Constitution => "Earlier · political transitions", Pack::Finance => "Earlier · borrowing and prices", Pack::Market => "Earlier · prices only", _ => "Classic · fixed prices" };
-                    egui::ComboBox::from_label("World pack").height(260.0).selected_text(pack_label).show_ui(ui, |ui| {
-                        ui.selectable_value(&mut self.pack, Pack::Current, "Default · elections and government");
+                    let pack_label = match self.pack { Pack::Current => "Default · expanded observations", Pack::Electoral => "Earlier · electoral mandates", Pack::Cabinet => "Earlier · ministries and policies", Pack::Commitment => "Earlier · policy commitments", Pack::Constitution => "Earlier · political transitions", Pack::Finance => "Earlier · borrowing and prices", Pack::Market => "Earlier · prices only", _ => "Classic · fixed prices" };
+                    egui::ComboBox::from_label("World pack").height(320.0).selected_text(pack_label).show_ui(ui, |ui| {
+                        ui.selectable_value(&mut self.pack, Pack::Current, "Default · expanded observations");
+                        ui.selectable_value(&mut self.pack, Pack::Electoral, "Earlier · electoral mandates");
                         ui.selectable_value(&mut self.pack, Pack::Cabinet, "Earlier · ministries and policies");
                         ui.selectable_value(&mut self.pack, Pack::Commitment, "Earlier · policy commitments");
                         ui.selectable_value(&mut self.pack, Pack::Constitution, "Earlier · political transitions");
@@ -107,11 +119,11 @@ impl Setup {
                         ui.selectable_value(&mut self.pack, Pack::Classic, "Classic · fixed prices");
                     });
                     if self.pack != previous {
-                        let old_default = format!("saves/campaign-v{}.json", sim_core::persistence::snapshot_schema_for_rules(self.content.rules));
-                        match match self.pack { Pack::Cabinet => Content::cabinet_bundled(), Pack::Classic => Content::classic_bundled(), Pack::Commitment => Content::commitment_bundled(), Pack::Constitution => Content::constitution_bundled(), Pack::Finance => Content::finance_bundled(), Pack::Market => Content::market_bundled(), _ => Content::bundled() } {
+                        let old_default = default_save_path(&self.content);
+                        match match self.pack { Pack::Electoral => Content::electoral_bundled(), Pack::Cabinet => Content::cabinet_bundled(), Pack::Classic => Content::classic_bundled(), Pack::Commitment => Content::commitment_bundled(), Pack::Constitution => Content::constitution_bundled(), Pack::Finance => Content::finance_bundled(), Pack::Market => Content::market_bundled(), _ => Content::bundled() } {
                             Ok(content) => {
                                 if content.country(&self.player).is_none() { self.player = content.countries[0].id.clone(); }
-                                if self.save_path == old_default { self.save_path = format!("saves/campaign-v{}.json", sim_core::persistence::snapshot_schema_for_rules(content.rules)); }
+                                if self.save_path == old_default { self.save_path = default_save_path(&content); }
                                 self.content = content;
                                 self.error = None;
                             }

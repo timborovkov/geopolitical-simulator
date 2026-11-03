@@ -7,7 +7,7 @@ fn setup(id: &str) -> (Content, World) {
 #[test]
 fn source_observations_and_household_definitions_are_validated() {
     let c = Content::bundled().unwrap();
-    assert_eq!(c.facts.len(), 6);
+    assert_eq!(c.facts.len(), 29);
     for id in ["GBR", "CHN", "SAU"] {
         let d = c.country(&CountryId(id.into())).unwrap();
         assert_eq!(d.quality, "mixed_observed_and_authored");

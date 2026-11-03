@@ -14,7 +14,7 @@ fn published_constitutional_pack_keeps_its_no_order_campaign_golden() {
 
 #[test]
 fn electoral_starter_preserves_prior_country_policy_and_reference_data() {
-    let current = Content::bundled().unwrap();
+    let current = Content::electoral_bundled().unwrap();
     let classic = Content::classic_bundled().unwrap();
     assert_eq!(current.schema, 8);
     assert_eq!(current.rules, 8);
@@ -493,4 +493,108 @@ fn default_early_poll_preserves_a_retained_cabinet_and_its_commissioned_programm
     world.advance(&content, due - world.day).unwrap();
     assert_eq!(world.player_country().energy_capacity, 105);
     persistence::replay(&world, &content).unwrap();
+}
+
+#[test]
+fn expanded_observations_keep_the_same_rules_and_political_calibration_with_explicit_missing_gdp() {
+    let current = Content::bundled().unwrap();
+    let earlier = Content::electoral_bundled().unwrap();
+    assert_eq!(current.rules, earlier.rules);
+    assert_ne!(current.hash(), earlier.hash());
+    assert_eq!(Content::bundled_for_hash(current.hash()).unwrap(), current);
+    assert_eq!(Content::bundled_for_hash(earlier.hash()).unwrap(), earlier);
+    assert_eq!(current.facts.len(), 29);
+    for fact in &earlier.facts {
+        assert!(current.facts.contains(fact));
+    }
+    for country in &current.countries {
+        assert_eq!(country.quality, "mixed_observed_and_authored");
+        assert!(
+            current
+                .facts
+                .iter()
+                .any(|f| f.country == country.id && f.field == "population")
+        );
+        assert_eq!(
+            current
+                .facts
+                .iter()
+                .any(|f| f.country == country.id && f.field == "gdp"),
+            country.id.0 != "PRK"
+        );
+        let old = earlier.country(&country.id).unwrap();
+        let mut normalized = country.clone();
+        normalized.population = old.population;
+        normalized.gdp = old.gdp;
+        normalized.quality = old.quality.clone();
+        assert_eq!(&normalized, old);
+    }
+    assert_eq!(
+        current.country(&CountryId("PRK".into())).unwrap().gdp,
+        17000
+    );
+    assert_eq!(current.policies, earlier.policies);
+    assert_eq!(current.markets, earlier.markets);
+    assert_eq!(current.finance, earlier.finance);
+    assert_eq!(current.constitutions, earlier.constitutions);
+    assert_eq!(current.commitments, earlier.commitments);
+    assert_eq!(current.cabinet, earlier.cabinet);
+    assert_eq!(current.elections, earlier.elections);
+}
+
+#[test]
+fn earlier_electoral_roster_recovers_its_pending_poll_without_recalibrating_other_countries() {
+    let earlier = Content::electoral_bundled().unwrap();
+    let mut pending = World::new(&earlier, CountryId("GBR".into()), 17).unwrap();
+    pending
+        .issue(
+            &earlier,
+            Action::Appoint {
+                office: OfficeId("portfolio:GBR:supply".into()),
+                person: PersonId("generated:GBR:supply:professional".into()),
+            },
+        )
+        .unwrap();
+    pending.advance(&earlier, 365).unwrap();
+    pending
+        .issue(
+            &earlier,
+            Action::Enact {
+                policy: "energy".into(),
+                value: 1,
+            },
+        )
+        .unwrap();
+    pending.issue(&earlier, Action::RequestElection).unwrap();
+    assert_eq!(pending.hash(), 0x2b7a4b18ebe0fe40);
+    let current = Content::bundled().unwrap();
+    let world = World::new(&current, pending.player.clone(), 42).unwrap();
+    let dir = std::env::temp_dir().join(format!(
+        "geosim-electoral-roster-recovery-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("mixed.json");
+    persistence::save(&path, &world, &current).unwrap();
+    let current_bytes = std::fs::read(&path).unwrap();
+    let backup = path.with_extension("json.bak");
+    let earlier_bytes = persistence::encode(&pending, &earlier).unwrap();
+    std::fs::write(&backup, &earlier_bytes).unwrap();
+    let candidates = persistence::recovery_candidates_bundled(&path);
+    assert_eq!(candidates[0].schema, Some(9));
+    assert_eq!(candidates[1].schema, Some(9));
+    assert_ne!(candidates[0].content_id, candidates[1].content_id);
+    let (resolved, mut restored) = persistence::restore_bundled(&path, &backup).unwrap();
+    assert_eq!(resolved, earlier);
+    restored.advance(&resolved, 7).unwrap();
+    assert_eq!(restored.hash(), 0x7c6341dfbef5bedd);
+    restored.advance(&resolved, 60).unwrap();
+    assert_eq!(restored.hash(), 0xc12c0a5b7c9fc28d);
+    assert_eq!(std::fs::read(&backup).unwrap(), earlier_bytes);
+    assert_eq!(
+        std::fs::read(dir.join("mixed.json.before-recovery-1")).unwrap(),
+        current_bytes
+    );
+    persistence::replay(&restored, &resolved).unwrap();
+    std::fs::remove_dir_all(dir).unwrap();
 }

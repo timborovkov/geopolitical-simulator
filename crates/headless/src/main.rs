@@ -705,10 +705,22 @@ fn play(
                     }
                 }
                 "data" => {
+                    let d = content.country(&world.player).expect("player");
                     println!(
                         "Bookmark primary currency: {} (identity metadata; values use game reporting credits).",
                         content.country(&world.player).expect("player").currency
                     );
+                    for (field, value) in [("population", d.population as i64), ("gdp", d.gdp)] {
+                        if !content
+                            .facts
+                            .iter()
+                            .any(|fact| fact.country == world.player && fact.field == field)
+                        {
+                            println!(
+                                "{field}: {value} · authored calibration; no observation record in this pack."
+                            );
+                        }
+                    }
                     for f in content.facts.iter().filter(|f| f.country == world.player) {
                         println!(
                             "{}: {} {} ({}) → {} · {}@{} · {}",

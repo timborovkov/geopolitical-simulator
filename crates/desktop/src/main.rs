@@ -105,10 +105,7 @@ impl GameApp {
         let target_date =
             date((content.start_day().expect("validated bookmark") + 30).min(MAX_DAY));
         ctx.set_zoom_factor(preferences.active.ui_scale);
-        let save_path = format!(
-            "saves/campaign-v{}.json",
-            sim_core::persistence::snapshot_schema_for_rules(content.rules)
-        );
+        let save_path = new_game::default_save_path(&content);
         Self {
             content,
             world: None,
@@ -633,7 +630,9 @@ impl GameApp {
         }
         egui::CollapsingHeader::new("Opening data & provenance").show(ui,|ui|{
             let facts:Vec<_>=self.content.facts.iter().filter(|f|f.country==d.id).collect();
-            if facts.is_empty(){ui.label("Population and GDP are authored approximations for this country.");}
+            for (field, value) in [("population", d.population as i64), ("gdp", d.gdp)] {
+                if !facts.iter().any(|fact| fact.field == field) { ui.label(format!("{field}: {value} · authored calibration; no observation record in this pack.")); }
+            }
             for fact in facts {ui.label(format!("{}: {} {} ({} observation; source {}). Applied {}. {}",fact.field,fact.original_value,fact.original_units,fact.observation_period,fact.source,fact.applied_value,fact.transformation));ui.small(format!("Pinned mirror revision {}. Primary API not independently reconciled.",fact.source_version));}
             ui.small("Debt, capacities, household profiles, seats, preferences and political rules are authored. Identity names remain a starter curation; all simulated outcomes branch from the bookmark.");
         });

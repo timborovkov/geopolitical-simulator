@@ -142,6 +142,10 @@ pub struct Content {
 }
 impl Content {
     pub fn bundled() -> Result<Self, String> {
+        Self::from_json(include_str!("../../../data/initial-2000-observed.json"))
+    }
+    /// Preserved rules-8 roster before expanded population/GDP observations.
+    pub fn electoral_bundled() -> Result<Self, String> {
         Self::from_json(include_str!("../../../data/initial-2000-elections.json"))
     }
     /// Preserved rules-7 pack for campaigns begun before independent electoral mandates.
@@ -173,6 +177,7 @@ impl Content {
     pub fn bundled_for_hash(hash: u64) -> Result<Self, String> {
         for pack in [
             Self::bundled()?,
+            Self::electoral_bundled()?,
             Self::cabinet_bundled()?,
             Self::commitment_bundled()?,
             Self::constitution_bundled()?,
