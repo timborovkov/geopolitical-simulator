@@ -1,0 +1,940 @@
+mod map;
+use eframe::egui::{self, Color32, RichText, Stroke, Vec2};
+use sim_core::{persistence, *};
+use std::{
+    path::PathBuf,
+    time::{Duration, Instant},
+};
+
+const MINT: Color32 = Color32::from_rgb(104, 224, 186);
+const MUTED: Color32 = Color32::from_rgb(148, 170, 181);
+#[derive(Clone, Copy, PartialEq)]
+enum Tab {
+    Overview,
+    Policies,
+    Treasury,
+    Society,
+    Politics,
+    Chronicle,
+    Guide,
+}
+struct GameApp {
+    content: Content,
+    world: Option<World>,
+    selected: CountryId,
+    tab: Tab,
+    map: map::WorldMap,
+    search: String,
+    seed: u64,
+    scenario: Scenario,
+    policy: String,
+    value: i32,
+    status: String,
+    speed: u32,
+    last_tick: Instant,
+    pause_alerts: bool,
+    save_path: String,
+    money: i64,
+    sort_gdp: bool,
+    show_ledger: bool,
+}
+impl GameApp {
+    fn new(cc: &eframe::CreationContext<'_>, content: Content) -> Self {
+        let mut visuals = egui::Visuals::dark();
+        visuals.panel_fill = Color32::from_rgb(18, 29, 39);
+        visuals.window_fill = Color32::from_rgb(23, 37, 48);
+        visuals.selection.bg_fill = Color32::from_rgb(37, 91, 83);
+        visuals.selection.stroke = Stroke::new(1.0_f32, MINT);
+        cc.egui_ctx.set_visuals(visuals);
+        let mut style = (*cc.egui_ctx.style()).clone();
+        style.spacing.item_spacing = Vec2::new(10.0, 8.0);
+        style.spacing.button_padding = Vec2::new(12.0, 7.0);
+        cc.egui_ctx.set_style(style);
+        let selected = content.countries[0].id.clone();
+        Self {
+            content,
+            world: None,
+            selected,
+            tab: Tab::Overview,
+            map: map::WorldMap::new(),
+            search: String::new(),
+            seed: 2000,
+            scenario: Scenario::Sandbox,
+            policy: "energy".into(),
+            value: 1,
+            status: "Choose a country and begin your mandate, or load a saved campaign.".into(),
+            speed: 0,
+            last_tick: Instant::now(),
+            pause_alerts: true,
+            save_path: "saves/campaign-v2.json".into(),
+            money: 1000,
+            sort_gdp: false,
+            show_ledger: false,
+        }
+    }
+    fn advance(&mut self, days: u32) {
+        if let Some(w) = &mut self.world {
+            let previous = w.day;
+            match w.advance(&self.content, days) {
+                Ok(()) => {
+                    self.status = format!("Advanced {days} days. {}", date(w.day));
+                    if self.pause_alerts
+                        && w.events
+                            .iter()
+                            .any(|e| e.day > previous && e.country == w.player && e.important)
+                    {
+                        self.speed = 0;
+                        self.status.push_str(" Important event: see Chronicle.");
+                    }
+                    if w.day / 30 != previous / 30 {
+                        let path = PathBuf::from(format!(
+                            "saves/autosave-{}-{}-v2.json",
+                            w.player.0,
+                            w.scenario.id()
+                        ));
+                        let result = std::fs::create_dir_all("saves")
+                            .map_err(|e| e.to_string())
+                            .and_then(|()| persistence::save(&path, w, &self.content));
+                        if let Err(e) = result {
+                            self.speed = 0;
+                            self.status = format!("Autosave failed: {e}");
+                        }
+                    }
+                }
+                Err(e) => {
+                    self.status = e;
+                    self.speed = 0;
+                }
+            }
+        }
+    }
+    fn issue(&mut self, action: Action) {
+        if let Some(w) = &mut self.world {
+            self.status = match w.issue(&self.content, action) {
+                Ok(()) => "Command accepted. Inspect the Chronicle and pending commitments.".into(),
+                Err(e) => format!("Rejected: {e}"),
+            };
+        }
+    }
+    fn save(&mut self) {
+        self.speed = 0;
+        if let Some(w) = &self.world {
+            let path = PathBuf::from(&self.save_path);
+            let result = if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())
+            } else {
+                Ok(())
+            };
+            self.status = match result.and_then(|()| persistence::save(&path, w, &self.content)) {
+                Ok(()) => format!(
+                    "Saved {}. Previous snapshot retained as .json.bak.",
+                    path.display()
+                ),
+                Err(e) => e,
+            };
+        }
+    }
+    fn load(&mut self) {
+        self.speed = 0;
+        match persistence::load(&PathBuf::from(&self.save_path), &self.content) {
+            Ok(w) => {
+                self.selected = w.player.clone();
+                self.world = Some(w);
+                self.status = "Campaign loaded. Simulation paused.".into();
+            }
+            Err(e) => self.status = e,
+        }
+    }
+    fn top(&mut self, ctx: &egui::Context) {
+        egui::TopBottomPanel::top("command_bar").show(ctx, |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.label(RichText::new("STATECRAFT").size(23.0).strong().color(MINT));
+                ui.label(RichText::new("A NEW CENTURY").color(MUTED));
+                ui.separator();
+                if let Some(w) = &self.world {
+                    ui.strong(date(w.day));
+                    ui.label(format!("Governing {} · {}", w.player.0, w.scenario.id()));
+                    if ui
+                        .button(if self.speed == 0 {
+                            "Play [Space]"
+                        } else {
+                            "Pause [Space]"
+                        })
+                        .clicked()
+                    {
+                        self.speed = if self.speed == 0 { 1 } else { 0 };
+                        self.last_tick = Instant::now();
+                    }
+                    for (days, label) in [(1, "1×"), (7, "7×"), (30, "30×")] {
+                        if ui.selectable_label(self.speed == days, label).clicked() {
+                            self.speed = days;
+                        }
+                    }
+                    if ui.button("+1 day").clicked() {
+                        self.advance(1);
+                    }
+                    if ui.button("+30 days").clicked() {
+                        self.advance(30);
+                    }
+                    if ui.button("Next event").clicked() {
+                        self.speed = 0;
+                        let start = self.world.as_ref().expect("world").day;
+                        for _ in 0..365 {
+                            self.advance(1);
+                            let w = self.world.as_ref().expect("world");
+                            if w.day == MAX_DAY
+                                || w.events
+                                    .iter()
+                                    .any(|e| e.day > start && e.country == w.player && e.important)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    ui.label("1 January 2000 · Offline single player");
+                }
+            });
+        });
+        egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.label(RichText::new(&self.status).color(MINT));
+            });
+        });
+    }
+    fn sidebar(&mut self, ctx: &egui::Context) {
+        egui::SidePanel::left("navigation")
+            .resizable(true)
+            .default_width(230.0)
+            .width_range(190.0..=320.0)
+            .show(ctx, |ui| {
+                ui.add_space(10.0);
+                ui.label(RichText::new("GOVERNMENT DESK").color(MUTED).small());
+                for (tab, label) in [
+                    (Tab::Overview, "01  World & overview"),
+                    (Tab::Policies, "02  Policies & delivery"),
+                    (Tab::Society, "03  Households & needs"),
+                    (Tab::Treasury, "04  Treasury & accounts"),
+                    (Tab::Politics, "05  Institutions & parties"),
+                    (Tab::Chronicle, "06  Chronicle & AI"),
+                    (Tab::Guide, "07  How to play"),
+                ] {
+                    ui.selectable_value(&mut self.tab, tab, label);
+                }
+                ui.separator();
+                ui.label(RichText::new("COUNTRY DIRECTORY").color(MUTED).small());
+                ui.text_edit_singleline(&mut self.search);
+                ui.checkbox(&mut self.sort_gdp, "Sort by opening GDP");
+                egui::ScrollArea::vertical()
+                    .id_salt("country_list")
+                    .max_height((ui.available_height() - 230.0).max(100.0))
+                    .show(ui, |ui| {
+                        let mut countries: Vec<_> = self.content.countries.iter().collect();
+                        if self.sort_gdp {
+                            countries.sort_by_key(|c| std::cmp::Reverse(c.gdp));
+                        }
+                        let query = self.search.to_lowercase();
+                        for d in countries {
+                            if !format!("{} {} {}", d.name, d.id.0, d.executive)
+                                .to_lowercase()
+                                .contains(&query)
+                            {
+                                continue;
+                            }
+                            ui.selectable_value(
+                                &mut self.selected,
+                                d.id.clone(),
+                                format!("{}  {}", d.id.0, d.name),
+                            );
+                        }
+                    });
+                ui.separator();
+                if let Some(world) = &self.world {
+                    if ui.button("Return to my country").clicked() {
+                        self.selected = world.player.clone();
+                    }
+                    ui.checkbox(&mut self.pause_alerts, "Pause on important events");
+                }
+                ui.label("Save file / recovery .bak path");
+                ui.text_edit_singleline(&mut self.save_path);
+                ui.horizontal(|ui| {
+                    if ui
+                        .add_enabled(self.world.is_some(), egui::Button::new("Save"))
+                        .clicked()
+                    {
+                        self.save();
+                    }
+                    if ui.button("Load").clicked() {
+                        self.load();
+                    }
+                });
+                ui.small("F5 save · F9 load · Tab to navigate");
+                ui.small(
+                    "Sourced reference GDP/population are identified in the overview; remaining values are authored.",
+                );
+            });
+    }
+    fn overview(&mut self, ui: &mut egui::Ui) {
+        ui.label(RichText::new("THE WORLD AT YOUR DESK").color(MUTED).small());
+        let d = self
+            .content
+            .country(&self.selected)
+            .expect("selection")
+            .clone();
+        ui.heading(&d.name);
+        ui.label(format!(
+            "{} · {:?} · {} {}",
+            d.capital, d.regime, d.office, d.executive
+        ));
+        self.map.show(
+            ui,
+            &self.content,
+            &mut self.selected,
+            (ui.available_height() * 0.48).clamp(200.0, 420.0),
+        );
+        if self.selected != d.id {
+            return;
+        }
+        egui::CollapsingHeader::new("Opening data & provenance").show(ui,|ui|{
+            let facts:Vec<_>=self.content.facts.iter().filter(|f|f.country==d.id).collect();
+            if facts.is_empty(){ui.label("Population and GDP are authored approximations for this country.");}
+            for fact in facts {ui.label(format!("{}: {} {} ({} observation; source {}). Applied {}. {}",fact.field,fact.original_value,fact.original_units,fact.observation_period,fact.source,fact.applied_value,fact.transformation));ui.small(format!("Pinned mirror revision {}. Primary API not independently reconciled.",fact.source_version));}
+            ui.small("Debt, capacities, household profiles, seats, preferences and political rules are authored. Identity names remain a starter curation; all simulated outcomes branch from the bookmark.");
+        });
+        if self.world.is_none() {
+            ui.add_space(10.0);
+            ui.heading("Your first mandate");
+            ui.label("Keep food and energy needs at 90%, approval at 50%, clear arrears and debt below opening GDP by January 2005. Continue as the country after elections or leadership changes.");
+            ui.horizontal_wrapped(|ui| {
+                metric(
+                    ui,
+                    "Population",
+                    format!("{:.1} million", d.population as f64 / 1_000_000.0),
+                );
+                metric(ui, "Opening GDP", format!("{}m credits/year", d.gdp));
+                metric(
+                    ui,
+                    "Energy / food",
+                    format!("{}% / {}% domestic", d.energy, d.food),
+                );
+                metric(ui, "Collection capacity", format!("{}%", d.capacity));
+            });
+            ui.label(format!("Governing route: {}. Policy construction and fiscal constraints apply in every regime.",d.government.label()));
+            egui::ComboBox::from_label("Scenario")
+                .selected_text(self.scenario.id())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.scenario, Scenario::Sandbox, "Sandbox");
+                    ui.selectable_value(
+                        &mut self.scenario,
+                        Scenario::FiscalSupplyCrisis,
+                        "Fiscal and supply crisis (authored)",
+                    );
+                });
+            if self.scenario == Scenario::FiscalSupplyCrisis {
+                ui.colored_label(Color32::LIGHT_YELLOW,"Authored crisis overrides: domestic food/energy 40%, tax 10%, services 18%, welfare 12%, administration 60%, approval 20%. GDP and population source observations are retained.");
+            }
+            ui.horizontal(|ui|{
+                ui.label("World seed");ui.add(egui::DragValue::new(&mut self.seed));
+                if ui.button(RichText::new(format!("Begin as {} >",d.name)).color(MINT)).clicked(){
+                    match World::new_scenario(&self.content,d.id.clone(),self.seed,self.scenario){Ok(w)=>{self.world=Some(w);self.money=(d.gdp/100).max(1);self.status="Mandate started, paused. Advance a day to collect the first fiscal and supply report.".into();},Err(e)=>self.status=e}
+                }
+            });
+        } else if let Some(w) = &self.world {
+            let c = &w.countries[&self.selected];
+            ui.horizontal_wrapped(|ui| {
+                metric(ui, "Treasury", format!("{}m", c.accounts.treasury.0));
+                metric(
+                    ui,
+                    "Debt / opening GDP",
+                    format!("{}%", c.debt.0 * 100 / d.gdp),
+                );
+                metric(ui, "Approval", format!("{}%", c.approval));
+                metric(
+                    ui,
+                    "Energy / food delivered",
+                    if w.day == 0 {
+                        "Awaiting first settlement".into()
+                    } else {
+                        format!(
+                            "{}% / {}%",
+                            c.report.energy_coverage, c.report.food_coverage
+                        )
+                    },
+                );
+            });
+            if w.day > 0 {
+                ui.label(format!(
+                    "Last day: output {}m · tax receipts {}m · payments {}m · unpaid {}m",
+                    c.report.output.0,
+                    c.report.revenue.0,
+                    c.report.spending.0 + c.report.interest.0,
+                    c.report.unpaid.0
+                ));
+                if c.report.food_coverage < 90 || c.report.energy_coverage < 90 {
+                    ui.colored_label(Color32::LIGHT_YELLOW,"Supply gap: compare a capacity program with fiscal headroom under Policies.");
+                }
+                if c.arrears.0 > 0 {
+                    ui.colored_label(
+                        Color32::LIGHT_RED,
+                        "Unpaid obligations: borrow or lower spending to restore funded delivery.",
+                    );
+                }
+            }
+            if !c.history.is_empty() {
+                sparkline(ui, &c.history);
+            }
+            ui.label(format!(
+                "{} pending commitments · {} · next election {}",
+                c.projects.len(),
+                c.executive,
+                c.next_election
+                    .map(date)
+                    .unwrap_or_else(|| "Elite backing reviewed monthly".into())
+            ));
+            if let Some(event) = w.events.iter().rev().find(|e| e.country == self.selected) {
+                ui.label(format!("{}  {}", date(event.day), event.text));
+            }
+        }
+    }
+    fn policies(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Policies & implementation");
+        ui.label("Compare a commitment, check its route and cash cost, then approve. The effect starts after implementation completes.");
+        egui::ComboBox::from_label("Program")
+            .selected_text(&self.content.policy(&self.policy).expect("policy").name)
+            .show_ui(ui, |ui| {
+                for p in &self.content.policies {
+                    if ui
+                        .selectable_value(&mut self.policy, p.id.clone(), &p.name)
+                        .changed()
+                    {
+                        self.value = p.min;
+                    }
+                }
+            });
+        let p = self.content.policy(&self.policy).expect("policy").clone();
+        self.value = self.value.clamp(p.min, p.max);
+        if p.min != p.max {
+            ui.add(egui::Slider::new(&mut self.value, p.min..=p.max).text(
+                if self.policy == "income_tax" {
+                    "% of wages"
+                } else {
+                    "% of annual GDP"
+                },
+            ));
+        }
+        ui.label(&p.description);
+        ui.small(format!("Affected groups: {}", p.groups));
+        let Some(w) = &self.world else {
+            ui.label("Begin a mandate to preview policy feasibility.");
+            return;
+        };
+        let c = &w.countries[&self.selected];
+        ui.label(format!(
+            "Operating levels: income tax {}% · services {}% GDP · welfare {}% GDP",
+            c.tax, c.services, c.welfare
+        ));
+        ui.label(format!(
+            "Domestic capacity: energy {}% · food {}% · administration {}%",
+            c.energy_capacity, c.food_capacity, c.administration
+        ));
+        if self.selected != w.player {
+            ui.label("Foreign government: select your own country to issue commands.");
+            return;
+        }
+        match w.preview(&self.content, &self.selected, &self.policy, self.value) {
+            Ok(preview) => {
+                egui::Frame::group(ui.style()).show(ui, |ui| {
+                    ui.strong("Decision preview · forecast");
+                    ui.label(format!(
+                        "Cash now: {}m · delivery: {} days · annual net expenditure change: {:+}m",
+                        preview.cost.0, preview.delay, preview.annual_budget_change.0
+                    ));
+                    ui.label(format!("Authority: {}", preview.route));
+                    ui.label(format!("Paid upfront {}m; reserve {}m until consent in {} days. Reserved money cannot fund other obligations.",preview.upfront_payment.0,preview.cost.0-preview.upfront_payment.0,preview.consent_delay));
+                    ui.strong("Direct household income change after delivery · forecast m/day");
+                    for impact in &preview.household_impacts {ui.label(format!("{}: {:+}m",impact.group,impact.daily_disposable_change.0));}
+                    ui.label(preview.explanation);
+                });
+                if ui
+                    .button(
+                        RichText::new(if preview.consent_delay == 0 {
+                            "Authorize and fund commitment"
+                        } else {
+                            "Propose and reserve funds"
+                        })
+                        .color(MINT),
+                    )
+                    .clicked()
+                {
+                    self.issue(Action::Enact {
+                        policy: self.policy.clone(),
+                        value: self.value,
+                    });
+                }
+            }
+            Err(e) => {
+                ui.colored_label(Color32::LIGHT_YELLOW, format!("Cannot approve: {e}"));
+            }
+        }
+        ui.separator();
+        ui.heading("Committed programs");
+        if let Some(w) = &self.world {
+            let c = &w.countries[&self.selected];
+            if c.projects.is_empty() {
+                ui.label("No programs in implementation.");
+            }
+            for project in &c.projects {
+                let progress = w.day.saturating_sub(project.start_day) as f32
+                    / (project.due_day - project.start_day) as f32;
+                ui.label(format!(
+                    "{} · level {} · committed {}m · due {}",
+                    project.policy,
+                    project.value,
+                    project.cost.0,
+                    date(project.due_day)
+                ));
+                ui.label(format!(
+                    "Stage {:?} · reserved {}m · consent {}",
+                    project.stage,
+                    project.reserved.0,
+                    date(project.consent_day)
+                ));
+                ui.add(egui::ProgressBar::new(progress).show_percentage());
+            }
+        }
+    }
+    fn society(&self, ui: &mut egui::Ui) {
+        ui.heading("Households, employment & needs");
+        ui.label("Groups partition population and household cash without duplication. Profiles, employment responses and baskets are authored gameplay assumptions; group totals reconcile to national accounts.");
+        let Some(w) = &self.world else {
+            ui.label("Begin a mandate and advance a day to inspect household outcomes.");
+            return;
+        };
+        let c = &w.countries[&self.selected];
+        let d = self.content.country(&self.selected).expect("country");
+        if w.day == 0 {
+            ui.label("Opening state: advance one day for realized income, baskets and delivery.");
+        }
+        egui::ScrollArea::horizontal().show(ui, |ui| {
+            egui::Grid::new("households").striped(true).show(ui, |ui| {
+                for label in [
+                    "Group",
+                    "Population",
+                    "Employed / working age",
+                    "Cash m",
+                    "Disposable m/day",
+                    "Basket m/day",
+                    "Food %",
+                    "Approval %",
+                    "Arrears m",
+                ] {
+                    ui.strong(label);
+                }
+                ui.end_row();
+                for (h, definition) in c.households.iter().zip(&d.households) {
+                    for value in [
+                        definition.name.clone(),
+                        h.population.0.to_string(),
+                        format!("{} / {}", h.employed.0, h.working_age.0),
+                        h.cash.0.to_string(),
+                        (h.income.0 - h.tax.0).to_string(),
+                        h.basket_cost.0.to_string(),
+                        h.food_coverage.to_string(),
+                        h.approval.to_string(),
+                        h.arrears.0.to_string(),
+                    ] {
+                        ui.label(value);
+                    }
+                    ui.end_row();
+                }
+            });
+        });
+        ui.separator();
+        ui.label(format!(
+            "Cash reconciliation: groups {}m = household sector {}m. Population: {} = national {}.",
+            c.households.iter().map(|h| h.cash.0).sum::<i64>(),
+            c.accounts.households.0,
+            c.households.iter().map(|h| h.population.0).sum::<u64>(),
+            c.population.0
+        ));
+        ui.label("Welfare targets transfer-dependent households (80%) and working households (20%). Service payments go to public-service households. Private income follows the country's authored profile. Taxes are paid from each group's cash; consumption is limited by affordability and food supply.");
+        for (h, definition) in c.households.iter().zip(&d.households) {
+            if h.food_coverage < 90 {
+                ui.colored_label(Color32::LIGHT_YELLOW,format!("{}: food delivery {}%. Compare welfare, wage-tax changes and domestic food capacity; inspect cash and arrears.",definition.name,h.food_coverage));
+            }
+        }
+    }
+    fn treasury(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Treasury & accounts");
+        ui.label("Money: millions of constant-2000 USD-equivalent game credits. Annual GDP is an opening calibration; receipts and payments below are realized daily flows.");
+        let Some(w) = &self.world else {
+            ui.label("Begin a mandate to inspect accounts.");
+            return;
+        };
+        let c = &w.countries[&self.selected];
+        let d = self
+            .content
+            .country(&self.selected)
+            .expect("country")
+            .clone();
+        egui::Grid::new("accounts")
+            .striped(true)
+            .min_col_width(180.0)
+            .show(ui, |ui| {
+                for (name, value) in [
+                    ("Treasury cash", c.accounts.treasury.0),
+                    ("Reserved policy capital", c.committed_cash.0),
+                    (
+                        "Available treasury",
+                        c.accounts.treasury.0 - c.committed_cash.0,
+                    ),
+                    ("Household cash", c.accounts.households.0),
+                    ("Business cash", c.accounts.firms.0),
+                    ("External counterpart cash", c.accounts.external.0),
+                    ("Public debt principal", c.debt.0),
+                    ("Accrued unpaid obligations", c.arrears.0),
+                    ("Last-day tax receipts", c.report.revenue.0),
+                    ("Last-day public payments", c.report.spending.0),
+                    ("Last-day interest paid", c.report.interest.0),
+                    (
+                        "Daily fiscal balance",
+                        c.report.revenue.0 - c.report.spending.0 - c.report.interest.0,
+                    ),
+                ] {
+                    ui.label(name);
+                    ui.monospace(format!("{value}m"));
+                    ui.end_row();
+                }
+            });
+        ui.separator();
+        let plan = &c.budget;
+        ui.strong(format!(
+            "Fiscal period {} to {} · opening forecast vs execution",
+            date(plan.start_day),
+            date(plan.end_day)
+        ));
+        ui.label(format!("Revenue realized {}m / opening forecast {}m to date ({:+}m variance). Payments {}m · capital {}m · net financing {}m.",plan.revenue.0,plan.expected_revenue(w.day),plan.revenue.0-plan.expected_revenue(w.day),plan.payments.0,plan.capital.0,plan.borrowing.0-plan.principal_repaid.0));
+        ui.label(format!(
+            "Opening forecast closing cash {}m. Cash reconciliation now {}m = treasury {}m.",
+            plan.forecast_closing_cash(),
+            plan.expected_cash(),
+            c.accounts.treasury.0
+        ));
+        let latest = c.forecast(&d);
+        ui.label(format!("Current no-shock run rate: revenue {}m/day, spending {}m/day, interest {}m/day. It excludes pending programs and new financing; forecasts are not spendable money.",latest.daily_revenue.0,latest.daily_spending.0,latest.daily_interest.0));
+        ui.small("Forecast differences reflect supply shocks, rounded tax collection, policy changes and cash-constrained private income. Arrears and capital payments are shown separately.");
+        egui::CollapsingHeader::new("Closed fiscal periods").show(ui, |ui| {
+            for review in c.budget_reviews.iter().rev() {
+                ui.label(format!(
+                    "{}: revenue {}m, payments {}m, capital {}m, closing cash {}m, arrears {}m",
+                    date(review.period.end_day),
+                    review.period.revenue.0,
+                    review.period.payments.0,
+                    review.period.capital.0,
+                    review.closing_cash.0,
+                    review.arrears.0
+                ));
+            }
+        });
+        ui.small(format!("Reconciliation: sector cash {}m = opening {}m. External debt uses explicit principal records and 4% annual interest. Borrowing ceiling: {}m.",c.accounts.total(),c.opening_money.0,d.gdp*3/2));
+        if self.selected == w.player {
+            ui.horizontal_wrapped(|ui| {
+                ui.label("Principal (m)");
+                ui.add(
+                    egui::DragValue::new(&mut self.money)
+                        .range(1..=d.gdp / 10)
+                        .speed((d.gdp / 10000).max(1) as f64),
+                );
+                if ui.button("Issue loan").clicked() {
+                    self.issue(Action::Borrow {
+                        amount: Money(self.money),
+                    });
+                }
+                if ui.button("Repay debt").clicked() {
+                    self.issue(Action::Repay {
+                        amount: Money(self.money),
+                    });
+                }
+            });
+        }
+        ui.separator();
+        ui.checkbox(
+            &mut self.show_ledger,
+            "Show recent ledger (30-day retention)",
+        );
+        let w = self.world.as_ref().expect("world");
+        let c = &w.countries[&self.selected];
+        ui.strong("Physical accounts · last day · modeled basket/energy units");
+        ui.label(format!(
+            "Energy: produced {} + imported {} → used {} + inventory {}",
+            c.report.energy_produced,
+            c.report.energy_imported,
+            c.report.energy_used,
+            c.energy_stock
+        ));
+        ui.label(format!(
+            "Food: produced {} + imported {} → consumed {} + spoiled {} + inventory {}",
+            c.report.food_produced,
+            c.report.food_imported,
+            c.report.food_consumed,
+            c.report.food_lost,
+            c.food_stock
+        ));
+        ui.small("Daily stock reconciliation also includes the previous day's inventory. Imports are limited to 25% of energy need and 35% of food need, and require business cash.");
+        if self.show_ledger {
+            for e in w
+                .ledger
+                .iter()
+                .rev()
+                .filter(|e| e.country == self.selected)
+                .take(150)
+            {
+                ui.label(format!(
+                    "{} · {:?} → {:?} · {}m · {}",
+                    date(e.day),
+                    e.from,
+                    e.to,
+                    e.amount.0,
+                    e.reason
+                ));
+            }
+        }
+    }
+    fn politics(&mut self, ui: &mut egui::Ui) {
+        let d = self
+            .content
+            .country(&self.selected)
+            .expect("country")
+            .clone();
+        ui.heading("Institutions & political survival");
+        ui.label(format!(
+            "{} · {:?}\n{}",
+            d.name,
+            d.regime,
+            d.government.label()
+        ));
+        ui.label("All seats, political preferences and election cycles are scenario approximations. The 100-seat assembly is a game abstraction; it is not a historical parliament.");
+        let c = self.world.as_ref().map(|w| &w.countries[&self.selected]);
+        if let Some(c) = c {
+            ui.label(format!(
+                "Executive: {}\nApproval {}% · legislative support {} · elite backing {}",
+                c.executive, c.approval, c.legislative_support, c.elite_support
+            ));
+            ui.label(format!(
+                "Council/cadre backing {} · confidence warnings {} / 3 · leadership review {}",
+                c.council_support,
+                c.confidence_crises,
+                c.next_leadership_review
+                    .map(date)
+                    .unwrap_or_else(|| "None scheduled".into())
+            ));
+            ui.label(format!(
+                "Next election: {}",
+                c.next_election.map(date).unwrap_or_else(|| {
+                    "No competitive election; elite coalition reviewed monthly".into()
+                })
+            ));
+        } else {
+            ui.label(format!(
+                "Bookmark executive: {} ({})",
+                d.executive, d.office
+            ));
+        }
+        ui.separator();
+        egui::Grid::new("parties").striped(true).show(ui, |ui| {
+            for label in [
+                "Party / governing body",
+                "Bookmark leader",
+                "Authored ideology",
+                "Seats",
+            ] {
+                ui.strong(label);
+            }
+            ui.end_row();
+            for p in &d.parties {
+                let ruling = c.map_or(p.id == d.ruling_party, |c| p.id == c.ruling_party);
+                ui.label(format!(
+                    "{}{}",
+                    if ruling { "Governing: " } else { "" },
+                    p.name
+                ));
+                ui.label(&p.leader);
+                ui.label(&p.ideology);
+                ui.monospace(c.map_or(p.seats, |c| c.seats[&p.id]).to_string());
+                ui.end_row();
+            }
+        });
+        ui.separator();
+        ui.label("Authority thresholds are content-defined. Parliamentary support can trigger an early confidence election after three weak monthly reviews. Party councils review cadre backing; royal councils can block a spending expansion above 4 GDP points without 65 backing. Consent is rechecked before construction. Country play continues after leadership changes.");
+        ui.label("Cohort needs, disposable income, taxes, employment and funded services affect opinion. Parliamentary support, elite backing and council backing are distinct. Seat allocation, succession and preferences remain scenario approximations.");
+    }
+    fn chronicle(&self, ui: &mut egui::Ui) {
+        ui.heading("Chronicle & decisions");
+        ui.label("Accepted outcomes, delivery dates and AI explanations. Most recent first; filtered to the selected country.");
+        let Some(w) = &self.world else {
+            ui.label("Your chronicle begins with a mandate.");
+            return;
+        };
+        for e in w.events.iter().rev().filter(|e| e.country == self.selected) {
+            egui::Frame::group(ui.style()).show(ui, |ui| {
+                ui.colored_label(
+                    if e.important { MINT } else { MUTED },
+                    format!(
+                        "{} · {}",
+                        date(e.day),
+                        if e.important {
+                            "DECISION / ALERT"
+                        } else {
+                            "REPORT"
+                        }
+                    ),
+                );
+                ui.label(&e.text);
+            });
+        }
+    }
+    fn guide(&self, ui: &mut egui::Ui) {
+        ui.heading("Learn your first mandate");
+        for (title, text) in [
+            (
+                "1. Read the situation",
+                "Start paused. Advance one day, then inspect energy/food delivery and the daily fiscal balance. Countries with shortages need supply investment; cash-poor governments need a financing plan.",
+            ),
+            (
+                "2. Fund a feasible decision",
+                "Policies show the legal route, upfront payment and implementation delay. Energy and food programs expand supply; modernization improves collection and service delivery. Budget levels change annual spending obligations, with payment every day.",
+            ),
+            (
+                "3. Watch delivery",
+                "Advance time. A funded commitment takes 30–180 base days plus an administrative delay. Completion appears in the Chronicle. Supply shocks may still disrupt delivery. Imports are bounded and paid from business cash.",
+            ),
+            (
+                "4. Balance competing needs",
+                "Higher wage tax improves revenue but reduces household disposable income. Services and welfare support living standards but require cash. Loans supply real external funds at 4% interest; an exhausted treasury creates arrears and reduces delivery.",
+            ),
+            (
+                "5. Maintain authority",
+                "Competitive systems require legislative support; single-party, military, royal, personalist and religious governments require elite backing. Negotiate support during gridlock. Elections and leadership changes continue your country campaign.",
+            ),
+            (
+                "6. Complete the review",
+                "At the five-year review, meet food and energy needs at 90%, approval at 50%, zero arrears and debt no more than opening GDP. The sandbox continues whether the objective is met or missed.",
+            ),
+            (
+                "Controls & recovery",
+                "Space pauses/plays; F5 saves and F9 loads the path in the sidebar. A monthly autosave is written to saves/autosave-COUNTRY-SCENARIO-v2.json. Previous files are retained as .json.bak; enter that path to recover. Map markers and the country directory select an inspection context. Only your own government's commands are authorized.",
+            ),
+            (
+                "Content scope",
+                "15 seeded countries, dated to 1 January 2000. Historical identity names are a starter curation with review limitations. Reference-country GDP and population have dated source records; other economic values, seats, election timing and preferences are authored approximations. Land outlines show geography only. This initial game does not yet implement warfare, detailed diplomacy, full historical coverage or regional service networks.",
+            ),
+        ] {
+            ui.strong(title);
+            ui.label(text);
+            ui.add_space(8.0);
+        }
+        ui.label(format!(
+            "Content {} · hash {:016x} · rules {}",
+            self.content.id,
+            self.content.hash(),
+            RULES_VERSION
+        ));
+    }
+}
+impl eframe::App for GameApp {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if !ctx.wants_keyboard_input() {
+            if ctx.input(|i| i.key_pressed(egui::Key::Space)) && self.world.is_some() {
+                self.speed = if self.speed == 0 { 1 } else { 0 };
+                self.last_tick = Instant::now();
+            }
+            if ctx.input(|i| i.key_pressed(egui::Key::F5)) {
+                self.save();
+            }
+            if ctx.input(|i| i.key_pressed(egui::Key::F9)) {
+                self.load();
+            }
+        }
+        if self.speed > 0 && self.last_tick.elapsed() >= Duration::from_millis(350) {
+            self.advance(self.speed);
+            self.last_tick = Instant::now();
+        }
+        if self.speed > 0 {
+            ctx.request_repaint_after(Duration::from_millis(50));
+        }
+        self.top(ctx);
+        self.sidebar(ctx);
+        egui::CentralPanel::default().show(ctx, |ui| {
+            egui::ScrollArea::vertical()
+                .id_salt("main_scroll")
+                .show(ui, |ui| match self.tab {
+                    Tab::Overview => self.overview(ui),
+                    Tab::Policies => self.policies(ui),
+                    Tab::Treasury => self.treasury(ui),
+                    Tab::Society => self.society(ui),
+                    Tab::Politics => self.politics(ui),
+                    Tab::Chronicle => self.chronicle(ui),
+                    Tab::Guide => self.guide(ui),
+                });
+        });
+    }
+}
+fn metric(ui: &mut egui::Ui, label: &str, value: String) {
+    egui::Frame::group(ui.style()).show(ui, |ui| {
+        ui.set_min_width(140.0);
+        ui.label(RichText::new(label).color(MUTED).small());
+        ui.label(RichText::new(value).size(19.0).strong());
+    });
+}
+fn sparkline(ui: &mut egui::Ui, history: &[Observation]) {
+    ui.small("Monthly approval trend · 0–100%");
+    let (rect, _) = ui.allocate_exact_size(
+        Vec2::new(ui.available_width().min(650.0), 60.0),
+        egui::Sense::hover(),
+    );
+    let points: Vec<_> = history
+        .iter()
+        .enumerate()
+        .map(|(i, o)| {
+            egui::pos2(
+                rect.left() + i as f32 / (history.len().max(2) - 1) as f32 * rect.width(),
+                rect.bottom() - o.approval as f32 / 100.0 * rect.height(),
+            )
+        })
+        .collect();
+    ui.painter().line_segment(
+        [rect.left_bottom(), rect.right_bottom()],
+        Stroke::new(1.0_f32, MUTED),
+    );
+    if points.len() > 1 {
+        ui.painter()
+            .add(egui::Shape::line(points, Stroke::new(2.0_f32, MINT)));
+    }
+}
+fn main() -> eframe::Result {
+    let args: Vec<_> = std::env::args().collect();
+    let content = if args.len() == 3 && args[1] == "--content" {
+        std::fs::read_to_string(&args[2])
+            .map_err(|e| e.to_string())
+            .and_then(|s| Content::from_json(&s))
+    } else if args.len() == 1 {
+        Content::bundled()
+    } else {
+        Err("Usage: desktop [--content pack.json]".into())
+    };
+    let content = content.unwrap_or_else(|error| {
+        eprintln!("Cannot start: {error}");
+        std::process::exit(1)
+    });
+    eframe::run_native(
+        "Statecraft · A New Century",
+        eframe::NativeOptions {
+            viewport: egui::ViewportBuilder::default()
+                .with_inner_size([1440.0, 940.0])
+                .with_min_inner_size([1000.0, 700.0]),
+            renderer: eframe::Renderer::Wgpu,
+            ..Default::default()
+        },
+        Box::new(move |cc| Ok(Box::new(GameApp::new(cc, content)))),
+    )
+}

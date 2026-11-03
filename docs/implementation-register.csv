@@ -1,112 +1,112 @@
 requirement_id,priority,subsystem,requirement,status
-P01-01,1,Simulation kernel and command boundary,"Integer simulation clock, calendar, pause, speed levels, advance-to-date and advance-to-next-important-event.",proposed
-P01-02,1,Simulation kernel and command boundary,"Stable IDs for every actor, place, institution, agreement, asset, policy and event; no identity based on names or array positions exposed outside a store.",proposed
-P01-03,1,Simulation kernel and command boundary,"Typed units for money/currency, population, energy, goods, distances, rates and time. Explicit rounding and overflow handling.",proposed
-P01-04,1,Simulation kernel and command boundary,Explicit phase order; seeded random streams per subsystem; reproducible runs and canonical state hashes.,proposed
-P01-05,1,Simulation kernel and command boundary,"All actions enter as validated commands. UI, AI, scripts and future remote players use the same action rules.",proposed
-P01-06,1,Simulation kernel and command boundary,Domain events record accepted outcomes; rejected commands explain the failed condition.,proposed
+P01-01,1,Simulation kernel and command boundary,"Integer simulation clock, calendar, pause, speed levels, advance-to-date and advance-to-next-important-event.",partial
+P01-02,1,Simulation kernel and command boundary,"Stable IDs for every actor, place, institution, agreement, asset, policy and event; no identity based on names or array positions exposed outside a store.",partial
+P01-03,1,Simulation kernel and command boundary,"Typed units for money/currency, population, energy, goods, distances, rates and time. Explicit rounding and overflow handling.",partial
+P01-04,1,Simulation kernel and command boundary,Explicit phase order; seeded random streams per subsystem; reproducible runs and canonical state hashes.,partial
+P01-05,1,Simulation kernel and command boundary,"All actions enter as validated commands. UI, AI, scripts and future remote players use the same action rules.",partial
+P01-06,1,Simulation kernel and command boundary,Domain events record accepted outcomes; rejected commands explain the failed condition.,partial
 P01-07,1,Simulation kernel and command boundary,"Separate world truth, actor knowledge and player-visible information now, before espionage and multiplayer arrive.",proposed
-P01-08,1,Simulation kernel and command boundary,Headless executable that can load a tiny world and advance it without graphics or SQL in the inner loop.,proposed
-P02-01,2,Content schema and historical world identity,"Versioned definitions for countries, territories, offices, people, parties, organizations, goods, sectors, laws, technologies and scenario rules. Minimal dated technology eligibility is available immediately; the full research/adoption graph comes later.",proposed
+P01-08,1,Simulation kernel and command boundary,Headless executable that can load a tiny world and advance it without graphics or SQL in the inner loop.,partial
+P02-01,2,Content schema and historical world identity,"Versioned definitions for countries, territories, offices, people, parties, organizations, goods, sectors, laws, technologies and scenario rules. Minimal dated technology eligibility is available immediately; the full research/adoption graph comes later.",partial
 P02-02,2,Content schema and historical world identity,"Date-effective records: founding, dissolution, terms of office, membership, currency and territorial changes.",proposed
 P02-03,2,Content schema and historical world identity,"Country identity separate from government, regime, legal sovereignty, occupation, recognition and map geometry.",proposed
-P02-04,2,Content schema and historical world identity,"Source provenance, observed year, units, revisions, uncertainty and missing-data status for facts.",proposed
-P02-05,2,Content schema and historical world identity,"CSV/JSON import and validation, stable external-ID crosswalks, reproducible content packs and localization keys.",proposed
-P02-06,2,Content schema and historical world identity,A small synthetic test world plus the scaffold for the entire historical world. Synthetic fixtures make rules testable without relying on incomplete historical data.,proposed
-P02-07,2,Content schema and historical world identity,"Country-specific behavior expressed through institutional definitions and configuration, rather than scattered checks against country names.",proposed
-P03-01,3,"Saves, replay and simulation inspection","Versioned snapshot, command journal, scenario/content hash, mod order, random state and rules version.",proposed
-P03-02,3,"Saves, replay and simulation inspection","Autosave rotation, atomic completion, recovery from interrupted writes and clear missing-content errors.",proposed
-P03-03,3,"Saves, replay and simulation inspection",Migration policy; preserve the old save before conversion. Distinguish save compatibility from replay compatibility.,proposed
-P03-04,3,"Saves, replay and simulation inspection","Debug state inspector, economic ledger, AI decision log and first-divergence report.",proposed
-P03-05,3,"Saves, replay and simulation inspection","Historical statistics with bounded retention: recent fine-grained records, older aggregates and important events preserved.",proposed
-P03-06,3,"Saves, replay and simulation inspection","Save/load during construction, elections, negotiations, battles and pending legislation as those systems appear.",proposed
+P02-04,2,Content schema and historical world identity,"Source provenance, observed year, units, revisions, uncertainty and missing-data status for facts.",partial
+P02-05,2,Content schema and historical world identity,"CSV/JSON import and validation, stable external-ID crosswalks, reproducible content packs and localization keys.",partial
+P02-06,2,Content schema and historical world identity,A small synthetic test world plus the scaffold for the entire historical world. Synthetic fixtures make rules testable without relying on incomplete historical data.,partial
+P02-07,2,Content schema and historical world identity,"Country-specific behavior expressed through institutional definitions and configuration, rather than scattered checks against country names.",partial
+P03-01,3,"Saves, replay and simulation inspection","Versioned snapshot, command journal, scenario/content hash, mod order, random state and rules version.",partial
+P03-02,3,"Saves, replay and simulation inspection","Autosave rotation, atomic completion, recovery from interrupted writes and clear missing-content errors.",partial
+P03-03,3,"Saves, replay and simulation inspection",Migration policy; preserve the old save before conversion. Distinguish save compatibility from replay compatibility.,partial
+P03-04,3,"Saves, replay and simulation inspection","Debug state inspector, economic ledger, AI decision log and first-divergence report.",partial
+P03-05,3,"Saves, replay and simulation inspection","Historical statistics with bounded retention: recent fine-grained records, older aggregates and important events preserved.",partial
+P03-06,3,"Saves, replay and simulation inspection","Save/load during construction, elections, negotiations, battles and pending legislation as those systems appear.",partial
 P03-07,3,"Saves, replay and simulation inspection",Developer sandbox commands flagged separately from normal play; inspectability is part of the base game.,proposed
-P04-01,4,"Native desktop shell, map and navigation",Native builds and launch checks on all three operating systems from the beginning.,proposed
-P04-02,4,"Native desktop shell, map and navigation","Vector-derived world map: coastline, land, country and administrative boundaries, islands, lakes and rivers; pan, zoom, selection, search and tooltips.",proposed
-P04-03,4,"Native desktop shell, map and navigation","Separate display geometry from simulation regions. Selection must work for islands, enclaves and tiny states.",proposed
-P04-04,4,"Native desktop shell, map and navigation","Political, terrain and administrative layers first; overlay infrastructure added by later systems.",proposed
-P04-05,4,"Native desktop shell, map and navigation","Country overview, ministry navigation, sortable tables, charts, comparison tray, searchable encyclopedia and persistent selection.",proposed
-P04-06,4,"Native desktop shell, map and navigation","Keyboard navigation, key rebinding, high-DPI/UI scaling, readable compact text, Unicode/IME support and colorblind-safe encodings.",proposed
+P04-01,4,"Native desktop shell, map and navigation",Native builds and launch checks on all three operating systems from the beginning.,partial
+P04-02,4,"Native desktop shell, map and navigation","Vector-derived world map: coastline, land, country and administrative boundaries, islands, lakes and rivers; pan, zoom, selection, search and tooltips.",partial
+P04-03,4,"Native desktop shell, map and navigation","Separate display geometry from simulation regions. Selection must work for islands, enclaves and tiny states.",partial
+P04-04,4,"Native desktop shell, map and navigation","Political, terrain and administrative layers first; overlay infrastructure added by later systems.",partial
+P04-05,4,"Native desktop shell, map and navigation","Country overview, ministry navigation, sortable tables, charts, comparison tray, searchable encyclopedia and persistent selection.",partial
+P04-06,4,"Native desktop shell, map and navigation","Keyboard navigation, key rebinding, high-DPI/UI scaling, readable compact text, Unicode/IME support and colorblind-safe encodings.",partial
 P04-07,4,"Native desktop shell, map and navigation",Pause and speed visible at all times. Escape/back behavior and window focus must be predictable.,proposed
-P05-01,5,"Accounts, units and causal reporting","Treasury, household-sector, business-sector and foreign-sector accounts; add financial intermediaries when their rules exist.",proposed
-P05-02,5,"Accounts, units and causal reporting",Stocks versus flows; balances versus rates; nominal versus real values; local currency versus reporting currency.,proposed
-P05-03,5,"Accounts, units and causal reporting","Public spending, receipts, transfers, obligations, cash and financing; distinguish authorization, commitment and payment.",proposed
-P05-04,5,"Accounts, units and causal reporting","Physical goods accounts: production, use, inventories, losses, imports and exports.",proposed
-P05-05,5,"Accounts, units and causal reporting","Currency creation/destruction, default, depreciation, casualties and other non-conservation events must have explicit rules and ledger entries.",proposed
-P05-06,5,"Accounts, units and causal reporting","Every headline statistic exposes components, period, units, recent changes and relevant uncertainty.",proposed
-P05-07,5,"Accounts, units and causal reporting",Forecasts are separate from realized accounts; expected revenue must not be spendable cash unless a financing mechanism exists.,proposed
-P06-01,6,"Population, households and social groups","Aggregate cohorts by region, age band, employment/occupation, income and selected social attributes; do not simulate billions of individual people.",proposed
+P05-01,5,"Accounts, units and causal reporting","Treasury, household-sector, business-sector and foreign-sector accounts; add financial intermediaries when their rules exist.",partial
+P05-02,5,"Accounts, units and causal reporting",Stocks versus flows; balances versus rates; nominal versus real values; local currency versus reporting currency.,partial
+P05-03,5,"Accounts, units and causal reporting","Public spending, receipts, transfers, obligations, cash and financing; distinguish authorization, commitment and payment.",partial
+P05-04,5,"Accounts, units and causal reporting","Physical goods accounts: production, use, inventories, losses, imports and exports.",partial
+P05-05,5,"Accounts, units and causal reporting","Currency creation/destruction, default, depreciation, casualties and other non-conservation events must have explicit rules and ledger entries.",partial
+P05-06,5,"Accounts, units and causal reporting","Every headline statistic exposes components, period, units, recent changes and relevant uncertainty.",partial
+P05-07,5,"Accounts, units and causal reporting",Forecasts are separate from realized accounts; expected revenue must not be spendable cash unless a financing mechanism exists.,partial
+P06-01,6,"Population, households and social groups","Aggregate cohorts by region, age band, employment/occupation, income and selected social attributes; do not simulate billions of individual people.",partial
 P06-02,6,"Population, households and social groups","Births, deaths, aging, household formation and migration balances.",proposed
-P06-03,6,"Population, households and social groups","Income, savings, consumption baskets, housing costs, purchasing power, poverty, inequality and essential needs.",proposed
-P06-04,6,"Population, households and social groups","Employment status, skills, education and health; people can move between cohorts without being duplicated.",proposed
-P06-05,6,"Population, households and social groups","Political interests, issue salience, trust, perceived living standards and institutional satisfaction.",proposed
+P06-03,6,"Population, households and social groups","Income, savings, consumption baskets, housing costs, purchasing power, poverty, inequality and essential needs.",partial
+P06-04,6,"Population, households and social groups","Employment status, skills, education and health; people can move between cohorts without being duplicated.",partial
+P06-05,6,"Population, households and social groups","Political interests, issue salience, trust, perceived living standards and institutional satisfaction.",partial
 P06-06,6,"Population, households and social groups","Overlapping group membership: a person may be a worker, parent, religious adherent and union member. Avoid double-counting population across interest groups.",proposed
 P06-07,6,"Population, households and social groups",Public estimates can differ from world truth through census quality and statistical capacity.,proposed
-P07-01,7,"Production, consumption and domestic markets","Data-driven goods and services with units, substitutability, storage, perishability and essential-use priority.",proposed
-P07-02,7,"Production, consumption and domestic markets","Sectors with labor, capital, energy and intermediate-input requirements; output limited by actual bottlenecks.",proposed
+P07-01,7,"Production, consumption and domestic markets","Data-driven goods and services with units, substitutability, storage, perishability and essential-use priority.",partial
+P07-02,7,"Production, consumption and domestic markets","Sectors with labor, capital, energy and intermediate-input requirements; output limited by actual bottlenecks.",partial
 P07-03,7,"Production, consumption and domestic markets","Agriculture, extraction, manufacturing, construction and services represented by the same framework where appropriate.",proposed
-P07-04,7,"Production, consumption and domestic markets","Prices, wages, demand response, production costs, profitability, investment, capacity utilization and closures.",proposed
-P07-05,7,"Production, consumption and domestic markets","Stockpiles, shortages, rationing, strategic reserves, imports and exports through a bounded external-market counterpart with explicit cash settlement and supply limits. Initial credit exists only through modeled debt records; full banking and trade refine these rules later.",proposed
-P07-06,7,"Production, consumption and domestic markets",Distinguish desired consumption from affordable demand and delivered consumption.,proposed
-P07-07,7,"Production, consumption and domestic markets",Bounded price-adjustment rules and settlement order; ensure oscillations are economic behavior rather than an accidental update-loop artifact.,proposed
+P07-04,7,"Production, consumption and domestic markets","Prices, wages, demand response, production costs, profitability, investment, capacity utilization and closures.",partial
+P07-05,7,"Production, consumption and domestic markets","Stockpiles, shortages, rationing, strategic reserves, imports and exports through a bounded external-market counterpart with explicit cash settlement and supply limits. Initial credit exists only through modeled debt records; full banking and trade refine these rules later.",partial
+P07-06,7,"Production, consumption and domestic markets",Distinguish desired consumption from affordable demand and delivered consumption.,partial
+P07-07,7,"Production, consumption and domestic markets",Bounded price-adjustment rules and settlement order; ensure oscillations are economic behavior rather than an accidental update-loop artifact.,partial
 P08-01,8,Government institutions and legal powers,"Head of state, head of government, cabinet, ministries, civil service, legislature and courts as separate offices/bodies.",proposed
-P08-02,8,Government institutions and legal powers,"Parliamentary, presidential, semi-presidential, monarchical, one-party and military-government configurations.",proposed
-P08-03,8,Government institutions and legal powers,"Appointment, dismissal, succession, eligibility, term limits, vetoes and emergency powers.",proposed
-P08-04,8,Government institutions and legal powers,"Chambers, seat allocation, voting thresholds, quorum, committees and constitutional amendment requirements.",proposed
+P08-02,8,Government institutions and legal powers,"Parliamentary, presidential, semi-presidential, monarchical, one-party and military-government configurations.",partial
+P08-03,8,Government institutions and legal powers,"Appointment, dismissal, succession, eligibility, term limits, vetoes and emergency powers.",partial
+P08-04,8,Government institutions and legal powers,"Chambers, seat allocation, voting thresholds, quorum, committees and constitutional amendment requirements.",partial
 P08-05,8,Government institutions and legal powers,"Federal, regional, municipal and autonomous powers; control over taxation and service delivery.",proposed
 P08-06,8,Government institutions and legal powers,Independent institutions such as central banks and election authorities have their own mandates. The player cannot directly order powers the government does not possess.,proposed
-P08-07,8,Government institutions and legal powers,"Rule-of-law, bureaucratic capacity and corruption affect implementation without becoming a universal magic multiplier.",proposed
-P08-08,8,Government institutions and legal powers,"Fully playable personalist dictatorships, single-party states, military juntas, absolute monarchies, theocracies, dominant-party and hybrid regimes alongside democracies. These are core political configurations, not optional late-game scenarios.",proposed
-P08-09,8,Government institutions and legal powers,"Separate constitutional rules from effective power: ruling-party bodies, military councils, religious authorities, security services, patronage networks and personal rule can hold actual decision rights.",proposed
-P08-10,8,Government institutions and legal powers,"Authoritarian governing routes include decrees, party/council decisions and controlled legislatures; material capacity and elite cooperation still constrain execution. Model violations or suspension of constitutional rules as explicit contested actions rather than making regime change impossible through legal validation.",proposed
+P08-07,8,Government institutions and legal powers,"Rule-of-law, bureaucratic capacity and corruption affect implementation without becoming a universal magic multiplier.",partial
+P08-08,8,Government institutions and legal powers,"Fully playable personalist dictatorships, single-party states, military juntas, absolute monarchies, theocracies, dominant-party and hybrid regimes alongside democracies. These are core political configurations, not optional late-game scenarios.",partial
+P08-09,8,Government institutions and legal powers,"Separate constitutional rules from effective power: ruling-party bodies, military councils, religious authorities, security services, patronage networks and personal rule can hold actual decision rights.",partial
+P08-10,8,Government institutions and legal powers,"Authoritarian governing routes include decrees, party/council decisions and controlled legislatures; material capacity and elite cooperation still constrain execution. Model violations or suspension of constitutional rules as explicit contested actions rather than making regime change impossible through legal validation.",partial
 P08-11,8,Government institutions and legal powers,"Regime change in both directions: democratization, concentration of executive power, party monopoly, military takeover, restoration and negotiated transition, with distinct causes and institutional consequences.",proposed
-P09-01,9,Policy and commitment engine,"Shared lifecycle: drafted, proposed, amended, approved, funded, implementing, operating, evaluated, repealed/expired.",proposed
-P09-02,9,Policy and commitment engine,"Prerequisites, jurisdiction, legal route, administrative cost, staffing, enforcement, start date, duration and transition rules.",proposed
-P09-03,9,Policy and commitment engine,"Policy levels and thresholds; mutually exclusive choices, grandfathering, regional exemptions and interactions.",proposed
-P09-04,9,Policy and commitment engine,"Delayed effects, capacity ceilings, diminishing returns and unintended effects defined explicitly.",proposed
+P09-01,9,Policy and commitment engine,"Shared lifecycle: drafted, proposed, amended, approved, funded, implementing, operating, evaluated, repealed/expired.",partial
+P09-02,9,Policy and commitment engine,"Prerequisites, jurisdiction, legal route, administrative cost, staffing, enforcement, start date, duration and transition rules.",partial
+P09-03,9,Policy and commitment engine,"Policy levels and thresholds; mutually exclusive choices, grandfathering, regional exemptions and interactions.",partial
+P09-04,9,Policy and commitment engine,"Delayed effects, capacity ceilings, diminishing returns and unintended effects defined explicitly.",partial
 P09-05,9,Policy and commitment engine,"Commitments reused by election promises, coalition agreements, contracts, treaties and project deadlines.",proposed
-P09-06,9,Policy and commitment engine,"Preview cards: legal feasibility, budget effect, affected groups, implementation bottlenecks and forecast range.",proposed
-P09-07,9,Policy and commitment engine,"Outcome inspection separates the direct effect, indirect effects, external shocks and uncertainty.",proposed
-P10-01,10,"Government budget, taxation and public debt","Budget proposal, enactment, supplementary budgets, execution and year-end reporting.",proposed
-P10-02,10,"Government budget, taxation and public debt","Income bands, corporate tax, VAT/sales tax, social contributions, excise, property/land, capital gains, inheritance, resource royalties and customs revenue.",proposed
-P10-03,10,"Government budget, taxation and public debt","Tax base, collection capacity, compliance, evasion and enforcement; a nominal tax rate is not guaranteed revenue.",proposed
-P10-04,10,"Government budget, taxation and public debt","Public wages, procurement, benefits, transfers, grants, interest, subsidies and capital spending.",proposed
-P10-05,10,"Government budget, taxation and public debt","Debt instruments with creditor, currency, maturity, interest and repayment schedule; domestic versus external debt.",proposed
-P10-06,10,"Government budget, taxation and public debt","Borrowing limits, refinancing, arrears, restructuring, default and emergency financing.",proposed
-P10-07,10,"Government budget, taxation and public debt",Automatic stabilizers and transparent fiscal forecasts under alternative assumptions.,proposed
-P10-08,10,"Government budget, taxation and public debt","Taxes and spending affect households, firms and political support through actual accounts.",proposed
-P11-01,11,"Parties, elections and political survival","Real historical party identities and leaders at the bookmark; affiliation, legal status, organization and regional support.",proposed
+P09-06,9,Policy and commitment engine,"Preview cards: legal feasibility, budget effect, affected groups, implementation bottlenecks and forecast range.",partial
+P09-07,9,Policy and commitment engine,"Outcome inspection separates the direct effect, indirect effects, external shocks and uncertainty.",partial
+P10-01,10,"Government budget, taxation and public debt","Budget proposal, enactment, supplementary budgets, execution and year-end reporting.",partial
+P10-02,10,"Government budget, taxation and public debt","Income bands, corporate tax, VAT/sales tax, social contributions, excise, property/land, capital gains, inheritance, resource royalties and customs revenue.",partial
+P10-03,10,"Government budget, taxation and public debt","Tax base, collection capacity, compliance, evasion and enforcement; a nominal tax rate is not guaranteed revenue.",partial
+P10-04,10,"Government budget, taxation and public debt","Public wages, procurement, benefits, transfers, grants, interest, subsidies and capital spending.",partial
+P10-05,10,"Government budget, taxation and public debt","Debt instruments with creditor, currency, maturity, interest and repayment schedule; domestic versus external debt.",partial
+P10-06,10,"Government budget, taxation and public debt","Borrowing limits, refinancing, arrears, restructuring, default and emergency financing.",partial
+P10-07,10,"Government budget, taxation and public debt",Automatic stabilizers and transparent fiscal forecasts under alternative assumptions.,partial
+P10-08,10,"Government budget, taxation and public debt","Taxes and spending affect households, firms and political support through actual accounts.",partial
+P11-01,11,"Parties, elections and political survival","Real historical party identities and leaders at the bookmark; affiliation, legal status, organization and regional support.",partial
 P11-02,11,"Parties, elections and political survival","Multidimensional preferences: economic, social, institutional, regional and foreign-policy positions.",proposed
-P11-03,11,"Parties, elections and political survival","Electoral calendars and rules for executive, lower/upper house, regional and local elections as configured.",proposed
-P11-04,11,"Parties, elections and political survival","Constituencies, thresholds, turnout, proportional and district allocation, coalitions and confidence/support agreements.",proposed
+P11-03,11,"Parties, elections and political survival","Electoral calendars and rules for executive, lower/upper house, regional and local elections as configured.",partial
+P11-04,11,"Parties, elections and political survival","Constituencies, thresholds, turnout, proportional and district allocation, coalitions and confidence/support agreements.",partial
 P11-05,11,"Parties, elections and political survival","Polls with uncertainty; campaigning, media access, funding, activists, debates and delivery of promises.",proposed
 P11-06,11,"Parties, elections and political survival","Party discipline, dissent, defections, splits, mergers, leadership contests and dissolution.",proposed
-P11-07,11,"Parties, elections and political survival","Confidence votes, caretaker governments, constructive no-confidence, dissolution and peaceful transfer of power.",proposed
-P11-08,11,"Parties, elections and political survival","Explicit country-continuation rule: default country play continues with the incoming government, constrained by its mandate. Optional office-bound challenges end on removal.",proposed
-P11-09,11,"Parties, elections and political survival","Regime-specific political survival: competitive elections, internal party leadership, elite coalitions, military backing, dynastic succession and religious appointment. Elections may be absent, restricted or noncompetitive; approval alone does not determine control.",proposed
+P11-07,11,"Parties, elections and political survival","Confidence votes, caretaker governments, constructive no-confidence, dissolution and peaceful transfer of power.",partial
+P11-08,11,"Parties, elections and political survival","Explicit country-continuation rule: default country play continues with the incoming government, constrained by its mandate. Optional office-bound challenges end on removal.",partial
+P11-09,11,"Parties, elections and political survival","Regime-specific political survival: competitive elections, internal party leadership, elite coalitions, military backing, dynastic succession and religious appointment. Elections may be absent, restricted or noncompetitive; approval alone does not determine control.",partial
 P11-10,11,"Parties, elections and political survival","Single-party organization: congresses, leadership bodies, factions, cadre appointments, party-state relationships, internal bargaining and succession. Model a party-led state separately from a ruler who dominates the party personally.",proposed
-P11-11,11,"Parties, elections and political survival","Ideology definitions cover liberal, conservative, social-democratic, socialist, communist, nationalist, fascist, religious-political, libertarian and other country-specific traditions, including mixed or evolving positions. Labels are data-driven families, not universal stat bonuses.",proposed
+P11-11,11,"Parties, elections and political survival","Ideology definitions cover liberal, conservative, social-democratic, socialist, communist, nationalist, fascist, religious-political, libertarian and other country-specific traditions, including mixed or evolving positions. Labels are data-driven families, not universal stat bonuses.",partial
 P11-12,11,"Parties, elections and political survival","Separate leader, party, faction, public and official-state ideology; distinguish declared doctrine from implemented policy. Preferences influence economic organization, civil rights, religion, political participation, national identity and foreign policy independently.",proposed
 P11-13,11,"Parties, elections and political survival","Authoritarian governance includes patronage, co-option, censorship, political policing, controlled participation and opposition restrictions as abstract game choices with fiscal, informational, legitimacy and institutional consequences.",proposed
-P11-14,11,"Parties, elections and political survival","Dictatorship is not omnipotence: elite loyalty, credible information, administrative competence, military obedience, succession and public acquiescence remain separate pressures. Include ruler/party survival challenges alongside default country-continuation mode.",proposed
-P12-01,12,Baseline country AI and delegated administration,"Each government maintains goals, beliefs, constraints, risk appetite and commitments.",proposed
-P12-02,12,Baseline country AI and delegated administration,"First behaviors: pay obligations, maintain essential services, respond to shortages, avoid infeasible budgets and defend political viability.",proposed
-P12-03,12,Baseline country AI and delegated administration,"Candidate generation, shared validation, approximate outcome evaluation and utility ranking.",proposed
-P12-04,12,Baseline country AI and delegated administration,"Hierarchical plans with review dates, cancellation conditions, cooldowns and inertia to prevent constant reversals.",proposed
+P11-14,11,"Parties, elections and political survival","Dictatorship is not omnipotence: elite loyalty, credible information, administrative competence, military obedience, succession and public acquiescence remain separate pressures. Include ruler/party survival challenges alongside default country-continuation mode.",partial
+P12-01,12,Baseline country AI and delegated administration,"Each government maintains goals, beliefs, constraints, risk appetite and commitments.",partial
+P12-02,12,Baseline country AI and delegated administration,"First behaviors: pay obligations, maintain essential services, respond to shortages, avoid infeasible budgets and defend political viability.",partial
+P12-03,12,Baseline country AI and delegated administration,"Candidate generation, shared validation, approximate outcome evaluation and utility ranking.",partial
+P12-04,12,Baseline country AI and delegated administration,"Hierarchical plans with review dates, cancellation conditions, cooldowns and inertia to prevent constant reversals.",partial
 P12-05,12,Baseline country AI and delegated administration,"Opposition, parties, institutions and basic firms use smaller role-specific agents.",proposed
 P12-06,12,Baseline country AI and delegated administration,"Player delegation by ministry with budgets, permitted actions, priorities, approval thresholds and an audit trail.",proposed
-P12-07,12,Baseline country AI and delegated administration,Debug explanations show considered alternatives and rejection reasons; normal players see only explanations consistent with their knowledge.,proposed
-P12-08,12,Baseline country AI and delegated administration,Extend this AI in every subsequent system. Do not postpone AI until the feature catalogue is complete.,proposed
-P12-09,12,Baseline country AI and delegated administration,"Regime-aware AI balances its actual survival coalition and ideology: electoral accountability, party factions, military leadership, dynastic interests or religious institutions. Do not give every country a democratic reelection objective or force convergence toward one regime.",proposed
-P13-01,13,The complete governing interface,Situation brief organized around problems and pending decisions rather than an undifferentiated notification feed.,proposed
-P13-02,13,The complete governing interface,"Ministry screens for economy, finance, society, institutions and foreign affairs, expanding with later systems.",proposed
-P13-03,13,The complete governing interface,"Policy search by problem, action, ministry or affected group; show why unavailable choices are unavailable.",proposed
-P13-04,13,The complete governing interface,"Draft comparison with baseline, distributional effects, cost, authority, implementation lag and uncertainty.",proposed
-P13-05,13,The complete governing interface,"Before/after charts, pinned indicators, regional heatmaps and sortable international comparisons.",proposed
-P13-06,13,The complete governing interface,"Actionable alerts, deduplication, severity controls, watchlists and configurable automatic pause.",proposed
-P13-07,13,The complete governing interface,Negotiation and legislation timelines; pending decisions clearly distinguished from completed actions.,proposed
-P13-08,13,The complete governing interface,"Guided first governing session: identify a problem, inspect causes, enact a feasible intervention, advance time, inspect consequences.",proposed
-P13-09,13,The complete governing interface,"Regime-aware political workspace: legislature/elections where relevant, ruling-party leadership, military council, court or religious hierarchy where relevant; show legal authority, effective power, faction support and succession risks separately.",proposed
+P12-07,12,Baseline country AI and delegated administration,Debug explanations show considered alternatives and rejection reasons; normal players see only explanations consistent with their knowledge.,partial
+P12-08,12,Baseline country AI and delegated administration,Extend this AI in every subsequent system. Do not postpone AI until the feature catalogue is complete.,partial
+P12-09,12,Baseline country AI and delegated administration,"Regime-aware AI balances its actual survival coalition and ideology: electoral accountability, party factions, military leadership, dynastic interests or religious institutions. Do not give every country a democratic reelection objective or force convergence toward one regime.",partial
+P13-01,13,The complete governing interface,Situation brief organized around problems and pending decisions rather than an undifferentiated notification feed.,partial
+P13-02,13,The complete governing interface,"Ministry screens for economy, finance, society, institutions and foreign affairs, expanding with later systems.",partial
+P13-03,13,The complete governing interface,"Policy search by problem, action, ministry or affected group; show why unavailable choices are unavailable.",partial
+P13-04,13,The complete governing interface,"Draft comparison with baseline, distributional effects, cost, authority, implementation lag and uncertainty.",partial
+P13-05,13,The complete governing interface,"Before/after charts, pinned indicators, regional heatmaps and sortable international comparisons.",partial
+P13-06,13,The complete governing interface,"Actionable alerts, deduplication, severity controls, watchlists and configurable automatic pause.",partial
+P13-07,13,The complete governing interface,Negotiation and legislation timelines; pending decisions clearly distinguished from completed actions.,partial
+P13-08,13,The complete governing interface,"Guided first governing session: identify a problem, inspect causes, enact a feasible intervention, advance time, inspect consequences.",partial
+P13-09,13,The complete governing interface,"Regime-aware political workspace: legislature/elections where relevant, ruling-party leadership, military council, court or religious hierarchy where relevant; show legal authority, effective power, faction support and succession risks separately.",partial
 P14-01,14,"Utilities, energy and natural resources","Fuel deposits, reserves, extraction cost, depletion, exploration and import dependence.",proposed
 P14-02,14,"Utilities, energy and natural resources","Electricity generation by technology, fuel requirements, dispatch, network capacity, reliability and seasonal demand.",proposed
 P14-03,14,"Utilities, energy and natural resources","Coal, oil, gas, nuclear, hydro, wind, solar, geothermal, biomass and storage definitions; technology availability depends on date and research.",proposed
@@ -289,10 +289,10 @@ P36-04,36,Historical world completion and differentiated countries,"Add country-
 P36-05,36,Historical world completion and differentiated countries,"Preserve universal system support: distinct country content should add context and constraints, not be required to make basic government work.",proposed
 P36-06,36,Historical world completion and differentiated countries,"Country selection displays data completeness, difficulty context and special rules. Missing facts remain labeled estimates, never invented certainty.",proposed
 P36-07,36,Historical world completion and differentiated countries,Historical names/facts coexist with generated future personalities and alternate outcomes.,proposed
-P37-01,37,"Scenarios, bookmarks and campaign tools",Default 2000 sandbox with configurable historical pressure versus open divergence.,proposed
+P37-01,37,"Scenarios, bookmarks and campaign tools",Default 2000 sandbox with configurable historical pressure versus open divergence.,partial
 P37-02,37,"Scenarios, bookmarks and campaign tools","Additional independently validated bookmarks; changing the start date is a dataset change, not just changing the clock.",proposed
-P37-03,37,"Scenarios, bookmarks and campaign tools","Scenario definitions: setup overlays, objectives, constraints, actors, triggers, events, failure/success conditions and scoring.",proposed
-P37-04,37,"Scenarios, bookmarks and campaign tools","Economic scenarios: recession, banking crisis, sovereign debt, inflation, industrialization, energy dependence, household living costs and trade disruption.",proposed
+P37-03,37,"Scenarios, bookmarks and campaign tools","Scenario definitions: setup overlays, objectives, constraints, actors, triggers, events, failure/success conditions and scoring.",partial
+P37-04,37,"Scenarios, bookmarks and campaign tools","Economic scenarios: recession, banking crisis, sovereign debt, inflation, industrialization, energy dependence, household living costs and trade disruption.",partial
 P37-05,37,"Scenarios, bookmarks and campaign tools","Political scenarios: election, coalition, constitutional reform, democratic transition, federalism, reunification and institutional breakdown.",proposed
 P37-06,37,"Scenarios, bookmarks and campaign tools","Security scenarios: regional war, territorial dispute, peace negotiation, insurgency, nuclear crisis and maritime disruption.",proposed
 P37-07,37,"Scenarios, bookmarks and campaign tools","Social scenarios: health emergency, migration, education, crime, inequality and demographic transition.",proposed
@@ -300,7 +300,7 @@ P37-08,37,"Scenarios, bookmarks and campaign tools","Environmental scenarios: de
 P37-09,37,"Scenarios, bookmarks and campaign tools","Scientific/cultural scenarios: technological leadership, international infrastructure, tourism and major events.",proposed
 P37-10,37,"Scenarios, bookmarks and campaign tools","Optional speculative scenarios: future crises, altered institutions and off-world politics; explicitly separate from historical claims.",proposed
 P37-11,37,"Scenarios, bookmarks and campaign tools",Trigger historical-inspired events by conditions where possible. Historical mode can weight choices without guaranteeing the original outcome.,proposed
-P37-12,37,"Scenarios, bookmarks and campaign tools","Campaign chronicle, meaningful comparisons, custom objectives and optional post-defeat observation/continuation.",proposed
+P37-12,37,"Scenarios, bookmarks and campaign tools","Campaign chronicle, meaningful comparisons, custom objectives and optional post-defeat observation/continuation.",partial
 P38-01,38,"Editors, modding and scenario inspection","Content editing for countries, borders/control, actors, laws, organizations, economy, technology and scenario setup.",proposed
 P38-02,38,"Editors, modding and scenario inspection","Conditional events with schema validation, references, clear error locations and a deterministic execution budget.",proposed
 P38-03,38,"Editors, modding and scenario inspection","Custom names, flags, portraits, colors, icons, localization and map styles.",proposed

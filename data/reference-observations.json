@@ -1,0 +1,102 @@
+{
+  "sources": [
+    {
+      "source": "world-bank-mirror-population",
+      "indicator": "SP.POP.TOTL",
+      "url": "https://raw.githubusercontent.com/datasets/population/d4b1a4a9a17e2123baf0ef119de05bceced1ab1b/data/population.csv",
+      "revision": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "sha256": "2c697c3e668c8cb06ee467cd0d475b37b52844fdc48cb7725b79b58f18bf0b02",
+      "retrieved_at": "2026-11-03",
+      "attribution": "World Bank; GDP also credits OECD in mirror metadata",
+      "license": "CC BY 4.0 for World Bank-produced data; population mirror declares PDDL; retain upstream attribution",
+      "primary_source": "https://data.worldbank.org/indicator/SP.POP.TOTL",
+      "limitations": "Single pinned mirror snapshot; later revisions may differ. No independent primary API or national-source reconciliation was performed."
+    },
+    {
+      "source": "world-bank-mirror-gdp",
+      "indicator": "NY.GDP.MKTP.CD",
+      "url": "https://raw.githubusercontent.com/datasets/gdp/36d761dc5617982d3e50b213e02b9a1b47c4e958/data/gdp.csv",
+      "revision": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "sha256": "8d84ef6bcaccf740c01c5ed7566aae8f7b149d0e2c20001e441efd3cb5b2fa86",
+      "retrieved_at": "2026-11-03",
+      "attribution": "World Bank; GDP also credits OECD in mirror metadata",
+      "license": "CC BY 4.0 for World Bank-produced data; population mirror declares PDDL; retain upstream attribution",
+      "primary_source": "https://data.worldbank.org/indicator/NY.GDP.MKTP.CD",
+      "limitations": "Single pinned mirror snapshot; later revisions may differ. No independent primary API or national-source reconciliation was performed."
+    }
+  ],
+  "observations": [
+    {
+      "country": "GBR",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "58892514",
+      "original_units": "persons",
+      "applied_value": 58892514,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "CHN",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "1262645000",
+      "original_units": "persons",
+      "applied_value": 1262645000,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "SAU",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "16177722",
+      "original_units": "persons",
+      "applied_value": 16177722,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "GBR",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "1665534876683.3105",
+      "original_units": "current USD",
+      "applied_value": 1665534,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "CHN",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "1211331651866.086",
+      "original_units": "current USD",
+      "applied_value": 1211331,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "SAU",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "189514933333.33334",
+      "original_units": "current USD",
+      "applied_value": 189514,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    }
+  ]
+}

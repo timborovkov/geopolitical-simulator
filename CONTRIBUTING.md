@@ -1,6 +1,6 @@
 # Contributing
 
-This repository contains research documents and a minimal Rust workspace. `sim-core` reserves the independent simulation boundary; `headless` currently prints a setup confirmation. No gameplay or behavioral tests exist yet.
+This repository contains research documents and an initial playable Rust game. `sim-core` owns deterministic rules and content validation, `headless` provides the scenario runner and terminal game, and `desktop` presents the native egui/wgpu client. Behavioral tests cover accounting, policy implementation, commands, political transitions, persistence and replay.
 
 ## Rust development
 

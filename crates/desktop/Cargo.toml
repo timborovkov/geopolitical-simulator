@@ -1,0 +1,18 @@
+[package]
+name = "desktop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+sim-core = { path = "../sim-core" }
+eframe = { version = "0.33", default-features = false, features = ["default_fonts", "wgpu", "x11", "wayland"] }
+
+# Enable native wgpu backends explicitly: eframe disables dependency defaults.
+wgpu = { version = "27", default-features = false, features = ["std", "parking_lot", "dx12", "metal", "vulkan", "gles", "wgsl"] }
+serde_json = "1"
+earcutr = "0.4"
+
+[lints]
+workspace = true

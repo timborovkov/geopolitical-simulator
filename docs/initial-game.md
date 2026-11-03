@@ -1,0 +1,67 @@
+# Initial playable game and governing-term milestone
+
+This is an initial game with a differentiated governing-term loop, not completion of the [341-requirement roadmap](implementation-order.md). Requirements retain their original IDs and priority order. `partial` in the CSV identifies touched requirements; it does not claim every clause is complete.
+
+## Playable result
+
+Choose one of 15 countries, then select **Sandbox** or **Fiscal and supply crisis**. Advance a day, inspect household needs and fiscal execution, compare a policy, secure its institutional consent, fund delivery and respond to shortages or political change. At five years the review checks national food/energy delivery ≥90%, approval ≥50%, no arrears and debt ≤100% of opening GDP. Country play continues after failure, elections or leadership replacement.
+
+The crisis option is an authored overlay on the selected country: 40% domestic food and energy capacity, 10% wage tax, services/welfare at 18%/12% of opening GDP, administration 60% and approval 20%. It retains the country's GDP/population and identity data. Other countries continue under their ordinary initial conditions. The overlay is recorded in the save and replay; it is not a historical claim.
+
+## Priority-ordered implementation status
+
+| Priorities | Delivered loop and material limits |
+|---|---|
+| P01 | Pure daily simulation, Gregorian dates, seeded actor-specific shocks, shared validated commands, stable country/party/policy/project IDs, rejection explanations and canonical replay hashes. Goods/time still use primitive integers; hidden-information projection and a remote protocol remain absent. |
+| P02 | Content schema v2, institution/household definitions, reference and partition validation, six dated population/GDP observations for UK/China/Saudi Arabia, pinned source revisions and hashes, repeatable CSV importer and explicit transformations. Historical office terms, full fact chronology, complete country roster, crosswalks and independent source reconciliation remain incomplete. |
+| P03 | Save schema/rules v2, command journal, scenario/content hashes, pending-consent and construction saves, atomic replacement, previous backup and scenario-specific monthly autosaves. Version 1 is rejected without conversion; no migration, SQL storage or journal compaction exists. |
+| P04 | Native egui/wgpu shell, offline land map, country search/selection, sortable opening GDP directory, overview, policy previews, household table, fiscal reports, parties, chronicle and guide. No sovereign polygons, historical borders, regions, terrain, rebinding, screen-reader certification or installers. Only performed platform checks may be claimed. |
+| P05 | Four sector accounts with exact cash transfers, household subaccounts that sum to the sector balance, physical stock reconciliation, external lending/trade, policy reservations and realized-vs-forecast fiscal reporting. These are coarse accounts, not complete national accounts or a banking system. |
+| P06–P07 | Four disjoint household groups with population, working-age and modeled employment, cash, income, taxes, baskets, food delivery, approval and creditor claims. Private income, public-service payments and targeted welfare reach different groups. Food/energy supply, affordability, storage, loss and bounded imports constrain delivery; energy constrains output. Population is fixed; regions, demographic transitions, skills, endogenous prices and detailed production recipes remain absent. |
+| P08–P09 | Content-defined institutional thresholds and consent delays; parliamentary majority, party/cadre gates, royal council spending constraint and other core regime routes. Proposals pay an upfront administration amount and reserve remaining capital while awaiting consent. Authority is rechecked; refusal releases reserved cash. Accepted capital is paid before implementation. No full constitutional law, contested regime change, legislative amendment or staffing/material project network yet. |
+| P10 | Income collection, recurring services/welfare/maintenance, interest, explicit loans/repayment, borrowing ceiling, creditor-specific arrears, protected policy reservations, frozen annual forecasts, exact execution reconciliation and ten retained fiscal reviews. No progressive bands, bond maturities, defaults, currency markets or complete budget enactment procedure. |
+| P11 | Cohort-weighted opinion, governing coalitions, confidence warnings and early parliamentary elections, separate elite/council backing, periodic party/royal leadership reviews and continuing country play. The 100-seat electoral model, preferences and succession are authored abstractions; national electoral laws, factions and dynastic succession are not faithfully reproduced. |
+| P12–P13 | Monthly nonplayer financing/support/supply/administration decisions through shared validators, decision/rejection traces, cohort policy impacts, pending-stage timelines, actionable funding/needs warnings and configurable pause. AI is a bounded heuristic; full utility planning, ministry delegation and a detailed causal attribution engine remain future work. |
+| P37 | Sandbox and authored fiscal/supply-crisis options, five-year review and campaign chronicle. No general scenario editor or historical-event engine. |
+
+## Household and market mechanics
+
+Household groups are **working**, **public-service**, **transfer-dependent** and **asset-owning** households. They are disjoint household classifications, not overlapping counts of workers, pensioners or party membership. Country profiles are authored. Largest-remainder allocation preserves exact population and cash sums with stable ordering for ties.
+
+Private income follows authored shares. Public-service payments reach public-service households; welfare goes 80% to transfer-dependent households and 20% to working households. Each group pays collected tax on private income from its own cash. Public-service payments and welfare are not included in the current wage-tax base. Disposable income and savings limit affordable consumption; available food is rationed among affordable needs. Basket spending also represents nonfood goods/services; this is a coarse real-welfare model, not an explicit food price solver.
+
+Modeled employment responds to feasible private output and cash-constrained wages. Public-service household employment additionally responds to funded services. Political opinion reflects food/energy needs, funded service delivery, disposable purchasing power, effective tax burden and employment. Approval is weighted by population. Parliament, elites and councils are separate state rather than copies of the public approval value.
+
+## Institutions and policy commitments
+
+All three reference configurations are authored approximations of institutional mechanisms, not transcriptions of their constitutions:
+
+- Legislative decisions require at least 51 support and have 14 days of consent. Parliamentary support trends around the governing coalition's seats and public outcomes. Three weak monthly reviews schedule an early election; confidence warnings are visible.
+- Party leadership decisions require elite backing 55 and cadre/council backing 50, with 14 days of consent. A 720-day leadership review can replace leadership after lost cadre support. Emergency elite collapse can trigger replacement sooner.
+- Royal decrees require elite backing 50 and council backing 45, with immediate consent. Increasing one recurring spending level by more than four GDP percentage points requires council backing 65. A 360-day review evaluates the leadership coalition. The generated replacement council is a gameplay abstraction, not a model of hereditary law.
+
+Other regimes retain their own configured routes. Support negotiation remains available during gridlock. Projects preserve their legal consent after approval, including across political transitions, and governments inherit their obligations.
+
+For delayed consent, 10% of capital cost (minimum 1m) is paid upfront for proposal administration; the remainder stays in treasury as reserved cash. Fiscal payments and debt repayment cannot use reservations. At consent, authority is rechecked. Approval releases the reservation into the contractor payment and begins implementation; refusal releases it back into available cash while administration remains spent. Immediate decisions pay the full cost upfront. The interface separates commitment, paid amount, reserved money, consent and delivery date.
+
+## Fiscal forecasts and execution
+
+A fiscal period runs from its opening state to the following 1 January boundary; settlement days are the interval **(start, end]**. Thus the first period covers 366 daily settlements in the leap year 2000. Subsequent periods follow Gregorian year lengths.
+
+Opening forecasts freeze daily revenue, spending and interest assumptions. They assume no future supply shocks, funded private wages, current policy levels and no additional borrowing or capital programs. Policy changes, shortages, rounding of group taxes, wages constrained by business cash, capital commitments and financing create differences from that forecast. The interface exposes actual revenue versus forecast-to-date, payments, capital and net financing, alongside a current-policy run rate. It does not claim to estimate a counterfactual contribution for each cause.
+
+For every current and closed period:
+
+```text
+opening cash + revenue + borrowing - payments - capital - principal repayment = closing cash
+```
+
+Reserved capital is part of treasury cash, separately unavailable for other use. Unfunded interest, household payments and maintenance accrue as liabilities to their original creditor sector; household claims are additionally assigned to their original groups and repaid accordingly. Expected revenue and arrears are never treated as spendable money. Loan principal and interest are separate flows.
+
+## Validation and compatibility
+
+The test suite covers original command/accounting/calendar invariants plus exact household partitions, targeted welfare and tax effects, distinct authority rules, protected reservations, consent revalidation/refusal, pending-stage save/load, yearly fiscal closure, malformed budgets, version rejection and three five-year crisis campaigns with political transitions and deterministic replay. Ten-year campaigns across all 15 countries continue to check invariants. These establish consistency, not historical accuracy or economic calibration.
+
+Rules, content and save format are now version 2. Version-1 content/saves require the earlier game version; this implementation rejects them without modifying the files. Desktop manual saves default to `saves/campaign-v2.json`; autosaves use `saves/autosave-COUNTRY-SCENARIO-v2.json`, keeping the previous milestone's default files separate. Load errors leave the active campaign intact. No secret intelligence is modeled; the public aggregate inspection must be replaced with a knowledge projection before secret operations or multiplayer.
+
+Run `python3 scripts/validate.py`. See the [README](../README.md) for launch commands and [data provenance](../data/README.md) for observation/source limitations.
