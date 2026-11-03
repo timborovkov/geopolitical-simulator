@@ -14,10 +14,64 @@ fn propose(world: &mut World, content: &Content, policy: &str, value: i32) {
             .expect("revalidated example action");
     }
 }
-fn play(content: &Content, country: &str, seed: u64) -> Result<(), String> {
+fn play(
+    content: &Content,
+    country: &str,
+    seed: u64,
+    contested_transition: bool,
+) -> Result<(), String> {
     let id = CountryId(country.into());
     let definition = content.country(&id).ok_or("country")?;
     let mut world = World::new_scenario(content, id, seed, Scenario::FiscalSupplyCrisis)?;
+    if contested_transition {
+        let rules = content
+            .constitutions
+            .as_ref()
+            .ok_or("--contested-transition requires a constitutional-transition content pack")?;
+        let target = if definition.regime == Regime::Military {
+            Regime::Personalist
+        } else {
+            Regime::Military
+        };
+        for round in 0..3 {
+            if round < 2 {
+                world.issue(
+                    content,
+                    Action::Borrow {
+                        amount: Money(definition.gdp / 10),
+                    },
+                )?;
+            }
+            let preview = world.preview(content, &world.player, "coalition", 1)?;
+            world.issue(
+                content,
+                Action::Enact {
+                    policy: "coalition".into(),
+                    value: 1,
+                },
+            )?;
+            world.advance(content, preview.delay)?;
+        }
+        world.issue(
+            content,
+            Action::Reconstitute {
+                target: target.clone(),
+                contested: true,
+            },
+        )?;
+        world.advance(content, rules.route(true)?.days)?;
+        if world.governing_regime(content, &world.player)? != &target
+            || world.is_developer_modified()
+        {
+            return Err("Contested transition did not enact as an ordinary game action".into());
+        }
+        println!(
+            "{country}: {:?} to {:?} through a costed contested route; country continues on {} without developer edits",
+            definition.regime,
+            target,
+            date(world.day)
+        );
+    }
     let review_day = content.review_day()?;
     while world.day < review_day {
         let c = world.player_country();
@@ -36,13 +90,17 @@ fn play(content: &Content, country: &str, seed: u64) -> Result<(), String> {
             }
         }
         let c = world.player_country();
-        let support = if definition.regime.competitive() {
+        let government = world.governing_rules(content, &world.player)?;
+        let support = if world
+            .governing_regime(content, &world.player)?
+            .competitive()
+        {
             c.legislative_support
         } else {
             c.elite_support
         };
-        if support < definition.government.threshold + 5
-            || c.council_support < definition.government.council_threshold + 5
+        if support < government.threshold + 5
+            || c.council_support < government.council_threshold + 5
         {
             propose(&mut world, content, "coalition", 1);
         }
@@ -94,16 +152,28 @@ fn play(content: &Content, country: &str, seed: u64) -> Result<(), String> {
 }
 fn run() -> Result<(), String> {
     let args: Vec<_> = std::env::args().skip(1).collect();
-    let content = match args.as_slice() {
-        [] => Content::bundled()?,
-        [flag, path] if flag == "--content" => {
-            Content::from_json(&std::fs::read_to_string(path).map_err(|error| error.to_string())?)?
+    let mut content_path = None;
+    let mut contested_transition = false;
+    let mut arguments = args.iter();
+    while let Some(argument) = arguments.next() {
+        match argument.as_str() {
+            "--content" if content_path.is_none() => {
+                content_path = Some(arguments.next().ok_or("Missing content path")?);
+            }
+            "--contested-transition" if !contested_transition => {
+                contested_transition = true;
+            }
+            _ => return Err("Usage: recovery [--content FILE] [--contested-transition]".into()),
         }
-        _ => return Err("Usage: recovery [--content FILE]".into()),
+    }
+    let content = if let Some(path) = content_path {
+        Content::from_json(&std::fs::read_to_string(path).map_err(|error| error.to_string())?)?
+    } else {
+        Content::bundled()?
     };
     for definition in &content.countries {
         let country = definition.id.0.as_str();
-        play(&content, country, 17)?;
+        play(&content, country, 17, contested_transition)?;
     }
     Ok(())
 }

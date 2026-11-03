@@ -74,7 +74,10 @@ fn status(world: &World, content: &Content) {
         "Reserved {}m | council/cadre backing {} | authority {}",
         c.committed_cash.0,
         c.council_support,
-        d.government.label()
+        world
+            .governing_rules(content, &world.player)
+            .expect("government")
+            .label()
     );
     for p in &c.projects {
         println!(
@@ -125,7 +128,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if developer {
                         println!(
@@ -165,7 +168,11 @@ fn play(
                 "status" => status(world, content),
                 "countries" => {
                     for d in &content.countries {
-                        println!("{} · {} · {:?} · {}", d.id.0, d.name, d.regime, d.executive);
+                        let report = world.public_report(content, &d.id)?;
+                        println!(
+                            "{} · {} · {:?} · {}",
+                            d.id.0, d.name, report.regime, report.executive
+                        );
                     }
                 }
                 "policies" => {
@@ -214,6 +221,98 @@ fn play(
                     content,
                     Action::Borrow {
                         amount: Money(number(words.get(1))?),
+                    },
+                )?,
+                "constitutions" => {
+                    let rules = content
+                        .constitutions
+                        .as_ref()
+                        .ok_or("This campaign has no constitutional transition workflow")?;
+                    let state = world
+                        .player_country()
+                        .constitution
+                        .as_ref()
+                        .ok_or("Missing constitution")?;
+                    println!(
+                        "Current {:?} since {} · next request {}",
+                        state.regime,
+                        date(state.since),
+                        date(state.next_request_day)
+                    );
+                    for template in &rules.templates {
+                        println!(
+                            "{} · {} · {}",
+                            serde_json::to_value(&template.regime)
+                                .map_err(|error| error.to_string())?
+                                .as_str()
+                                .unwrap_or("unknown"),
+                            template.title,
+                            template.government.label()
+                        );
+                    }
+                    if let Some(request) = &state.pending {
+                        println!(
+                            "Pending #{} to {:?} · contested {} · decision {} · paid {}m, reserved {}m",
+                            request.id.0,
+                            request.target,
+                            request.contested,
+                            date(request.decision_day),
+                            request.upfront.0,
+                            request.reserved.0
+                        );
+                    }
+                    for change in &state.history {
+                        println!(
+                            "{} · {:?} to {:?} · contested {} · government #{}",
+                            date(change.day),
+                            change.from,
+                            change.to,
+                            change.contested,
+                            change.government_number
+                        );
+                    }
+                }
+                "preview-constitution" | "reconstitute" => {
+                    let target: Regime = serde_json::from_value(serde_json::Value::String(
+                        words
+                            .get(1)
+                            .ok_or("Missing governing form; use constitutions")?
+                            .to_string(),
+                    ))
+                    .map_err(|_| "Unknown governing form; use constitutions")?;
+                    let contested = match words.get(2).copied().unwrap_or("lawful") {
+                        "lawful" => false,
+                        "contested" => true,
+                        _ => return Err("Choose lawful or contested explicitly".into()),
+                    };
+                    if words[0] == "preview-constitution" {
+                        let preview = world.preview_constitution(
+                            content,
+                            &world.player,
+                            &target,
+                            contested,
+                        )?;
+                        println!(
+                            "{:?} · contested {} · decision {} · {}m total: {}m upfront, {}m reserved · approval/legislature/elite/council costs {}/{}/{}/{} if enacted. Cancellation/refusal retains paid costs and cooldown.",
+                            target,
+                            contested,
+                            date(preview.decision_day),
+                            preview.cost.0,
+                            preview.upfront.0,
+                            preview.reserved.0,
+                            preview.political_costs.approval_cost,
+                            preview.political_costs.legislative_cost,
+                            preview.political_costs.elite_cost,
+                            preview.political_costs.council_cost
+                        );
+                    } else {
+                        world.issue(content, Action::Reconstitute { target, contested })?;
+                    }
+                }
+                "withdraw-constitution" => world.issue(
+                    content,
+                    Action::CancelConstitution {
+                        request: TransitionId(number(words.get(1))?),
                     },
                 )?,
                 "outlook" => {
@@ -513,7 +612,7 @@ fn play(
                 }
                 "parties" => {
                     let d = content.country(&world.player).expect("player");
-                    println!("{}", d.government.label());
+                    println!("{}", world.governing_rules(content, &world.player)?.label());
                     for p in &d.parties {
                         println!(
                             "{} · {} · {} · seats {}",

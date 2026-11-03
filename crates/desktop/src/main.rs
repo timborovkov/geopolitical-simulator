@@ -2,6 +2,7 @@ mod advance;
 mod analysis;
 mod cashflows;
 mod charts;
+mod constitutions;
 mod financing;
 mod funding;
 mod geometry;
@@ -51,6 +52,7 @@ struct GameApp {
     save_path: String,
     money: i64,
     funding_chart: charts::Chart,
+    constitution_panel: constitutions::Panel,
     sort_gdp: bool,
     show_ledger: bool,
     recovery: Vec<persistence::RecoveryCandidate>,
@@ -118,6 +120,7 @@ impl GameApp {
             save_path,
             money: 1000,
             funding_chart: charts::Chart::default(),
+            constitution_panel: constitutions::Panel::default(),
             sort_gdp: false,
             show_ledger: false,
             recovery: Vec::new(),
@@ -364,6 +367,7 @@ impl GameApp {
         self.map = map::WorldMap::new();
         self.analysis = analysis::Analysis::default();
         self.funding_chart = charts::Chart::default();
+        self.constitution_panel = constitutions::Panel::default();
         self.cashflows = cashflows::CashFlows::default();
         self.inspector = inspector::Inspector::default();
         self.help = help::Help::default();
@@ -584,17 +588,22 @@ impl GameApp {
             .expect("selection")
             .clone();
         ui.heading(&d.name);
+        let report = self
+            .world
+            .as_ref()
+            .and_then(|world| world.public_report(&self.content, &self.selected).ok());
         ui.label(format!(
             "{} · {:?} · {} {}",
             d.capital,
-            d.regime,
-            d.office,
-            self.world
+            report.as_ref().map_or(&d.regime, |report| &report.regime),
+            report
                 .as_ref()
-                .map_or(d.executive.as_str(), |w| w.countries[&self.selected]
-                    .executive
-                    .as_str())
+                .map_or(d.office.as_str(), |report| report.government_title.as_str()),
+            report
+                .as_ref()
+                .map_or(d.executive.as_str(), |report| report.executive.as_str())
         ));
+
         self.map.show(
             ui,
             &self.content,
@@ -741,11 +750,9 @@ impl GameApp {
             c.accounts.treasury.0 - c.committed_cash.0,
             c.report.spending.0 + c.report.interest.0 + c.report.unpaid.0 - c.report.revenue.0,
         );
-        let rules = &self
-            .content
-            .country(&world.player)
-            .expect("country")
-            .government;
+        let rules = world
+            .governing_rules(&self.content, &world.player)
+            .expect("government");
         let backing = if rules.route == DecisionRoute::Legislature {
             c.legislative_support
         } else {
@@ -755,6 +762,32 @@ impl GameApp {
             backing < rules.threshold || c.council_support < rules.council_threshold;
         ui.separator();
         ui.heading("Cabinet situation brief");
+        if let Some(request) = c
+            .constitution
+            .as_ref()
+            .and_then(|state| state.pending.as_ref())
+        {
+            ui.label(format!("Pending {} constitutional decision: {:?}, due {}. Reserved administration {}m; approval is not guaranteed.", if request.contested { "CONTESTED" } else { "lawful" }, request.target, date(request.decision_day), request.reserved.0));
+            if ui.button("Review constitutional decision").clicked() {
+                self.tab = Tab::Politics;
+            }
+        }
+        if let Some(request) = c
+            .financing
+            .as_ref()
+            .and_then(|state| state.pending.as_ref())
+        {
+            ui.label(format!(
+                "Borrowing request #{}: {}m, decision {}. Pending funds are not treasury cash.",
+                request.id.0,
+                request.amount.0,
+                date(request.decision_day)
+            ));
+            if ui.button("Review borrowing decision").clicked() {
+                self.tab = Tab::Treasury;
+            }
+        }
+
         if authority_blocked {
             ui.label("Governing support is below the threshold for ordinary policy decisions. Negotiate support before committing to a new program.");
             if ui.button("Draft governing support talks").clicked() {
@@ -818,6 +851,12 @@ impl GameApp {
             report.executive,
             report.population.0 as f64 / 1_000_000.0,
             report.opening_gdp.0
+        ));
+        ui.label(format!(
+            "Current governing form {:?} · {} · {}",
+            report.regime,
+            report.government_title,
+            report.government.label()
         ));
         if let Some(latest) = report.latest {
             ui.label(format!("Statistical release {} ({} days old): approval {}%, needs {}%, debt {}m, daily output {}m.",date(latest.day),w.day-latest.day,latest.approval,latest.needs,latest.debt.0,latest.daily_output.0));
@@ -917,8 +956,8 @@ impl GameApp {
             Err(e) => {
                 ui.colored_label(Color32::LIGHT_YELLOW, format!("Cannot approve: {e}"));
                 let definition = self.content.country(&self.selected).expect("country");
-                if definition
-                    .government
+                if w.governing_rules(&self.content, &self.selected)
+                    .expect("government")
                     .check(c, &self.policy, self.value)
                     .is_err()
                     && self.content.policy("coalition").is_some()
@@ -1251,12 +1290,17 @@ impl GameApp {
             .expect("country")
             .clone();
         ui.heading("Institutions & political survival");
-        ui.label(format!(
-            "{} · {:?}\n{}",
-            d.name,
-            d.regime,
-            d.government.label()
-        ));
+        let regime = self
+            .world
+            .as_ref()
+            .and_then(|world| world.governing_regime(&self.content, &self.selected).ok())
+            .unwrap_or(&d.regime);
+        let government = self
+            .world
+            .as_ref()
+            .and_then(|world| world.governing_rules(&self.content, &self.selected).ok())
+            .unwrap_or(&d.government);
+        ui.label(format!("{} · {:?}\n{}", d.name, regime, government.label()));
         ui.label("All seats, political preferences and election cycles are scenario approximations. The 100-seat assembly is a game abstraction; it is not a historical parliament.");
         let c = self.world.as_ref().map(|w| &w.countries[&self.selected]);
         if let Some(c) = c {
@@ -1319,6 +1363,11 @@ impl GameApp {
         ui.separator();
         ui.label("Authority thresholds are content-defined. Parliamentary support can trigger an early confidence election after three weak monthly reviews. Party councils review cadre backing; royal councils can block a spending expansion above 4 GDP points without 65 backing. Consent is rechecked before construction. Country play continues after leadership changes.");
         ui.label("Cohort needs, disposable income, taxes, employment and funded services affect opinion. Parliamentary support, elite backing and council backing are distinct. Seat allocation, succession and preferences remain scenario approximations.");
+        if let Some(world) = &self.world
+            && let Some(action) = self.constitution_panel.show(ui, &self.content, world)
+        {
+            self.issue(action);
+        }
     }
     fn chronicle(&self, ui: &mut egui::Ui) {
         if self.foreign_report(ui) {
@@ -2017,6 +2066,14 @@ mod interface_tests {
             (
                 Content::from_json(include_str!("../../../data/synthetic-market-test.json"))
                     .unwrap(),
+                "AUR",
+                "BOR",
+            ),
+            (
+                Content::from_json(include_str!(
+                    "../../../data/synthetic-constitution-test.json"
+                ))
+                .unwrap(),
                 "AUR",
                 "BOR",
             ),

@@ -131,6 +131,8 @@ pub struct Content {
     pub markets: Option<crate::MarketDefinition>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub finance: Option<crate::FinanceDefinition>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub constitutions: Option<crate::ConstitutionDefinition>,
 }
 impl Content {
     pub fn bundled() -> Result<Self, String> {
@@ -161,8 +163,8 @@ impl Content {
     pub fn from_json(json: &str) -> Result<Self, String> {
         let header: serde_json::Value =
             serde_json::from_str(json).map_err(|e| format!("Content JSON: {e}"))?;
-        if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2..=4)) {
-            return Err("Unsupported content schema: expected version 2, 3 or 4".into());
+        if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2..=5)) {
+            return Err("Unsupported content schema: expected version 2, 3, 4 or 5".into());
         }
         let mut content: Self =
             serde_json::from_str(json).map_err(|e| format!("Content JSON: {e}"))?;
@@ -216,19 +218,21 @@ impl Content {
             .map_err(|_| "Bookmark must permit a five-year review no later than 2100-01-01".into())
     }
     pub fn validate(&self) -> Result<(), String> {
-        if !matches!(self.schema, 2..=4) || self.countries.is_empty() {
+        if !matches!(self.schema, 2..=5) || self.countries.is_empty() {
             return Err("Unsupported content schema, bookmark or empty roster".into());
         }
         self.start_day()?;
         self.review_day()?;
-        match (self.rules, &self.markets, &self.finance) {
-            (2, None, None) => {}
-            (3, Some(markets), None) if self.schema == 3 => markets.validate(self)?,
-            (4, Some(markets), Some(finance)) if self.schema == 4 => {
-                markets.validate(self)?;
-                finance.validate(self)?;
+        match (self.rules, &self.markets, &self.finance, &self.constitutions) {
+            (2, None, None, None) => {}
+            (3, Some(markets), None, None) if self.schema == 3 => markets.validate(self)?,
+            (4, Some(markets), Some(finance), None) if self.schema == 4 => {
+                markets.validate(self)?; finance.validate(self)?;
             }
-            _ => return Err("Supported rules are 2 (fixed prices), 3 (markets), and 4 (markets and financing authority) with matching definitions".into()),
+            (5, Some(markets), Some(finance), Some(constitutions)) if self.schema == 5 => {
+                markets.validate(self)?; finance.validate(self)?; constitutions.validate(self)?;
+            }
+            _ => return Err("Supported rules/content definitions are 2 (fixed prices), 3 (markets), 4 (financing authority), and 5 (constitutional transitions)".into()),
         }
         if let Some(identities) = &self.identities {
             identities.validate(self)?;

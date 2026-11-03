@@ -72,7 +72,10 @@ pub enum PolicyStage {
 }
 impl World {
     pub(crate) fn resolve_consents(&mut self, content: &Content, id: &CountryId) {
-        let d = content.country(id).expect("definition");
+        let government = self
+            .governing_rules(content, id)
+            .expect("government")
+            .clone();
         let due: Vec<_> = self.countries[id]
             .projects
             .iter()
@@ -80,9 +83,7 @@ impl World {
             .cloned()
             .collect();
         for project in due {
-            let result = d
-                .government
-                .check(&self.countries[id], &project.policy, project.value);
+            let result = government.check(&self.countries[id], &project.policy, project.value);
             self.countries
                 .get_mut(id)
                 .expect("country")

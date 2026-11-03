@@ -132,6 +132,33 @@ def build_finance():
     return pack
 
 
+def build_constitutions():
+    pack = build_finance()
+    pack.update(schema=5, rules=5, id="synthetic-constitutions-v5", name="Fictional constitutional transitions",
+                description="Entirely authored political-transition prototype. Lawful supermajority routes and explicitly contested effective-power routes can change a country's governing constitution in either direction. Costs, reserved cash, backing, sponsorship, political consequences and inertia constrain changes. Templates, thresholds and AI preferences are fictional; this does not reproduce historical constitutions, military coercion, independent institutions or complete electoral laws.")
+    templates = []
+    for regime, route, title, threshold, council, consent, review in [
+        ("parliamentary", "legislature", "parliamentary cabinet", 51, 0, 14, None),
+        ("presidential", "legislature", "presidential cabinet", 51, 0, 21, None),
+        ("semi_presidential", "legislature", "semi-presidential cabinet", 51, 0, 21, None),
+        ("single_party", "party_council", "party council", 55, 50, 21, 180),
+        ("absolute_monarchy", "royal_decree", "royal court", 50, 45, 0, 90),
+        ("theocracy", "religious_council", "religious council", 55, 55, 30, 180),
+        ("personalist", "executive_decree", "executive council", 50, 45, 0, 90),
+        ("military", "military_council", "military council", 55, 55, 7, 90)]:
+        templates.append(dict(regime=regime, title=title, government=dict(route=route,
+            threshold=threshold, council_threshold=council, consent_days=consent, leadership_review_days=review)))
+    pack["constitutions"] = dict(templates=templates, source="synthetic-original", source_version="authored-transitions-v1",
+        cooldown_days=180, ai_targets={"BOR": "parliamentary", "COR": "single_party"},
+        lawful=dict(days=90, cost_bps=50, upfront_bps=2000, legislative_threshold=67, elite_threshold=75,
+                    council_threshold=65, approval_threshold=55, approval_cost=3,
+                    legislative_cost=5, elite_cost=10, council_cost=5),
+        contested=dict(days=14, cost_bps=100, upfront_bps=10000, legislative_threshold=0, elite_threshold=80,
+                       council_threshold=80, approval_threshold=0, approval_cost=20,
+                       legislative_cost=25, elite_cost=15, council_cost=20))
+    return pack
+
+
 def build_market_starter():
     pack = json.loads((ROOT / "data/initial-2000.json").read_text(encoding="utf-8"))
     pack.update(schema=3, rules=3, id="initial-2000-markets-v3",
@@ -168,6 +195,7 @@ def main():
     for filename, pack in [("synthetic-test.json", build()), ("synthetic-dated-test.json", build_temporal()),
                            ("synthetic-market-test.json", build_markets()),
                            ("synthetic-finance-test.json", build_finance()),
+                           ("synthetic-constitution-test.json", build_constitutions()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter())]:
         target = ROOT / "data" / filename

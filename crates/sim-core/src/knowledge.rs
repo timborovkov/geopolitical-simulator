@@ -22,6 +22,9 @@ pub struct PublicCountryReport {
     pub country: CountryId,
     pub name: String,
     pub executive: String,
+    pub regime: Regime,
+    pub government: GovernmentDefinition,
+    pub government_title: String,
     pub population: Population,
     pub opening_gdp: Money,
     pub initial_data_quality: String,
@@ -64,6 +67,14 @@ impl World {
             country: id.clone(),
             name: d.name.clone(),
             executive: c.executive.clone(),
+            regime: self.governing_regime(content, id)?.clone(),
+            government: self.governing_rules(content, id)?.clone(),
+            government_title: c
+                .constitution
+                .as_ref()
+                .and_then(|state| state.history.last())
+                .and_then(|change| content.constitutions.as_ref()?.template(&change.to))
+                .map_or_else(|| d.office.clone(), |template| template.title.clone()),
             population: c.population,
             opening_gdp: Money(d.gdp),
             initial_data_quality: d.quality.clone(),

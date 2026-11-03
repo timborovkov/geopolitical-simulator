@@ -156,6 +156,8 @@ pub struct Country {
     pub markets: Option<Markets>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub financing: Option<Financing>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub constitution: Option<Constitution>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
@@ -165,6 +167,13 @@ pub enum Action {
     },
     Borrow {
         amount: Money,
+    },
+    Reconstitute {
+        target: Regime,
+        contested: bool,
+    },
+    CancelConstitution {
+        request: TransitionId,
     },
     EmergencyBorrow {
         amount: Money,
@@ -349,6 +358,10 @@ impl World {
                         report: DailyReport::default(),
                         history: Vec::new(),
                         markets: content.markets.as_ref().map(Markets::new),
+                        constitution: content
+                            .constitutions
+                            .as_ref()
+                            .map(|_| Constitution::new(d.regime.clone(), start_day)),
                         financing: content
                             .finance
                             .as_ref()
@@ -499,6 +512,23 @@ impl World {
                 Action::Borrow { amount } | Action::Repay { amount } => {
                     (1..=1_000_000_000_000).contains(&amount.0)
                 }
+                Action::Reconstitute { target, contested } => {
+                    content.constitutions.as_ref().is_some_and(|rules| {
+                        rules.template(target).is_some() && rules.route(*contested).is_ok()
+                    })
+                }
+                Action::CancelConstitution { request } => {
+                    content.constitutions.is_some()
+                        && request.0 > 0
+                        && request.0 < command.id
+                        && self
+                            .journal
+                            .get(request.0 as usize - 1)
+                            .is_some_and(|entry| {
+                                entry.command.issuer == command.issuer
+                                    && matches!(entry.command.action, Action::Reconstitute { .. })
+                            })
+                }
                 Action::EmergencyBorrow { amount } => {
                     content
                         .finance
@@ -544,6 +574,11 @@ impl World {
                     markets.validate(definition, c, self.day, start_day)?
                 }
                 _ => return Err("Country markets differ from the campaign rules/content".into()),
+            }
+            match (&c.constitution, &content.constitutions) {
+                (None, None) => {}
+                (Some(state), Some(_)) => state.validate(self, content, id)?,
+                _ => return Err("Constitution state differs from campaign rules/content".into()),
             }
             match (&c.financing, &content.finance) {
                 (None, None) => {}
@@ -676,6 +711,12 @@ impl World {
                     .iter()
                     .map(|p| i128::from(p.reserved.0))
                     .sum::<i128>()
+                    + i128::from(
+                        c.constitution
+                            .as_ref()
+                            .map_or(Money(0), Constitution::reserved_cash)
+                            .0,
+                    )
                     != i128::from(c.committed_cash.0)
                 || c.budget.start_day < start_day
                 || c.budget.start_day > self.day

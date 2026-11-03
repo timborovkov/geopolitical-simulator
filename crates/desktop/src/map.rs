@@ -361,7 +361,7 @@ impl WorldMap {
                     )
                 },
             );
-            response.clone().on_hover_text(format!("{} · {:?}\n{executive}\n{stamp}\nClick country land or its marker to inspect. Search covers islands omitted at this scale.",country.name,country.regime));
+            response.clone().on_hover_text(format!("{} · {:?}\n{executive}\n{stamp}\nClick country land or its marker to inspect. Search covers islands omitted at this scale.",country.name,report.as_ref().map_or(&country.regime, |report| &report.regime)));
         }
         painter.text(
             rect.left_bottom() + Vec2::new(12.0, -12.0),

@@ -10,6 +10,7 @@ impl World {
         value: i32,
     ) -> Result<PolicyPreview, String> {
         let c = self.countries.get(country).ok_or("Unknown country")?;
+        let government = self.governing_rules(content, country)?;
         let d = content
             .country(country)
             .ok_or("Missing country definition")?;
@@ -20,7 +21,7 @@ impl World {
         if c.projects.iter().any(|p| p.policy == policy) {
             return Err("This policy already has a pending commitment".into());
         }
-        d.government.check(c, policy, value)?;
+        government.check(c, policy, value)?;
         if policy == "energy" && c.energy_capacity >= 200
             || policy == "agriculture" && c.food_capacity >= 200
             || policy == "administration" && c.administration >= 100
@@ -61,7 +62,7 @@ impl World {
         let consent_delay = if policy == "coalition" {
             0
         } else {
-            d.government.consent_days
+            government.consent_days
         };
         let upfront_payment = if consent_delay == 0 {
             cost
@@ -106,7 +107,7 @@ impl World {
             cost,
             delay: consent_delay + p.days + (100 - c.administration) as u32 / 2,
             annual_budget_change: Money(annual),
-            route: d.government.label(),
+            route: government.label(),
             consent_delay,
             upfront_payment,
             household_impacts,
@@ -213,6 +214,14 @@ impl World {
                     self.event(&id,true,format!("Borrowed {}m from external creditors at 4% annual interest. Principal is due on voluntary repayment.",amount.0));
                 }
             }
+            Action::Reconstitute { target, contested } => self.request_constitution(
+                content,
+                &id,
+                TransitionId(command.id),
+                target,
+                *contested,
+            )?,
+            Action::CancelConstitution { request } => self.cancel_constitution(&id, *request)?,
             Action::EmergencyBorrow { amount } => {
                 self.emergency_borrowing(content, &id, LoanId(command.id), *amount)?
             }
@@ -275,6 +284,7 @@ impl World {
         for _ in 0..days {
             self.day += 1;
             for id in &ids {
+                self.resolve_constitution(content, id);
                 self.resolve_consents(content, id);
                 self.resolve_borrowing(content, id);
                 self.complete_projects(id);
@@ -735,6 +745,11 @@ impl World {
     }
     fn politics(&mut self, content: &Content, id: &CountryId) {
         let d = content.country(id).expect("definition");
+        let government = self
+            .governing_rules(content, id)
+            .expect("government")
+            .clone();
+        let regime = self.governing_regime(content, id).expect("regime").clone();
         let c = self.countries.get_mut(id).expect("country");
         let needs = (c.report.energy_coverage + c.report.food_coverage) / 2;
         let service_score = (c.services * 5).min(90) * c.report.service_delivery / 100;
@@ -782,7 +797,7 @@ impl World {
             .find(|h| h.id == "public")
             .expect("public")
             .approval;
-        let council_target = match d.government.route {
+        let council_target = match government.route {
             DecisionRoute::PartyCouncil => (public + c.administration) / 2,
             DecisionRoute::RoyalDecree => (owners + public) / 2,
             _ => (c.approval + c.administration) / 2,
@@ -792,24 +807,23 @@ impl World {
         let elite_target =
             (40 + owners / 3 + public / 4 - if c.arrears.0 > 0 { 30 } else { 0 }).clamp(5, 95);
         c.elite_support += (elite_target - c.elite_support).signum();
-        if d.regime.competitive() && self.day.is_multiple_of(30) {
+        if regime.competitive() && self.day.is_multiple_of(30) {
             let base: i32 = c.coalition.iter().map(|id| i32::from(c.seats[id])).sum();
             let target = (base + (c.approval - 50) / 5).clamp(0, 100);
             c.legislative_support += (target - c.legislative_support).signum();
-            c.confidence_crises = if c.legislative_support < d.government.threshold {
+            c.confidence_crises = if c.legislative_support < government.threshold {
                 c.confidence_crises + 1
             } else {
                 0
             };
-            if c.confidence_crises >= 3 && d.regime == Regime::Parliamentary {
+            if c.confidence_crises >= 3 && regime == Regime::Parliamentary {
                 c.next_election = Some(self.day + 1);
                 c.confidence_crises = 0;
             }
         }
         let leadership_review = c.next_leadership_review == Some(self.day);
         if leadership_review {
-            c.next_leadership_review = d
-                .government
+            c.next_leadership_review = government
                 .leadership_review_days
                 .map(|days| self.day + days);
         }
@@ -855,9 +869,9 @@ impl World {
                 }
             }
             c.next_election = Some(self.day + 1460);
-        } else if !d.regime.competitive()
+        } else if !regime.competitive()
             && (c.elite_support < 40
-                || leadership_review && c.council_support < d.government.council_threshold.max(45))
+                || leadership_review && c.council_support < government.council_threshold.max(45))
         {
             c.government_number += 1;
             c.executive = format!("Generated leadership council {}", c.government_number);
@@ -896,6 +910,11 @@ impl World {
     fn ai_turn(&mut self, content: &Content, id: &CountryId) {
         let c = &self.countries[id];
         let d = content.country(id).expect("country");
+        let government = self
+            .governing_rules(content, id)
+            .expect("government")
+            .clone();
+        let regime = self.governing_regime(content, id).expect("regime").clone();
         if c.financing
             .as_ref()
             .is_some_and(|state| state.pending.is_some())
@@ -903,42 +922,63 @@ impl World {
             self.event(id, false, "AI review: awaiting institutional borrowing decision; pending principal is unavailable cash.");
             return;
         }
-        let candidate = if c.accounts.treasury.0 - c.committed_cash.0 < d.gdp / 100
-            || c.arrears.0 > 0
+        if let Some(target) = content
+            .constitutions
+            .as_ref()
+            .and_then(|rules| rules.ai_targets.get(id))
+            .cloned()
+            && self
+                .preview_constitution(content, id, &target, false)
+                .is_ok()
         {
-            Action::Borrow {
-                amount: Money(d.gdp / 20),
+            let command = self.command(
+                id.clone(),
+                Action::Reconstitute {
+                    target,
+                    contested: false,
+                },
+            );
+            match self.apply(content, command, CommandOrigin::Ai) {
+                Ok(()) => self.event(id, false, "AI proposed its authored constitutional preference through the shared lawful consent, cost and backing rules."),
+                Err(reason) => self.event(id, false, format!("AI constitutional proposal rejected: {reason}")),
             }
-        } else {
-            let policy = if d.regime.competitive() && c.legislative_support < d.government.threshold
-                || !d.regime.competitive()
-                    && (c.elite_support < d.government.threshold + 5
-                        || c.council_support < d.government.council_threshold + 10)
-            {
-                "coalition"
-            } else if c.energy_capacity < 110 {
-                "energy"
-            } else if c.food_capacity < 100 {
-                "agriculture"
-            } else if c.administration < 85 {
-                "administration"
-            } else if c.debt.0 > d.gdp / 5 && c.accounts.treasury.0 > d.gdp / 10 {
-                let command = self.command(
-                    id.clone(),
-                    Action::Repay {
-                        amount: Money(d.gdp / 100),
-                    },
-                );
-                let _ = self.apply(content, command, CommandOrigin::Ai);
-                return;
+            return;
+        }
+        let candidate =
+            if c.accounts.treasury.0 - c.committed_cash.0 < d.gdp / 100 || c.arrears.0 > 0 {
+                Action::Borrow {
+                    amount: Money(d.gdp / 20),
+                }
             } else {
-                return;
+                let policy = if regime.competitive() && c.legislative_support < government.threshold
+                    || !regime.competitive()
+                        && (c.elite_support < government.threshold + 5
+                            || c.council_support < government.council_threshold + 10)
+                {
+                    "coalition"
+                } else if c.energy_capacity < 110 {
+                    "energy"
+                } else if c.food_capacity < 100 {
+                    "agriculture"
+                } else if c.administration < 85 {
+                    "administration"
+                } else if c.debt.0 > d.gdp / 5 && c.accounts.treasury.0 > d.gdp / 10 {
+                    let command = self.command(
+                        id.clone(),
+                        Action::Repay {
+                            amount: Money(d.gdp / 100),
+                        },
+                    );
+                    let _ = self.apply(content, command, CommandOrigin::Ai);
+                    return;
+                } else {
+                    return;
+                };
+                Action::Enact {
+                    policy: policy.into(),
+                    value: 1,
+                }
             };
-            Action::Enact {
-                policy: policy.into(),
-                value: 1,
-            }
-        };
         let reason = format!(
             "AI review: chose {candidate:?} to address the highest-ranked financing, support or supply constraint."
         );

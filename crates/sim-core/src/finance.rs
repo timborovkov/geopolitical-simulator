@@ -238,7 +238,11 @@ impl Financing {
                         0
                     } else {
                         rules
-                            .authority(&definition.government.route)
+                            .authority(
+                                &world
+                                    .governing_rules_at(content, id, entry.command.day)?
+                                    .route,
+                            )
                             .ok_or("Debt lacks legal authority")?
                             .consent_days
                     };
@@ -266,7 +270,7 @@ impl Financing {
                 .and_then(|index| world.journal.get(index as usize))
                 .ok_or("Missing pending-loan command")?;
             let authority = rules
-                .authority(&definition.government.route)
+                .authority(&world.governing_rules(content, id)?.route)
                 .ok_or("Pending loan lacks legal authority")?;
             if request.amount.0 <= 0
                 || request.amount.0 > definition.gdp / 10
@@ -371,7 +375,7 @@ impl World {
             .finance
             .as_ref()
             .ok_or("This campaign uses immediate classic financing")?;
-        let definition = content.country(id).ok_or("Unknown borrowing country")?;
+        let government = self.governing_rules(content, id)?;
         let country = &self.countries[id];
         if country
             .financing
@@ -383,9 +387,9 @@ impl World {
             return Err("A borrowing request already awaits a decision".into());
         }
         let authority = rules
-            .authority(&definition.government.route)
+            .authority(&government.route)
             .ok_or("This government has no legal borrowing authority")?;
-        definition.government.check(country, "borrow", 0)?;
+        government.check(country, "borrow", 0)?;
         let decision_day = self
             .day
             .checked_add(authority.consent_days)
@@ -555,11 +559,8 @@ impl World {
         } else {
             self.check_credit(content, id, request.amount)
                 .and_then(|()| {
-                    content.country(id).expect("country").government.check(
-                        &self.countries[id],
-                        "borrow",
-                        0,
-                    )
+                    self.governing_rules(content, id)?
+                        .check(&self.countries[id], "borrow", 0)
                 })
         };
         self.countries
