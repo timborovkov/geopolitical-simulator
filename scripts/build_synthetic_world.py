@@ -114,6 +114,24 @@ def build_markets():
     return pack
 
 
+def build_finance():
+    pack = build_markets()
+    pack.update(schema=4, rules=4, id="synthetic-finance-v4", name="Fictional borrowing authority",
+                description="Entirely authored financing-authority prototype. Ordinary borrowing needs institutional consent; pending requests are not cash. Contested emergency borrowing requires effective council backing and carries political costs. Debt remains fixed-rate 4% perpetual debt in constant-2000 reporting credits, without local-currency FX, banks or bond markets.")
+    pack["finance"] = dict(source="synthetic-original", source_version="authored-finance-v1",
+        authorities=[dict(id=f"borrowing:{route}", label=label, route=route, consent_days=days)
+                     for route, label, days in [
+                         ("legislature", "Legislative borrowing consent", 14),
+                         ("party_council", "Party council borrowing consent", 21),
+                         ("royal_decree", "Royal borrowing decree", 0),
+                         ("religious_council", "Religious council borrowing consent", 30),
+                         ("military_council", "Military council borrowing consent", 7),
+                         ("executive_decree", "Executive borrowing decree", 0)]],
+        emergency=dict(council_threshold=65, approval_cost=15, legislative_cost=20,
+                       elite_cost=10, council_cost=20, cooldown_days=180))
+    return pack
+
+
 def build_market_starter():
     pack = json.loads((ROOT / "data/initial-2000.json").read_text(encoding="utf-8"))
     pack.update(schema=3, rules=3, id="initial-2000-markets-v3",
@@ -136,6 +154,7 @@ def main():
     args = parser.parse_args()
     for filename, pack in [("synthetic-test.json", build()), ("synthetic-dated-test.json", build_temporal()),
                            ("synthetic-market-test.json", build_markets()),
+                           ("synthetic-finance-test.json", build_finance()),
                            ("initial-2000-markets.json", build_market_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

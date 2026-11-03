@@ -1,0 +1,423 @@
+{
+  "schema": 4,
+  "id": "synthetic-finance-v4",
+  "name": "Fictional borrowing authority",
+  "start": "2000-01-01",
+  "description": "Entirely authored financing-authority prototype. Ordinary borrowing needs institutional consent; pending requests are not cash. Contested emergency borrowing requires effective council backing and carries political costs. Debt remains fixed-rate 4% perpetual debt in constant-2000 reporting credits, without local-currency FX, banks or bond markets.",
+  "sources": [
+    {
+      "id": "synthetic-original",
+      "quality": "authored_synthetic_fixture",
+      "description": "Original fictional content for repeatable rules tests; no historical claims."
+    }
+  ],
+  "facts": [],
+  "countries": [
+    {
+      "id": "AUR",
+      "name": "Aurora Republic (fictional)",
+      "capital": "Aurora Republic test capital",
+      "regime": "parliamentary",
+      "executive": "Fictional delegate AUR-1",
+      "office": "Test governing office",
+      "currency": "TEST",
+      "population": 1000000,
+      "gdp": 100000,
+      "tax": 24,
+      "services": 9,
+      "welfare": 4,
+      "energy": 80,
+      "food": 80,
+      "capacity": 70,
+      "approval": 55,
+      "longitude": 0,
+      "latitude": 30,
+      "ruling_party": "AUR-1",
+      "coalition": [
+        "AUR-1"
+      ],
+      "parties": [
+        {
+          "id": "AUR-1",
+          "name": "Aurora Republic body 1",
+          "leader": "Fictional delegate AUR-1",
+          "ideology": "Authored test profile",
+          "seats": 60
+        },
+        {
+          "id": "AUR-2",
+          "name": "Aurora Republic body 2",
+          "leader": "Fictional delegate AUR-2",
+          "ideology": "Authored test profile",
+          "seats": 40
+        }
+      ],
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      },
+      "quality": "authored_synthetic_fixture",
+      "identity_source": "synthetic-original",
+      "economic_source": "synthetic-original"
+    },
+    {
+      "id": "BOR",
+      "name": "Boreal Union (fictional)",
+      "capital": "Boreal Union test capital",
+      "regime": "single_party",
+      "executive": "Fictional delegate BOR-1",
+      "office": "Test governing office",
+      "currency": "TEST",
+      "population": 1000000,
+      "gdp": 100000,
+      "tax": 24,
+      "services": 9,
+      "welfare": 4,
+      "energy": 80,
+      "food": 80,
+      "capacity": 70,
+      "approval": 55,
+      "longitude": 40,
+      "latitude": 30,
+      "ruling_party": "BOR-1",
+      "coalition": [
+        "BOR-1"
+      ],
+      "parties": [
+        {
+          "id": "BOR-1",
+          "name": "Boreal Union body 1",
+          "leader": "Fictional delegate BOR-1",
+          "ideology": "Authored test profile",
+          "seats": 60
+        },
+        {
+          "id": "BOR-2",
+          "name": "Boreal Union body 2",
+          "leader": "Fictional delegate BOR-2",
+          "ideology": "Authored test profile",
+          "seats": 40
+        }
+      ],
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "party_council",
+        "threshold": 55,
+        "consent_days": 21,
+        "council_threshold": 50,
+        "leadership_review_days": 360
+      },
+      "quality": "authored_synthetic_fixture",
+      "identity_source": "synthetic-original",
+      "economic_source": "synthetic-original"
+    },
+    {
+      "id": "COR",
+      "name": "Coral Crown (fictional)",
+      "capital": "Coral Crown test capital",
+      "regime": "absolute_monarchy",
+      "executive": "Fictional delegate COR-1",
+      "office": "Test governing office",
+      "currency": "TEST",
+      "population": 1000000,
+      "gdp": 100000,
+      "tax": 24,
+      "services": 9,
+      "welfare": 4,
+      "energy": 80,
+      "food": 80,
+      "capacity": 70,
+      "approval": 55,
+      "longitude": 80,
+      "latitude": 30,
+      "ruling_party": "COR-1",
+      "coalition": [
+        "COR-1"
+      ],
+      "parties": [
+        {
+          "id": "COR-1",
+          "name": "Coral Crown body 1",
+          "leader": "Fictional delegate COR-1",
+          "ideology": "Authored test profile",
+          "seats": 60
+        },
+        {
+          "id": "COR-2",
+          "name": "Coral Crown body 2",
+          "leader": "Fictional delegate COR-2",
+          "ideology": "Authored test profile",
+          "seats": 40
+        }
+      ],
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "royal_decree",
+        "threshold": 50,
+        "consent_days": 0,
+        "council_threshold": 45,
+        "leadership_review_days": 360
+      },
+      "quality": "authored_synthetic_fixture",
+      "identity_source": "synthetic-original",
+      "economic_source": "synthetic-original"
+    }
+  ],
+  "policies": [
+    {
+      "id": "income_tax",
+      "name": "Income tax reform",
+      "min": 10,
+      "max": 45,
+      "days": 30,
+      "cost_bps": 2,
+      "description": "Change the wage tax rate.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "services",
+      "name": "Public service budget",
+      "min": 4,
+      "max": 18,
+      "days": 60,
+      "cost_bps": 8,
+      "description": "Authorize annual service spending as a GDP percentage.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "welfare",
+      "name": "Household safety net",
+      "min": 0,
+      "max": 12,
+      "days": 30,
+      "cost_bps": 3,
+      "description": "Authorize targeted transfers as a GDP percentage.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "energy",
+      "name": "Energy capacity program",
+      "min": 1,
+      "max": 1,
+      "days": 90,
+      "cost_bps": 50,
+      "description": "Add 15 energy capacity points after implementation.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "agriculture",
+      "name": "Food resilience program",
+      "min": 1,
+      "max": 1,
+      "days": 120,
+      "cost_bps": 35,
+      "description": "Add 15 food capacity points after implementation.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "administration",
+      "name": "Civil service modernization",
+      "min": 1,
+      "max": 1,
+      "days": 180,
+      "cost_bps": 40,
+      "description": "Add 8 administration points after implementation.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "coalition",
+      "name": "Negotiate governing support",
+      "min": 1,
+      "max": 1,
+      "days": 45,
+      "cost_bps": 10,
+      "description": "Negotiate support through the configured governing route.",
+      "groups": "Fictional household and governing groups"
+    }
+  ],
+  "rules": 4,
+  "markets": {
+    "food_budget_share_bps": 4000,
+    "source": "synthetic-original",
+    "source_version": "authored-market-v1",
+    "goods": [
+      {
+        "id": "test:power",
+        "kind": "energy",
+        "name": "Fictional energy",
+        "unit": "modeled energy unit",
+        "minimum_price_bps": 5000,
+        "maximum_price_bps": 20000,
+        "adjustment_bps": 250,
+        "import_limit_bps": 2500,
+        "storage_days": 3,
+        "loss_bps": 0
+      },
+      {
+        "id": "test:staple",
+        "kind": "food",
+        "name": "Fictional essential food",
+        "unit": "modeled food-basket unit",
+        "minimum_price_bps": 5000,
+        "maximum_price_bps": 20000,
+        "adjustment_bps": 250,
+        "import_limit_bps": 3500,
+        "storage_days": 11,
+        "loss_bps": 100
+      }
+    ]
+  },
+  "finance": {
+    "source": "synthetic-original",
+    "source_version": "authored-finance-v1",
+    "authorities": [
+      {
+        "id": "borrowing:legislature",
+        "label": "Legislative borrowing consent",
+        "route": "legislature",
+        "consent_days": 14
+      },
+      {
+        "id": "borrowing:party_council",
+        "label": "Party council borrowing consent",
+        "route": "party_council",
+        "consent_days": 21
+      },
+      {
+        "id": "borrowing:royal_decree",
+        "label": "Royal borrowing decree",
+        "route": "royal_decree",
+        "consent_days": 0
+      },
+      {
+        "id": "borrowing:religious_council",
+        "label": "Religious council borrowing consent",
+        "route": "religious_council",
+        "consent_days": 30
+      },
+      {
+        "id": "borrowing:military_council",
+        "label": "Military council borrowing consent",
+        "route": "military_council",
+        "consent_days": 7
+      },
+      {
+        "id": "borrowing:executive_decree",
+        "label": "Executive borrowing decree",
+        "route": "executive_decree",
+        "consent_days": 0
+      }
+    ],
+    "emergency": {
+      "council_threshold": 65,
+      "approval_cost": 15,
+      "legislative_cost": 20,
+      "elite_cost": 10,
+      "council_cost": 20,
+      "cooldown_days": 180
+    }
+  }
+}

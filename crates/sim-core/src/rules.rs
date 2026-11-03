@@ -185,30 +185,38 @@ impl World {
                 self.event(&id,true,format!("Proposed {} via {}. Paid {}m upfront, reserved {}m; consent {} and operating due {}.",content.policy(policy).expect("policy").name,preview.route,preview.upfront_payment.0,reserved.0,date(self.day+preview.consent_delay),date(self.day+preview.delay)));
             }
             Action::Borrow { amount } => {
-                if amount.0 <= 0 || amount.0 > d.gdp / 10 {
-                    return Err(
-                        "Borrowing must be positive and at most 10% of opening GDP per issue"
-                            .into(),
+                if content.finance.is_some() {
+                    self.request_borrowing(content, &id, LoanId(command.id), *amount)?;
+                } else {
+                    if amount.0 <= 0 || amount.0 > d.gdp / 10 {
+                        return Err(
+                            "Borrowing must be positive and at most 10% of opening GDP per issue"
+                                .into(),
+                        );
+                    }
+                    if c.debt.0 + amount.0 > d.gdp * 3 / 2 {
+                        return Err("Creditors refuse: debt ceiling is 150% of opening GDP".into());
+                    }
+                    if amount.0 > c.accounts.external.0 {
+                        return Err("External creditor lacks available funds".into());
+                    }
+                    self.pay(
+                        &id,
+                        External,
+                        Treasury,
+                        amount.0,
+                        "External loan principal received",
                     );
+                    let c = self.countries.get_mut(&id).expect("country");
+                    c.debt.0 += amount.0;
+                    c.budget.borrowing.0 += amount.0;
+                    self.event(&id,true,format!("Borrowed {}m from external creditors at 4% annual interest. Principal is due on voluntary repayment.",amount.0));
                 }
-                if c.debt.0 + amount.0 > d.gdp * 3 / 2 {
-                    return Err("Creditors refuse: debt ceiling is 150% of opening GDP".into());
-                }
-                if amount.0 > c.accounts.external.0 {
-                    return Err("External creditor lacks available funds".into());
-                }
-                self.pay(
-                    &id,
-                    External,
-                    Treasury,
-                    amount.0,
-                    "External loan principal received",
-                );
-                let c = self.countries.get_mut(&id).expect("country");
-                c.debt.0 += amount.0;
-                c.budget.borrowing.0 += amount.0;
-                self.event(&id,true,format!("Borrowed {}m from external creditors at 4% annual interest. Principal is due on voluntary repayment.",amount.0));
             }
+            Action::EmergencyBorrow { amount } => {
+                self.emergency_borrowing(content, &id, LoanId(command.id), *amount)?
+            }
+            Action::CancelBorrow { request } => self.cancel_borrowing(&id, *request)?,
             Action::Repay { amount } => {
                 if amount.0 <= 0
                     || amount.0 > c.debt.0
@@ -225,6 +233,9 @@ impl World {
                 );
                 let c = self.countries.get_mut(&id).expect("country");
                 c.debt.0 -= amount.0;
+                if let Some(financing) = &mut c.financing {
+                    financing.repay(*amount);
+                }
                 c.budget.principal_repaid.0 += amount.0;
                 self.event(
                     &id,
@@ -265,6 +276,7 @@ impl World {
             self.day += 1;
             for id in &ids {
                 self.resolve_consents(content, id);
+                self.resolve_borrowing(content, id);
                 self.complete_projects(id);
                 self.settle(content, id);
                 self.review_budget(content, id);
@@ -884,6 +896,13 @@ impl World {
     fn ai_turn(&mut self, content: &Content, id: &CountryId) {
         let c = &self.countries[id];
         let d = content.country(id).expect("country");
+        if c.financing
+            .as_ref()
+            .is_some_and(|state| state.pending.is_some())
+        {
+            self.event(id, false, "AI review: awaiting institutional borrowing decision; pending principal is unavailable cash.");
+            return;
+        }
         let candidate = if c.accounts.treasury.0 - c.committed_cash.0 < d.gdp / 100
             || c.arrears.0 > 0
         {

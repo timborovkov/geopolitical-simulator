@@ -2,6 +2,7 @@ mod advance;
 mod analysis;
 mod cashflows;
 mod charts;
+mod financing;
 mod geometry;
 mod help;
 mod inspector;
@@ -95,7 +96,7 @@ impl GameApp {
         ctx.set_zoom_factor(preferences.active.ui_scale);
         let save_path = format!(
             "saves/campaign-v{}.json",
-            if content.rules == 3 { 4 } else { 3 }
+            sim_core::persistence::snapshot_schema_for_rules(content.rules)
         );
         Self {
             content,
@@ -1139,7 +1140,11 @@ impl GameApp {
             }
         });
         ui.small(format!("Reconciliation: sector cash {}m = opening {}m. External debt uses explicit principal records and 4% annual interest. Borrowing ceiling: {}m.",c.accounts.total(),c.opening_money.0,d.gdp*3/2));
-        if self.selected == w.player {
+        let finance_action = financing::show(ui, &self.content, w, &mut self.money);
+        if let Some(action) = finance_action {
+            self.issue(action);
+        }
+        if self.content.finance.is_none() {
             ui.horizontal_wrapped(|ui| {
                 ui.label("Principal (m)");
                 ui.add(

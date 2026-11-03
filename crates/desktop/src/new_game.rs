@@ -41,7 +41,7 @@ impl Setup {
         };
         let save_path = format!(
             "saves/campaign-v{}.json",
-            if content.rules == 3 { 4 } else { 3 }
+            sim_core::persistence::snapshot_schema_for_rules(content.rules)
         );
         Ok(Self {
             content,
@@ -96,11 +96,11 @@ impl Setup {
                         ui.selectable_value(&mut self.pack, Pack::Classic, "Classic · fixed prices");
                     });
                     if self.pack != previous {
-                        let old_default = format!("saves/campaign-v{}.json", if self.content.rules == 3 { 4 } else { 3 });
+                        let old_default = format!("saves/campaign-v{}.json", sim_core::persistence::snapshot_schema_for_rules(self.content.rules));
                         match if self.pack == Pack::Classic { Content::classic_bundled() } else { Content::bundled() } {
                             Ok(content) => {
                                 if content.country(&self.player).is_none() { self.player = content.countries[0].id.clone(); }
-                                if self.save_path == old_default { self.save_path = format!("saves/campaign-v{}.json", if content.rules == 3 { 4 } else { 3 }); }
+                                if self.save_path == old_default { self.save_path = format!("saves/campaign-v{}.json", sim_core::persistence::snapshot_schema_for_rules(content.rules)); }
                                 self.content = content;
                                 self.error = None;
                             }

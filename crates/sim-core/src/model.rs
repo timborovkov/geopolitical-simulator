@@ -154,6 +154,8 @@ pub struct Country {
     pub history: Vec<Observation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub markets: Option<Markets>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub financing: Option<Financing>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
@@ -163,6 +165,12 @@ pub enum Action {
     },
     Borrow {
         amount: Money,
+    },
+    EmergencyBorrow {
+        amount: Money,
+    },
+    CancelBorrow {
+        request: LoanId,
     },
     Repay {
         amount: Money,
@@ -341,6 +349,10 @@ impl World {
                         report: DailyReport::default(),
                         history: Vec::new(),
                         markets: content.markets.as_ref().map(Markets::new),
+                        financing: content
+                            .finance
+                            .as_ref()
+                            .map(|_| Financing::new(d, start_day)),
                     },
                 )
             })
@@ -487,6 +499,26 @@ impl World {
                 Action::Borrow { amount } | Action::Repay { amount } => {
                     (1..=1_000_000_000_000).contains(&amount.0)
                 }
+                Action::EmergencyBorrow { amount } => {
+                    content
+                        .finance
+                        .as_ref()
+                        .and_then(|f| f.emergency.as_ref())
+                        .is_some()
+                        && (1..=1_000_000_000_000).contains(&amount.0)
+                }
+                Action::CancelBorrow { request } => {
+                    content.finance.is_some()
+                        && request.0 > 0
+                        && request.0 < command.id
+                        && self
+                            .journal
+                            .get(request.0 as usize - 1)
+                            .is_some_and(|origin| {
+                                origin.command.issuer == command.issuer
+                                    && matches!(origin.command.action, Action::Borrow { .. })
+                            })
+                }
                 Action::Developer { target, edit } => {
                     self.countries.contains_key(target) && edit.validate().is_ok()
                 }
@@ -512,6 +544,11 @@ impl World {
                     markets.validate(definition, c, self.day, start_day)?
                 }
                 _ => return Err("Country markets differ from the campaign rules/content".into()),
+            }
+            match (&c.financing, &content.finance) {
+                (None, None) => {}
+                (Some(financing), Some(_)) => financing.validate(self, content, id)?,
+                _ => return Err("Country financing differs from campaign rules/content".into()),
             }
             if id != &c.id
                 || c.accounts.checked_total() != Some(c.opening_money.0)

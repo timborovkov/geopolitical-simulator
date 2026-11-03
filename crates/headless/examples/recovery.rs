@@ -25,7 +25,13 @@ fn play(content: &Content, country: &str, seed: u64) -> Result<(), String> {
         let gap = forecast.daily_spending.0 + forecast.daily_interest.0 - forecast.daily_revenue.0;
         if c.accounts.treasury.0 - c.committed_cash.0 < gap.max(1) * 90 {
             let amount = Money(definition.gdp / 10);
-            if c.debt.0 + amount.0 <= definition.gdp * 3 / 2 && c.accounts.external.0 >= amount.0 {
+            if c.debt.0 + amount.0 <= definition.gdp * 3 / 2
+                && c.accounts.external.0 >= amount.0
+                && (content.finance.is_none()
+                    || world
+                        .preview_borrowing(content, &world.player, amount)
+                        .is_ok())
+            {
                 world.issue(content, Action::Borrow { amount })?;
             }
         }

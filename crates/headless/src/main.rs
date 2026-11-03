@@ -125,7 +125,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nfinance | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if developer {
                         println!(
@@ -211,6 +211,82 @@ fn play(
                     content,
                     Action::Borrow {
                         amount: Money(number(words.get(1))?),
+                    },
+                )?,
+                "finance" => {
+                    if let Some(financing) = &world.player_country().financing {
+                        println!("Borrowing authority · pending funds are not treasury cash");
+                        if let Some(request) = &financing.pending {
+                            println!(
+                                "Pending #{}: {}m via {}, decision {} · cancel-loan {}",
+                                request.id.0,
+                                request.amount.0,
+                                request.authority.0,
+                                date(request.decision_day),
+                                request.id.0
+                            );
+                        }
+                        for loan in &financing.instruments {
+                            println!(
+                                "Debt #{} · {} · {:?} · original {}m · outstanding {}m · recognized/issued {} · fixed 4% annual, perpetual, voluntary FIFO redemption · {:?}",
+                                loan.id.0,
+                                loan.creditor.0,
+                                loan.currency,
+                                loan.original_principal.0,
+                                loan.outstanding.0,
+                                date(loan.issued_day),
+                                loan.origin
+                            );
+                        }
+                        println!(
+                            "Emergency acts {} · next eligible {} (backing and credit checks still apply)",
+                            financing.emergency_count,
+                            date(financing.next_emergency_day)
+                        );
+                    } else {
+                        println!(
+                            "This campaign uses immediate legacy financing; finance authority is available in the explicit rules-4 fixture."
+                        );
+                    }
+                }
+                "preview-loan" => {
+                    let amount = Money(number(words.get(1))?);
+                    match world.preview_borrowing(content, &world.player, amount) {
+                        Ok(preview) => println!(
+                            "{}m via {} · decision {} · consent {} days · authority and creditor funds rechecked before cash is released",
+                            amount.0,
+                            preview.route,
+                            date(preview.decision_day),
+                            preview.consent_days
+                        ),
+                        Err(reason) => println!("Ordinary borrowing unavailable: {reason}"),
+                    }
+                    match world.preview_emergency_borrowing(content, &world.player, amount) {
+                        Ok(rule) => println!(
+                            "Contested emergency route: immediate cash; approval -{}, legislature -{}, elite -{}, council -{}, cooldown {} days. Use emergency-borrow explicitly.",
+                            rule.approval_cost,
+                            rule.legislative_cost,
+                            rule.elite_cost,
+                            rule.council_cost,
+                            rule.cooldown_days
+                        ),
+                        Err(reason) => println!("Emergency route unavailable: {reason}"),
+                    }
+                }
+                "emergency-borrow" => world.issue(
+                    content,
+                    Action::EmergencyBorrow {
+                        amount: Money(number(words.get(1))?),
+                    },
+                )?,
+                "cancel-loan" => world.issue(
+                    content,
+                    Action::CancelBorrow {
+                        request: LoanId(
+                            number::<i64>(words.get(1))?
+                                .try_into()
+                                .map_err(|_| "Loan ID must be positive")?,
+                        ),
                     },
                 )?,
                 "repay" => world.issue(
