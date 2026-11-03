@@ -13,11 +13,11 @@ fn published_constitutional_pack_keeps_its_no_order_campaign_golden() {
 }
 
 #[test]
-fn cabinet_starter_preserves_prior_country_policy_and_reference_data() {
+fn electoral_starter_preserves_prior_country_policy_and_reference_data() {
     let current = Content::bundled().unwrap();
     let classic = Content::classic_bundled().unwrap();
-    assert_eq!(current.schema, 7);
-    assert_eq!(current.rules, 7);
+    assert_eq!(current.schema, 8);
+    assert_eq!(current.rules, 8);
     assert_eq!(classic.rules, 2);
     assert_eq!(current.countries, classic.countries);
     assert_eq!(current.policies, classic.policies);
@@ -51,7 +51,21 @@ fn cabinet_starter_preserves_prior_country_policy_and_reference_data() {
     assert_eq!(current.policies, commitment.policies);
     assert_eq!(current.facts, commitment.facts);
     assert_eq!(current.commitments, commitment.commitments);
-    for pack in [current, commitment, constitution, finance, market, classic] {
+    let cabinet = Content::cabinet_bundled().unwrap();
+    assert_eq!(cabinet.rules, 7);
+    assert!(cabinet.elections.is_none());
+    assert_eq!(current.countries, cabinet.countries);
+    assert_eq!(current.cabinet, cabinet.cabinet);
+    assert_eq!(current.elections.as_ref().unwrap().mandates.len(), 15);
+    for pack in [
+        current,
+        cabinet,
+        commitment,
+        constitution,
+        finance,
+        market,
+        classic,
+    ] {
         assert_eq!(Content::bundled_for_hash(pack.hash()).unwrap(), pack);
     }
 }
@@ -91,7 +105,7 @@ fn bundled_recovery_selects_exact_pack_and_preserves_converted_backup_bytes() {
     assert_eq!(std::fs::read(&backup).unwrap(), original);
     let candidates = persistence::recovery_candidates_bundled(&path);
     assert_eq!(candidates.len(), 2);
-    assert_eq!(candidates[0].rules, Some(7));
+    assert_eq!(candidates[0].rules, Some(8));
     assert_eq!(
         candidates[0].content_id.as_deref(),
         Some(current.id.as_str())
@@ -164,8 +178,8 @@ fn preserved_market_pack_replays_and_recovers_without_financing_migration() {
     let market_bytes = persistence::encode(&original, &market).unwrap();
     std::fs::write(&backup, &market_bytes).unwrap();
     let candidates = persistence::recovery_candidates_bundled(&path);
-    assert_eq!(candidates[0].rules, Some(7));
-    assert_eq!(candidates[0].schema, Some(8));
+    assert_eq!(candidates[0].rules, Some(8));
+    assert_eq!(candidates[0].schema, Some(9));
     assert_eq!(candidates[1].rules, Some(3));
     assert_eq!(candidates[1].schema, Some(4));
     let (resolved, restored) = persistence::restore_bundled(&path, &backup).unwrap();
@@ -208,8 +222,8 @@ fn preserved_financing_pack_keeps_its_golden_and_pending_loan_when_restored_from
     let old_bytes = persistence::encode(&pending, &finance).unwrap();
     std::fs::write(&backup, &old_bytes).unwrap();
     let candidates = persistence::recovery_candidates_bundled(&path);
-    assert_eq!(candidates[0].rules, Some(7));
-    assert_eq!(candidates[0].schema, Some(8));
+    assert_eq!(candidates[0].rules, Some(8));
+    assert_eq!(candidates[0].schema, Some(9));
     assert_eq!(candidates[1].rules, Some(4));
     assert_eq!(candidates[1].schema, Some(5));
     let (resolved, mut restored) = persistence::restore_bundled(&path, &backup).unwrap();
@@ -272,7 +286,7 @@ fn earlier_constitutional_pending_request_recovers_without_policy_lifecycle_migr
     let earlier_bytes = persistence::encode(&pending, &earlier).unwrap();
     std::fs::write(&backup, &earlier_bytes).unwrap();
     let candidates = persistence::recovery_candidates_bundled(&path);
-    assert_eq!(candidates[0].schema, Some(8));
+    assert_eq!(candidates[0].schema, Some(9));
     assert_eq!(candidates[1].schema, Some(6));
     let (resolved, mut restored) = persistence::restore_bundled(&path, &backup).unwrap();
     assert_eq!(resolved, earlier);
@@ -343,7 +357,7 @@ fn earlier_commitment_amendment_recovers_without_new_preparation_delays() {
     let earlier_bytes = persistence::encode(&pending, &earlier).unwrap();
     std::fs::write(&backup, &earlier_bytes).unwrap();
     let candidates = persistence::recovery_candidates_bundled(&path);
-    assert_eq!(candidates[0].schema, Some(8));
+    assert_eq!(candidates[0].schema, Some(9));
     assert_eq!(candidates[1].schema, Some(7));
     let (resolved, mut restored) = persistence::restore_bundled(&path, &backup).unwrap();
     assert_eq!(resolved, earlier);
@@ -369,5 +383,114 @@ fn published_cabinet_starter_keeps_its_no_order_campaign_golden() {
     let mut world = World::new(&content, CountryId("GBR".into()), 2000).unwrap();
     world.advance(&content, 360).unwrap();
     assert_eq!(world.hash(), 0xbec8276e0de88b7d);
+    persistence::replay(&world, &content).unwrap();
+}
+
+#[test]
+fn earlier_pending_minister_recovers_without_electoral_rules_or_changed_consent() {
+    let earlier = Content::cabinet_bundled().unwrap();
+    let mut pending = World::new(&earlier, CountryId("GBR".into()), 17).unwrap();
+    pending
+        .issue(
+            &earlier,
+            Action::Appoint {
+                office: OfficeId("portfolio:GBR:supply".into()),
+                person: PersonId("generated:GBR:supply:professional".into()),
+            },
+        )
+        .unwrap();
+    assert_eq!(pending.hash(), 0x27b6cdc4d32c00b3);
+    let current = Content::bundled().unwrap();
+    let world = World::new(&current, pending.player.clone(), 42).unwrap();
+    let dir = std::env::temp_dir().join(format!("geosim-cabinet-recovery-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("mixed.json");
+    persistence::save(&path, &world, &current).unwrap();
+    let current_bytes = std::fs::read(&path).unwrap();
+    let backup = path.with_extension("json.bak");
+    let earlier_bytes = persistence::encode(&pending, &earlier).unwrap();
+    std::fs::write(&backup, &earlier_bytes).unwrap();
+    let candidates = persistence::recovery_candidates_bundled(&path);
+    assert_eq!(candidates[0].schema, Some(9));
+    assert_eq!(candidates[1].schema, Some(8));
+    let (resolved, mut restored) = persistence::restore_bundled(&path, &backup).unwrap();
+    assert_eq!(resolved, earlier);
+    assert!(restored.player_country().electoral_authority.is_none());
+    restored.advance(&resolved, 14).unwrap();
+    assert_eq!(restored.hash(), 0x8061566401cf6588);
+    assert_eq!(
+        restored.policy_preparation_days(&resolved, &restored.player, "energy"),
+        4
+    );
+    assert_eq!(std::fs::read(&backup).unwrap(), earlier_bytes);
+    assert_eq!(
+        std::fs::read(dir.join("mixed.json.before-recovery-1")).unwrap(),
+        current_bytes
+    );
+    persistence::replay(&restored, &resolved).unwrap();
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn default_early_poll_preserves_a_retained_cabinet_and_its_commissioned_programme() {
+    let content = Content::bundled().unwrap();
+    let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+    world
+        .issue(
+            &content,
+            Action::Appoint {
+                office: OfficeId("portfolio:GBR:supply".into()),
+                person: PersonId("generated:GBR:supply:professional".into()),
+            },
+        )
+        .unwrap();
+    world.advance(&content, 365).unwrap();
+    world
+        .issue(
+            &content,
+            Action::Enact {
+                policy: "energy".into(),
+                value: 1,
+            },
+        )
+        .unwrap();
+    let due = world
+        .player_country()
+        .projects
+        .iter()
+        .find(|p| p.policy == "energy")
+        .unwrap()
+        .due_day;
+    let government = world.player_country().government_number;
+    world.issue(&content, Action::RequestElection).unwrap();
+    world.advance(&content, 67).unwrap();
+    assert_eq!(world.player_country().government_number, government);
+    assert_eq!(
+        world
+            .player_country()
+            .electoral_authority
+            .as_ref()
+            .unwrap()
+            .polls
+            .len(),
+        1
+    );
+    assert_eq!(
+        world.policy_preparation_days(&content, &world.player, "energy"),
+        4
+    );
+    assert_eq!(
+        world
+            .player_country()
+            .projects
+            .iter()
+            .find(|p| p.policy == "energy")
+            .unwrap()
+            .due_day,
+        due
+    );
+    assert_eq!(world.player_country().energy_capacity, 90);
+    world.advance(&content, due - world.day).unwrap();
+    assert_eq!(world.player_country().energy_capacity, 105);
     persistence::replay(&world, &content).unwrap();
 }

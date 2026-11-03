@@ -274,6 +274,21 @@ def build_cabinet_starter():
     return pack
 
 
+def build_election_starter():
+    pack = build_cabinet_starter()
+    pack.update(schema=8, rules=8, id="initial-2000-elections-v8", name="A New Century · electoral mandates")
+    pack["description"] += " Independent electoral mandates, early-poll powers and calendar terms are authored gameplay assumptions, not historical national election law. Earlier campaigns retain their exact original rules."
+    source = "authored-elections-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model",
+                                description="Original independent electoral mandates, early-poll jurisdiction, review/campaign intervals, administration costs and calendar terms. No historical poll records, national electoral law or integrity certification is claimed."))
+    pack["elections"] = build_elections()["elections"]
+    pack["elections"].update(source=source, source_version="electoral-mandates-v1",
+        mandates=[dict(authority=f"authority:{c['id']}:elections", country=c["id"],
+                       title=f"{c['id']} electoral authority", snap_forms=["parliamentary", "semi_presidential"])
+                  for c in pack["countries"]])
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -289,6 +304,7 @@ def main():
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),
                            ("initial-2000-commitments.json", build_commitment_starter()),
+                           ("initial-2000-elections.json", build_election_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"
