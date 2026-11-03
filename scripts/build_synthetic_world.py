@@ -168,6 +168,27 @@ def build_commitments():
     return pack
 
 
+def build_cabinet():
+    pack = build_commitments()
+    pack.update(schema=7, rules=7, id="synthetic-cabinet-v7", name="Fictional ministerial appointments",
+                description="Authored ministerial portfolios and generated candidates. Appointments require current authority and cabinet continuity; fees and political costs constrain choices. Skill affects preparation of new proposals only. Initial unassigned portfolios use permanent civil service; no claim about historical vacancies or ministerial careers is made.")
+    portfolios = []
+    candidates = []
+    for country in pack["countries"]:
+        for key, title, policies in [("finance", "Finance ministry", ["income_tax", "services", "welfare"]),
+                                     ("supply", "Supply ministry", ["energy", "agriculture"]),
+                                     ("administration", "Cabinet administration", ["administration"])]:
+            office = f"portfolio:{country['id']}:{key}"
+            portfolios.append(dict(id=office, country=country["id"], title=title, policies=policies, minimum_skill=50))
+            for kind, skill, acceptability in [("professional",85,40),("consensus",55,85)]:
+                candidates.append(dict(person=f"generated:{country['id']}:{key}:{kind}", office=office,
+                    name=f"Generated {country['id']} {key} {kind} nominee", skill=skill, acceptability=acceptability))
+    pack["cabinet"] = dict(portfolios=portfolios, candidates=candidates, appointment_cost_bps=2,
+                           dismissal_cost_bps=1, cooldown_days=90, vacancy_preparation_days=30,
+                           source="synthetic-original", source_version="authored-cabinet-v1")
+    return pack
+
+
 def build_market_starter():
     pack = json.loads((ROOT / "data/initial-2000.json").read_text(encoding="utf-8"))
     pack.update(schema=3, rules=3, id="initial-2000-markets-v3",
@@ -232,6 +253,7 @@ def main():
                            ("synthetic-finance-test.json", build_finance()),
                            ("synthetic-constitution-test.json", build_constitutions()),
                            ("synthetic-commitment-test.json", build_commitments()),
+                           ("synthetic-cabinet-test.json", build_cabinet()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

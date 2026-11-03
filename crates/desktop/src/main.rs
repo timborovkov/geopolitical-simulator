@@ -1,5 +1,6 @@
 mod advance;
 mod analysis;
+mod cabinet;
 mod cashflows;
 mod charts;
 mod commitments;
@@ -55,6 +56,7 @@ struct GameApp {
     funding_chart: charts::Chart,
     constitution_panel: constitutions::Panel,
     commitment_panel: commitments::Panel,
+    cabinet_panel: cabinet::Panel,
     sort_gdp: bool,
     show_ledger: bool,
     recovery: Vec<persistence::RecoveryCandidate>,
@@ -124,6 +126,7 @@ impl GameApp {
             funding_chart: charts::Chart::default(),
             constitution_panel: constitutions::Panel::default(),
             commitment_panel: commitments::Panel::default(),
+            cabinet_panel: cabinet::Panel::default(),
             sort_gdp: false,
             show_ledger: false,
             recovery: Vec::new(),
@@ -283,6 +286,7 @@ impl GameApp {
                     4 => "Institutional-financing campaign loaded. Simulation paused.",
                     5 => "Constitutional-transition campaign loaded. Simulation paused.",
                     6 => "Policy-lifecycle campaign loaded. Simulation paused.",
+                    7 => "Ministerial-appointment campaign loaded. Simulation paused.",
                     _ => "Campaign loaded. Simulation paused.",
                 }
                 .into();
@@ -375,6 +379,7 @@ impl GameApp {
         self.funding_chart = charts::Chart::default();
         self.constitution_panel = constitutions::Panel::default();
         self.commitment_panel = commitments::Panel::default();
+        self.cabinet_panel = cabinet::Panel::default();
         self.cashflows = cashflows::CashFlows::default();
         self.inspector = inspector::Inspector::default();
         self.help = help::Help::default();
@@ -865,6 +870,18 @@ impl GameApp {
             report.government_title,
             report.government.label()
         ));
+        if let Some(ministers) = &report.ministers {
+            for minister in ministers {
+                ui.label(format!(
+                    "{}: {}",
+                    minister.title,
+                    minister
+                        .holder
+                        .as_deref()
+                        .unwrap_or("Permanent civil service")
+                ));
+            }
+        }
         if let Some(latest) = report.latest {
             ui.label(format!("Statistical release {} ({} days old): approval {}%, needs {}%, debt {}m, daily output {}m.",date(latest.day),w.day-latest.day,latest.approval,latest.needs,latest.debt.0,latest.daily_output.0));
         } else {
@@ -1378,6 +1395,11 @@ impl GameApp {
         ui.separator();
         ui.label("Authority thresholds are content-defined. Parliamentary support can trigger an early confidence election after three weak monthly reviews. Party councils review cadre backing; royal councils can block a spending expansion above 4 GDP points without 65 backing. Consent is rechecked before construction. Country play continues after leadership changes.");
         ui.label("Cohort needs, disposable income, taxes, employment and funded services affect opinion. Parliamentary support, elite backing and council backing are distinct. Seat allocation, succession and preferences remain scenario approximations.");
+        if let Some(world) = &self.world
+            && let Some(action) = self.cabinet_panel.show(ui, &self.content, world)
+        {
+            self.issue(action);
+        }
         if let Some(world) = &self.world
             && let Some(action) = self.constitution_panel.show(ui, &self.content, world)
         {

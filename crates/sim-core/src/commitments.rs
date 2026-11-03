@@ -92,6 +92,7 @@ pub struct AmendmentPreview {
     pub consent_day: u32,
     pub due_day: u32,
     pub route: String,
+    pub preparation_days: u32,
     pub annual_budget_change: Money,
     pub household_impacts: Vec<HouseholdImpact>,
 }
@@ -159,8 +160,9 @@ impl World {
             .day
             .checked_add(government.consent_days)
             .ok_or("Consent date overflow")?;
+        let preparation_days = self.policy_preparation_days(content, id, &p.policy);
         let due_day = consent_day
-            .checked_add(definition.days + (100 - c.administration) as u32 / 2)
+            .checked_add(definition.days + (100 - c.administration) as u32 / 2 + preparation_days)
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Implementation would exceed the campaign calendar")?;
         let (annual_budget_change, household_impacts) = crate::rules::policy_forecast(
@@ -174,6 +176,7 @@ impl World {
             consent_day,
             due_day,
             route: government.label(),
+            preparation_days,
             annual_budget_change,
             household_impacts,
         })

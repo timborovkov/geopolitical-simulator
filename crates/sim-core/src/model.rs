@@ -160,9 +160,21 @@ pub struct Country {
     pub constitution: Option<Constitution>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub commitments: Option<Vec<CommitmentRecord>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cabinet: Option<Cabinet>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
+    Appoint {
+        office: OfficeId,
+        person: PersonId,
+    },
+    DismissMinister {
+        office: OfficeId,
+    },
+    CancelAppointment {
+        request: AppointmentId,
+    },
     AmendCommitment {
         request: CommitmentId,
         value: i32,
@@ -363,6 +375,10 @@ impl World {
                         government_number: 1,
                         projects: Vec::new(),
                         commitments: content.commitments.as_ref().map(|_| Vec::new()),
+                        cabinet: content
+                            .cabinet
+                            .as_ref()
+                            .map(|rules| Cabinet::new(rules, &d.id, start_day)),
                         energy_stock: Energy::ZERO,
                         food_stock: Food::ZERO,
                         report: DailyReport::default(),
@@ -516,6 +532,33 @@ impl World {
         for (index, entry) in self.journal.iter().enumerate() {
             let command = &entry.command;
             let valid_action = match &command.action {
+                Action::Appoint { office, person } => {
+                    content.cabinet.as_ref().is_some_and(|rules| {
+                        rules
+                            .office(office)
+                            .is_some_and(|o| o.country == command.issuer)
+                            && rules.candidate(person).is_some_and(|p| p.office == *office)
+                    })
+                }
+                Action::DismissMinister { office } => {
+                    content.cabinet.as_ref().is_some_and(|rules| {
+                        rules
+                            .office(office)
+                            .is_some_and(|o| o.country == command.issuer)
+                    })
+                }
+                Action::CancelAppointment { request } => {
+                    content.cabinet.is_some()
+                        && request.0 > 0
+                        && request.0 < command.id
+                        && self
+                            .journal
+                            .get(request.0 as usize - 1)
+                            .is_some_and(|entry| {
+                                entry.command.issuer == command.issuer
+                                    && matches!(entry.command.action, Action::Appoint { .. })
+                            })
+                }
                 Action::Enact { policy, value } => content
                     .policy(policy)
                     .is_some_and(|definition| (definition.min..=definition.max).contains(value)),
@@ -608,6 +651,7 @@ impl World {
                 _ => return Err("Country financing differs from campaign rules/content".into()),
             }
             self.validate_commitments(content, id)?;
+            self.validate_cabinet(content, id)?;
             if id != &c.id
                 || c.accounts.checked_total() != Some(c.opening_money.0)
                 || c.opening_money.0 != d.gdp / 20 + d.gdp / 3 + d.gdp / 2 + d.gdp * 3

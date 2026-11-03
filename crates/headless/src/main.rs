@@ -136,7 +136,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if developer {
                         println!(
@@ -265,6 +265,74 @@ fn play(
                     content,
                     Action::Borrow {
                         amount: Money(number(words.get(1))?),
+                    },
+                )?,
+                "cabinet" => {
+                    let rules = content
+                        .cabinet
+                        .as_ref()
+                        .ok_or("This campaign has no ministerial appointment rules")?;
+                    let state = world
+                        .player_country()
+                        .cabinet
+                        .as_ref()
+                        .ok_or("Missing cabinet")?;
+                    println!(
+                        "Generated candidates and rules are authored; skill affects future preparation only."
+                    );
+                    for office in rules
+                        .portfolios
+                        .iter()
+                        .filter(|p| p.country == world.player)
+                    {
+                        println!(
+                            "{} · {} · holder {}",
+                            office.id.0,
+                            office.title,
+                            state
+                                .minister(&office.id)
+                                .and_then(|t| rules.candidate(&t.person))
+                                .map_or("Permanent civil service", |p| p.name.as_str())
+                        );
+                        for p in rules.candidates.iter().filter(|p| p.office == office.id) {
+                            println!(
+                                "  {} · {} · skill {} · political acceptability {}",
+                                p.person.0, p.name, p.skill, p.acceptability
+                            );
+                        }
+                    }
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(state).map_err(|e| e.to_string())?
+                    );
+                }
+                "appoint" | "preview-appointment" => {
+                    let office = OfficeId(words.get(1).ok_or("Missing portfolio ID")?.to_string());
+                    let person = PersonId(words.get(2).ok_or("Missing candidate ID")?.to_string());
+                    let preview =
+                        world.preview_appointment(content, &world.player, &office, &person)?;
+                    if words[0] == "appoint" {
+                        world.issue(content, Action::Appoint { office, person })?;
+                    } else {
+                        println!("{preview:?}");
+                    }
+                }
+                "dismiss" | "preview-dismissal" => {
+                    let office = OfficeId(words.get(1).ok_or("Missing portfolio ID")?.to_string());
+                    let fee = world.preview_dismissal(content, &world.player, &office)?;
+                    if words[0] == "dismiss" {
+                        world.issue(content, Action::DismissMinister { office })?;
+                    } else {
+                        println!(
+                            "Dismissal administration {}m; civil-service preparation and a new appointment cooldown apply.",
+                            fee.0
+                        );
+                    }
+                }
+                "cancel-appointment" => world.issue(
+                    content,
+                    Action::CancelAppointment {
+                        request: AppointmentId(number(words.get(1))?),
                     },
                 )?,
                 "constitutions" => {

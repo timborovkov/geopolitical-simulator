@@ -49,7 +49,7 @@ P07-04,7,"Production, consumption and domestic markets","Prices, wages, demand r
 P07-05,7,"Production, consumption and domestic markets","Stockpiles, shortages, rationing, strategic reserves, imports and exports through a bounded external-market counterpart with explicit cash settlement and supply limits. Initial credit exists only through modeled debt records; full banking and trade refine these rules later.",partial
 P07-06,7,"Production, consumption and domestic markets",Distinguish desired consumption from affordable demand and delivered consumption.,partial
 P07-07,7,"Production, consumption and domestic markets",Bounded price-adjustment rules and settlement order; ensure oscillations are economic behavior rather than an accidental update-loop artifact.,partial
-P08-01,8,Government institutions and legal powers,"Head of state, head of government, cabinet, ministries, civil service, legislature and courts as separate offices/bodies.",proposed
+P08-01,8,Government institutions and legal powers,"Head of state, head of government, cabinet, ministries, civil service, legislature and courts as separate offices/bodies.",partial
 P08-02,8,Government institutions and legal powers,"Parliamentary, presidential, semi-presidential, monarchical, one-party and military-government configurations.",partial
 P08-03,8,Government institutions and legal powers,"Appointment, dismissal, succession, eligibility, term limits, vetoes and emergency powers.",partial
 P08-04,8,Government institutions and legal powers,"Chambers, seat allocation, voting thresholds, quorum, committees and constitutional amendment requirements.",partial

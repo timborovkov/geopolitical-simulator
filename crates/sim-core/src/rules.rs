@@ -60,18 +60,21 @@ impl World {
         } else {
             Money((cost.0 / 10).max(1))
         };
+        let preparation = self.policy_preparation_days(content, country, policy);
         let (annual, household_impacts) = policy_forecast(d, c, policy, value);
         if content.commitments.is_some()
             && self
                 .day
-                .checked_add(consent_delay + p.days + (100 - c.administration) as u32 / 2)
+                .checked_add(
+                    consent_delay + p.days + (100 - c.administration) as u32 / 2 + preparation,
+                )
                 .is_none_or(|day| day > MAX_DAY)
         {
             return Err("Implementation would exceed the campaign calendar".into());
         }
         Ok(PolicyPreview {
             cost,
-            delay: consent_delay + p.days + (100 - c.administration) as u32 / 2,
+            delay: consent_delay + p.days + (100 - c.administration) as u32 / 2 + preparation,
             annual_budget_change: annual,
             route: government.label(),
             consent_delay,
@@ -80,7 +83,13 @@ impl World {
             explanation: format!(
                 "{} Affects {}. Forecast assumes opening GDP, current collection, funded wages and no future shocks. Consent is rechecked before reserved capital is paid; delivery begins afterward.",
                 p.description, p.groups
-            ),
+            ) + &if content.cabinet.is_some() {
+                format!(
+                    " Portfolio preparation adds {preparation} days. An approved minister can reduce preparation for future proposals; existing deadlines are retained."
+                )
+            } else {
+                String::new()
+            },
         })
     }
     pub(crate) fn apply(
@@ -116,6 +125,11 @@ impl World {
             .ok_or("Missing country content")?;
         let id = command.issuer.clone();
         match &command.action {
+            Action::Appoint { office, person } => {
+                self.request_appointment(content, &id, AppointmentId(command.id), office, person)?
+            }
+            Action::DismissMinister { office } => self.dismiss_minister(content, &id, office)?,
+            Action::CancelAppointment { request } => self.cancel_appointment(&id, *request)?,
             Action::AmendCommitment { request, value } => {
                 self.amend_commitment(content, &id, *request, *value)?
             }
@@ -258,6 +272,8 @@ impl World {
             self.day += 1;
             for id in &ids {
                 self.resolve_constitution(content, id);
+                self.cabinet_succession(id);
+                self.resolve_appointments(content, id);
                 self.resolve_consents(content, id);
                 self.resolve_borrowing(content, id);
                 self.complete_projects(content, id);
@@ -270,6 +286,7 @@ impl World {
                 {
                     self.politics(content, id);
                 }
+                self.cabinet_succession(id);
             }
             if self.day.is_multiple_of(30) {
                 for id in &ids {
@@ -889,6 +906,7 @@ impl World {
         self.event(id, false, summary);
     }
     fn ai_turn(&mut self, content: &Content, id: &CountryId) {
+        self.ai_appointments(content, id);
         let c = &self.countries[id];
         let d = content.country(id).expect("country");
         let government = self
