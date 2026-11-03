@@ -122,14 +122,27 @@ impl World {
         id: &CountryId,
         food_available: Food,
         demand: Food,
-    ) -> (Money, Food) {
+    ) -> (Money, Food, Food) {
         let d = content.country(id).expect("definition");
         let weights: Vec<_> = self.countries[id]
             .households
             .iter()
             .map(|h| h.population.0 as i64)
             .collect();
-        let baskets = apportion((d.gdp / 365 * 60 / 100).max(1), &weights);
+        let base_basket = (d.gdp / 365 * 60 / 100).max(1);
+        let basket_total = if let Some(markets) = &content.markets {
+            let price = self.countries[id]
+                .markets
+                .as_ref()
+                .expect("configured markets")
+                .food
+                .next_price_bps;
+            let share = i64::from(markets.food_budget_share_bps);
+            base_basket * (10000 - share + share * i64::from(price) / 10000) / 10000
+        } else {
+            base_basket
+        };
+        let baskets = apportion(basket_total.max(1), &weights);
         let needs = apportion(demand.units(), &weights);
         let mut affordable = Vec::new();
         let mut consumption = 0;
@@ -175,6 +188,10 @@ impl World {
                 (allocated[i] * 100 / needs[i]) as i32
             };
         }
-        (Money(consumption), delivered)
+        (
+            Money(consumption),
+            delivered,
+            Food::new(total_affordable).expect("nonnegative affordable demand"),
+        )
     }
 }

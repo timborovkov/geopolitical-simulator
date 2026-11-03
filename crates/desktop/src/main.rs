@@ -6,6 +6,7 @@ mod geometry;
 mod help;
 mod inspector;
 mod map;
+mod markets;
 mod settings;
 use eframe::egui::{self, Color32, RichText, Stroke, Vec2};
 use sim_core::{persistence, *};
@@ -83,6 +84,10 @@ impl GameApp {
         let target_date =
             date((content.start_day().expect("validated bookmark") + 30).min(MAX_DAY));
         ctx.set_zoom_factor(preferences.active.ui_scale);
+        let save_path = format!(
+            "saves/campaign-v{}.json",
+            if content.rules == 3 { 4 } else { 3 }
+        );
         Self {
             content,
             world: None,
@@ -98,7 +103,7 @@ impl GameApp {
             speed: 0,
             last_tick: Instant::now(),
             pause_alerts: true,
-            save_path: "saves/campaign-v3.json".into(),
+            save_path,
             money: 1000,
             sort_gdp: false,
             show_ledger: false,
@@ -224,8 +229,9 @@ impl GameApp {
             };
             self.status = match result.and_then(|()| persistence::save(&path, w, &self.content)) {
                 Ok(()) => format!(
-                    "Saved {} in format 3. Previous snapshot retained as .json.bak; converted format-2 originals are archived.",
-                    path.display()
+                    "Saved {} in format {}. Previous snapshot retained as .json.bak; converted older originals are archived.",
+                    path.display(),
+                    persistence::snapshot_schema(w)
                 ),
                 Err(e) => e,
             };
@@ -933,6 +939,7 @@ impl GameApp {
         };
         let c = &w.countries[&self.selected];
         self.cashflows.show(ui, &self.content, w, &self.selected);
+        markets::show(ui, &self.content, w, &self.selected);
         let d = self
             .content
             .country(&self.selected)
@@ -1212,7 +1219,7 @@ impl GameApp {
             ),
             (
                 "Controls & recovery",
-                "Default controls: Space pauses/plays, F5 saves, F9 loads, N advances to an important event and F1 opens rebindable controls/scaling. A monthly autosave is written inside saves with a country, scenario and content-specific filename ending in v3.json. Use Inspect recovery snapshots to review and restore validated primary, pending or backup files while preserving originals. Map markers and the country directory select an inspection context. Only your own government's commands are authorized.",
+                "Default controls: Space pauses/plays, F5 saves, F9 loads, N advances to an important event and F1 opens rebindable controls/scaling. A monthly autosave is written inside saves with a country, scenario and content-specific filename. Use Inspect recovery snapshots to review and restore validated primary, pending or backup files while preserving originals. Map markers and the country directory select an inspection context. Only your own government's commands are authorized.",
             ),
             (
                 "Content scope",
@@ -1234,7 +1241,7 @@ impl GameApp {
             "Content {} · hash {:016x} · rules {}",
             self.content.id,
             self.content.hash(),
-            RULES_VERSION
+            self.content.rules
         ));
     }
 }
@@ -1531,6 +1538,12 @@ mod interface_tests {
             (Content::bundled().unwrap(), "GBR", "CHN"),
             (
                 Content::from_json(include_str!("../../../data/synthetic-dated-test.json"))
+                    .unwrap(),
+                "AUR",
+                "BOR",
+            ),
+            (
+                Content::from_json(include_str!("../../../data/synthetic-market-test.json"))
                     .unwrap(),
                 "AUR",
                 "BOR",

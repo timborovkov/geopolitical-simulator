@@ -17,6 +17,11 @@ struct Save {
 
 const MAX_SAVE_BYTES: usize = 32 * 1024 * 1024;
 pub const SAVE_SCHEMA: u32 = 3;
+/// Relative-price campaigns require format 4 so older clients reject them before
+/// interpreting an unfamiliar rules/state layout. Fixed-price campaigns retain 3.
+pub fn snapshot_schema(world: &World) -> u32 {
+    if world.rules == 3 { 4 } else { SAVE_SCHEMA }
+}
 /// Country/scenario/content-specific names remain inside the saves directory,
 /// including for packs whose IDs contain punctuation or non-ASCII characters.
 pub fn autosave_path(world: &World) -> std::path::PathBuf {
@@ -31,16 +36,17 @@ pub fn autosave_path(world: &World) -> std::path::PathBuf {
         label = "country".into();
     }
     std::path::PathBuf::from("saves").join(format!(
-        "autosave-{label}-{:016x}-{}-{:016x}-v{SAVE_SCHEMA}.json",
+        "autosave-{label}-{:016x}-{}-{:016x}-v{}.json",
         crate::stable_hash(world.player.0.as_bytes()),
         world.scenario.id(),
-        world.content_hash
+        world.content_hash,
+        snapshot_schema(world)
     ))
 }
 pub fn encode(world: &World, content: &Content) -> Result<Vec<u8>, String> {
     world.validate(content)?;
     let bytes = serde_json::to_vec(&Save {
-        schema: SAVE_SCHEMA,
+        schema: snapshot_schema(world),
         checksum: world.hash(),
         world: world.clone(),
     })
@@ -59,10 +65,15 @@ fn decode_save(bytes: &[u8], content: &Content) -> Result<Save, String> {
     }
     let header: serde_json::Value =
         serde_json::from_slice(bytes).map_err(|e| format!("Damaged save: {e}"))?;
-    if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2 | 3)) {
-        return Err("Unsupported save version; supported snapshot formats are 2 and 3. The original file is preserved".into());
+    if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2..=4)) {
+        return Err("Unsupported save version; supported snapshot formats are 2, 3 and 4. The original file is preserved".into());
     }
     let save: Save = serde_json::from_slice(bytes).map_err(|e| format!("Damaged save: {e}"))?;
+    if save.world.rules == 3 && save.schema < 4 {
+        return Err(
+            "Relative-price rules require snapshot format 4; original file preserved".into(),
+        );
+    }
     if save.schema == 2 && save.world.is_developer_modified() {
         return Err(
             "Developer command journals require snapshot format 3; original file preserved".into(),
@@ -145,8 +156,9 @@ pub fn save(path: &Path, world: &World, content: &Content) -> Result<(), String>
             }
             let old = read_bytes(path)?;
             if let Ok(previous) = decode_save(&old, content) {
-                if previous.schema == 2 {
-                    preserve_bytes(path, "format-v2", &old).map_err(|e| e.to_string())?;
+                if previous.schema != snapshot_schema(world) {
+                    preserve_bytes(path, &format!("format-v{}", previous.schema), &old)
+                        .map_err(|e| e.to_string())?;
                 }
                 // Finish the backup independently before committing the new primary.
                 let backup_stage = path.with_extension("json.backup.tmp");

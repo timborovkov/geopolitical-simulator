@@ -37,7 +37,7 @@ impl Inspector {
             content.country(target).expect("country").name,
             date(world.day),
             world.rules,
-            persistence::SAVE_SCHEMA
+            persistence::snapshot_schema(world)
         ));
         ui.label(if world.is_developer_modified() {
             "This campaign is developer-modified. Ordinary mandate certification is disabled."

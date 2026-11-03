@@ -99,11 +99,27 @@ def build_temporal():
     return pack
 
 
+def build_markets():
+    pack = build()
+    pack.update(schema=3, id="synthetic-markets-v3", rules=3, name="Fictional relative-price markets",
+                description="Entirely authored rules-3 market fixture, not historical data. Food and energy retain distinct physical quantities. Relative prices adjust after settlement and apply the next day; food reprices part of essential household baskets, and both prices change import bills. This is not a complete sector, labor, inflation or banking model.")
+    pack["markets"] = dict(food_budget_share_bps=4000, source="synthetic-original",
+                           source_version="authored-market-v1", goods=[
+        dict(id=identifier, kind=kind, name=name, unit=unit,
+             minimum_price_bps=5000, maximum_price_bps=20000, adjustment_bps=250,
+             import_limit_bps=imports, storage_days=storage, loss_bps=loss)
+        for identifier, kind, name, unit, imports, storage, loss in [
+            ("test:power", "energy", "Fictional energy", "modeled energy unit", 2500, 3, 0),
+            ("test:staple", "food", "Fictional essential food", "modeled food-basket unit", 3500, 11, 100)]])
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    for filename, pack in [("synthetic-test.json", build()), ("synthetic-dated-test.json", build_temporal())]:
+    for filename, pack in [("synthetic-test.json", build()), ("synthetic-dated-test.json", build_temporal()),
+                           ("synthetic-market-test.json", build_markets())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"
         if args.check:

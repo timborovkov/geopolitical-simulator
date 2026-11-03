@@ -8,6 +8,7 @@ mod households;
 mod identity;
 mod knowledge;
 mod living_standards;
+mod markets;
 mod model;
 pub mod persistence;
 mod rules;
@@ -21,6 +22,7 @@ pub use households::*;
 pub use identity::*;
 pub use knowledge::*;
 pub use living_standards::*;
+pub use markets::*;
 pub use model::*;
 pub use units::*;
 

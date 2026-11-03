@@ -382,12 +382,28 @@ impl World {
         let energy_demand = Energy::new(demand).expect("validated population");
         let food_demand = Food::new(demand).expect("validated population");
         let daily = (d.gdp / 365).max(1);
+        let market_rules = content.markets.as_ref();
+        let energy_rule = market_rules.map(|rules| rules.good(GoodKind::Energy));
+        let food_rule = market_rules.map(|rules| rules.good(GoodKind::Food));
+        let energy_price = c
+            .markets
+            .as_ref()
+            .map_or(10000, |markets| markets.energy.next_price_bps);
+        let food_price = c
+            .markets
+            .as_ref()
+            .map_or(10000, |markets| markets.food.next_price_bps);
+        let opening_energy = c.energy_stock;
+        let opening_food = c.food_stock;
         let energy_produced = energy_demand
             .scaled(i64::from((c.energy_capacity - shock).max(0)), 100)
             .expect("bounded capacity")
             .min(
                 energy_demand
-                    .scaled(3, 1)
+                    .scaled(
+                        i64::from(energy_rule.map_or(3, |rule| rule.storage_days)),
+                        1,
+                    )
                     .expect("bounded demand")
                     .saturating_sub(c.energy_stock),
             );
@@ -396,7 +412,7 @@ impl World {
             .expect("bounded capacity")
             .min(
                 food_demand
-                    .scaled(11, 1)
+                    .scaled(i64::from(food_rule.map_or(11, |rule| rule.storage_days)), 1)
                     .expect("bounded demand")
                     .saturating_sub(c.food_stock),
             );
@@ -408,11 +424,12 @@ impl World {
             .food_stock
             .checked_add(food_produced)
             .expect("bounded food storage");
-        let buy_import = |world: &mut Self, quantity: i64, reason: &str| {
+        let buy_import = |world: &mut Self, quantity: i64, price: u32, reason: &str| {
             if quantity == 0 {
                 return 0;
             }
-            let cost = (daily * quantity / demand / 5).max(1);
+            let base_cost = (daily * quantity / demand / 5).max(1);
+            let cost = (base_cost * i64::from(price) / 10000).max(1);
             let paid = world.pay(id, Firms, External, cost, reason);
             quantity * paid / cost
         };
@@ -420,8 +437,16 @@ impl World {
             self,
             energy_demand
                 .saturating_sub(energy_available)
-                .min(energy_demand.scaled(1, 4).expect("positive ratio"))
+                .min(
+                    energy_demand
+                        .scaled(
+                            i64::from(energy_rule.map_or(2500, |rule| rule.import_limit_bps)),
+                            10000,
+                        )
+                        .expect("positive ratio"),
+                )
                 .units(),
+            energy_price,
             "Bounded energy imports",
         ))
         .expect("nonnegative imports");
@@ -429,8 +454,16 @@ impl World {
             self,
             food_demand
                 .saturating_sub(food_available)
-                .min(food_demand.scaled(35, 100).expect("positive ratio"))
+                .min(
+                    food_demand
+                        .scaled(
+                            i64::from(food_rule.map_or(3500, |rule| rule.import_limit_bps)),
+                            10000,
+                        )
+                        .expect("positive ratio"),
+                )
                 .units(),
+            food_price,
             "Bounded food imports",
         ))
         .expect("nonnegative imports");
@@ -581,12 +614,17 @@ impl World {
         let food_supply = food_available
             .checked_add(food_imported)
             .expect("bounded food imports");
-        let (consumption, food_consumed) =
+        let (consumption, food_consumed, food_requested) =
             self.settle_households(content, id, food_supply, food_demand);
         let food_left = food_supply
             .checked_sub(food_consumed)
             .expect("delivery limited by supply");
-        let food_lost = food_left.scaled(1, 100).expect("positive loss ratio");
+        let food_lost = food_left
+            .scaled(
+                i64::from(food_rule.map_or(100, |rule| rule.loss_bps)),
+                10000,
+            )
+            .expect("positive loss ratio");
         let c = self.countries.get_mut(id).expect("country");
         c.energy_stock = energy_supply
             .checked_sub(energy_used)
@@ -637,6 +675,48 @@ impl World {
             food_consumed,
             food_lost,
         };
+        if let Some(markets) = &mut c.markets {
+            markets.energy.last = Some(MarketSettlement {
+                day: self.day,
+                price_bps: energy_price,
+                physical_need: energy_demand,
+                requested_use: energy_demand,
+                opening_stock: opening_energy,
+                production: energy_produced,
+                imports: energy_imported,
+                supply: energy_supply,
+                delivered: energy_used,
+                loss: Energy::ZERO,
+                closing_stock: c.energy_stock,
+            });
+            markets.food.last = Some(MarketSettlement {
+                day: self.day,
+                price_bps: food_price,
+                physical_need: food_demand,
+                requested_use: food_requested,
+                opening_stock: opening_food,
+                production: food_produced,
+                imports: food_imported,
+                supply: food_supply,
+                delivered: food_consumed,
+                loss: food_lost,
+                closing_stock: c.food_stock,
+            });
+            markets.energy.next_price_bps = next_market_price(
+                energy_price,
+                energy_supply.units(),
+                energy_demand.units(),
+                energy_rule.expect("configured energy rule"),
+            )
+            .expect("validated price quantities");
+            markets.food.next_price_bps = next_market_price(
+                food_price,
+                food_supply.units(),
+                food_requested.units(),
+                food_rule.expect("configured food rule"),
+            )
+            .expect("validated price quantities");
+        }
         if unpaid > 0 && previous_arrears == 0 {
             self.event(id,true,"Treasury cannot meet unreserved obligations: reduced payments and recorded arrears. Borrow or adjust spending; reserved policy capital is protected.");
         }

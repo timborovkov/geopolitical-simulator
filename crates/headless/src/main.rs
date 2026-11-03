@@ -7,6 +7,33 @@ use std::{
 fn status(world: &World, content: &Content) {
     let c = world.player_country();
     let d = content.country(&world.player).expect("player");
+    if let Some(markets) = &c.markets {
+        println!(
+            "Relative price markets · rules {} · opening index 1.00",
+            world.rules
+        );
+        if let (Some(food), Some(energy)) = (&markets.food.last, &markets.energy.last) {
+            println!(
+                "Settlement {} prices: food {:.4}, energy {:.4}; next settlement: food {:.4}, energy {:.4}",
+                date(food.day),
+                f64::from(food.price_bps) / 10000.0,
+                f64::from(energy.price_bps) / 10000.0,
+                f64::from(markets.food.next_price_bps) / 10000.0,
+                f64::from(markets.energy.next_price_bps) / 10000.0
+            );
+            println!(
+                "Food physical need {} · affordable demand {} · supply {} · delivered {} · loss {} · closing stock {}",
+                food.physical_need,
+                food.requested_use,
+                food.supply,
+                food.delivered,
+                food.loss,
+                food.closing_stock
+            );
+        } else {
+            println!("Awaiting first market settlement; opening price indices are references.");
+        }
+    }
     if world.is_developer_modified() {
         println!("DEVELOPER-MODIFIED CAMPAIGN · ordinary mandate certification is disabled.");
     }
@@ -372,7 +399,7 @@ fn play(world: &mut World, content: &Content, developer: bool) -> Result<(), Str
                     )?;
                     println!(
                         "Saved snapshot format {}. Compatible older primaries are archived before conversion.",
-                        persistence::SAVE_SCHEMA
+                        persistence::snapshot_schema(world)
                     );
                 }
                 "load" => {

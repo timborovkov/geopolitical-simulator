@@ -111,6 +111,11 @@ pub struct HistoricalFact {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Content {
     pub schema: u32,
+    #[serde(
+        default = "crate::markets::legacy_rules",
+        skip_serializing_if = "crate::markets::is_legacy_rules"
+    )]
+    pub rules: u32,
     pub id: String,
     pub name: String,
     pub start: String,
@@ -122,6 +127,8 @@ pub struct Content {
     pub policies: Vec<PolicyDefinition>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub identities: Option<crate::IdentityCatalogue>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub markets: Option<crate::MarketDefinition>,
 }
 impl Content {
     pub fn bundled() -> Result<Self, String> {
@@ -130,8 +137,8 @@ impl Content {
     pub fn from_json(json: &str) -> Result<Self, String> {
         let header: serde_json::Value =
             serde_json::from_str(json).map_err(|e| format!("Content JSON: {e}"))?;
-        if header.get("schema").and_then(|v| v.as_u64()) != Some(2) {
-            return Err("Unsupported content schema: expected version 2 with household and government definitions".into());
+        if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2 | 3)) {
+            return Err("Unsupported content schema: expected version 2 or 3".into());
         }
         let mut content: Self =
             serde_json::from_str(json).map_err(|e| format!("Content JSON: {e}"))?;
@@ -185,11 +192,20 @@ impl Content {
             .map_err(|_| "Bookmark must permit a five-year review no later than 2100-01-01".into())
     }
     pub fn validate(&self) -> Result<(), String> {
-        if self.schema != 2 || self.countries.is_empty() {
+        if !matches!(self.schema, 2 | 3) || self.countries.is_empty() {
             return Err("Unsupported content schema, bookmark or empty roster".into());
         }
         self.start_day()?;
         self.review_day()?;
+        match (self.rules, &self.markets) {
+            (2, None) => {}
+            (3, Some(markets)) if self.schema == 3 => markets.validate(self)?,
+            _ => {
+                return Err(
+                    "Supported rules are 2 (fixed prices) and 3 (configured markets)".into(),
+                );
+            }
+        }
         if let Some(identities) = &self.identities {
             identities.validate(self)?;
             let date = self.start.parse()?;

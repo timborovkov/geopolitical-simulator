@@ -151,6 +151,8 @@ pub struct Country {
     pub food_stock: Food,
     pub report: DailyReport,
     pub history: Vec<Observation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub markets: Option<Markets>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
@@ -337,12 +339,13 @@ impl World {
                         food_stock: Food::ZERO,
                         report: DailyReport::default(),
                         history: Vec::new(),
+                        markets: content.markets.as_ref().map(Markets::new),
                     },
                 )
             })
             .collect();
         let mut world = Self {
-            rules: RULES_VERSION,
+            rules: content.rules,
             content_hash: content.hash(),
             seed,
             scenario,
@@ -461,7 +464,7 @@ impl World {
     /// Validate snapshot invariants before accepting a loaded campaign.
     pub fn validate(&self, content: &Content) -> Result<(), String> {
         content.validate()?;
-        if self.rules != RULES_VERSION || self.content_hash != content.hash() {
+        if self.rules != content.rules || self.content_hash != content.hash() {
             return Err("Rules or content pack mismatch".into());
         }
         let start_day = content.start_day()?;
@@ -502,6 +505,13 @@ impl World {
         }
         for (id, c) in &self.countries {
             let d = content.country(id).ok_or("Unknown country in save")?;
+            match (&c.markets, &content.markets) {
+                (None, None) => {}
+                (Some(markets), Some(definition)) => {
+                    markets.validate(definition, c, self.day, start_day)?
+                }
+                _ => return Err("Country markets differ from the campaign rules/content".into()),
+            }
             if id != &c.id
                 || c.accounts.checked_total() != Some(c.opening_money.0)
                 || c.opening_money.0 != d.gdp / 20 + d.gdp / 3 + d.gdp / 2 + d.gdp * 3
