@@ -208,6 +208,11 @@ fn unfunded_services_create_liabilities_and_reduce_delivery() {
         },
     )
     .unwrap();
+    w.advance(&content, 13).unwrap();
+    assert!(
+        w.player_country().report.unpaid.0 > 0,
+        "Pending loan is not spendable"
+    );
     w.advance(&content, 1).unwrap();
     assert_eq!(w.player_country().report.unpaid.0, 0);
 }

@@ -148,6 +148,19 @@ def build_market_starter():
     return pack
 
 
+def build_finance_starter():
+    pack = build_market_starter()
+    pack.update(schema=4, rules=4, id="initial-2000-finance-v4",
+                name="A New Century · institutions and markets")
+    pack["description"] += " Borrowing authority, consent delays and emergency political costs are authored rules-4 assumptions, not a reproduction of historical debt law. Earlier market and classic packs remain available for their original campaigns."
+    source = "authored-finance-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model",
+                                description="Original regime-route borrowing consent, fixed-rate debt and contested emergency assumptions. No historical constitutional or debt-market calibration is claimed."))
+    pack["finance"] = build_finance()["finance"]
+    pack["finance"].update(source=source, source_version="borrowing-authority-v1")
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -155,7 +168,8 @@ def main():
     for filename, pack in [("synthetic-test.json", build()), ("synthetic-dated-test.json", build_temporal()),
                            ("synthetic-market-test.json", build_markets()),
                            ("synthetic-finance-test.json", build_finance()),
-                           ("initial-2000-markets.json", build_market_starter())]:
+                           ("initial-2000-markets.json", build_market_starter()),
+                           ("initial-2000-finance.json", build_finance_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"
         if args.check:

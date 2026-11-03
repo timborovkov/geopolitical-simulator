@@ -245,7 +245,7 @@ fn play(
                         );
                     } else {
                         println!(
-                            "This campaign uses immediate legacy financing; finance authority is available in the explicit rules-4 fixture."
+                            "This campaign uses immediate legacy financing; financing authority is available in new rules-4 campaigns."
                         );
                     }
                 }

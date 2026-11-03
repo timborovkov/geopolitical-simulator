@@ -1,17 +1,24 @@
 use sim_core::*;
 
 #[test]
-fn market_starter_preserves_classic_country_policy_and_reference_data() {
+fn financing_starter_preserves_prior_country_policy_and_reference_data() {
     let current = Content::bundled().unwrap();
     let classic = Content::classic_bundled().unwrap();
-    assert_eq!(current.schema, 3);
-    assert_eq!(current.rules, 3);
+    assert_eq!(current.schema, 4);
+    assert_eq!(current.rules, 4);
     assert_eq!(classic.rules, 2);
     assert_eq!(current.countries, classic.countries);
     assert_eq!(current.policies, classic.policies);
     assert_eq!(current.facts, classic.facts);
     assert_ne!(current.hash(), classic.hash());
-    for pack in [current, classic] {
+    let market = Content::market_bundled().unwrap();
+    assert_eq!(market.rules, 3);
+    assert!(market.finance.is_none());
+    assert_eq!(current.countries, market.countries);
+    assert_eq!(current.policies, market.policies);
+    assert_eq!(current.facts, market.facts);
+    assert_eq!(current.markets, market.markets);
+    for pack in [current, market, classic] {
         assert_eq!(Content::bundled_for_hash(pack.hash()).unwrap(), pack);
     }
 }
@@ -51,7 +58,7 @@ fn bundled_recovery_selects_exact_pack_and_preserves_converted_backup_bytes() {
     assert_eq!(std::fs::read(&backup).unwrap(), original);
     let candidates = persistence::recovery_candidates_bundled(&path);
     assert_eq!(candidates.len(), 2);
-    assert_eq!(candidates[0].rules, Some(3));
+    assert_eq!(candidates[0].rules, Some(4));
     assert_eq!(
         candidates[0].content_id.as_deref(),
         Some(current.id.as_str())
@@ -97,4 +104,47 @@ fn unknown_pack_is_not_substituted_by_a_similar_bundled_roster() {
     );
     assert_eq!(std::fs::read(&path).unwrap(), original);
     std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn preserved_market_pack_replays_and_recovers_without_financing_migration() {
+    let market = Content::market_bundled().unwrap();
+    let mut original = World::new(&market, CountryId("GBR".into()), 2000).unwrap();
+    original.advance(&market, 360).unwrap();
+    assert_eq!(original.hash(), 0x8ef1c8a84552a107);
+    let current = Content::bundled().unwrap();
+    let mut newer = World::new(&current, original.player.clone(), 42).unwrap();
+    newer
+        .issue(
+            &current,
+            Action::Borrow {
+                amount: Money(1000),
+            },
+        )
+        .unwrap();
+    let dir = std::env::temp_dir().join(format!("geosim-market-recovery-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("mixed.json");
+    persistence::save(&path, &newer, &current).unwrap();
+    let current_bytes = std::fs::read(&path).unwrap();
+    let backup = path.with_extension("json.bak");
+    let market_bytes = persistence::encode(&original, &market).unwrap();
+    std::fs::write(&backup, &market_bytes).unwrap();
+    let candidates = persistence::recovery_candidates_bundled(&path);
+    assert_eq!(candidates[0].rules, Some(4));
+    assert_eq!(candidates[0].schema, Some(5));
+    assert_eq!(candidates[1].rules, Some(3));
+    assert_eq!(candidates[1].schema, Some(4));
+    let (resolved, restored) = persistence::restore_bundled(&path, &backup).unwrap();
+    assert_eq!(resolved, market);
+    assert_eq!(restored.hash(), original.hash());
+    assert!(restored.countries.values().all(|c| c.financing.is_none()));
+    assert_eq!(
+        std::fs::read(dir.join("mixed.json.before-recovery-1")).unwrap(),
+        current_bytes
+    );
+    assert_eq!(std::fs::read(&backup).unwrap(), market_bytes);
+    assert!(persistence::load(&path, &current).is_err());
+    persistence::replay(&restored, &resolved).unwrap();
+    std::fs::remove_dir_all(dir).unwrap();
 }
