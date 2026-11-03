@@ -46,7 +46,7 @@ cargo run --release --locked -- --country CHN --seed 2000 --days 1827 --verify
 
 Add `--scenario crisis` to the headless command for the authored fiscal/supply-crisis campaign.
 
-The desktop map supports zoom at the pointer, focus-on-country, keyboard panning and dated approval/needs/debt overlays. Charts use actual release dates and provide hover, keyboard inspection and text values. Foreign reports expose published aggregates; private household accounts, treasury and AI traces stay within the controlled government.
+The desktop map supports country-shape selection, zoom at the pointer, focus-on-country, keyboard panning and dated approval/needs/debt overlays. Islands and interior holes are preserved in the supplied reference shapes; markers and search cover countries without shapes. Charts use actual release dates and provide hover, keyboard inspection and text values. Foreign reports expose published aggregates; private household accounts, treasury and AI traces stay within the controlled government.
 
 Both clients load the same bundled content. Supply `--content path/to/pack.json` to either executable to use a validated local JSON pack. Unknown schema, broken references, invalid ranges and incompatible saves produce explicit errors.
 
@@ -54,7 +54,7 @@ Both clients load the same bundled content. Supply `--content path/to/pack.json`
 
 The [initial content pack](data/initial-2000.json) seeds 15 countries, 34 parties/governing bodies, eight institutional configurations and seven policy programs. The roster includes the UK, US, France, Germany, Russia, China, India, Japan, Brazil, South Africa, Saudi Arabia, Iran, Cuba, North Korea and Myanmar.
 
-**Six reference-country population/GDP fields have pinned World Bank-mirror observations; other economic values, household profiles, seats, ideology profiles and political rules are authored gameplay approximations.** The source inspector distinguishes the two; the primary data API has not been independently reconciled. Historical identity names form a limited starter curation. Royal, military and religious governing bodies are explicitly scenario abstractions. All future decisions and successor cabinets are simulated. See [data provenance and coverage](data/README.md). The map uses Natural Earth public-domain land outlines and selectable country markers; political borders and subnational regions are not yet represented.
+**Six reference-country population/GDP fields have pinned World Bank-mirror observations; other economic values, household profiles, seats, ideology profiles and political rules are authored gameplay approximations.** The source inspector distinguishes the two; the primary data API has not been independently reconciled. Historical identity names form a limited starter curation. Royal, military and religious governing bodies are explicitly scenario abstractions. All future decisions and successor cabinets are simulated. See [data provenance and coverage](data/README.md). The map combines Natural Earth public-domain land with reference country outlines for the 15 starters. Their source revision and transformations are pinned; they are not a certified 2000 sovereignty/control layer. Administrative regions remain absent.
 
 Money is expressed in millions of constant-2000 USD-equivalent game credits. Displayed local currency codes are identity metadata; there is no currency exchange model yet. Stocks and realized daily flows are shown separately. Policy forecasts state their assumptions.
 

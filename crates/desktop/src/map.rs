@@ -56,15 +56,57 @@ enum Layer {
     Needs,
     Debt,
 }
+fn layer_value(
+    layer: Layer,
+    world: Option<&World>,
+    content: &Content,
+    id: &CountryId,
+) -> Option<i32> {
+    let report = world?.public_report(content, id).ok()?;
+    let release = report.latest?;
+    match layer {
+        Layer::Countries => None,
+        Layer::Approval => Some(release.approval),
+        Layer::Needs => Some(release.needs),
+        Layer::Debt => Some((release.debt.0 * 100 / content.country(id)?.gdp) as i32),
+    }
+}
+fn layer_color(layer: Layer, active: bool, value: Option<i32>) -> Color32 {
+    if layer == Layer::Countries {
+        if active {
+            Color32::from_rgb(104, 224, 186)
+        } else {
+            Color32::from_rgb(194, 183, 147)
+        }
+    } else {
+        match value {
+            None => Color32::GRAY,
+            Some(v) => {
+                let healthy = if layer == Layer::Debt {
+                    v < 80
+                } else {
+                    v >= 70
+                };
+                if healthy {
+                    Color32::from_rgb(104, 224, 186)
+                } else {
+                    Color32::from_rgb(245, 181, 105)
+                }
+            }
+        }
+    }
+}
 fn nearest_marker(
     content: &Content,
     camera: Camera,
     rect: Rect,
     position: Pos2,
+    eligible: impl Fn(&CountryId) -> bool,
 ) -> Option<CountryId> {
     content
         .countries
         .iter()
+        .filter(|c| eligible(&c.id))
         .filter_map(|c| {
             let marker = camera.project(rect, [c.longitude as f32, c.latitude as f32]);
             let distance = position.distance_sq(marker);
@@ -75,6 +117,7 @@ fn nearest_marker(
 }
 pub struct WorldMap {
     land: Vec<(Vec<[f32; 2]>, Vec<usize>)>,
+    atlas: crate::geometry::Atlas,
     pub camera: Camera,
     layer: Layer,
 }
@@ -96,9 +139,19 @@ impl WorldMap {
             .collect();
         Self {
             land,
+            atlas: crate::geometry::Atlas::bundled(),
             camera: Camera::default(),
             layer: Layer::Countries,
         }
+    }
+    fn pick(&self, content: &Content, rect: Rect, position: Pos2) -> Option<CountryId> {
+        self.atlas
+            .country_at(content, self.camera.unproject(rect, position))
+            .or_else(|| {
+                nearest_marker(content, self.camera, rect, position, |id| {
+                    !self.atlas.countries.contains_key(id)
+                })
+            })
     }
     pub fn show(
         &mut self,
@@ -171,7 +224,7 @@ impl WorldMap {
             response.request_focus();
             if let Some(id) = response
                 .interact_pointer_pos()
-                .and_then(|p| nearest_marker(content, self.camera, rect, p))
+                .and_then(|p| self.pick(content, rect, p))
             {
                 *selected = id;
             }
@@ -221,9 +274,48 @@ impl WorldMap {
             }
         }
         painter.add(egui::Shape::mesh(mesh));
+        for (id, polygons) in &self.atlas.countries {
+            if content.country(id).is_none() {
+                continue;
+            }
+            let active = id == selected;
+            let color = layer_color(
+                self.layer,
+                active,
+                layer_value(self.layer, world, content, id),
+            );
+            let fill = Color32::from_rgba_unmultiplied(
+                color.r(),
+                color.g(),
+                color.b(),
+                if active { 100 } else { 35 },
+            );
+            let mut mesh = egui::Mesh::default();
+            for polygon in polygons {
+                let base = mesh.vertices.len() as u32;
+                for point in &polygon.points {
+                    mesh.colored_vertex(project(*point), fill);
+                }
+                for index in &polygon.triangles {
+                    mesh.indices.push(base + *index as u32);
+                }
+            }
+            painter.add(egui::Shape::mesh(mesh));
+            for polygon in polygons {
+                for ring in &polygon.rings {
+                    painter.add(egui::Shape::line(
+                        ring.iter().map(|point| project(*point)).collect(),
+                        Stroke::new(
+                            if active { 1.4_f32 } else { 0.7_f32 },
+                            color.gamma_multiply(if active { 1.0 } else { 0.6 }),
+                        ),
+                    ));
+                }
+            }
+        }
         let hovered = response
             .hover_pos()
-            .and_then(|p| nearest_marker(content, self.camera, rect, p));
+            .and_then(|p| self.pick(content, rect, p));
         let mut occupied: Vec<Rect> = Vec::new();
         let mut countries: Vec<_> = content.countries.iter().collect();
         countries.sort_by_key(|c| c.id != *selected);
@@ -233,37 +325,8 @@ impl WorldMap {
                 continue;
             }
             let active = country.id == *selected;
-            let report = world.and_then(|w| w.public_report(content, &country.id).ok());
-            let release = report.as_ref().and_then(|r| r.latest.clone());
-            let value = release.as_ref().and_then(|o| match self.layer {
-                Layer::Countries => None,
-                Layer::Approval => Some(o.approval),
-                Layer::Needs => Some(o.needs),
-                Layer::Debt => Some((o.debt.0 * 100 / country.gdp) as i32),
-            });
-            let color = if self.layer == Layer::Countries {
-                if active {
-                    Color32::from_rgb(104, 224, 186)
-                } else {
-                    Color32::from_rgb(194, 183, 147)
-                }
-            } else {
-                match value {
-                    None => Color32::GRAY,
-                    Some(v) => {
-                        let healthy = if self.layer == Layer::Debt {
-                            v < 80
-                        } else {
-                            v >= 70
-                        };
-                        if healthy {
-                            Color32::from_rgb(104, 224, 186)
-                        } else {
-                            Color32::from_rgb(245, 181, 105)
-                        }
-                    }
-                }
-            };
+            let value = layer_value(self.layer, world, content, &country.id);
+            let color = layer_color(self.layer, active, value);
             painter.circle_filled(position, if active { 6.0 } else { 4.0 }, color);
             if active {
                 painter.circle_stroke(position, 10.0, Stroke::new(1.0_f32, color));
@@ -279,23 +342,26 @@ impl WorldMap {
                 painter.galley(label_rect.min, galley, color);
                 occupied.push(label_rect.expand(2.0));
             }
-            if hovered.as_ref() == Some(&country.id) {
-                let executive = report
-                    .as_ref()
-                    .map_or(country.executive.as_str(), |r| r.executive.as_str());
-                let stamp = release.map_or_else(
-                    || "No statistical release yet".into(),
-                    |o| {
-                        format!(
-                            "Published {} · needs {}% · approval {}%",
-                            sim_core::date(o.day),
-                            o.needs,
-                            o.approval
-                        )
-                    },
-                );
-                response.clone().on_hover_text(format!("{} · {:?}\n{executive}\n{stamp}\nClick marker to inspect. Search works for every seeded country.",country.name,country.regime));
-            }
+        }
+        if let Some(id) = hovered
+            && let Some(country) = content.country(&id)
+        {
+            let report = world.and_then(|w| w.public_report(content, &id).ok());
+            let executive = report
+                .as_ref()
+                .map_or(country.executive.as_str(), |r| r.executive.as_str());
+            let stamp = report.as_ref().and_then(|r| r.latest.as_ref()).map_or_else(
+                || "No statistical release yet".into(),
+                |o| {
+                    format!(
+                        "Published {} · needs {}% · approval {}%",
+                        sim_core::date(o.day),
+                        o.needs,
+                        o.approval
+                    )
+                },
+            );
+            response.clone().on_hover_text(format!("{} · {:?}\n{executive}\n{stamp}\nClick country land or its marker to inspect. Search covers islands omitted at this scale.",country.name,country.regime));
         }
         painter.text(
             rect.left_bottom() + Vec2::new(12.0, -12.0),
@@ -304,7 +370,7 @@ impl WorldMap {
             egui::FontId::proportional(11.0),
             Color32::GRAY,
         );
-        ui.small("Natural Earth land outlines · markers are selection points, not borders or claims · overlays use dated public reports; gray means unknown");
+        ui.small("Natural Earth reference outlines · historical border review incomplete · display shapes do not define sovereignty or simulation regions · overlays use dated reports; gray means unknown");
     }
 }
 #[cfg(test)]
@@ -328,7 +394,44 @@ mod tests {
         for id in ["GBR", "FRA", "DEU", "CUB", "JPN"] {
             let d = content.country(&CountryId(id.into())).unwrap();
             let point = c.project(rect, [d.longitude as f32, d.latitude as f32]);
-            assert_eq!(nearest_marker(&content, c, rect, point), Some(d.id.clone()));
+            assert_eq!(
+                nearest_marker(&content, c, rect, point, |_| true),
+                Some(d.id.clone())
+            );
         }
+    }
+    #[test]
+    fn polygon_picking_preserves_holes_at_every_zoom_and_markers_for_fictional_states() {
+        let content = Content::bundled().unwrap();
+        let rect = Rect::from_min_size(Pos2::ZERO, Vec2::new(1000.0, 500.0));
+        let mut map = WorldMap::new();
+        for zoom in [1.0, 4.0, 12.0] {
+            map.camera = Camera {
+                longitude: 28.2,
+                latitude: -29.5,
+                zoom,
+            };
+            let hole = map.camera.project(rect, [28.2, -29.5]);
+            assert_eq!(map.pick(&content, rect, hole), None);
+        }
+        map.camera = Camera::default();
+        for d in &content.countries {
+            let point = map
+                .camera
+                .project(rect, [d.longitude as f32, d.latitude as f32]);
+            assert_eq!(
+                map.pick(&content, rect, point),
+                Some(d.id.clone()),
+                "{} marker",
+                d.id.0
+            );
+        }
+        let fictional =
+            Content::from_json(include_str!("../../../data/synthetic-test.json")).unwrap();
+        let point = map.camera.project(rect, [0.0, 30.0]);
+        assert_eq!(
+            map.pick(&fictional, rect, point),
+            Some(CountryId("AUR".into()))
+        );
     }
 }

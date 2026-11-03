@@ -81,6 +81,7 @@ def main():
     if not args.docs_only:
         commands += [
             [sys.executable, "scripts/build_synthetic_world.py", "--check"],
+            [sys.executable, "scripts/import_country_geometry.py", "--validate"],
             ["cargo", "fmt", "--all", "--", "--check"],
             ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"],
             ["cargo", "test", "--workspace", "--locked"],

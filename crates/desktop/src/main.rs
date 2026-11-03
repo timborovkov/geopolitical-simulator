@@ -1,6 +1,7 @@
 mod advance;
 mod analysis;
 mod charts;
+mod geometry;
 mod map;
 mod settings;
 use eframe::egui::{self, Color32, RichText, Stroke, Vec2};
