@@ -20,7 +20,7 @@ P03-03,3,"Saves, replay and simulation inspection",Migration policy; preserve th
 P03-04,3,"Saves, replay and simulation inspection","Debug state inspector, economic ledger, AI decision log and first-divergence report.",partial
 P03-05,3,"Saves, replay and simulation inspection","Historical statistics with bounded retention: recent fine-grained records, older aggregates and important events preserved.",partial
 P03-06,3,"Saves, replay and simulation inspection","Save/load during construction, elections, negotiations, battles and pending legislation as those systems appear.",partial
-P03-07,3,"Saves, replay and simulation inspection",Developer sandbox commands flagged separately from normal play; inspectability is part of the base game.,proposed
+P03-07,3,"Saves, replay and simulation inspection",Developer sandbox commands flagged separately from normal play; inspectability is part of the base game.,partial
 P04-01,4,"Native desktop shell, map and navigation",Native builds and launch checks on all three operating systems from the beginning.,partial
 P04-02,4,"Native desktop shell, map and navigation","Vector-derived world map: coastline, land, country and administrative boundaries, islands, lakes and rivers; pan, zoom, selection, search and tooltips.",partial
 P04-03,4,"Native desktop shell, map and navigation","Separate display geometry from simulation regions. Selection must work for islands, enclaves and tiny states.",partial

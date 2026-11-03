@@ -1,3 +1,4 @@
+use crate::developer::CommandOrigin;
 use crate::*;
 use Account::{External, Firms, Treasury};
 impl World {
@@ -119,13 +120,22 @@ impl World {
         &mut self,
         content: &Content,
         command: Command,
-        ai: bool,
+        origin: CommandOrigin,
     ) -> Result<(), String> {
         if self.content_hash != content.hash() {
             return Err("Command content pack differs from campaign".into());
         }
         if command.id != self.next_command || command.day != self.day {
             return Err("Stale or duplicate command: refresh the current state".into());
+        }
+        let next_command = self
+            .next_command
+            .checked_add(1)
+            .ok_or("Command ID space exhausted")?;
+        let ai = origin == CommandOrigin::Ai;
+        let developer = origin == CommandOrigin::Developer;
+        if developer != matches!(command.action, Action::Developer { .. }) {
+            return Err("Developer edits require an explicitly enabled developer host; normal player/AI commands cannot use them".into());
         }
         if !ai && command.issuer != self.player {
             return Err("You do not control this government".into());
@@ -141,6 +151,10 @@ impl World {
         match &command.action {
             Action::Enact { policy, value } => {
                 let preview = self.preview(content, &id, policy, *value)?;
+                let next_project = self
+                    .next_project
+                    .checked_add(1)
+                    .ok_or("Project ID space exhausted")?;
                 let reserved = Money(preview.cost.0 - preview.upfront_payment.0);
                 self.pay(
                     &id,
@@ -167,7 +181,7 @@ impl World {
                         PolicyStage::AwaitingConsent
                     },
                 });
-                self.next_project += 1;
+                self.next_project = next_project;
                 self.event(&id,true,format!("Proposed {} via {}. Paid {}m upfront, reserved {}m; consent {} and operating due {}.",content.policy(policy).expect("policy").name,preview.route,preview.upfront_payment.0,reserved.0,date(self.day+preview.consent_delay),date(self.day+preview.delay)));
             }
             Action::Borrow { amount } => {
@@ -218,9 +232,23 @@ impl World {
                     format!("Repaid {}m of debt principal.", amount.0),
                 );
             }
+            Action::Developer { target, edit } => {
+                edit.validate()?;
+                let country = self
+                    .countries
+                    .get_mut(target)
+                    .ok_or("Unknown developer target country")?;
+                let before = edit.field.read(country);
+                edit.apply(country);
+                self.event(target, true, format!("DEVELOPER EDIT: {} changed from {before} to {}. Policy costs and delays were bypassed; this campaign is marked developer-modified.", edit.field.name(), edit.value));
+            }
         }
-        self.journal.push(JournalEntry { command, ai });
-        self.next_command += 1;
+        self.journal.push(JournalEntry {
+            command,
+            ai,
+            developer,
+        });
+        self.next_command = next_command;
         Ok(())
     }
     /// Consent → delivery → production/households → fiscal close → politics → AI.
@@ -262,7 +290,18 @@ impl World {
                     && c.approval >= 50
                     && c.arrears.0 == 0
                     && c.debt.0 <= content.country(&self.player).expect("player").gdp;
-                self.event(&self.player.clone(),true,if won {"Five-year review: mandate achieved. Continue the country campaign."}else{"Five-year review: mandate missed. Inspect household needs, finances and authority; country play continues."});
+                let message = if self.is_developer_modified() {
+                    if won {
+                        "Five-year review: targets met in a developer-modified campaign. Country play continues."
+                    } else {
+                        "Five-year review: targets missed in a developer-modified campaign. Country play continues."
+                    }
+                } else if won {
+                    "Five-year review: mandate achieved. Continue the country campaign."
+                } else {
+                    "Five-year review: mandate missed. Inspect household needs, finances and authority; country play continues."
+                };
+                self.event(&self.player.clone(), true, message);
                 self.milestone_reported = true;
             }
         }
@@ -791,7 +830,7 @@ impl World {
                         amount: Money(d.gdp / 100),
                     },
                 );
-                let _ = self.apply(content, command, true);
+                let _ = self.apply(content, command, CommandOrigin::Ai);
                 return;
             } else {
                 return;
@@ -805,7 +844,7 @@ impl World {
             "AI review: chose {candidate:?} to address the highest-ranked financing, support or supply constraint."
         );
         let command = self.command(id.clone(), candidate);
-        match self.apply(content, command, true) {
+        match self.apply(content, command, CommandOrigin::Ai) {
             Ok(()) => self.event(id, false, reason),
             Err(error) => self.event(
                 id,

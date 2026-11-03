@@ -1,6 +1,6 @@
 # Initial content pack: 1 January 2000
 
-The bundled `initial-2000.json` uses **content schema 2**, ID `initial-2000-v2`. It seeds 15 countries, 34 parties/governing bodies, eight regime configurations, four household groups per country and seven policy programs. Both clients embed it for offline play; `--content FILE` accepts a validated local replacement. Rules and save format are also version 2. Version-1 packs/saves are rejected without conversion or modification.
+The bundled `initial-2000.json` uses **content schema 2**, ID `initial-2000-v2`. It seeds 15 countries, 34 parties/governing bodies, eight regime configurations, four household groups per country and seven policy programs. Both clients embed it for offline play; `--content FILE` accepts a validated local replacement. Rules remain version 2; snapshots are written in format 3 and compatible format-2 snapshots remain readable. Version-1 packs/saves are rejected without conversion or modification.
 
 ## Coverage and identity
 
@@ -70,7 +70,7 @@ Content schema 2 now accepts optional `identities` and country `governing_office
 
 Intervals include `valid_from` and exclude `valid_to`; a null end is open-ended. Terms cannot precede or outlast their office's existence. Overlapping incumbencies, conflicting primary currencies, missing references, duplicate IDs/sources and invalid dates fail assembly. Collective holders list explicit members; vacancy is recorded separately from an optional office with no known incumbent. A required active office must have a person, collective or explicit vacancy. This does not yet implement full appointment/succession law, personnel AI, country founding/dissolution, memberships or territorial transitions.
 
-The loader assembles the governing name/title and currency for `Content.start`. `Content::at_bookmark` recompiles those fields for another supported date and validates the result. A campaign branches from this assembly: later reference terms and currency changes are not automatically enacted. Save content hashes prevent silently replacing a campaign's starting records. Optional fields are omitted for the original pack, preserving its version-2 checksum and save encoding.
+The loader assembles the governing name/title and currency for `Content.start`. `Content::at_bookmark` recompiles those fields for another supported date and validates the result. A campaign branches from this assembly: later reference terms and currency changes are not automatically enacted. Save content hashes prevent silently replacing a campaign's starting records. Optional fields are omitted for the original pack, preserving its rules-2 world checksum and canonical world encoding.
 
 Civil reference dates use the Gregorian calendar, years 0001–9999. Campaign starts range from 2000-01-01 through 2095-01-01, allowing a five-calendar-year review by the existing 2100-01-01 limit. February 29 anniversaries use February 28 in a non-leap year. Ticks retain the 2000 epoch; later starts initialize fiscal execution at the bookmark through the next January boundary and offset authored election/leadership timers. Reporting and AI reviews retain their authored 30-day cadence. Annual calibration observations accept years up to the bookmark year; exact publication-date visibility and full time-series assembly remain incomplete.
 

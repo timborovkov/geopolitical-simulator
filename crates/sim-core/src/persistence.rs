@@ -1,4 +1,5 @@
 //! Versioned snapshots, checksums, atomic replacement and deterministic replay.
+use crate::developer::CommandOrigin;
 use crate::{Content, World};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -15,10 +16,31 @@ struct Save {
 }
 
 const MAX_SAVE_BYTES: usize = 32 * 1024 * 1024;
+pub const SAVE_SCHEMA: u32 = 3;
+/// Country/scenario/content-specific names remain inside the saves directory,
+/// including for packs whose IDs contain punctuation or non-ASCII characters.
+pub fn autosave_path(world: &World) -> std::path::PathBuf {
+    let mut label: String = world
+        .player
+        .0
+        .chars()
+        .filter(char::is_ascii_alphanumeric)
+        .take(12)
+        .collect();
+    if label.is_empty() {
+        label = "country".into();
+    }
+    std::path::PathBuf::from("saves").join(format!(
+        "autosave-{label}-{:016x}-{}-{:016x}-v{SAVE_SCHEMA}.json",
+        crate::stable_hash(world.player.0.as_bytes()),
+        world.scenario.id(),
+        world.content_hash
+    ))
+}
 pub fn encode(world: &World, content: &Content) -> Result<Vec<u8>, String> {
     world.validate(content)?;
     let bytes = serde_json::to_vec(&Save {
-        schema: 2,
+        schema: SAVE_SCHEMA,
         checksum: world.hash(),
         world: world.clone(),
     })
@@ -29,26 +51,31 @@ pub fn encode(world: &World, content: &Content) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 pub fn decode(bytes: &[u8], content: &Content) -> Result<World, String> {
+    decode_save(bytes, content).map(|save| save.world)
+}
+fn decode_save(bytes: &[u8], content: &Content) -> Result<Save, String> {
     if bytes.len() > 32 * 1024 * 1024 {
         return Err("Save exceeds the 32 MiB limit".into());
     }
     let header: serde_json::Value =
         serde_json::from_slice(bytes).map_err(|e| format!("Damaged save: {e}"))?;
-    if header.get("schema").and_then(|v| v.as_u64()) != Some(2) {
-        return Err("Unsupported save version: rules v2 require a new campaign; the original file is preserved".into());
+    if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2 | 3)) {
+        return Err("Unsupported save version; supported snapshot formats are 2 and 3. The original file is preserved".into());
     }
     let save: Save = serde_json::from_slice(bytes).map_err(|e| format!("Damaged save: {e}"))?;
-    if save.schema != 2 {
-        return Err("Unsupported save version; original file is preserved".into());
+    if save.schema == 2 && save.world.is_developer_modified() {
+        return Err(
+            "Developer command journals require snapshot format 3; original file preserved".into(),
+        );
     }
     if save.checksum != save.world.hash() {
         return Err("Save checksum mismatch; try the .bak recovery file".into());
     }
     save.world.validate(content)?;
-    Ok(save.world)
+    Ok(save)
 }
 /// Preserve a file with create_new so recovery never overwrites an earlier archive.
-fn preserve(path: &Path, label: &str) -> std::io::Result<std::path::PathBuf> {
+fn archive_file(path: &Path, label: &str) -> std::io::Result<(fs::File, std::path::PathBuf)> {
     for index in 1..=10000 {
         let mut name = path.as_os_str().to_os_string();
         name.push(format!(".{label}-{index}"));
@@ -58,17 +85,25 @@ fn preserve(path: &Path, label: &str) -> std::io::Result<std::path::PathBuf> {
             .create_new(true)
             .open(&destination)
         {
-            Ok(mut file) => {
-                let mut source = fs::File::open(path)?;
-                std::io::copy(&mut source, &mut file)?;
-                file.sync_all()?;
-                return Ok(destination);
-            }
+            Ok(file) => return Ok((file, destination)),
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
             Err(error) => return Err(error),
         }
     }
     Err(std::io::Error::other("Too many preserved recovery files"))
+}
+fn preserve(path: &Path, label: &str) -> std::io::Result<std::path::PathBuf> {
+    let (mut file, destination) = archive_file(path, label)?;
+    let mut source = fs::File::open(path)?;
+    std::io::copy(&mut source, &mut file)?;
+    file.sync_all()?;
+    Ok(destination)
+}
+fn preserve_bytes(path: &Path, label: &str, bytes: &[u8]) -> std::io::Result<std::path::PathBuf> {
+    let (mut file, destination) = archive_file(path, label)?;
+    file.write_all(bytes)?;
+    file.sync_all()?;
+    Ok(destination)
 }
 fn write_atomic(path: &Path, stage: &Path, bytes: &[u8]) -> std::io::Result<()> {
     let mut file = fs::OpenOptions::new()
@@ -108,13 +143,16 @@ pub fn save(path: &Path, world: &World, content: &Content) -> Result<(), String>
                     "Existing file is too large to be a campaign; choose another save path".into(),
                 );
             }
-            if load(path, content).is_ok() {
+            let old = read_bytes(path)?;
+            if let Ok(previous) = decode_save(&old, content) {
+                if previous.schema == 2 {
+                    preserve_bytes(path, "format-v2", &old).map_err(|e| e.to_string())?;
+                }
                 // Finish the backup independently before committing the new primary.
                 let backup_stage = path.with_extension("json.backup.tmp");
-                let old = fs::read(path).map_err(|e| e.to_string())?;
                 write_atomic(&backup, &backup_stage, &old).map_err(|e| e.to_string())?;
             } else {
-                preserve(path, "rejected").map_err(|e| e.to_string())?;
+                preserve_bytes(path, "rejected", &old).map_err(|e| e.to_string())?;
             }
         }
         write_atomic(path, &stage, &bytes).map_err(|e| e.to_string())
@@ -136,6 +174,7 @@ pub struct RecoveryCandidate {
     pub path: std::path::PathBuf,
     pub kind: RecoveryKind,
     pub day: Option<u32>,
+    pub schema: Option<u32>,
     pub error: Option<String>,
 }
 /// Inspect without loading into the active game or mutating any files.
@@ -156,14 +195,15 @@ pub fn recovery_candidates(path: &Path, content: &Content) -> Vec<RecoveryCandid
     .into_iter()
     .filter(|(p, _)| p.exists())
     .map(|(path, kind)| {
-        let (day, error) = match load(&path, content) {
-            Ok(w) => (Some(w.day), None),
-            Err(e) => (None, Some(e)),
+        let (day, schema, error) = match load_save(&path, content) {
+            Ok(save) => (Some(save.world.day), Some(save.schema), None),
+            Err(e) => (None, None, Some(e)),
         };
         RecoveryCandidate {
             path,
             kind,
             day,
+            schema,
             error,
         }
     })
@@ -211,12 +251,21 @@ pub fn restore(path: &Path, candidate: &Path, content: &Content) -> Result<World
     Ok(world)
 }
 pub fn load(path: &Path, content: &Content) -> Result<World, String> {
+    load_save(path, content).map(|save| save.world)
+}
+fn load_save(path: &Path, content: &Content) -> Result<Save, String> {
+    decode_save(&read_bytes(path)?, content)
+}
+fn read_bytes(path: &Path) -> Result<Vec<u8>, String> {
     let file = fs::File::open(path).map_err(|e| format!("Cannot open {}: {e}", path.display()))?;
     let mut bytes = Vec::new();
     file.take(32 * 1024 * 1024 + 1)
         .read_to_end(&mut bytes)
         .map_err(|e| e.to_string())?;
-    decode(&bytes, content)
+    if bytes.len() > MAX_SAVE_BYTES {
+        return Err("Snapshot exceeds the 32 MiB limit".into());
+    }
+    Ok(bytes)
 }
 /// Replay human commands; deterministic AI runs through its usual daily phase.
 pub fn replay(original: &World, content: &Content) -> Result<World, String> {
@@ -234,7 +283,15 @@ pub fn replay(original: &World, content: &Content) -> Result<World, String> {
             verify_journal(original, &world, &mut verified)?;
         }
         world
-            .apply(content, entry.command.clone(), false)
+            .apply(
+                content,
+                entry.command.clone(),
+                if entry.developer {
+                    CommandOrigin::Developer
+                } else {
+                    CommandOrigin::Player
+                },
+            )
             .map_err(|reason| {
                 format!(
                     "Replay command #{} on {} was rejected: {reason}",

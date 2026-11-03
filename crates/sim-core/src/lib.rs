@@ -2,6 +2,7 @@
 mod budget;
 mod calendar;
 mod content;
+mod developer;
 mod governance;
 mod households;
 mod identity;
@@ -13,6 +14,7 @@ mod units;
 pub use budget::*;
 pub use calendar::*;
 pub use content::*;
+pub use developer::*;
 pub use governance::*;
 pub use households::*;
 pub use identity::*;

@@ -7,6 +7,9 @@ use std::{
 fn status(world: &World, content: &Content) {
     let c = world.player_country();
     let d = content.country(&world.player).expect("player");
+    if world.is_developer_modified() {
+        println!("DEVELOPER-MODIFIED CAMPAIGN · ordinary mandate certification is disabled.");
+    }
     println!(
         "{} | {} | {} | hash {:016x}",
         date(world.day),
@@ -61,11 +64,16 @@ fn number<T: std::str::FromStr>(text: Option<&&str>) -> Result<T, String> {
         .parse()
         .map_err(|_| "Invalid number".into())
 }
-fn play(world: &mut World, content: &Content) -> Result<(), String> {
+fn play(world: &mut World, content: &Content, developer: bool) -> Result<(), String> {
     println!(
         "Statecraft · {} · bookmark {}. Type help; data lists observation sources and authored assumptions.",
         content.name, content.start
     );
+    if developer {
+        println!(
+            "DEVELOPER HOST ENABLED: dev COUNTRY FIELD VALUE bypasses policy costs/delays and marks the campaign. Type dev-fields for available bounded fields."
+        );
+    }
     status(world, content);
     loop {
         print!("statecraft> ");
@@ -83,9 +91,45 @@ fn play(world: &mut World, content: &Content) -> Result<(), String> {
             match words.first().copied().unwrap_or("") {
                 "" => {}
                 "quit" | "exit" => return Ok(()),
-                "help" => println!(
-                    "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
-                ),
+                "help" => {
+                    println!(
+                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                    );
+                    if developer {
+                        println!(
+                            "dev-fields | dev-inspect COUNTRY | dev COUNTRY FIELD VALUE (explicit developer edits)"
+                        );
+                    }
+                }
+                "dev-fields" if developer => {
+                    for field in DeveloperField::ALL {
+                        println!("{} · {:?}", field.name(), field.bounds());
+                    }
+                }
+                "dev-inspect" if developer => {
+                    let target = CountryId(words.get(1).ok_or("Missing country ID")?.to_string());
+                    let country = world.countries.get(&target).ok_or("Unknown country")?;
+                    println!(
+                        "LIVE WORLD TRUTH · developer view; includes private foreign accounts."
+                    );
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(country).map_err(|error| error.to_string())?
+                    );
+                }
+                "dev" => {
+                    if !developer {
+                        return Err("Developer edits are disabled; restart with --developer to use the explicit developer host".into());
+                    }
+                    let target = CountryId(words.get(1).ok_or("Missing country ID")?.to_string());
+                    let field =
+                        DeveloperField::from_name(words.get(2).ok_or("Missing developer field")?)?;
+                    let value = number(words.get(3))?;
+                    world.issue_developer(content, target, DeveloperEdit { field, value })?;
+                    println!(
+                        "Developer edit accepted. Campaign permanently marked developer-modified."
+                    );
+                }
                 "status" => status(world, content),
                 "countries" => {
                     for d in &content.countries {
@@ -305,7 +349,10 @@ fn play(world: &mut World, content: &Content) -> Result<(), String> {
                         world,
                         content,
                     )?;
-                    println!("Saved.");
+                    println!(
+                        "Saved snapshot format {}. Compatible older primaries are archived before conversion.",
+                        persistence::SAVE_SCHEMA
+                    );
                 }
                 "load" => {
                     *world =
@@ -337,6 +384,7 @@ fn run() -> Result<(), String> {
     let mut days = 360;
     let mut interactive = false;
     let mut verify = false;
+    let mut developer = false;
     let mut save_path = None;
     let mut load_path = None;
     let mut content_path = None;
@@ -345,9 +393,10 @@ fn run() -> Result<(), String> {
         match args[i].as_str() {
             "--interactive" => interactive = true,
             "--verify" => verify = true,
+            "--developer" => developer = true,
             "--help" | "-h" => {
                 println!(
-                    "headless [--country GBR] [--scenario sandbox|crisis] [--seed 2000] [--days 360] [--interactive] [--verify] [--save FILE] [--load FILE] [--content FILE]"
+                    "headless [--country GBR] [--scenario sandbox|crisis] [--seed 2000] [--days 360] [--interactive] [--verify] [--save FILE] [--load FILE] [--content FILE] [--developer]"
                 );
                 return Ok(());
             }
@@ -389,7 +438,7 @@ fn run() -> Result<(), String> {
         World::new_scenario(&content, CountryId(country), seed, scenario)?
     };
     if interactive {
-        play(&mut world, &content)?;
+        play(&mut world, &content, developer)?;
     } else {
         world.advance(&content, days)?;
         status(&world, &content);

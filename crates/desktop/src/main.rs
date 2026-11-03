@@ -2,6 +2,7 @@ mod advance;
 mod analysis;
 mod charts;
 mod geometry;
+mod inspector;
 mod map;
 mod settings;
 use eframe::egui::{self, Color32, RichText, Stroke, Vec2};
@@ -24,6 +25,7 @@ enum Tab {
     Politics,
     Chronicle,
     Guide,
+    Inspector,
 }
 struct GameApp {
     content: Content,
@@ -49,10 +51,14 @@ struct GameApp {
     pending: Option<advance::AdvanceJob>,
     target_date: String,
     preferences: settings::Preferences,
+    developer_mode: bool,
+    inspector: inspector::Inspector,
 }
 impl GameApp {
-    fn new(cc: &eframe::CreationContext<'_>, content: Content) -> Self {
-        Self::from_context(&cc.egui_ctx, content, settings::Preferences::load())
+    fn new(cc: &eframe::CreationContext<'_>, content: Content, developer_mode: bool) -> Self {
+        let mut app = Self::from_context(&cc.egui_ctx, content, settings::Preferences::load());
+        app.developer_mode = developer_mode;
+        app
     }
     fn from_context(
         ctx: &egui::Context,
@@ -88,7 +94,7 @@ impl GameApp {
             speed: 0,
             last_tick: Instant::now(),
             pause_alerts: true,
-            save_path: "saves/campaign-v2.json".into(),
+            save_path: "saves/campaign-v3.json".into(),
             money: 1000,
             sort_gdp: false,
             show_ledger: false,
@@ -97,6 +103,8 @@ impl GameApp {
             pending: None,
             target_date,
             preferences,
+            developer_mode: false,
+            inspector: inspector::Inspector::default(),
         }
     }
     fn advance(&mut self, days: u32) {
@@ -169,11 +177,7 @@ impl GameApp {
                 });
                 let world = self.world.as_ref().expect("world");
                 if world.day / 30 != start / 30 {
-                    let path = PathBuf::from(format!(
-                        "saves/autosave-{}-{}-v2.json",
-                        world.player.0,
-                        world.scenario.id()
-                    ));
+                    let path = persistence::autosave_path(world);
                     let result = std::fs::create_dir_all("saves")
                         .map_err(|e| e.to_string())
                         .and_then(|()| persistence::save(&path, world, &self.content));
@@ -214,7 +218,7 @@ impl GameApp {
             };
             self.status = match result.and_then(|()| persistence::save(&path, w, &self.content)) {
                 Ok(()) => format!(
-                    "Saved {}. Previous snapshot retained as .json.bak.",
+                    "Saved {} in format 3. Previous snapshot retained as .json.bak; converted format-2 originals are archived.",
                     path.display()
                 ),
                 Err(e) => e,
@@ -249,6 +253,8 @@ impl GameApp {
             ui.horizontal_wrapped(|ui| {
                 ui.label(RichText::new("STATECRAFT").size(23.0).strong().color(MINT));
                 ui.label(RichText::new("A NEW CENTURY").color(MUTED));
+                if self.developer_mode { ui.colored_label(Color32::LIGHT_YELLOW, "Developer mode"); }
+                if self.world.as_ref().is_some_and(World::is_developer_modified) { ui.colored_label(Color32::LIGHT_YELLOW, "DEVELOPER-MODIFIED"); }
                 if ui.button("Settings [F1]").clicked(){self.pause();self.tab=Tab::Settings;}
                 ui.separator();
                 if let Some(w) = &self.world {
@@ -313,6 +319,7 @@ impl GameApp {
                 ] {
                     if ui.selectable_value(&mut self.tab, tab, label).changed()&&tab==Tab::Settings {self.pause();}
                 }
+                if self.developer_mode && ui.selectable_value(&mut self.tab, Tab::Inspector, "Developer inspector").changed() {self.pause();}
                 ui.separator();
                 ui.label(RichText::new("COUNTRY DIRECTORY").color(MUTED).small());
                 ui.text_edit_singleline(&mut self.search);
@@ -367,6 +374,36 @@ impl GameApp {
                 );
                 });
             });
+    }
+    fn developer_inspector(&mut self, ui: &mut egui::Ui) {
+        if !self.developer_mode {
+            ui.label("Developer inspection is disabled. Launch with --developer to enable it.");
+            return;
+        }
+        if let Some(edit) = self.inspector.show(
+            ui,
+            &self.content,
+            self.world.as_ref(),
+            &self.selected,
+            self.pending.is_none(),
+        ) {
+            self.speed = 0;
+            if self.pending.is_none()
+                && let Some(world) = &mut self.world
+            {
+                self.status = match world.issue_developer(
+                    &self.content,
+                    self.selected.clone(),
+                    edit,
+                ) {
+                    Ok(()) => {
+                        "Developer edit recorded. Campaign permanently marked developer-modified."
+                            .into()
+                    }
+                    Err(error) => error,
+                };
+            }
+        }
     }
     fn overview(&mut self, ui: &mut egui::Ui) {
         ui.label(RichText::new("THE WORLD AT YOUR DESK").color(MUTED).small());
@@ -1070,7 +1107,7 @@ impl GameApp {
             ),
             (
                 "Controls & recovery",
-                "Default controls: Space pauses/plays, F5 saves, F9 loads, N advances to an important event and F1 opens rebindable controls/scaling. A monthly autosave is written to saves/autosave-COUNTRY-SCENARIO-v2.json. Use Inspect recovery snapshots to review and restore validated primary, pending or backup files while preserving originals. Map markers and the country directory select an inspection context. Only your own government's commands are authorized.",
+                "Default controls: Space pauses/plays, F5 saves, F9 loads, N advances to an important event and F1 opens rebindable controls/scaling. A monthly autosave is written inside saves with a country, scenario and content-specific filename ending in v3.json. Use Inspect recovery snapshots to review and restore validated primary, pending or backup files while preserving originals. Map markers and the country directory select an inspection context. Only your own government's commands are authorized.",
             ),
             (
                 "Content scope",
@@ -1157,7 +1194,7 @@ impl GameApp {
                 ui.label("Restoration preserves the current file and interrupted writes before replacing the primary. The active campaign changes only after successful recovery.");
                 for candidate in &self.recovery {
                     ui.separator();ui.label(format!("{:?}: {}",candidate.kind,candidate.path.display()));
-                    if let Some(error)=&candidate.error{ui.colored_label(Color32::LIGHT_YELLOW,error);}else if let Some(day)=candidate.day {ui.label(format!("Valid campaign at {}",date(day)));if ui.add_enabled(self.pending.is_none(),egui::Button::new(format!("Restore {:?} from {}",candidate.kind,date(day)))).clicked(){chosen=Some(candidate.path.clone());}}
+                    if let Some(error)=&candidate.error{ui.colored_label(Color32::LIGHT_YELLOW,error);}else if let Some(day)=candidate.day {ui.label(format!("Valid campaign at {} · snapshot format {}",date(day),candidate.schema.unwrap_or_default()));if ui.add_enabled(self.pending.is_none(),egui::Button::new(format!("Restore {:?} from {}",candidate.kind,date(day)))).clicked(){chosen=Some(candidate.path.clone());}}
                 }
                 close=ui.button("Close without changes").clicked();
             });
@@ -1169,6 +1206,7 @@ impl GameApp {
                 ) {
                     Ok(world) => {
                         self.selected = world.player.clone();
+                        self.target_date = date((world.day + 30).min(MAX_DAY));
                         self.world = Some(world);
                         self.recovery.clear();
                         self.status =
@@ -1198,6 +1236,7 @@ impl GameApp {
                     Tab::Chronicle => self.chronicle(ui),
                     Tab::Guide => self.guide(ui),
                     Tab::Settings => self.preferences.show(ui),
+                    Tab::Inspector => self.developer_inspector(ui),
                 });
         });
         self.process_shortcuts(ctx);
@@ -1244,15 +1283,32 @@ fn sparkline(ui: &mut egui::Ui, history: &[Observation]) {
     }
 }
 fn main() -> eframe::Result {
-    let args: Vec<_> = std::env::args().collect();
-    let content = if args.len() == 3 && args[1] == "--content" {
-        std::fs::read_to_string(&args[2])
+    let mut args = std::env::args().skip(1);
+    let mut content_path = None;
+    let mut developer_mode = false;
+    let usage = "Usage: desktop [--content pack.json] [--developer]";
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--developer" => developer_mode = true,
+            "--content" if content_path.is_none() => {
+                content_path = args.next();
+                if content_path.is_none() {
+                    eprintln!("{usage}");
+                    std::process::exit(1);
+                }
+            }
+            _ => {
+                eprintln!("{usage}");
+                std::process::exit(1);
+            }
+        }
+    }
+    let content = if let Some(path) = content_path {
+        std::fs::read_to_string(path)
             .map_err(|e| e.to_string())
             .and_then(|s| Content::from_json(&s))
-    } else if args.len() == 1 {
-        Content::bundled()
     } else {
-        Err("Usage: desktop [--content pack.json]".into())
+        Content::bundled()
     };
     let content = content.unwrap_or_else(|error| {
         eprintln!("Cannot start: {error}");
@@ -1267,13 +1323,59 @@ fn main() -> eframe::Result {
             renderer: eframe::Renderer::Wgpu,
             ..Default::default()
         },
-        Box::new(move |cc| Ok(Box::new(GameApp::new(cc, content)))),
+        Box::new(move |cc| Ok(Box::new(GameApp::new(cc, content, developer_mode)))),
     )
 }
 
 #[cfg(test)]
 mod interface_tests {
     use super::*;
+    #[test]
+    fn inspector_requires_explicit_host_capability_even_for_a_modified_save() {
+        let content = Content::bundled().unwrap();
+        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        world
+            .issue_developer(
+                &content,
+                CountryId("CHN".into()),
+                DeveloperEdit {
+                    field: DeveloperField::Tax,
+                    value: 35,
+                },
+            )
+            .unwrap();
+        let expected = world.hash();
+        let ctx = egui::Context::default();
+        let mut app = GameApp::from_context(&ctx, content, settings::Preferences::default());
+        assert!(!app.developer_mode);
+        app.world = Some(world);
+        app.selected = CountryId("CHN".into());
+        app.tab = Tab::Inspector;
+        let output = ctx.run(
+            egui::RawInput {
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1440.0, 940.0),
+                )),
+                ..Default::default()
+            },
+            |ctx| app.render(ctx),
+        );
+        let text = output
+            .shapes
+            .iter()
+            .filter_map(|shape| match &shape.shape {
+                egui::Shape::Text(text) => Some(text.galley.text()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(text.contains("Developer inspection is disabled"));
+        assert!(text.contains("DEVELOPER-MODIFIED"));
+        assert!(!text.contains("live world truth"));
+        assert!(!text.contains("Apply developer edit"));
+        assert_eq!(app.world.unwrap().hash(), expected);
+    }
     #[test]
     fn every_screen_renders_at_compact_and_scaled_sizes_without_mutating_campaign() {
         for (content, own, foreign) in [
@@ -1292,6 +1394,7 @@ mod interface_tests {
                 let ctx = egui::Context::default();
                 let mut app =
                     GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+                app.developer_mode = true;
                 ctx.set_zoom_factor(scale);
                 for selected in [None, Some(own), Some(foreign)] {
                     app.world = selected.map(|_| world.clone());
@@ -1306,6 +1409,7 @@ mod interface_tests {
                         Tab::Chronicle,
                         Tab::Guide,
                         Tab::Settings,
+                        Tab::Inspector,
                     ] {
                         app.tab = tab;
                         let input = egui::RawInput {

@@ -1,3 +1,4 @@
+use crate::developer::CommandOrigin;
 use crate::*;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -153,9 +154,20 @@ pub struct Country {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
-    Enact { policy: String, value: i32 },
-    Borrow { amount: Money },
-    Repay { amount: Money },
+    Enact {
+        policy: String,
+        value: i32,
+    },
+    Borrow {
+        amount: Money,
+    },
+    Repay {
+        amount: Money,
+    },
+    Developer {
+        target: CountryId,
+        edit: DeveloperEdit,
+    },
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Command {
@@ -175,6 +187,8 @@ pub struct Event {
 pub struct JournalEntry {
     pub command: Command,
     pub ai: bool,
+    #[serde(default, skip_serializing_if = "crate::developer::is_false")]
+    pub developer: bool,
 }
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -366,10 +380,14 @@ impl World {
         }
     }
     pub fn execute(&mut self, content: &Content, command: Command) -> Result<(), String> {
-        self.apply(content, command, false)
+        self.apply(content, command, CommandOrigin::Player)
     }
     pub fn issue(&mut self, content: &Content, action: Action) -> Result<(), String> {
-        self.apply(content, self.command(self.player.clone(), action), false)
+        self.apply(
+            content,
+            self.command(self.player.clone(), action),
+            CommandOrigin::Player,
+        )
     }
     pub(crate) fn event(&mut self, country: &CountryId, important: bool, text: impl Into<String>) {
         self.events.push(Event {
@@ -465,12 +483,17 @@ impl World {
                 Action::Borrow { amount } | Action::Repay { amount } => {
                     (1..=1_000_000_000_000).contains(&amount.0)
                 }
+                Action::Developer { target, edit } => {
+                    self.countries.contains_key(target) && edit.validate().is_ok()
+                }
             };
             if command.id != index as u64 + 1
                 || command.day < previous_day
                 || command.day > self.day
                 || !self.countries.contains_key(&command.issuer)
                 || entry.ai == (command.issuer == self.player)
+                || (entry.ai && entry.developer)
+                || entry.developer != matches!(command.action, Action::Developer { .. })
                 || !valid_action
             {
                 return Err(format!("Invalid command journal entry {}", index + 1));

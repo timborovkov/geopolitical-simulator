@@ -36,6 +36,7 @@ pub struct PlayerView {
     pub day: u32,
     pub rules: u32,
     pub content_hash: u64,
+    pub developer_modified: bool,
     /// A government sees only its own private account state. Observers see none.
     pub own: Option<Country>,
     pub reports: BTreeMap<CountryId, PublicCountryReport>,
@@ -92,6 +93,7 @@ impl World {
             day: self.day,
             rules: self.rules,
             content_hash: self.content_hash,
+            developer_modified: self.is_developer_modified(),
             own,
             reports,
         })
