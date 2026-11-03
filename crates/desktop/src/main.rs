@@ -813,6 +813,47 @@ impl GameApp {
         let d = self.content.country(&self.selected).expect("country");
         if w.day == self.content.start_day().expect("validated bookmark") {
             ui.label("Opening state: advance one day for realized income, baskets and delivery.");
+        } else {
+            match living_standards(&c.households) {
+                Ok(indicators) => {
+                    ui.strong(format!(
+                        "Realized household indicators · {} · daily flows",
+                        date(w.day)
+                    ));
+                    let total = indicators.population.0.max(1) as f64;
+                    ui.horizontal_wrapped(|ui| {
+                        metric(
+                            ui,
+                            "Population in groups with income below basket",
+                            format!(
+                                "{:.1}%",
+                                indicators.income_below_basket.0 as f64 * 100.0 / total
+                            ),
+                        );
+                        metric(
+                            ui,
+                            "Population in groups with food below 90%",
+                            format!(
+                                "{:.1}%",
+                                indicators.food_below_target.0 as f64 * 100.0 / total
+                            ),
+                        );
+                        metric(
+                            ui,
+                            "Group-mean income Gini · 0–1",
+                            indicators.group_mean_gini_bps.map_or_else(
+                                || "Undefined".into(),
+                                |gini| format!("{:.3}", f64::from(gini) / 10000.0),
+                            ),
+                        );
+                    });
+                    ui.label(format!("Disposable income {}m/day · essential basket {}m/day · remaining household cash {}m.", indicators.disposable_income.0, indicators.essential_basket.0, indicators.cash.0));
+                    ui.small("These are disjoint group means, not individual poverty estimates. Savings can fund a basket when daily income is low; sufficient income does not guarantee food supply. The Gini excludes inequality within groups and is undefined when total income is zero or group means cannot be represented.");
+                }
+                Err(error) => {
+                    ui.colored_label(Color32::LIGHT_YELLOW, error);
+                }
+            }
         }
         egui::ScrollArea::horizontal().show(ui, |ui| {
             egui::Grid::new("households").striped(true).show(ui, |ui| {
@@ -823,6 +864,8 @@ impl GameApp {
                     "Cash m",
                     "Disposable m/day",
                     "Basket m/day",
+                    "Income / basket %",
+                    "Cash / basket days",
                     "Food %",
                     "Approval %",
                     "Arrears m",
@@ -838,6 +881,19 @@ impl GameApp {
                         h.cash.0.to_string(),
                         (h.income.0 - h.tax.0).to_string(),
                         h.basket_cost.0.to_string(),
+                        if h.basket_cost.0 > 0 {
+                            format!(
+                                "{:.0}",
+                                (h.income.0 - h.tax.0) as f64 * 100.0 / h.basket_cost.0 as f64
+                            )
+                        } else {
+                            "Unavailable".into()
+                        },
+                        if h.basket_cost.0 > 0 {
+                            format!("{:.1}", h.cash.0 as f64 / h.basket_cost.0 as f64)
+                        } else {
+                            "Unavailable".into()
+                        },
                         h.food_coverage.to_string(),
                         h.approval.to_string(),
                         h.arrears.0.to_string(),
@@ -848,6 +904,7 @@ impl GameApp {
                 }
             });
         });
+        ui.small("Income/basket compares realized daily income after tax to the modeled essential basket. Cash/basket is the remaining cash buffer at today's basket cost, ignoring future income and price changes.");
         ui.separator();
         ui.label(format!(
             "Cash reconciliation: groups {}m = household sector {}m. Population: {} = national {}.",

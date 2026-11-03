@@ -228,6 +228,27 @@ fn play(world: &mut World, content: &Content, developer: bool) -> Result<(), Str
                 "households" => {
                     let c = world.player_country();
                     let d = content.country(&world.player).expect("country");
+                    if world.day == content.start_day()? {
+                        println!(
+                            "Opening state: advance one day for realized income and basket indicators."
+                        );
+                    } else {
+                        let indicators = living_standards(&c.households)?;
+                        let total = indicators.population.0.max(1) as f64;
+                        println!(
+                            "{} · population in groups with income below basket {:.1}% · population in groups with food below 90% {:.1}% · group-mean income Gini (0–1) {}",
+                            date(world.day),
+                            indicators.income_below_basket.0 as f64 * 100.0 / total,
+                            indicators.food_below_target.0 as f64 * 100.0 / total,
+                            indicators.group_mean_gini_bps.map_or_else(
+                                || "undefined".into(),
+                                |gini| format!("{:.3}", f64::from(gini) / 10000.0)
+                            )
+                        );
+                        println!(
+                            "Group means exclude within-group inequality. Income pressure is not a poverty headcount: savings can fund food; food supply can fail despite income."
+                        );
+                    }
                     for (h, definition) in c.households.iter().zip(&d.households) {
                         println!(
                             "{} · population {} · employed {}/{} · cash {}m · disposable {}m/day · basket {}m/day · food {}% · approval {}% · arrears {}m",
