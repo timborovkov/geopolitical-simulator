@@ -1,6 +1,6 @@
 # Project instructions
 
-- This repository contains research and a minimal Rust workspace (`sim-core` and `headless`). Keep setup separate from implementation of game systems; add dependencies only when needed for requested work.
+- This repository contains research and an evolving Rust game (`sim-core`, `headless`, `desktop`). Consult the requirement register and development progress before claiming a feature or milestone is complete. Keep setup separate from implementation of game systems; add dependencies only when needed for requested work.
 - The intended game is written in Rust for macOS, Linux and Windows, with government/country control and a default 2000 start.
 - Dictatorships, single-party states, ideologies and other regime configurations are core systems, not optional expansions.
 - Preserve the requested format: priority-ordered implementation requirements plus technical overview; do not add schedules or workload estimates unless asked.

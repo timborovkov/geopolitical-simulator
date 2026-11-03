@@ -3,6 +3,7 @@ mod budget;
 mod content;
 mod governance;
 mod households;
+mod knowledge;
 mod model;
 pub mod persistence;
 mod rules;
@@ -10,6 +11,7 @@ pub use budget::*;
 pub use content::*;
 pub use governance::*;
 pub use households::*;
+pub use knowledge::*;
 pub use model::*;
 
 /// FNV-1a, fixed byte order. A reproducibility checksum, not a security primitive.

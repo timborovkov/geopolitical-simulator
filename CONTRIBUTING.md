@@ -24,7 +24,7 @@ cargo test --workspace --locked
 cargo build --workspace --release --locked
 ```
 
-Use `cargo fmt --all` to apply formatting. Add meaningful behavioral tests as game systems are implemented. A passing empty test harness only verifies the initial workspace compiles. GitHub Actions runs these checks and the release runner on macOS, Linux and Windows; platform checks are only confirmed after those jobs run. GUI, packaging and installer validation will be added when those features exist.
+Use `cargo fmt --all` to apply formatting. Add meaningful behavioral tests as game systems are implemented. A passing empty test harness only verifies the initial workspace compiles. GitHub Actions runs these checks and the release runner on macOS, Linux and Windows; platform checks are only confirmed after those jobs run. CPU UI rendering tests cover the current screens without a GPU. Native interaction checks require a display; packaging and installer validation remain future work.
 
 Keep the simulation independent of graphics, databases, networking and wall-clock time. Follow the boundaries in the [technical overview](docs/technical-research.md); introduce additional crates and dependencies as implemented features require them.
 

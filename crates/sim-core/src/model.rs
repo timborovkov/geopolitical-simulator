@@ -579,6 +579,17 @@ impl World {
                     id.0
                 ));
             }
+            if c.history.iter().any(|o| {
+                o.day > self.day
+                    || !(0..=100).contains(&o.approval)
+                    || !(0..=100).contains(&o.needs)
+                    || [o.treasury.0, o.debt.0, o.output.0]
+                        .iter()
+                        .any(|v| !(0..=1_000_000_000_000).contains(v))
+            }) || c.history.windows(2).any(|pair| pair[0].day >= pair[1].day)
+            {
+                return Err("Invalid statistical history dates or ranges".into());
+            }
             let mut pending = std::collections::BTreeSet::new();
             for project in &c.projects {
                 let p = content
@@ -633,4 +644,56 @@ pub fn date(day: u32) -> String {
         remainder -= length;
         year += 1;
     }
+}
+
+/// Strict Gregorian date input for the supported bookmark/campaign range.
+pub fn parse_date(input: &str) -> Result<u32, String> {
+    if input.len() != 10
+        || input.as_bytes()[4] != b'-'
+        || input.as_bytes()[7] != b'-'
+        || !input
+            .bytes()
+            .enumerate()
+            .all(|(i, b)| i == 4 || i == 7 || b.is_ascii_digit())
+    {
+        return Err("Use YYYY-MM-DD".into());
+    }
+    let year: u32 = input[..4].parse().map_err(|_| "Invalid year")?;
+    let month: usize = input[5..7].parse().map_err(|_| "Invalid month")?;
+    let day: u32 = input[8..].parse().map_err(|_| "Invalid day")?;
+    if !(2000..=2100).contains(&year) || !(1..=12).contains(&month) {
+        return Err("Date must fall within the 2000–2100 campaign range".into());
+    }
+    let leap = year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400));
+    let months = [
+        31,
+        if leap { 29 } else { 28 },
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+    ];
+    if day == 0 || day > months[month - 1] {
+        return Err("Invalid day for this month".into());
+    }
+    let elapsed: u32 = (2000..year)
+        .map(|y| {
+            if y.is_multiple_of(4) && (!y.is_multiple_of(100) || y.is_multiple_of(400)) {
+                366
+            } else {
+                365
+            }
+        })
+        .sum();
+    let result = elapsed + months[..month - 1].iter().sum::<u32>() + day - 1;
+    if result > MAX_DAY {
+        return Err("Date exceeds 2100-01-01".into());
+    }
+    Ok(result)
 }

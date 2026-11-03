@@ -86,6 +86,7 @@ def main():
             ["cargo", "doc", "--workspace", "--no-deps", "--locked"],
             ["cargo", "build", "--workspace", "--release", "--locked"],
             ["cargo", "run", "-p", "headless", "--release", "--locked", "--", "--verify"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked"],
         ]
     env = dict(os.environ, RUSTDOCFLAGS="-D warnings")
     for command in commands:

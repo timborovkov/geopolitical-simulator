@@ -1,4 +1,8 @@
+mod advance;
+mod analysis;
+mod charts;
 mod map;
+mod settings;
 use eframe::egui::{self, Color32, RichText, Stroke, Vec2};
 use sim_core::{persistence, *};
 use std::{
@@ -14,6 +18,8 @@ enum Tab {
     Policies,
     Treasury,
     Society,
+    Analysis,
+    Settings,
     Politics,
     Chronicle,
     Guide,
@@ -37,20 +43,33 @@ struct GameApp {
     money: i64,
     sort_gdp: bool,
     show_ledger: bool,
+    recovery: Vec<persistence::RecoveryCandidate>,
+    analysis: analysis::Analysis,
+    pending: Option<advance::AdvanceJob>,
+    target_date: String,
+    preferences: settings::Preferences,
 }
 impl GameApp {
     fn new(cc: &eframe::CreationContext<'_>, content: Content) -> Self {
+        Self::from_context(&cc.egui_ctx, content, settings::Preferences::load())
+    }
+    fn from_context(
+        ctx: &egui::Context,
+        content: Content,
+        preferences: settings::Preferences,
+    ) -> Self {
         let mut visuals = egui::Visuals::dark();
         visuals.panel_fill = Color32::from_rgb(18, 29, 39);
         visuals.window_fill = Color32::from_rgb(23, 37, 48);
         visuals.selection.bg_fill = Color32::from_rgb(37, 91, 83);
         visuals.selection.stroke = Stroke::new(1.0_f32, MINT);
-        cc.egui_ctx.set_visuals(visuals);
-        let mut style = (*cc.egui_ctx.style()).clone();
+        ctx.set_visuals(visuals);
+        let mut style = (*ctx.style()).clone();
         style.spacing.item_spacing = Vec2::new(10.0, 8.0);
         style.spacing.button_padding = Vec2::new(12.0, 7.0);
-        cc.egui_ctx.set_style(style);
+        ctx.set_style(style);
         let selected = content.countries[0].id.clone();
+        ctx.set_zoom_factor(preferences.active.ui_scale);
         Self {
             content,
             world: None,
@@ -70,45 +89,105 @@ impl GameApp {
             money: 1000,
             sort_gdp: false,
             show_ledger: false,
+            recovery: Vec::new(),
+            analysis: analysis::Analysis::default(),
+            pending: None,
+            target_date: "2000-02-01".into(),
+            preferences,
         }
     }
     fn advance(&mut self, days: u32) {
-        if let Some(w) = &mut self.world {
-            let previous = w.day;
-            match w.advance(&self.content, days) {
-                Ok(()) => {
-                    self.status = format!("Advanced {days} days. {}", date(w.day));
-                    if self.pause_alerts
-                        && w.events
-                            .iter()
-                            .any(|e| e.day > previous && e.country == w.player && e.important)
-                    {
-                        self.speed = 0;
-                        self.status.push_str(" Important event: see Chronicle.");
-                    }
-                    if w.day / 30 != previous / 30 {
-                        let path = PathBuf::from(format!(
-                            "saves/autosave-{}-{}-v2.json",
-                            w.player.0,
-                            w.scenario.id()
-                        ));
-                        let result = std::fs::create_dir_all("saves")
-                            .map_err(|e| e.to_string())
-                            .and_then(|()| persistence::save(&path, w, &self.content));
-                        if let Err(e) = result {
-                            self.speed = 0;
-                            self.status = format!("Autosave failed: {e}");
-                        }
-                    }
-                }
-                Err(e) => {
-                    self.status = e;
+        self.start_advance(days, self.pause_alerts);
+    }
+    fn start_advance(&mut self, days: u32, important: bool) {
+        if !self.recovery.is_empty() {
+            self.speed = 0;
+            self.status = "Close save recovery before advancing.".into();
+            return;
+        }
+        if self.pending.is_some() {
+            self.status =
+                "Already advancing; stop at a day boundary to issue another order.".into();
+            return;
+        }
+        let Some(world) = self.world.as_ref() else {
+            return;
+        };
+        match advance::AdvanceJob::start(world.clone(), self.content.clone(), days, important) {
+            Ok(job) => {
+                self.pending = Some(job);
+                self.status =
+                    format!("Advancing up to {days} days. You can stop at the next day boundary.");
+            }
+            Err(error) => {
+                self.status = error;
+                self.speed = 0;
+            }
+        }
+    }
+    fn pause(&mut self) {
+        self.speed = 0;
+        if let Some(job) = &self.pending {
+            job.stop();
+        }
+    }
+    fn poll_advance(&mut self) {
+        let Some(job) = self.pending.as_ref() else {
+            return;
+        };
+        let result = job.poll();
+        let start = job.start_day;
+        let requested = job.requested;
+        match result {
+            Ok(None) => {}
+            Err(error) => {
+                self.pending = None;
+                self.speed = 0;
+                self.status = error;
+            }
+            Ok(Some(outcome)) => {
+                let days = outcome.world.day - start;
+                let interrupted = days < requested;
+                self.world = Some(outcome.world);
+                self.pending = None;
+                if interrupted || outcome.stopped_for_event || outcome.error.is_some() {
                     self.speed = 0;
+                }
+                self.status = outcome.error.unwrap_or_else(|| {
+                    format!(
+                        "Advanced {days} days to {}{}",
+                        date(self.world.as_ref().expect("world").day),
+                        if interrupted {
+                            " · stopped at an event or requested boundary"
+                        } else {
+                            ""
+                        }
+                    )
+                });
+                let world = self.world.as_ref().expect("world");
+                if world.day / 30 != start / 30 {
+                    let path = PathBuf::from(format!(
+                        "saves/autosave-{}-{}-v2.json",
+                        world.player.0,
+                        world.scenario.id()
+                    ));
+                    let result = std::fs::create_dir_all("saves")
+                        .map_err(|e| e.to_string())
+                        .and_then(|()| persistence::save(&path, world, &self.content));
+                    if let Err(error) = result {
+                        self.speed = 0;
+                        self.status = format!("Autosave failed: {error}");
+                    }
                 }
             }
         }
     }
     fn issue(&mut self, action: Action) {
+        if self.pending.is_some() {
+            self.status = "Stop advancing before issuing a command.".into();
+            return;
+        }
+        self.speed = 0;
         if let Some(w) = &mut self.world {
             self.status = match w.issue(&self.content, action) {
                 Ok(()) => "Command accepted. Inspect the Chronicle and pending commitments.".into(),
@@ -117,6 +196,11 @@ impl GameApp {
         }
     }
     fn save(&mut self) {
+        if self.pending.is_some() {
+            self.pause();
+            self.status = "Stopping at a day boundary; save once advancement finishes.".into();
+            return;
+        }
         self.speed = 0;
         if let Some(w) = &self.world {
             let path = PathBuf::from(&self.save_path);
@@ -135,14 +219,26 @@ impl GameApp {
         }
     }
     fn load(&mut self) {
+        if self.pending.is_some() {
+            self.pause();
+            self.status = "Stopping at a day boundary; load once advancement finishes.".into();
+            return;
+        }
         self.speed = 0;
         match persistence::load(&PathBuf::from(&self.save_path), &self.content) {
             Ok(w) => {
                 self.selected = w.player.clone();
+                self.target_date = date((w.day + 30).min(MAX_DAY));
                 self.world = Some(w);
                 self.status = "Campaign loaded. Simulation paused.".into();
             }
-            Err(e) => self.status = e,
+            Err(e) => {
+                self.status = e;
+                self.recovery = persistence::recovery_candidates(
+                    &PathBuf::from(&self.save_path),
+                    &self.content,
+                );
+            }
         }
     }
     fn top(&mut self, ctx: &egui::Context) {
@@ -150,19 +246,16 @@ impl GameApp {
             ui.horizontal_wrapped(|ui| {
                 ui.label(RichText::new("STATECRAFT").size(23.0).strong().color(MINT));
                 ui.label(RichText::new("A NEW CENTURY").color(MUTED));
+                if ui.button("Settings [F1]").clicked(){self.pause();self.tab=Tab::Settings;}
                 ui.separator();
                 if let Some(w) = &self.world {
                     ui.strong(date(w.day));
                     ui.label(format!("Governing {} · {}", w.player.0, w.scenario.id()));
                     if ui
-                        .button(if self.speed == 0 {
-                            "Play [Space]"
-                        } else {
-                            "Pause [Space]"
-                        })
+                        .button(format!("{} [{}]",if self.speed==0&&self.pending.is_none(){"Play"}else{"Pause"},self.preferences.active.pause.name()))
                         .clicked()
                     {
-                        self.speed = if self.speed == 0 { 1 } else { 0 };
+                        if self.speed>0||self.pending.is_some(){self.pause();}else{self.speed=1;}
                         self.last_tick = Instant::now();
                     }
                     for (days, label) in [(1, "1×"), (7, "7×"), (30, "30×")] {
@@ -176,21 +269,13 @@ impl GameApp {
                     if ui.button("+30 days").clicked() {
                         self.advance(30);
                     }
-                    if ui.button("Next event").clicked() {
-                        self.speed = 0;
-                        let start = self.world.as_ref().expect("world").day;
-                        for _ in 0..365 {
-                            self.advance(1);
-                            let w = self.world.as_ref().expect("world");
-                            if w.day == MAX_DAY
-                                || w.events
-                                    .iter()
-                                    .any(|e| e.day > start && e.country == w.player && e.important)
-                            {
-                                break;
-                            }
-                        }
+                    if ui.add_enabled(self.pending.is_none(),egui::Button::new("Next event")).clicked(){self.speed=0;let remaining=MAX_DAY-self.world.as_ref().expect("world").day;self.start_advance(365.min(remaining),true);}
+                    ui.add(egui::TextEdit::singleline(&mut self.target_date).desired_width(95.0).hint_text("YYYY-MM-DD"));
+                    if ui.add_enabled(self.pending.is_none(),egui::Button::new("Advance to date")).clicked(){
+                        match parse_date(&self.target_date){Ok(day)=>{let current=self.world.as_ref().expect("world").day;if day<current{self.status="Choose a future date; load a save to return to an earlier state.".into();}else{self.speed=0;self.advance(day-current);}},Err(error)=>self.status=error}
                     }
+                    if let Some(job)=&self.pending{ui.label(format!("Advancing {} / {} days",job.completed.load(std::sync::atomic::Ordering::Relaxed),job.requested));if ui.button("Stop at next day").clicked(){self.pause();}}
+
                 } else {
                     ui.label("1 January 2000 · Offline single player");
                 }
@@ -208,6 +293,8 @@ impl GameApp {
             .default_width(230.0)
             .width_range(190.0..=320.0)
             .show(ctx, |ui| {
+                let panel_height=ui.available_height();
+                egui::ScrollArea::vertical().id_salt("sidebar_scroll").show(ui,|ui| {
                 ui.add_space(10.0);
                 ui.label(RichText::new("GOVERNMENT DESK").color(MUTED).small());
                 for (tab, label) in [
@@ -215,11 +302,13 @@ impl GameApp {
                     (Tab::Policies, "02  Policies & delivery"),
                     (Tab::Society, "03  Households & needs"),
                     (Tab::Treasury, "04  Treasury & accounts"),
-                    (Tab::Politics, "05  Institutions & parties"),
-                    (Tab::Chronicle, "06  Chronicle & AI"),
-                    (Tab::Guide, "07  How to play"),
+                    (Tab::Analysis, "05  Trends & comparisons"),
+                    (Tab::Politics, "06  Institutions & parties"),
+                    (Tab::Chronicle, "07  Chronicle & AI"),
+                    (Tab::Guide, "08  How to play"),
+                    (Tab::Settings,"09  Controls & accessibility"),
                 ] {
-                    ui.selectable_value(&mut self.tab, tab, label);
+                    if ui.selectable_value(&mut self.tab, tab, label).changed()&&tab==Tab::Settings {self.pause();}
                 }
                 ui.separator();
                 ui.label(RichText::new("COUNTRY DIRECTORY").color(MUTED).small());
@@ -227,7 +316,7 @@ impl GameApp {
                 ui.checkbox(&mut self.sort_gdp, "Sort by opening GDP");
                 egui::ScrollArea::vertical()
                     .id_salt("country_list")
-                    .max_height((ui.available_height() - 230.0).max(100.0))
+                    .max_height((panel_height-650.0).clamp(80.0,200.0))
                     .show(ui, |ui| {
                         let mut countries: Vec<_> = self.content.countries.iter().collect();
                         if self.sort_gdp {
@@ -256,7 +345,7 @@ impl GameApp {
                     ui.checkbox(&mut self.pause_alerts, "Pause on important events");
                 }
                 ui.label("Save file / recovery .bak path");
-                ui.text_edit_singleline(&mut self.save_path);
+                ui.add(egui::TextEdit::singleline(&mut self.save_path).id(egui::Id::new("campaign_save_path")));
                 ui.horizontal(|ui| {
                     if ui
                         .add_enabled(self.world.is_some(), egui::Button::new("Save"))
@@ -268,10 +357,12 @@ impl GameApp {
                         self.load();
                     }
                 });
-                ui.small("F5 save · F9 load · Tab to navigate");
+                if ui.button("Inspect recovery snapshots").clicked(){self.speed=0;self.recovery=persistence::recovery_candidates(&PathBuf::from(&self.save_path),&self.content);}
+                ui.small(format!("{} save · {} load · {} next event · Tab to navigate",self.preferences.active.save.name(),self.preferences.active.load.name(),self.preferences.active.next_event.name()));
                 ui.small(
                     "Sourced reference GDP/population are identified in the overview; remaining values are authored.",
                 );
+                });
             });
     }
     fn overview(&mut self, ui: &mut egui::Ui) {
@@ -284,11 +375,19 @@ impl GameApp {
         ui.heading(&d.name);
         ui.label(format!(
             "{} · {:?} · {} {}",
-            d.capital, d.regime, d.office, d.executive
+            d.capital,
+            d.regime,
+            d.office,
+            self.world
+                .as_ref()
+                .map_or(d.executive.as_str(), |w| w.countries[&self.selected]
+                    .executive
+                    .as_str())
         ));
         self.map.show(
             ui,
             &self.content,
+            self.world.as_ref(),
             &mut self.selected,
             (ui.available_height() * 0.48).clamp(200.0, 420.0),
         );
@@ -301,6 +400,9 @@ impl GameApp {
             for fact in facts {ui.label(format!("{}: {} {} ({} observation; source {}). Applied {}. {}",fact.field,fact.original_value,fact.original_units,fact.observation_period,fact.source,fact.applied_value,fact.transformation));ui.small(format!("Pinned mirror revision {}. Primary API not independently reconciled.",fact.source_version));}
             ui.small("Debt, capacities, household profiles, seats, preferences and political rules are authored. Identity names remain a starter curation; all simulated outcomes branch from the bookmark.");
         });
+        if self.foreign_report(ui) {
+            return;
+        }
         if self.world.is_none() {
             ui.add_space(10.0);
             ui.heading("Your first mandate");
@@ -394,9 +496,120 @@ impl GameApp {
             if let Some(event) = w.events.iter().rev().find(|e| e.country == self.selected) {
                 ui.label(format!("{}  {}", date(event.day), event.text));
             }
+            self.situation(ui);
         }
     }
+    fn situation(&mut self, ui: &mut egui::Ui) {
+        let Some(world) = &self.world else {
+            return;
+        };
+        if self.selected != world.player || world.day == 0 {
+            return;
+        }
+        let c = world.player_country();
+        let (energy, food, tax, available, gap) = (
+            c.report.energy_coverage,
+            c.report.food_coverage,
+            c.tax,
+            c.accounts.treasury.0 - c.committed_cash.0,
+            c.report.spending.0 + c.report.interest.0 + c.report.unpaid.0 - c.report.revenue.0,
+        );
+        let rules = &self
+            .content
+            .country(&world.player)
+            .expect("country")
+            .government;
+        let backing = if rules.route == DecisionRoute::Legislature {
+            c.legislative_support
+        } else {
+            c.elite_support
+        };
+        let authority_blocked =
+            backing < rules.threshold || c.council_support < rules.council_threshold;
+        ui.separator();
+        ui.heading("Cabinet situation brief");
+        if authority_blocked {
+            ui.label("Governing support is below the threshold for ordinary policy decisions. Negotiate support before committing to a new program.");
+            if ui.button("Draft governing support talks").clicked() {
+                self.policy = "coalition".into();
+                self.value = 1;
+                self.tab = Tab::Policies;
+            }
+        }
+        if gap > 0 {
+            ui.label(format!("Funding pressure: last-day obligations exceeded receipts by {gap}m. Available cash {available}m covers about {} days at that rate; this is a run-rate estimate, not a guarantee.",available/gap));
+            ui.horizontal(|ui| {
+                if ui.button("Compare wage-tax reform").clicked() {
+                    self.policy = "income_tax".into();
+                    self.value = (tax + 3).min(45);
+                    self.tab = Tab::Policies;
+                }
+                if ui.button("Review financing").clicked() {
+                    self.tab = Tab::Treasury;
+                }
+            });
+        }
+        if energy < 90 {
+            ui.label(format!("Energy delivery {energy}%: supply is limiting feasible production. Capacity takes time and capital; imports have a quantity limit."));
+            if ui.button("Draft energy capacity").clicked() {
+                self.policy = "energy".into();
+                self.value = 1;
+                self.tab = Tab::Policies;
+            }
+        }
+        if food < 90 {
+            ui.label(format!("Food delivery {food}%: inspect both physical supply and each household group's purchasing power."));
+            ui.horizontal(|ui| {
+                if ui.button("Draft food resilience").clicked() {
+                    self.policy = "agriculture".into();
+                    self.value = 1;
+                    self.tab = Tab::Policies;
+                }
+                if ui.button("Inspect household needs").clicked() {
+                    self.tab = Tab::Society;
+                }
+            });
+        }
+        if gap <= 0 && energy >= 90 && food >= 90 {
+            ui.label("Current essential needs and cash flow are stable. Review debt, compare future commitments and keep capacity for supply shocks.");
+        }
+        ui.small("Drafts still require the normal feasibility preview, authority and funding checks. A brief describes current pressures; it does not promise an optimal strategy.");
+    }
+    fn foreign_report(&self, ui: &mut egui::Ui) -> bool {
+        let Some(w) = &self.world else {
+            return false;
+        };
+        if self.selected == w.player {
+            return false;
+        }
+        let report = w
+            .public_report(&self.content, &self.selected)
+            .expect("selected country");
+        ui.heading(format!("{} · published country report", report.name));
+        ui.label(format!(
+            "Executive: {} · population {:.1}m · opening GDP {}m/year",
+            report.executive,
+            report.population.0 as f64 / 1_000_000.0,
+            report.opening_gdp.0
+        ));
+        if let Some(latest) = report.latest {
+            ui.label(format!("Statistical release {} ({} days old): approval {}%, needs {}%, debt {}m, daily output {}m.",date(latest.day),w.day-latest.day,latest.approval,latest.needs,latest.debt.0,latest.daily_output.0));
+        } else {
+            ui.label("No statistical release yet. The first report is due at a political/statistical review; missing observations are not zero.");
+        }
+        ui.label("Foreign treasury accounts, household finances, council deliberations and AI decision logs are outside your government's information view.");
+        ui.label("Current public legislative seats");
+        let definition = self.content.country(&self.selected).expect("country");
+        for party in &definition.parties {
+            ui.label(format!("{}: {} seats", party.name, report.seats[&party.id]));
+        }
+        true
+    }
     fn policies(&mut self, ui: &mut egui::Ui) {
+        if self.foreign_report(ui) {
+            return;
+        }
+
         ui.heading("Policies & implementation");
         ui.label("Compare a commitment, check its route and cash cost, then approve. The effect starts after implementation completes.");
         egui::ComboBox::from_label("Program")
@@ -504,6 +717,10 @@ impl GameApp {
         }
     }
     fn society(&self, ui: &mut egui::Ui) {
+        if self.foreign_report(ui) {
+            return;
+        }
+
         ui.heading("Households, employment & needs");
         ui.label("Groups partition population and household cash without duplication. Profiles, employment responses and baskets are authored gameplay assumptions; group totals reconcile to national accounts.");
         let Some(w) = &self.world else {
@@ -565,6 +782,10 @@ impl GameApp {
         }
     }
     fn treasury(&mut self, ui: &mut egui::Ui) {
+        if self.foreign_report(ui) {
+            return;
+        }
+
         ui.heading("Treasury & accounts");
         ui.label("Money: millions of constant-2000 USD-equivalent game credits. Annual GDP is an opening calibration; receipts and payments below are realized daily flows.");
         let Some(w) = &self.world else {
@@ -701,6 +922,10 @@ impl GameApp {
         }
     }
     fn politics(&mut self, ui: &mut egui::Ui) {
+        if self.foreign_report(ui) {
+            return;
+        }
+
         let d = self
             .content
             .country(&self.selected)
@@ -769,6 +994,10 @@ impl GameApp {
         ui.label("Cohort needs, disposable income, taxes, employment and funded services affect opinion. Parliamentary support, elite backing and council backing are distinct. Seat allocation, succession and preferences remain scenario approximations.");
     }
     fn chronicle(&self, ui: &mut egui::Ui) {
+        if self.foreign_report(ui) {
+            return;
+        }
+
         ui.heading("Chronicle & decisions");
         ui.label("Accepted outcomes, delivery dates and AI explanations. Most recent first; filtered to the selected country.");
         let Some(w) = &self.world else {
@@ -806,7 +1035,7 @@ impl GameApp {
             ),
             (
                 "3. Watch delivery",
-                "Advance time. A funded commitment takes 30–180 base days plus an administrative delay. Completion appears in the Chronicle. Supply shocks may still disrupt delivery. Imports are bounded and paid from business cash.",
+                "Advance time. A funded commitment takes 30–180 base days plus consent and administrative delays. Completion appears in the Chronicle. Supply shocks may still disrupt delivery. Imports are bounded and paid from business cash.",
             ),
             (
                 "4. Balance competing needs",
@@ -822,7 +1051,7 @@ impl GameApp {
             ),
             (
                 "Controls & recovery",
-                "Space pauses/plays; F5 saves and F9 loads the path in the sidebar. A monthly autosave is written to saves/autosave-COUNTRY-SCENARIO-v2.json. Previous files are retained as .json.bak; enter that path to recover. Map markers and the country directory select an inspection context. Only your own government's commands are authorized.",
+                "Default controls: Space pauses/plays, F5 saves, F9 loads, N advances to an important event and F1 opens rebindable controls/scaling. A monthly autosave is written to saves/autosave-COUNTRY-SCENARIO-v2.json. Use Inspect recovery snapshots to review and restore validated primary, pending or backup files while preserving originals. Map markers and the country directory select an inspection context. Only your own government's commands are authorized.",
             ),
             (
                 "Content scope",
@@ -841,29 +1070,90 @@ impl GameApp {
         ));
     }
 }
-impl eframe::App for GameApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if !ctx.wants_keyboard_input() {
-            if ctx.input(|i| i.key_pressed(egui::Key::Space)) && self.world.is_some() {
-                self.speed = if self.speed == 0 { 1 } else { 0 };
-                self.last_tick = Instant::now();
+impl GameApp {
+    fn process_shortcuts(&mut self, ctx: &egui::Context) {
+        if settings::shortcut(ctx, self.preferences.active.pause) && self.world.is_some() {
+            if self.speed > 0 || self.pending.is_some() {
+                self.pause();
+            } else {
+                self.speed = 1;
             }
-            if ctx.input(|i| i.key_pressed(egui::Key::F5)) {
-                self.save();
-            }
-            if ctx.input(|i| i.key_pressed(egui::Key::F9)) {
-                self.load();
+            self.last_tick = Instant::now();
+        }
+        if settings::shortcut(ctx, self.preferences.active.save) {
+            self.save();
+        }
+        if settings::shortcut(ctx, self.preferences.active.load) {
+            self.load();
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::F1)) {
+            self.pause();
+            self.tab = Tab::Settings;
+        }
+        if settings::shortcut(ctx, self.preferences.active.next_event)
+            && let Some(world) = &self.world
+        {
+            let remaining = MAX_DAY - world.day;
+            self.speed = 0;
+            self.start_advance(remaining.min(365), true);
+        }
+        if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
+            self.pause();
+            if self.recovery.is_empty() {
+                self.tab = Tab::Overview;
+            } else {
+                self.recovery.clear();
             }
         }
-        if self.speed > 0 && self.last_tick.elapsed() >= Duration::from_millis(350) {
+    }
+    fn render(&mut self, ctx: &egui::Context) {
+        self.poll_advance();
+        if self.preferences.active.pause_on_focus_loss
+            && !ctx.input(|i| i.focused)
+            && (self.speed > 0 || self.pending.is_some())
+        {
+            self.pause();
+            self.status = "Paused because the game window lost focus.".into();
+        }
+        if self.speed > 0
+            && self.pending.is_none()
+            && self.last_tick.elapsed() >= Duration::from_millis(350)
+        {
             self.advance(self.speed);
             self.last_tick = Instant::now();
         }
-        if self.speed > 0 {
-            ctx.request_repaint_after(Duration::from_millis(50));
-        }
         self.top(ctx);
         self.sidebar(ctx);
+        if !self.recovery.is_empty() {
+            let mut chosen = None;
+            let mut close = false;
+            egui::Window::new("Save recovery · review before restoring").collapsible(false).show(ctx,|ui|{
+                ui.label("Restoration preserves the current file and interrupted writes before replacing the primary. The active campaign changes only after successful recovery.");
+                for candidate in &self.recovery {
+                    ui.separator();ui.label(format!("{:?}: {}",candidate.kind,candidate.path.display()));
+                    if let Some(error)=&candidate.error{ui.colored_label(Color32::LIGHT_YELLOW,error);}else if let Some(day)=candidate.day {ui.label(format!("Valid campaign at {}",date(day)));if ui.add_enabled(self.pending.is_none(),egui::Button::new(format!("Restore {:?} from {}",candidate.kind,date(day)))).clicked(){chosen=Some(candidate.path.clone());}}
+                }
+                close=ui.button("Close without changes").clicked();
+            });
+            if let Some(candidate) = chosen {
+                match persistence::restore(
+                    &PathBuf::from(&self.save_path),
+                    &candidate,
+                    &self.content,
+                ) {
+                    Ok(world) => {
+                        self.selected = world.player.clone();
+                        self.world = Some(world);
+                        self.recovery.clear();
+                        self.status =
+                            "Recovered snapshot. Original files preserved; game paused.".into();
+                    }
+                    Err(error) => self.status = error,
+                }
+            } else if close {
+                self.recovery.clear();
+            }
+        }
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::ScrollArea::vertical()
                 .id_salt("main_scroll")
@@ -872,11 +1162,27 @@ impl eframe::App for GameApp {
                     Tab::Policies => self.policies(ui),
                     Tab::Treasury => self.treasury(ui),
                     Tab::Society => self.society(ui),
+                    Tab::Analysis => self.analysis.show(
+                        ui,
+                        &self.content,
+                        self.world.as_ref(),
+                        &mut self.selected,
+                    ),
                     Tab::Politics => self.politics(ui),
                     Tab::Chronicle => self.chronicle(ui),
                     Tab::Guide => self.guide(ui),
+                    Tab::Settings => self.preferences.show(ui),
                 });
         });
+        self.process_shortcuts(ctx);
+        if self.speed > 0 || self.pending.is_some() {
+            ctx.request_repaint_after(Duration::from_millis(50));
+        }
+    }
+}
+impl eframe::App for GameApp {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.render(ctx);
     }
 }
 fn metric(ui: &mut egui::Ui, label: &str, value: String) {
@@ -937,4 +1243,121 @@ fn main() -> eframe::Result {
         },
         Box::new(move |cc| Ok(Box::new(GameApp::new(cc, content)))),
     )
+}
+
+#[cfg(test)]
+mod interface_tests {
+    use super::*;
+    #[test]
+    fn every_screen_renders_at_compact_and_scaled_sizes_without_mutating_campaign() {
+        let content = Content::bundled().unwrap();
+        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        world.advance(&content, 360).unwrap();
+        let expected = world.hash();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            let mut app =
+                GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            for selected in [None, Some("GBR"), Some("CHN")] {
+                app.world = selected.map(|_| world.clone());
+                app.selected = CountryId(selected.unwrap_or("GBR").into());
+                for tab in [
+                    Tab::Overview,
+                    Tab::Policies,
+                    Tab::Society,
+                    Tab::Treasury,
+                    Tab::Analysis,
+                    Tab::Politics,
+                    Tab::Chronicle,
+                    Tab::Guide,
+                    Tab::Settings,
+                ] {
+                    app.tab = tab;
+                    let input = egui::RawInput {
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(1280.0 / scale, 800.0 / scale),
+                        )),
+                        focused: true,
+                        ..Default::default()
+                    };
+                    let output = ctx.run(input, |ctx| app.render(ctx));
+                    assert!(!output.shapes.is_empty());
+                    assert!(
+                        output
+                            .shapes
+                            .iter()
+                            .all(|shape| shape.clip_rect.is_finite())
+                    );
+                    if let Some(w) = &app.world {
+                        assert_eq!(w.hash(), expected);
+                    }
+                }
+            }
+        }
+    }
+    #[test]
+    fn load_shortcut_uses_text_edited_in_the_same_frame() {
+        let content = Content::bundled().unwrap();
+        let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        let dir = std::env::temp_dir().join(format!(
+            "geosim-ui-key-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("wanted.json");
+        let mut wanted = world.clone();
+        wanted.advance(&content, 2).unwrap();
+        persistence::save(&path, &wanted, &content).unwrap();
+        let ctx = egui::Context::default();
+        let mut app = GameApp::from_context(&ctx, content, settings::Preferences::default());
+        app.world = Some(world);
+        app.save_path = dir.join("old.json").display().to_string();
+        let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1440.0, 940.0));
+        let _ = ctx.run(
+            egui::RawInput {
+                screen_rect: Some(screen),
+                focused: true,
+                ..Default::default()
+            },
+            |ctx| app.render(ctx),
+        );
+        ctx.memory_mut(|memory| memory.request_focus(egui::Id::new("campaign_save_path")));
+        let control = egui::Modifiers {
+            ctrl: true,
+            command: true,
+            ..Default::default()
+        };
+        let input = egui::RawInput {
+            screen_rect: Some(screen),
+            focused: true,
+            events: vec![
+                egui::Event::Key {
+                    key: egui::Key::A,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: control,
+                },
+                egui::Event::Text(path.display().to_string()),
+                egui::Event::Key {
+                    key: egui::Key::F9,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ],
+            ..Default::default()
+        };
+        let _ = ctx.run(input, |ctx| app.render(ctx));
+        assert_eq!(app.save_path, path.display().to_string());
+        assert_eq!(app.world.as_ref().unwrap().hash(), wanted.hash());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 }

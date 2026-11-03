@@ -14,7 +14,7 @@ Launch the native desktop game:
 cargo run -p desktop --release --locked
 ```
 
-Choose a country, select **Sandbox** or the authored **Fiscal and supply crisis**, and click **Begin**. Advance a day, inspect households and accounts, preview a policy, secure consent, fund it and watch delivery. Space pauses/plays; F5 saves and F9 loads. The interface includes a guide and a five-year objective. Elections and leadership changes continue country play.
+Choose a country, select **Sandbox** or the authored **Fiscal and supply crisis**, and click **Begin**. Advance a day, inspect households and accounts, preview a policy, secure consent, fund it and watch delivery. Space pauses/plays; F5 saves, F9 loads and N advances to the next important event. F1 opens rebindable controls and interface scaling; Escape pauses and returns to the map. The interface includes a situation brief, charts, pinned country comparisons, a guide and a five-year objective. Long advances run off the UI thread, can stop at day boundaries and respect important-event pauses. Elections and leadership changes continue country play.
 
 Play in a terminal:
 
@@ -46,6 +46,8 @@ cargo run --release --locked -- --country CHN --seed 2000 --days 1827 --verify
 
 Add `--scenario crisis` to the headless command for the authored fiscal/supply-crisis campaign.
 
+The desktop map supports zoom at the pointer, focus-on-country, keyboard panning and dated approval/needs/debt overlays. Charts use actual release dates and provide hover, keyboard inspection and text values. Foreign reports expose published aggregates; private household accounts, treasury and AI traces stay within the controlled government.
+
 Both clients load the same bundled content. Supply `--content path/to/pack.json` to either executable to use a validated local JSON pack. Unknown schema, broken references, invalid ranges and incompatible saves produce explicit errors.
 
 ## World and game data
@@ -58,9 +60,9 @@ Money is expressed in millions of constant-2000 USD-equivalent game credits. Dis
 
 ## Save, recover and replay
 
-The desktop writes manual saves to the path in its sidebar, initially `saves/campaign-v2.json`. Every crossed 30-day reporting boundary writes `saves/autosave-COUNTRY-SCENARIO-v2.json`. A completed save replaces the primary file using a temporary file and retains the previous snapshot as `.json.bak`. To recover, load that backup path explicitly. An interrupted `.json.tmp` is preserved for inspection and blocks replacement until resolved. Saves include content/rules hashes, commands, projects and deterministic shock state; incompatible or damaged files fail without replacing the active campaign.
+The desktop writes manual saves to the path in its sidebar, initially `saves/campaign-v2.json`. Every crossed 30-day reporting boundary writes `saves/autosave-COUNTRY-SCENARIO-v2.json`. A completed save replaces the primary file using a temporary file and retains the previous snapshot as `.json.bak`. Use **Inspect recovery snapshots** to review the primary, pending write, backup or interrupted backup/recovery stage before restoring. Originals are archived before recovery; a damaged primary never replaces the last validated backup. Interrupted writes block ordinary replacement until explicitly resolved. Saves include content/rules hashes, commands, projects and deterministic shock state; incompatible or damaged files fail without replacing the active campaign.
 
-The terminal uses `households`, `budget`, `data`, `save PATH`, `load PATH` and `replay`. Paths in terminal commands cannot contain spaces. `--save FILE` and `--load FILE` work in the runner. Save, rules and content formats are now version 2. Version-1 files are rejected without conversion or modification; the default v2 save paths keep them separate. Replay re-executes human commands and deterministic AI and checks the canonical final state hash. Hashes detect accidental corruption; they are not cryptographic authentication.
+The terminal uses `until YYYY-MM-DD`, `households`, `budget`, `data`, `save PATH`, `load PATH` and `replay`. Paths in terminal commands cannot contain spaces. `--save FILE` and `--load FILE` work in the runner. Save, rules and content formats are now version 2. Version-1 files are rejected without conversion or modification; the default v2 save paths keep them separate. Replay re-executes human commands and deterministic AI and checks the canonical final state hash. Hashes detect accidental corruption; they are not cryptographic authentication.
 
 ## Validation
 
@@ -70,7 +72,7 @@ Python 3.11+ is development tooling only. Run the same checks as CI:
 python3 scripts/validate.py
 ```
 
-This checks document/register consistency, local Markdown links, whitespace, Rust formatting, Clippy with warnings denied, tests, Rust docs with warnings denied, workspace release builds (including desktop) and the headless replay runner. CI is configured on macOS, Linux and Windows; actual platform validation requires those jobs to run. Desktop visual/interaction checks require a display and are separate from the headless checks.
+This checks document/register consistency, local Markdown links, whitespace, Rust formatting, Clippy with warnings denied, tests, Rust docs with warnings denied, workspace release builds (including desktop) and the headless replay runner and a worked recovery campaign that achieves the five-year mandate in all 15 seeded countries through ordinary validated commands. CI is configured on macOS, Linux and Windows; actual platform validation requires those jobs to run. Desktop visual/interaction checks require a display and are separate from the headless checks.
 
 ```sh
 cargo fmt --all -- --check
@@ -78,6 +80,14 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked
 cargo build --workspace --release --locked
 ```
+
+A reproducible successful crisis strategy can also be inspected and run:
+
+```sh
+cargo run -p headless --example recovery --release --locked
+```
+
+This example borrows for runway, proposes tax/spending reforms, builds supply and administrative capacity, maintains support and repays debt when affordable. It uses the same validators, costs and delays as a player. The seed-17 acceptance run establishes that every initial country has a recovery path; it is not a universal optimal AI or a guarantee of balance for every seed. See [development progress](docs/development-progress.md) for the full remaining scope.
 
 ## Repository and research
 

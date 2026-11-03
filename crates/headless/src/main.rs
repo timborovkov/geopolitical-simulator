@@ -79,7 +79,7 @@ fn play(world: &mut World, content: &Content) -> Result<(), String> {
                 "" => {}
                 "quit" | "exit" => return Ok(()),
                 "help" => println!(
-                    "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | next | borrow MILLIONS | repay MILLIONS\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                    "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                 ),
                 "status" => status(world, content),
                 "countries" => {
@@ -112,6 +112,16 @@ fn play(world: &mut World, content: &Content) -> Result<(), String> {
                     world.advance(content, number(words.get(1))?)?;
                     status(world, content);
                 }
+                "until" => {
+                    let target = parse_date(words.get(1).ok_or("Missing date YYYY-MM-DD")?)?;
+                    if target < world.day {
+                        return Err("Cannot rewind; load an earlier snapshot".into());
+                    }
+                    while world.day < target {
+                        world.advance(content, (target - world.day).min(3660))?;
+                    }
+                    status(world, content);
+                }
                 "next" => {
                     println!("Advanced {} days", world.advance_to_event(content)?);
                     status(world, content);
@@ -130,8 +140,28 @@ fn play(world: &mut World, content: &Content) -> Result<(), String> {
                 )?,
                 "events" => {
                     let id = words.get(1).map_or(world.player.0.as_str(), |s| *s);
-                    for e in world.events.iter().filter(|e| e.country.0 == id) {
-                        println!("{} · {}", date(e.day), e.text);
+                    if id == world.player.0 {
+                        for e in world.events.iter().filter(|e| e.country == world.player) {
+                            println!("{} · {}", date(e.day), e.text);
+                        }
+                    } else {
+                        let report = world.public_report(content, &CountryId(id.into()))?;
+                        println!(
+                            "{} · {} · public information only; foreign government decisions and private accounts are excluded",
+                            report.name, report.executive
+                        );
+                        if let Some(release) = report.latest {
+                            println!(
+                                "Published {}: approval {}%, needs {}%, debt {}m, daily output {}m",
+                                date(release.day),
+                                release.approval,
+                                release.needs,
+                                release.debt.0,
+                                release.daily_output.0
+                            );
+                        } else {
+                            println!("No statistical release yet");
+                        }
                     }
                 }
                 "ledger" => {
