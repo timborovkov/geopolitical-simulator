@@ -53,7 +53,7 @@ fn observer_has_only_public_reports_and_absent_releases_stay_unknown() {
 
 #[test]
 fn presentation_and_projection_changes_preserve_version_two_campaign_replay() {
-    let c = Content::bundled().unwrap();
+    let c = Content::classic_bundled().unwrap();
     let mut w = World::new(&c, CountryId("GBR".into()), 2000).unwrap();
     w.advance(&c, 360).unwrap();
     assert_eq!(w.hash(), 0xc3994a175e880d20);

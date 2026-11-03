@@ -58,11 +58,18 @@ struct GameApp {
     inspector: inspector::Inspector,
     help: help::Help,
     cashflows: cashflows::CashFlows,
+    bundled_catalog: bool,
 }
 impl GameApp {
-    fn new(cc: &eframe::CreationContext<'_>, content: Content, developer_mode: bool) -> Self {
+    fn new(
+        cc: &eframe::CreationContext<'_>,
+        content: Content,
+        developer_mode: bool,
+        bundled_catalog: bool,
+    ) -> Self {
         let mut app = Self::from_context(&cc.egui_ctx, content, settings::Preferences::load());
         app.developer_mode = developer_mode;
+        app.bundled_catalog = bundled_catalog;
         app
     }
     fn from_context(
@@ -116,6 +123,7 @@ impl GameApp {
             inspector: inspector::Inspector::default(),
             help: help::Help::default(),
             cashflows: cashflows::CashFlows::default(),
+            bundled_catalog: false,
         }
     }
     fn advance(&mut self, days: u32) {
@@ -244,21 +252,40 @@ impl GameApp {
             return;
         }
         self.speed = 0;
-        match persistence::load(&PathBuf::from(&self.save_path), &self.content) {
-            Ok(w) => {
+        let path = PathBuf::from(&self.save_path);
+        let loaded = if self.bundled_catalog {
+            persistence::load_bundled(&path)
+        } else {
+            persistence::load(&path, &self.content).map(|world| (self.content.clone(), world))
+        };
+        match loaded {
+            Ok((content, w)) => {
+                self.content = content;
                 self.selected = w.player.clone();
                 self.target_date = date((w.day + 30).min(MAX_DAY));
                 self.world = Some(w);
-                self.status = "Campaign loaded. Simulation paused.".into();
+                self.status = if self.content.rules == 2 {
+                    "Classic fixed-price campaign loaded. Simulation paused."
+                } else {
+                    "Relative-price campaign loaded. Simulation paused."
+                }
+                .into();
+                self.recovery.clear();
             }
             Err(e) => {
                 self.status = e;
-                self.recovery = persistence::recovery_candidates(
-                    &PathBuf::from(&self.save_path),
-                    &self.content,
-                );
+                self.inspect_recovery();
             }
         }
+    }
+    fn inspect_recovery(&mut self) {
+        self.pause();
+        let path = PathBuf::from(&self.save_path);
+        self.recovery = if self.bundled_catalog {
+            persistence::recovery_candidates_bundled(&path)
+        } else {
+            persistence::recovery_candidates(&path, &self.content)
+        };
     }
     fn playback_label(&self) -> String {
         if let Some(job) = &self.pending {
@@ -399,7 +426,7 @@ impl GameApp {
                         self.load();
                     }
                 });
-                if ui.button("Inspect recovery snapshots").clicked(){self.speed=0;self.recovery=persistence::recovery_candidates(&PathBuf::from(&self.save_path),&self.content);}
+                if ui.button("Inspect recovery snapshots").clicked(){self.inspect_recovery();}
                 ui.small(format!("{} save · {} load · {} next event · Tab to navigate",self.preferences.active.save.name(),self.preferences.active.load.name(),self.preferences.active.next_event.name()));
                 ui.small(
                     "Sourced reference GDP/population are identified in the overview; remaining values are authored.",
@@ -1306,17 +1333,21 @@ impl GameApp {
                 ui.label("Restoration preserves the current file and interrupted writes before replacing the primary. The active campaign changes only after successful recovery.");
                 for candidate in &self.recovery {
                     ui.separator();ui.label(format!("{:?}: {}",candidate.kind,candidate.path.display()));
-                    if let Some(error)=&candidate.error{ui.colored_label(Color32::LIGHT_YELLOW,error);}else if let Some(day)=candidate.day {ui.label(format!("Valid campaign at {} · snapshot format {}",date(day),candidate.schema.unwrap_or_default()));if ui.add_enabled(self.pending.is_none(),egui::Button::new(format!("Restore {:?} from {}",candidate.kind,date(day)))).clicked(){chosen=Some(candidate.path.clone());}}
+                    if let Some(error)=&candidate.error{ui.colored_label(Color32::LIGHT_YELLOW,error);}else if let Some(day)=candidate.day {ui.label(format!("Valid campaign at {} · snapshot format {} · {} · rules {}",date(day),candidate.schema.unwrap_or_default(),candidate.content_id.as_deref().unwrap_or("unknown pack"),candidate.rules.unwrap_or_default()));if ui.add_enabled(self.pending.is_none(),egui::Button::new(format!("Restore {:?} from {}",candidate.kind,date(day)))).clicked(){chosen=Some(candidate.path.clone());}}
                 }
                 close=ui.button("Close without changes").clicked();
             });
             if let Some(candidate) = chosen {
-                match persistence::restore(
-                    &PathBuf::from(&self.save_path),
-                    &candidate,
-                    &self.content,
-                ) {
-                    Ok(world) => {
+                let path = PathBuf::from(&self.save_path);
+                let restored = if self.bundled_catalog {
+                    persistence::restore_bundled(&path, &candidate)
+                } else {
+                    persistence::restore(&path, &candidate, &self.content)
+                        .map(|world| (self.content.clone(), world))
+                };
+                match restored {
+                    Ok((content, world)) => {
+                        self.content = content;
                         self.selected = world.player.clone();
                         self.target_date = date((world.day + 30).min(MAX_DAY));
                         self.world = Some(world);
@@ -1415,6 +1446,7 @@ fn main() -> eframe::Result {
             }
         }
     }
+    let bundled_catalog = content_path.is_none();
     let content = if let Some(path) = content_path {
         std::fs::read_to_string(path)
             .map_err(|e| e.to_string())
@@ -1435,13 +1467,64 @@ fn main() -> eframe::Result {
             renderer: eframe::Renderer::Wgpu,
             ..Default::default()
         },
-        Box::new(move |cc| Ok(Box::new(GameApp::new(cc, content, developer_mode)))),
+        Box::new(move |cc| {
+            Ok(Box::new(GameApp::new(
+                cc,
+                content,
+                developer_mode,
+                bundled_catalog,
+            )))
+        }),
     )
 }
 
 #[cfg(test)]
 mod interface_tests {
     use super::*;
+    #[test]
+    fn bundled_loading_keeps_classic_rules_and_explicit_pack_selection_stays_pinned() {
+        let current = Content::bundled().unwrap();
+        let classic = Content::classic_bundled().unwrap();
+        let mut old_world = World::new(&classic, CountryId("GBR".into()), 17).unwrap();
+        old_world.advance(&classic, 31).unwrap();
+        let mut header: serde_json::Value =
+            serde_json::from_slice(&persistence::encode(&old_world, &classic).unwrap()).unwrap();
+        header["schema"] = 2.into();
+        let original = serde_json::to_vec_pretty(&header).unwrap();
+        let dir = std::env::temp_dir().join(format!("geosim-ui-classic-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("classic.json");
+        std::fs::write(&path, &original).unwrap();
+        let ctx = egui::Context::default();
+        let new_world = World::new(&current, CountryId("GBR".into()), 17).unwrap();
+        let expected = new_world.hash();
+        let mut app =
+            GameApp::from_context(&ctx, current.clone(), settings::Preferences::default());
+        app.world = Some(new_world);
+        app.save_path = path.display().to_string();
+        assert!(!app.bundled_catalog);
+        app.load();
+        assert_eq!(app.content.hash(), current.hash());
+        assert_eq!(app.world.as_ref().unwrap().hash(), expected);
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+        app.bundled_catalog = true;
+        app.load();
+        assert_eq!(app.content.hash(), classic.hash());
+        assert_eq!(app.world.as_ref().unwrap().hash(), old_world.hash());
+        assert_eq!(app.world.as_ref().unwrap().rules, 2);
+        assert!(app.status.contains("Classic fixed-price"));
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+        app.save();
+        assert_eq!(
+            std::fs::read(dir.join("classic.json.format-v2-1")).unwrap(),
+            original
+        );
+        assert_eq!(
+            persistence::load_bundled(&path).unwrap().1.hash(),
+            old_world.hash()
+        );
+        std::fs::remove_dir_all(dir).unwrap();
+    }
     #[test]
     fn focus_loss_and_escape_pause_while_preserving_country_and_map_context() {
         let content =

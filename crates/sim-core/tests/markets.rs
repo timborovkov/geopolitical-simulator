@@ -195,7 +195,7 @@ fn markets_resume_at_a_later_bookmark_and_do_not_depend_on_roster_order() {
 
 #[test]
 fn ordinary_rules_two_world_hash_and_format_three_writer_remain_unchanged() {
-    let content = Content::bundled().unwrap();
+    let content = Content::classic_bundled().unwrap();
     assert_eq!(content.rules, 2);
     let mut world = World::new(&content, CountryId("GBR".into()), 2000).unwrap();
     world.advance(&content, 360).unwrap();

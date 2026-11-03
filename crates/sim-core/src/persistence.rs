@@ -187,10 +187,27 @@ pub struct RecoveryCandidate {
     pub kind: RecoveryKind,
     pub day: Option<u32>,
     pub schema: Option<u32>,
+    pub content_id: Option<String>,
+    pub rules: Option<u32>,
     pub error: Option<String>,
 }
 /// Inspect without loading into the active game or mutating any files.
 pub fn recovery_candidates(path: &Path, content: &Content) -> Vec<RecoveryCandidate> {
+    inspect_candidates(path, |candidate| {
+        load_save(candidate, content).map(|save| (content.id.clone(), save))
+    })
+}
+/// The default clients may resolve only these exact bundled packs. An explicit
+/// --content selection continues to use recovery_candidates/load instead.
+pub fn recovery_candidates_bundled(path: &Path) -> Vec<RecoveryCandidate> {
+    inspect_candidates(path, |candidate| {
+        load_bundled_save(candidate).map(|(content, save)| (content.id, save))
+    })
+}
+fn inspect_candidates(
+    path: &Path,
+    resolve: impl Fn(&Path) -> Result<(String, Save), String>,
+) -> Vec<RecoveryCandidate> {
     [
         (path.to_path_buf(), RecoveryKind::Primary),
         (path.with_extension("json.tmp"), RecoveryKind::PendingSave),
@@ -207,15 +224,23 @@ pub fn recovery_candidates(path: &Path, content: &Content) -> Vec<RecoveryCandid
     .into_iter()
     .filter(|(p, _)| p.exists())
     .map(|(path, kind)| {
-        let (day, schema, error) = match load_save(&path, content) {
-            Ok(save) => (Some(save.world.day), Some(save.schema), None),
-            Err(e) => (None, None, Some(e)),
+        let (day, schema, content_id, rules, error) = match resolve(&path) {
+            Ok((id, save)) => (
+                Some(save.world.day),
+                Some(save.schema),
+                Some(id),
+                Some(save.world.rules),
+                None,
+            ),
+            Err(e) => (None, None, None, None, Some(e)),
         };
         RecoveryCandidate {
             path,
             kind,
             day,
             schema,
+            content_id,
+            rules,
             error,
         }
     })
@@ -231,12 +256,22 @@ pub fn restore(path: &Path, candidate: &Path, content: &Content) -> Result<World
     {
         return Err("Choose a compatible, validated recovery snapshot".into());
     }
-    let world = load(candidate, content)?;
+    let original_bytes = read_bytes(candidate)?;
+    let original = decode_save(&original_bytes, content)?;
+    let original_schema = original.schema;
+    let world = original.world;
     let bytes = encode(&world, content)?;
     let stage = path.with_extension("json.recovering");
     let pending = path.with_extension("json.tmp");
     let backup_pending = path.with_extension("json.backup.tmp");
     let result = (|| -> std::io::Result<()> {
+        if original_schema != snapshot_schema(&world) {
+            preserve_bytes(
+                candidate,
+                &format!("format-v{original_schema}"),
+                &original_bytes,
+            )?;
+        }
         if path.exists() {
             preserve(path, "before-recovery")?;
         }
@@ -264,6 +299,39 @@ pub fn restore(path: &Path, candidate: &Path, content: &Content) -> Result<World
 }
 pub fn load(path: &Path, content: &Content) -> Result<World, String> {
     load_save(path, content).map(|save| save.world)
+}
+pub fn load_bundled(path: &Path) -> Result<(Content, World), String> {
+    load_bundled_save(path).map(|(content, save)| (content, save.world))
+}
+fn load_bundled_save(path: &Path) -> Result<(Content, Save), String> {
+    let bytes = read_bytes(path)?;
+    let header: serde_json::Value =
+        serde_json::from_slice(&bytes).map_err(|error| format!("Damaged save: {error}"))?;
+    if !matches!(
+        header.get("schema").and_then(|value| value.as_u64()),
+        Some(2..=4)
+    ) {
+        return Err("Unsupported save version; original file preserved".into());
+    }
+    let hash = header
+        .get("world")
+        .and_then(|world| world.get("content_hash"))
+        .and_then(|value| value.as_u64())
+        .ok_or("Damaged save: missing content identity")?;
+    let content = Content::bundled_for_hash(hash)?;
+    let save = decode_save(&bytes, &content)?;
+    Ok((content, save))
+}
+pub fn restore_bundled(path: &Path, candidate: &Path) -> Result<(Content, World), String> {
+    if !recovery_candidates_bundled(path)
+        .iter()
+        .any(|entry| entry.path == candidate && entry.error.is_none())
+    {
+        return Err("Choose a compatible, validated bundled recovery snapshot".into());
+    }
+    let (content, _) = load_bundled_save(candidate)?;
+    let world = restore(path, candidate, &content)?;
+    Ok((content, world))
 }
 fn load_save(path: &Path, content: &Content) -> Result<Save, String> {
     decode_save(&read_bytes(path)?, content)

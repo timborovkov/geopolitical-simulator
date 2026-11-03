@@ -1,4 +1,4 @@
-"""Build an entirely fictional, offline rules fixture; --check detects stale output."""
+"""Rebuild test fixtures and the market starter from committed inputs, without network access."""
 import argparse
 import json
 from pathlib import Path
@@ -114,21 +114,38 @@ def build_markets():
     return pack
 
 
+def build_market_starter():
+    pack = json.loads((ROOT / "data/initial-2000.json").read_text(encoding="utf-8"))
+    pack.update(schema=3, rules=3, id="initial-2000-markets-v3",
+                name="A New Century · relative-price starter")
+    pack["description"] += " Relative food/energy prices are authored rules-3 model assumptions, not sourced historical prices. The original fixed-price pack is retained for classic saves."
+    source = "authored-markets-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model",
+                                description="Original relative-price, import, storage and basket-share assumptions. No historical price-series calibration is claimed."))
+    pack["markets"] = build_markets()["markets"]
+    pack["markets"].update(source=source, source_version="relative-prices-v1")
+    for good in pack["markets"]["goods"]:
+        good["id"] = good["kind"]
+        good["name"] = "Energy" if good["kind"] == "energy" else "Essential food"
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     for filename, pack in [("synthetic-test.json", build()), ("synthetic-dated-test.json", build_temporal()),
-                           ("synthetic-market-test.json", build_markets())]:
+                           ("synthetic-market-test.json", build_markets()),
+                           ("initial-2000-markets.json", build_market_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"
         if args.check:
             if not target.exists() or target.read_text(encoding="utf-8") != expected:
                 raise SystemExit(f"{filename} is stale: run python3 scripts/build_synthetic_world.py")
-            print(f"{filename} matches its authored definitions.")
+            print(f"{filename} matches its committed build inputs.")
         else:
             target.write_text(expected, encoding="utf-8", newline="\n")
-            print(f"Built {filename} without historical-source dependencies.")
+            print(f"Built {filename} from committed inputs without network access.")
 
 
 if __name__ == "__main__":

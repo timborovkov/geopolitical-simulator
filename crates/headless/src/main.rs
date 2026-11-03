@@ -91,7 +91,12 @@ fn number<T: std::str::FromStr>(text: Option<&&str>) -> Result<T, String> {
         .parse()
         .map_err(|_| "Invalid number".into())
 }
-fn play(world: &mut World, content: &Content, developer: bool) -> Result<(), String> {
+fn play(
+    world: &mut World,
+    content: &mut Content,
+    developer: bool,
+    bundled_catalog: bool,
+) -> Result<(), String> {
     println!(
         "Statecraft · {} · bookmark {}. Type help; data lists observation sources and authored assumptions.",
         content.name, content.start
@@ -403,8 +408,14 @@ fn play(world: &mut World, content: &Content, developer: bool) -> Result<(), Str
                     );
                 }
                 "load" => {
-                    *world =
-                        persistence::load(Path::new(words.get(1).ok_or("Missing path")?), content)?;
+                    let path = Path::new(words.get(1).ok_or("Missing path")?);
+                    if bundled_catalog {
+                        let (resolved, loaded) = persistence::load_bundled(path)?;
+                        *content = resolved;
+                        *world = loaded;
+                    } else {
+                        *world = persistence::load(path, content)?;
+                    }
                     println!("Loaded.");
                 }
                 "replay" => {
@@ -475,18 +486,25 @@ fn run() -> Result<(), String> {
         }
         i += 1;
     }
-    let content = if let Some(path) = content_path {
+    let bundled_catalog = content_path.is_none();
+    let mut content = if let Some(path) = content_path {
         Content::from_json(&std::fs::read_to_string(path).map_err(|e| e.to_string())?)?
     } else {
         Content::bundled()?
     };
     let mut world = if let Some(path) = load_path {
-        persistence::load(Path::new(&path), &content)?
+        if bundled_catalog {
+            let (resolved, loaded) = persistence::load_bundled(Path::new(&path))?;
+            content = resolved;
+            loaded
+        } else {
+            persistence::load(Path::new(&path), &content)?
+        }
     } else {
         World::new_scenario(&content, CountryId(country), seed, scenario)?
     };
     if interactive {
-        play(&mut world, &content, developer)?;
+        play(&mut world, &mut content, developer, bundled_catalog)?;
     } else {
         world.advance(&content, days)?;
         status(&world, &content);

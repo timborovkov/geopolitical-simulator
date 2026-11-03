@@ -1,0 +1,100 @@
+use sim_core::*;
+
+#[test]
+fn market_starter_preserves_classic_country_policy_and_reference_data() {
+    let current = Content::bundled().unwrap();
+    let classic = Content::classic_bundled().unwrap();
+    assert_eq!(current.schema, 3);
+    assert_eq!(current.rules, 3);
+    assert_eq!(classic.rules, 2);
+    assert_eq!(current.countries, classic.countries);
+    assert_eq!(current.policies, classic.policies);
+    assert_eq!(current.facts, classic.facts);
+    assert_ne!(current.hash(), classic.hash());
+    for pack in [current, classic] {
+        assert_eq!(Content::bundled_for_hash(pack.hash()).unwrap(), pack);
+    }
+}
+
+#[test]
+fn bundled_recovery_selects_exact_pack_and_preserves_converted_backup_bytes() {
+    let classic = Content::classic_bundled().unwrap();
+    let current = Content::bundled().unwrap();
+    let player = CountryId("GBR".into());
+    let mut older = World::new(&classic, player.clone(), 17).unwrap();
+    older
+        .issue(
+            &classic,
+            Action::Enact {
+                policy: "energy".into(),
+                value: 1,
+            },
+        )
+        .unwrap();
+    older.advance(&classic, 31).unwrap();
+    let mut header: serde_json::Value =
+        serde_json::from_slice(&persistence::encode(&older, &classic).unwrap()).unwrap();
+    header["schema"] = 2.into();
+    let original = serde_json::to_vec_pretty(&header).unwrap();
+    let mut newer = World::new(&current, player, 17).unwrap();
+    newer.advance(&current, 10).unwrap();
+    let dir = std::env::temp_dir().join(format!("geosim-bundled-recovery-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("mixed.json");
+    persistence::save(&path, &newer, &current).unwrap();
+    let newer_bytes = std::fs::read(&path).unwrap();
+    let backup = path.with_extension("json.bak");
+    std::fs::write(&backup, &original).unwrap();
+    let (resolved, loaded) = persistence::load_bundled(&backup).unwrap();
+    assert_eq!(resolved.hash(), classic.hash());
+    assert_eq!(loaded.hash(), older.hash());
+    assert_eq!(std::fs::read(&backup).unwrap(), original);
+    let candidates = persistence::recovery_candidates_bundled(&path);
+    assert_eq!(candidates.len(), 2);
+    assert_eq!(candidates[0].rules, Some(3));
+    assert_eq!(
+        candidates[0].content_id.as_deref(),
+        Some(current.id.as_str())
+    );
+    assert_eq!(candidates[1].schema, Some(2));
+    assert_eq!(candidates[1].rules, Some(2));
+    let (resolved, mut restored) = persistence::restore_bundled(&path, &backup).unwrap();
+    assert_eq!(resolved.hash(), classic.hash());
+    assert_eq!(restored.hash(), older.hash());
+    assert_eq!(
+        std::fs::read(dir.join("mixed.json.before-recovery-1")).unwrap(),
+        newer_bytes
+    );
+    let archive = dir.join("mixed.json.bak.format-v2-1");
+    assert_eq!(std::fs::read(&archive).unwrap(), original);
+    assert_eq!(
+        persistence::recovery_candidates_bundled(&path)[0].schema,
+        Some(3)
+    );
+    restored.advance(&resolved, 1).unwrap();
+    persistence::save(&path, &restored, &resolved).unwrap();
+    assert_eq!(std::fs::read(&archive).unwrap(), original);
+    persistence::replay(&restored, &resolved).unwrap();
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn unknown_pack_is_not_substituted_by_a_similar_bundled_roster() {
+    let mut custom = Content::classic_bundled().unwrap();
+    custom.id = "custom-unbundled-2000".into();
+    let world = World::new(&custom, CountryId("GBR".into()), 17).unwrap();
+    let path = std::env::temp_dir().join(format!("geosim-unbundled-{}.json", std::process::id()));
+    persistence::save(&path, &world, &custom).unwrap();
+    let original = std::fs::read(&path).unwrap();
+    assert!(
+        persistence::load_bundled(&path)
+            .unwrap_err()
+            .contains("--content")
+    );
+    assert_eq!(
+        persistence::load(&path, &custom).unwrap().hash(),
+        world.hash()
+    );
+    assert_eq!(std::fs::read(&path).unwrap(), original);
+    std::fs::remove_file(path).unwrap();
+}

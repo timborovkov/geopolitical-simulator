@@ -132,7 +132,21 @@ pub struct Content {
 }
 impl Content {
     pub fn bundled() -> Result<Self, String> {
+        Self::from_json(include_str!("../../../data/initial-2000-markets.json"))
+    }
+    /// Original rules-2 data is retained verbatim for existing campaigns.
+    pub fn classic_bundled() -> Result<Self, String> {
         Self::from_json(include_str!("../../../data/initial-2000.json"))
+    }
+    pub fn bundled_for_hash(hash: u64) -> Result<Self, String> {
+        for pack in [Self::bundled()?, Self::classic_bundled()?] {
+            if pack.hash() == hash {
+                return Ok(pack);
+            }
+        }
+        Err(format!(
+            "Save requires content {hash:016x}, which is not a bundled pack. Launch with --content and the exact original pack; no replacement was applied."
+        ))
     }
     pub fn from_json(json: &str) -> Result<Self, String> {
         let header: serde_json::Value =
