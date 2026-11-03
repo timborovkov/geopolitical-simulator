@@ -64,6 +64,8 @@ The [dated fictional fixture](data/synthetic-dated-test.json) starts on 2001-07-
 
 The **How to play** screen includes a first-mandate walkthrough and **Search game reference**. Search mechanics, policies and countries from the loaded bookmark, then open the relevant screen. The command bar shows paused/running/advancing/stopping state on every page. Automatic progression selects days per step; single-step buttons pause automatic progression. Escape pauses and returns to the map while retaining the selected country and camera, or closes save recovery.
 
+In **Treasury & accounts**, expand **Trace realized cash transfers** to compare today's transfers or the last 30 days. Rows pay columns; selecting an amount filters transactions by payer and recipient. Opening cash plus net receipts reconciles to closing cash for all four sectors. This uses recorded payments, with reservations and arrears kept separate.
+
 ## Save, recover and replay
 
 The desktop writes manual saves to the path in its sidebar, initially `saves/campaign-v3.json`. Every crossed 30-day reporting boundary writes a country, scenario and content-specific filename in `saves`, ending in `v3.json`. A completed save replaces the primary file using a temporary file and retains the previous snapshot as `.json.bak`. Use **Inspect recovery snapshots** to review the primary, pending write, backup or interrupted backup/recovery stage before restoring. Originals are archived before recovery; a damaged primary never replaces the last validated backup. Interrupted writes block ordinary replacement until explicitly resolved. Saves include content/rules hashes, commands, projects and deterministic shock state; incompatible or damaged files fail without replacing the active campaign.

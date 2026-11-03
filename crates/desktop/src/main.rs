@@ -1,5 +1,6 @@
 mod advance;
 mod analysis;
+mod cashflows;
 mod charts;
 mod geometry;
 mod help;
@@ -55,6 +56,7 @@ struct GameApp {
     developer_mode: bool,
     inspector: inspector::Inspector,
     help: help::Help,
+    cashflows: cashflows::CashFlows,
 }
 impl GameApp {
     fn new(cc: &eframe::CreationContext<'_>, content: Content, developer_mode: bool) -> Self {
@@ -108,6 +110,7 @@ impl GameApp {
             developer_mode: false,
             inspector: inspector::Inspector::default(),
             help: help::Help::default(),
+            cashflows: cashflows::CashFlows::default(),
         }
     }
     fn advance(&mut self, days: u32) {
@@ -872,6 +875,7 @@ impl GameApp {
             return;
         };
         let c = &w.countries[&self.selected];
+        self.cashflows.show(ui, &self.content, w, &self.selected);
         let d = self
             .content
             .country(&self.selected)
