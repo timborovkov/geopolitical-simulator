@@ -1,0 +1,1701 @@
+{
+  "schema": 5,
+  "id": "initial-2000-constitutions-v5",
+  "name": "A New Century · political transitions",
+  "start": "2000-01-01",
+  "description": "Govern for five years: keep household needs met, services funded and government stable. Country play continues after political transitions. Relative food/energy prices are authored rules-3 model assumptions, not sourced historical prices. The original fixed-price pack is retained for classic saves. Borrowing authority, consent delays and emergency political costs are authored rules-4 assumptions, not a reproduction of historical debt law. Earlier market and classic packs remain available for their original campaigns. Constitutional transitions use authored rules-5 templates, backing thresholds, costs and inertia rather than sourced historical amendment law. Starter AI prefers its opening governing form; fictional fixtures demonstrate alternative preferences. Earlier campaigns retain their original packs.",
+  "sources": [
+    {
+      "id": "identity-notes",
+      "quality": "reference_only",
+      "description": "Historical identity seed; see data/README.md for dated coverage and review limitations."
+    },
+    {
+      "id": "authored-balance-v1",
+      "quality": "authored_gameplay_approximation",
+      "description": "Original game calibration. Values, profiles and coefficients are authored except for the six explicitly recorded population/GDP observations."
+    },
+    {
+      "id": "world-bank-mirror-population",
+      "quality": "published_mirror_observation",
+      "description": "World Bank SP.POP.TOTL, 2000 observation via datasets/population, revision d4b1a4a9a17e2123baf0ef119de05bceced1ab1b. Primary API not independently rechecked. See data/reference-observations.json for provenance."
+    },
+    {
+      "id": "world-bank-mirror-gdp",
+      "quality": "published_mirror_observation",
+      "description": "World Bank NY.GDP.MKTP.CD, 2000 observation via datasets/gdp, revision 36d761dc5617982d3e50b213e02b9a1b47c4e958. Primary API not independently rechecked. See data/reference-observations.json for provenance."
+    },
+    {
+      "id": "authored-markets-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original relative-price, import, storage and basket-share assumptions. No historical price-series calibration is claimed."
+    },
+    {
+      "id": "authored-finance-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original regime-route borrowing consent, fixed-rate debt and contested emergency assumptions. No historical constitutional or debt-market calibration is claimed."
+    },
+    {
+      "id": "authored-constitutions-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original lawful and contested constitutional-transition templates, political costs, consent constraints and status-quo AI preferences. These are game assumptions, not historical constitutional procedures."
+    }
+  ],
+  "countries": [
+    {
+      "id": "GBR",
+      "name": "United Kingdom",
+      "capital": "London",
+      "regime": "parliamentary",
+      "executive": "Tony Blair",
+      "office": "Prime Minister",
+      "currency": "GBP",
+      "population": 58892514,
+      "gdp": 1665534,
+      "tax": 28,
+      "services": 9,
+      "welfare": 4,
+      "energy": 90,
+      "food": 75,
+      "capacity": 92,
+      "approval": 52,
+      "longitude": -3,
+      "latitude": 55,
+      "ruling_party": "GBR:labour",
+      "coalition": [
+        "GBR:labour"
+      ],
+      "parties": [
+        {
+          "id": "GBR:labour",
+          "name": "Labour Party",
+          "leader": "Tony Blair",
+          "ideology": "social_democracy",
+          "seats": 58
+        },
+        {
+          "id": "GBR:conservative",
+          "name": "Conservative Party",
+          "leader": "William Hague",
+          "ideology": "conservatism",
+          "seats": 32
+        },
+        {
+          "id": "GBR:libdem",
+          "name": "Liberal Democrats",
+          "leader": "Charles Kennedy",
+          "ideology": "liberalism",
+          "seats": 10
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "USA",
+      "name": "United States",
+      "capital": "Washington, D.C.",
+      "regime": "presidential",
+      "executive": "Bill Clinton",
+      "office": "President",
+      "currency": "USD",
+      "population": 282000000,
+      "gdp": 10250000,
+      "tax": 25,
+      "services": 7,
+      "welfare": 3,
+      "energy": 105,
+      "food": 120,
+      "capacity": 95,
+      "approval": 54,
+      "longitude": -98,
+      "latitude": 39,
+      "ruling_party": "USA:democratic",
+      "coalition": [
+        "USA:democratic"
+      ],
+      "parties": [
+        {
+          "id": "USA:democratic",
+          "name": "Democratic Party",
+          "leader": "Bill Clinton",
+          "ideology": "liberalism",
+          "seats": 49
+        },
+        {
+          "id": "USA:republican",
+          "name": "Republican Party",
+          "leader": "George W. Bush",
+          "ideology": "conservatism",
+          "seats": 51
+        }
+      ],
+      "quality": "authored_gameplay_approximation",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "FRA",
+      "name": "France",
+      "capital": "Paris",
+      "regime": "semi_presidential",
+      "executive": "Lionel Jospin",
+      "office": "Prime Minister",
+      "currency": "EUR",
+      "population": 59000000,
+      "gdp": 1360000,
+      "tax": 30,
+      "services": 10,
+      "welfare": 5,
+      "energy": 130,
+      "food": 120,
+      "capacity": 90,
+      "approval": 50,
+      "longitude": 2,
+      "latitude": 47,
+      "ruling_party": "FRA:ps",
+      "coalition": [
+        "FRA:ps"
+      ],
+      "parties": [
+        {
+          "id": "FRA:ps",
+          "name": "Socialist Party",
+          "leader": "François Hollande",
+          "ideology": "social_democracy",
+          "seats": 56
+        },
+        {
+          "id": "FRA:rpr",
+          "name": "Rally for the Republic",
+          "leader": "Michèle Alliot-Marie",
+          "ideology": "conservatism",
+          "seats": 34
+        },
+        {
+          "id": "FRA:udf",
+          "name": "Union for French Democracy",
+          "leader": "François Bayrou",
+          "ideology": "liberalism",
+          "seats": 10
+        }
+      ],
+      "quality": "authored_gameplay_approximation",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "DEU",
+      "name": "Germany",
+      "capital": "Berlin",
+      "regime": "parliamentary",
+      "executive": "Gerhard Schröder",
+      "office": "Chancellor",
+      "currency": "EUR",
+      "population": 82000000,
+      "gdp": 1940000,
+      "tax": 30,
+      "services": 10,
+      "welfare": 5,
+      "energy": 95,
+      "food": 100,
+      "capacity": 94,
+      "approval": 51,
+      "longitude": 13,
+      "latitude": 52,
+      "ruling_party": "DEU:spd",
+      "coalition": [
+        "DEU:spd",
+        "DEU:greens"
+      ],
+      "parties": [
+        {
+          "id": "DEU:spd",
+          "name": "Social Democratic Party",
+          "leader": "Gerhard Schröder",
+          "ideology": "social_democracy",
+          "seats": 45
+        },
+        {
+          "id": "DEU:greens",
+          "name": "Alliance 90/The Greens",
+          "leader": "Collective leadership",
+          "ideology": "green",
+          "seats": 10
+        },
+        {
+          "id": "DEU:cdu",
+          "name": "Christian Democratic Union",
+          "leader": "Wolfgang Schäuble",
+          "ideology": "conservatism",
+          "seats": 38
+        },
+        {
+          "id": "DEU:fdp",
+          "name": "Free Democratic Party",
+          "leader": "Wolfgang Gerhardt",
+          "ideology": "liberalism",
+          "seats": 7
+        }
+      ],
+      "quality": "authored_gameplay_approximation",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "RUS",
+      "name": "Russia",
+      "capital": "Moscow",
+      "regime": "semi_presidential",
+      "executive": "Vladimir Putin",
+      "office": "Acting President",
+      "currency": "RUB",
+      "population": 146000000,
+      "gdp": 260000,
+      "tax": 22,
+      "services": 7,
+      "welfare": 3,
+      "energy": 150,
+      "food": 90,
+      "capacity": 65,
+      "approval": 48,
+      "longitude": 80,
+      "latitude": 62,
+      "ruling_party": "RUS:unity",
+      "coalition": [
+        "RUS:unity"
+      ],
+      "parties": [
+        {
+          "id": "RUS:unity",
+          "name": "Unity",
+          "leader": "Sergei Shoigu",
+          "ideology": "conservatism",
+          "seats": 42
+        },
+        {
+          "id": "RUS:cprf",
+          "name": "Communist Party",
+          "leader": "Gennady Zyuganov",
+          "ideology": "communism",
+          "seats": 38
+        },
+        {
+          "id": "RUS:fatherland",
+          "name": "Fatherland – All Russia",
+          "leader": "Yevgeny Primakov",
+          "ideology": "conservatism",
+          "seats": 20
+        }
+      ],
+      "quality": "authored_gameplay_approximation",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "CHN",
+      "name": "China",
+      "capital": "Beijing",
+      "regime": "single_party",
+      "executive": "Jiang Zemin",
+      "office": "General Secretary",
+      "currency": "CNY",
+      "population": 1262645000,
+      "gdp": 1211331,
+      "tax": 24,
+      "services": 7,
+      "welfare": 3,
+      "energy": 100,
+      "food": 100,
+      "capacity": 76,
+      "approval": 58,
+      "longitude": 104,
+      "latitude": 35,
+      "ruling_party": "CHN:cpc",
+      "coalition": [
+        "CHN:cpc"
+      ],
+      "parties": [
+        {
+          "id": "CHN:cpc",
+          "name": "Communist Party of China",
+          "leader": "Jiang Zemin",
+          "ideology": "communism",
+          "seats": 100
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 60,
+          "income_share": 70,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 15,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 5,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "party_council",
+        "threshold": 55,
+        "consent_days": 14,
+        "council_threshold": 50,
+        "leadership_review_days": 720
+      }
+    },
+    {
+      "id": "IND",
+      "name": "India",
+      "capital": "New Delhi",
+      "regime": "parliamentary",
+      "executive": "Atal Bihari Vajpayee",
+      "office": "Prime Minister",
+      "currency": "INR",
+      "population": 1057000000,
+      "gdp": 468000,
+      "tax": 24,
+      "services": 7,
+      "welfare": 3,
+      "energy": 80,
+      "food": 105,
+      "capacity": 63,
+      "approval": 52,
+      "longitude": 79,
+      "latitude": 23,
+      "ruling_party": "IND:bjp",
+      "coalition": [
+        "IND:bjp"
+      ],
+      "parties": [
+        {
+          "id": "IND:bjp",
+          "name": "Bharatiya Janata Party",
+          "leader": "Kushabhau Thakre",
+          "ideology": "national_conservatism",
+          "seats": 51
+        },
+        {
+          "id": "IND:inc",
+          "name": "Indian National Congress",
+          "leader": "Sonia Gandhi",
+          "ideology": "social_democracy",
+          "seats": 39
+        },
+        {
+          "id": "IND:cpi",
+          "name": "Communist Party of India (Marxist)",
+          "leader": "Harkishan Singh Surjeet",
+          "ideology": "communism",
+          "seats": 10
+        }
+      ],
+      "quality": "authored_gameplay_approximation",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "JPN",
+      "name": "Japan",
+      "capital": "Tokyo",
+      "regime": "parliamentary",
+      "executive": "Keizō Obuchi",
+      "office": "Prime Minister",
+      "currency": "JPY",
+      "population": 127000000,
+      "gdp": 4970000,
+      "tax": 28,
+      "services": 9,
+      "welfare": 4,
+      "energy": 90,
+      "food": 55,
+      "capacity": 95,
+      "approval": 48,
+      "longitude": 138,
+      "latitude": 37,
+      "ruling_party": "JPN:ldp",
+      "coalition": [
+        "JPN:ldp"
+      ],
+      "parties": [
+        {
+          "id": "JPN:ldp",
+          "name": "Liberal Democratic Party",
+          "leader": "Keizō Obuchi",
+          "ideology": "conservatism",
+          "seats": 60
+        },
+        {
+          "id": "JPN:dpj",
+          "name": "Democratic Party of Japan",
+          "leader": "Yukio Hatoyama",
+          "ideology": "liberalism",
+          "seats": 30
+        },
+        {
+          "id": "JPN:jcp",
+          "name": "Japanese Communist Party",
+          "leader": "Tetsuzō Fuwa",
+          "ideology": "communism",
+          "seats": 10
+        }
+      ],
+      "quality": "authored_gameplay_approximation",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "BRA",
+      "name": "Brazil",
+      "capital": "Brasília",
+      "regime": "presidential",
+      "executive": "Fernando Henrique Cardoso",
+      "office": "President",
+      "currency": "BRL",
+      "population": 174000000,
+      "gdp": 655000,
+      "tax": 26,
+      "services": 8,
+      "welfare": 3,
+      "energy": 110,
+      "food": 140,
+      "capacity": 70,
+      "approval": 50,
+      "longitude": -52,
+      "latitude": -12,
+      "ruling_party": "BRA:psdb",
+      "coalition": [
+        "BRA:psdb"
+      ],
+      "parties": [
+        {
+          "id": "BRA:psdb",
+          "name": "Brazilian Social Democracy Party",
+          "leader": "Teotônio Vilela Filho",
+          "ideology": "social_democracy",
+          "seats": 52
+        },
+        {
+          "id": "BRA:pt",
+          "name": "Workers’ Party",
+          "leader": "José Dirceu",
+          "ideology": "democratic_socialism",
+          "seats": 33
+        },
+        {
+          "id": "BRA:pmdb",
+          "name": "Brazilian Democratic Movement Party",
+          "leader": "Jader Barbalho",
+          "ideology": "centrism",
+          "seats": 15
+        }
+      ],
+      "quality": "authored_gameplay_approximation",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "ZAF",
+      "name": "South Africa",
+      "capital": "Pretoria",
+      "regime": "parliamentary",
+      "executive": "Thabo Mbeki",
+      "office": "President",
+      "currency": "ZAR",
+      "population": 45000000,
+      "gdp": 151000,
+      "tax": 27,
+      "services": 8,
+      "welfare": 4,
+      "energy": 115,
+      "food": 105,
+      "capacity": 72,
+      "approval": 58,
+      "longitude": 25,
+      "latitude": -29,
+      "ruling_party": "ZAF:anc",
+      "coalition": [
+        "ZAF:anc"
+      ],
+      "parties": [
+        {
+          "id": "ZAF:anc",
+          "name": "African National Congress",
+          "leader": "Thabo Mbeki",
+          "ideology": "social_democracy",
+          "seats": 66
+        },
+        {
+          "id": "ZAF:dp",
+          "name": "Democratic Party",
+          "leader": "Tony Leon",
+          "ideology": "liberalism",
+          "seats": 20
+        },
+        {
+          "id": "ZAF:ifp",
+          "name": "Inkatha Freedom Party",
+          "leader": "Mangosuthu Buthelezi",
+          "ideology": "conservatism",
+          "seats": 14
+        }
+      ],
+      "quality": "authored_gameplay_approximation",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "SAU",
+      "name": "Saudi Arabia",
+      "capital": "Riyadh",
+      "regime": "absolute_monarchy",
+      "executive": "Fahd bin Abdulaziz",
+      "office": "King",
+      "currency": "SAR",
+      "population": 16177722,
+      "gdp": 189514,
+      "tax": 18,
+      "services": 7,
+      "welfare": 3,
+      "energy": 170,
+      "food": 50,
+      "capacity": 76,
+      "approval": 60,
+      "longitude": 45,
+      "latitude": 24,
+      "ruling_party": "SAU:royal",
+      "coalition": [
+        "SAU:royal"
+      ],
+      "parties": [
+        {
+          "id": "SAU:royal",
+          "name": "Royal governing council",
+          "leader": "Fahd bin Abdulaziz",
+          "ideology": "monarchism",
+          "seats": 100
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 45,
+          "income_share": 50,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 25,
+          "income_share": 20,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 20,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "royal_decree",
+        "threshold": 50,
+        "consent_days": 0,
+        "council_threshold": 45,
+        "leadership_review_days": 360
+      }
+    },
+    {
+      "id": "IRN",
+      "name": "Iran",
+      "capital": "Tehran",
+      "regime": "theocracy",
+      "executive": "Ali Khamenei",
+      "office": "Supreme Leader",
+      "currency": "IRR",
+      "population": 66000000,
+      "gdp": 110000,
+      "tax": 22,
+      "services": 7,
+      "welfare": 3,
+      "energy": 125,
+      "food": 95,
+      "capacity": 67,
+      "approval": 52,
+      "longitude": 54,
+      "latitude": 33,
+      "ruling_party": "IRN:clerical",
+      "coalition": [
+        "IRN:clerical"
+      ],
+      "parties": [
+        {
+          "id": "IRN:clerical",
+          "name": "Clerical establishment",
+          "leader": "Ali Khamenei",
+          "ideology": "political_islam",
+          "seats": 60
+        },
+        {
+          "id": "IRN:reform",
+          "name": "Reformist bloc",
+          "leader": "Mohammad Khatami",
+          "ideology": "reformism",
+          "seats": 40
+        }
+      ],
+      "quality": "authored_gameplay_approximation",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "religious_council",
+        "threshold": 40,
+        "consent_days": 7,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "CUB",
+      "name": "Cuba",
+      "capital": "Havana",
+      "regime": "single_party",
+      "executive": "Fidel Castro",
+      "office": "President",
+      "currency": "CUP",
+      "population": 11000000,
+      "gdp": 31000,
+      "tax": 30,
+      "services": 10,
+      "welfare": 5,
+      "energy": 70,
+      "food": 75,
+      "capacity": 74,
+      "approval": 56,
+      "longitude": -79,
+      "latitude": 22,
+      "ruling_party": "CUB:pcc",
+      "coalition": [
+        "CUB:pcc"
+      ],
+      "parties": [
+        {
+          "id": "CUB:pcc",
+          "name": "Communist Party of Cuba",
+          "leader": "Fidel Castro",
+          "ideology": "communism",
+          "seats": 100
+        }
+      ],
+      "quality": "authored_gameplay_approximation",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "party_council",
+        "threshold": 55,
+        "consent_days": 14,
+        "council_threshold": 50,
+        "leadership_review_days": 720
+      }
+    },
+    {
+      "id": "PRK",
+      "name": "North Korea",
+      "capital": "Pyongyang",
+      "regime": "personalist",
+      "executive": "Kim Jong Il",
+      "office": "General Secretary",
+      "currency": "KPW",
+      "population": 23000000,
+      "gdp": 17000,
+      "tax": 30,
+      "services": 8,
+      "welfare": 3,
+      "energy": 65,
+      "food": 70,
+      "capacity": 48,
+      "approval": 50,
+      "longitude": 127,
+      "latitude": 40,
+      "ruling_party": "PRK:wpk",
+      "coalition": [
+        "PRK:wpk"
+      ],
+      "parties": [
+        {
+          "id": "PRK:wpk",
+          "name": "Workers’ Party of Korea",
+          "leader": "Kim Jong Il",
+          "ideology": "juche",
+          "seats": 100
+        }
+      ],
+      "quality": "authored_gameplay_approximation",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "executive_decree",
+        "threshold": 40,
+        "consent_days": 0,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "MMR",
+      "name": "Myanmar",
+      "capital": "Yangon",
+      "regime": "military",
+      "executive": "Than Shwe",
+      "office": "Council Chairman",
+      "currency": "MMK",
+      "population": 46000000,
+      "gdp": 9000,
+      "tax": 22,
+      "services": 6,
+      "welfare": 2,
+      "energy": 75,
+      "food": 110,
+      "capacity": 45,
+      "approval": 48,
+      "longitude": 96,
+      "latitude": 21,
+      "ruling_party": "MMR:spdc",
+      "coalition": [
+        "MMR:spdc"
+      ],
+      "parties": [
+        {
+          "id": "MMR:spdc",
+          "name": "State Peace and Development Council",
+          "leader": "Than Shwe",
+          "ideology": "military_nationalism",
+          "seats": 100
+        }
+      ],
+      "quality": "authored_gameplay_approximation",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "military_council",
+        "threshold": 40,
+        "consent_days": 7,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    }
+  ],
+  "policies": [
+    {
+      "id": "income_tax",
+      "name": "Income tax reform",
+      "min": 10,
+      "max": 45,
+      "days": 30,
+      "cost_bps": 2,
+      "description": "Tax paid from household wages. Higher rates finance public services but reduce disposable income.",
+      "groups": "Workers, pensioners, public employees"
+    },
+    {
+      "id": "services",
+      "name": "Public service budget",
+      "min": 4,
+      "max": 18,
+      "days": 60,
+      "cost_bps": 8,
+      "description": "Annual spending as % of modeled GDP. Delivery improves gradually and is limited by administrative capacity.",
+      "groups": "Service users and public employees"
+    },
+    {
+      "id": "welfare",
+      "name": "Household safety net",
+      "min": 0,
+      "max": 12,
+      "days": 30,
+      "cost_bps": 3,
+      "description": "Annual transfers as % of modeled GDP. Payments reach household accounts only when funded.",
+      "groups": "Low-income households"
+    },
+    {
+      "id": "energy",
+      "name": "Energy capacity program",
+      "min": 1,
+      "max": 1,
+      "days": 90,
+      "cost_bps": 50,
+      "description": "Build 15 percentage points of domestic energy coverage. Capital is reserved during consent and paid before implementation; operating costs begin on completion.",
+      "groups": "Industry and energy consumers"
+    },
+    {
+      "id": "agriculture",
+      "name": "Food resilience program",
+      "min": 1,
+      "max": 1,
+      "days": 120,
+      "cost_bps": 35,
+      "description": "Build 15 percentage points of food supply. Requires time and funded maintenance.",
+      "groups": "Farmers and household consumers"
+    },
+    {
+      "id": "administration",
+      "name": "Civil service modernization",
+      "min": 1,
+      "max": 1,
+      "days": 180,
+      "cost_bps": 40,
+      "description": "Increase administrative capacity by 8 points, improving tax collection and service delivery.",
+      "groups": "Taxpayers and public employees"
+    },
+    {
+      "id": "coalition",
+      "name": "Negotiate governing support",
+      "min": 1,
+      "max": 1,
+      "days": 45,
+      "cost_bps": 10,
+      "description": "Negotiate with parliamentary partners; adds up to 12 support points for the present government. Bargaining uses administrative resources.",
+      "groups": "Legislative parties and governing elites"
+    }
+  ],
+  "facts": [
+    {
+      "country": "GBR",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "58892514",
+      "original_units": "persons",
+      "applied_value": 58892514,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "CHN",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "1262645000",
+      "original_units": "persons",
+      "applied_value": 1262645000,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "SAU",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "16177722",
+      "original_units": "persons",
+      "applied_value": 16177722,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "GBR",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "1665534876683.3105",
+      "original_units": "current USD",
+      "applied_value": 1665534,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "CHN",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "1211331651866.086",
+      "original_units": "current USD",
+      "applied_value": 1211331,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "SAU",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "189514933333.33334",
+      "original_units": "current USD",
+      "applied_value": 189514,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    }
+  ],
+  "rules": 5,
+  "markets": {
+    "food_budget_share_bps": 4000,
+    "source": "authored-markets-v1",
+    "source_version": "relative-prices-v1",
+    "goods": [
+      {
+        "id": "energy",
+        "kind": "energy",
+        "name": "Energy",
+        "unit": "modeled energy unit",
+        "minimum_price_bps": 5000,
+        "maximum_price_bps": 20000,
+        "adjustment_bps": 250,
+        "import_limit_bps": 2500,
+        "storage_days": 3,
+        "loss_bps": 0
+      },
+      {
+        "id": "food",
+        "kind": "food",
+        "name": "Essential food",
+        "unit": "modeled food-basket unit",
+        "minimum_price_bps": 5000,
+        "maximum_price_bps": 20000,
+        "adjustment_bps": 250,
+        "import_limit_bps": 3500,
+        "storage_days": 11,
+        "loss_bps": 100
+      }
+    ]
+  },
+  "finance": {
+    "source": "authored-finance-v1",
+    "source_version": "borrowing-authority-v1",
+    "authorities": [
+      {
+        "id": "borrowing:legislature",
+        "label": "Legislative borrowing consent",
+        "route": "legislature",
+        "consent_days": 14
+      },
+      {
+        "id": "borrowing:party_council",
+        "label": "Party council borrowing consent",
+        "route": "party_council",
+        "consent_days": 21
+      },
+      {
+        "id": "borrowing:royal_decree",
+        "label": "Royal borrowing decree",
+        "route": "royal_decree",
+        "consent_days": 0
+      },
+      {
+        "id": "borrowing:religious_council",
+        "label": "Religious council borrowing consent",
+        "route": "religious_council",
+        "consent_days": 30
+      },
+      {
+        "id": "borrowing:military_council",
+        "label": "Military council borrowing consent",
+        "route": "military_council",
+        "consent_days": 7
+      },
+      {
+        "id": "borrowing:executive_decree",
+        "label": "Executive borrowing decree",
+        "route": "executive_decree",
+        "consent_days": 0
+      }
+    ],
+    "emergency": {
+      "council_threshold": 65,
+      "approval_cost": 15,
+      "legislative_cost": 20,
+      "elite_cost": 10,
+      "council_cost": 20,
+      "cooldown_days": 180
+    }
+  },
+  "constitutions": {
+    "templates": [
+      {
+        "regime": "parliamentary",
+        "title": "parliamentary cabinet",
+        "government": {
+          "route": "legislature",
+          "threshold": 51,
+          "council_threshold": 0,
+          "consent_days": 14,
+          "leadership_review_days": null
+        }
+      },
+      {
+        "regime": "presidential",
+        "title": "presidential cabinet",
+        "government": {
+          "route": "legislature",
+          "threshold": 51,
+          "council_threshold": 0,
+          "consent_days": 21,
+          "leadership_review_days": null
+        }
+      },
+      {
+        "regime": "semi_presidential",
+        "title": "semi-presidential cabinet",
+        "government": {
+          "route": "legislature",
+          "threshold": 51,
+          "council_threshold": 0,
+          "consent_days": 21,
+          "leadership_review_days": null
+        }
+      },
+      {
+        "regime": "single_party",
+        "title": "party council",
+        "government": {
+          "route": "party_council",
+          "threshold": 55,
+          "council_threshold": 50,
+          "consent_days": 21,
+          "leadership_review_days": 180
+        }
+      },
+      {
+        "regime": "absolute_monarchy",
+        "title": "royal court",
+        "government": {
+          "route": "royal_decree",
+          "threshold": 50,
+          "council_threshold": 45,
+          "consent_days": 0,
+          "leadership_review_days": 90
+        }
+      },
+      {
+        "regime": "theocracy",
+        "title": "religious council",
+        "government": {
+          "route": "religious_council",
+          "threshold": 55,
+          "council_threshold": 55,
+          "consent_days": 30,
+          "leadership_review_days": 180
+        }
+      },
+      {
+        "regime": "personalist",
+        "title": "executive council",
+        "government": {
+          "route": "executive_decree",
+          "threshold": 50,
+          "council_threshold": 45,
+          "consent_days": 0,
+          "leadership_review_days": 90
+        }
+      },
+      {
+        "regime": "military",
+        "title": "military council",
+        "government": {
+          "route": "military_council",
+          "threshold": 55,
+          "council_threshold": 55,
+          "consent_days": 7,
+          "leadership_review_days": 90
+        }
+      }
+    ],
+    "source": "authored-constitutions-v1",
+    "source_version": "constitutional-transitions-v1",
+    "cooldown_days": 180,
+    "ai_targets": {
+      "GBR": "parliamentary",
+      "USA": "presidential",
+      "FRA": "semi_presidential",
+      "DEU": "parliamentary",
+      "RUS": "semi_presidential",
+      "CHN": "single_party",
+      "IND": "parliamentary",
+      "JPN": "parliamentary",
+      "BRA": "presidential",
+      "ZAF": "parliamentary",
+      "SAU": "absolute_monarchy",
+      "IRN": "theocracy",
+      "CUB": "single_party",
+      "PRK": "personalist",
+      "MMR": "military"
+    },
+    "lawful": {
+      "days": 90,
+      "cost_bps": 50,
+      "upfront_bps": 2000,
+      "legislative_threshold": 67,
+      "elite_threshold": 75,
+      "council_threshold": 65,
+      "approval_threshold": 55,
+      "approval_cost": 3,
+      "legislative_cost": 5,
+      "elite_cost": 10,
+      "council_cost": 5
+    },
+    "contested": {
+      "days": 14,
+      "cost_bps": 100,
+      "upfront_bps": 10000,
+      "legislative_threshold": 0,
+      "elite_threshold": 80,
+      "council_threshold": 80,
+      "approval_threshold": 0,
+      "approval_cost": 20,
+      "legislative_cost": 25,
+      "elite_cost": 15,
+      "council_cost": 20
+    }
+  }
+}

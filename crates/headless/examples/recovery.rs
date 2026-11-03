@@ -33,14 +33,27 @@ fn play(
         } else {
             Regime::Military
         };
-        for round in 0..3 {
-            if round < 2 {
-                world.issue(
-                    content,
-                    Action::Borrow {
-                        amount: Money(definition.gdp / 10),
-                    },
-                )?;
+        let mut loans = 0;
+        for _ in 0..3 {
+            let amount = Money(definition.gdp / 10);
+            if loans < 2
+                && world
+                    .preview_borrowing(content, &world.player, amount)
+                    .is_ok()
+            {
+                world.issue(content, Action::Borrow { amount })?;
+                loans += 1;
+            }
+            if world
+                .preview(content, &world.player, "coalition", 1)
+                .is_err()
+                && let Some(pending) = world
+                    .player_country()
+                    .financing
+                    .as_ref()
+                    .and_then(|state| state.pending.as_ref())
+            {
+                world.advance(content, pending.decision_day - world.day)?;
             }
             let preview = world.preview(content, &world.player, "coalition", 1)?;
             world.issue(
@@ -51,6 +64,15 @@ fn play(
                 },
             )?;
             world.advance(content, preview.delay)?;
+        }
+        // Minority cabinets may only gain borrowing authority after talks.
+        // Accepted requests still supply no cash until their actual decision.
+        while loans < 2 {
+            let amount = Money(definition.gdp / 10);
+            let preview = world.preview_borrowing(content, &world.player, amount)?;
+            world.issue(content, Action::Borrow { amount })?;
+            loans += 1;
+            world.advance(content, preview.consent_days)?;
         }
         world.issue(
             content,

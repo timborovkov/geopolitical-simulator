@@ -188,6 +188,20 @@ def build_finance_starter():
     return pack
 
 
+def build_constitution_starter():
+    pack = build_finance_starter()
+    pack.update(schema=5, rules=5, id="initial-2000-constitutions-v5",
+                name="A New Century · political transitions")
+    pack["description"] += " Constitutional transitions use authored rules-5 templates, backing thresholds, costs and inertia rather than sourced historical amendment law. Starter AI prefers its opening governing form; fictional fixtures demonstrate alternative preferences. Earlier campaigns retain their original packs."
+    source = "authored-constitutions-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model",
+                                description="Original lawful and contested constitutional-transition templates, political costs, consent constraints and status-quo AI preferences. These are game assumptions, not historical constitutional procedures."))
+    pack["constitutions"] = build_constitutions()["constitutions"]
+    pack["constitutions"].update(source=source, source_version="constitutional-transitions-v1",
+                                ai_targets={country["id"]: country["regime"] for country in pack["countries"]})
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -197,7 +211,8 @@ def main():
                            ("synthetic-finance-test.json", build_finance()),
                            ("synthetic-constitution-test.json", build_constitutions()),
                            ("initial-2000-markets.json", build_market_starter()),
-                           ("initial-2000-finance.json", build_finance_starter())]:
+                           ("initial-2000-finance.json", build_finance_starter()),
+                           ("initial-2000-constitutions.json", build_constitution_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"
         if args.check:

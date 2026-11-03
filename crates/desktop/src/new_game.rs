@@ -4,6 +4,7 @@ use sim_core::*;
 #[derive(Clone, Copy, PartialEq)]
 enum Pack {
     Current,
+    Finance,
     Market,
     Classic,
     Pinned,
@@ -92,15 +93,16 @@ impl Setup {
                 if active { ui.label(format!("Save active campaign to: {current_save_path}. A separate archived snapshot will also be retained.")); }
                 if self.bundled_catalog {
                     let previous = self.pack;
-                    let pack_label = match self.pack { Pack::Current => "Default · institutions and prices", Pack::Market => "Earlier · prices only", _ => "Classic · fixed prices" };
+                    let pack_label = match self.pack { Pack::Current => "Default · political transitions", Pack::Finance => "Earlier · borrowing and prices", Pack::Market => "Earlier · prices only", _ => "Classic · fixed prices" };
                     egui::ComboBox::from_label("World pack").selected_text(pack_label).show_ui(ui, |ui| {
-                        ui.selectable_value(&mut self.pack, Pack::Current, "Default · institutions and prices");
+                        ui.selectable_value(&mut self.pack, Pack::Current, "Default · political transitions");
+                        ui.selectable_value(&mut self.pack, Pack::Finance, "Earlier · borrowing and prices");
                         ui.selectable_value(&mut self.pack, Pack::Market, "Earlier · prices only");
                         ui.selectable_value(&mut self.pack, Pack::Classic, "Classic · fixed prices");
                     });
                     if self.pack != previous {
                         let old_default = format!("saves/campaign-v{}.json", sim_core::persistence::snapshot_schema_for_rules(self.content.rules));
-                        match match self.pack { Pack::Classic => Content::classic_bundled(), Pack::Market => Content::market_bundled(), _ => Content::bundled() } {
+                        match match self.pack { Pack::Classic => Content::classic_bundled(), Pack::Finance => Content::finance_bundled(), Pack::Market => Content::market_bundled(), _ => Content::bundled() } {
                             Ok(content) => {
                                 if content.country(&self.player).is_none() { self.player = content.countries[0].id.clone(); }
                                 if self.save_path == old_default { self.save_path = format!("saves/campaign-v{}.json", sim_core::persistence::snapshot_schema_for_rules(content.rules)); }

@@ -274,10 +274,12 @@ impl GameApp {
                 self.selected = w.player.clone();
                 self.target_date = date((w.day + 30).min(MAX_DAY));
                 self.world = Some(w);
-                self.status = if self.content.rules == 2 {
-                    "Classic fixed-price campaign loaded. Simulation paused."
-                } else {
-                    "Relative-price campaign loaded. Simulation paused."
+                self.status = match self.content.rules {
+                    2 => "Classic fixed-price campaign loaded. Simulation paused.",
+                    3 => "Relative-price campaign loaded. Simulation paused.",
+                    4 => "Institutional-financing campaign loaded. Simulation paused.",
+                    5 => "Constitutional-transition campaign loaded. Simulation paused.",
+                    _ => "Campaign loaded. Simulation paused.",
                 }
                 .into();
                 self.recovery.clear();
@@ -1802,7 +1804,7 @@ mod interface_tests {
         let expected_new = setup.prepare().unwrap().hash();
         app.begin_new_campaign(&setup, true).unwrap();
         assert_eq!(app.world.as_ref().unwrap().hash(), expected_new);
-        assert_eq!(app.content.rules, 4);
+        assert_eq!(app.content.rules, 5);
         assert_eq!(app.selected.0, "CHN");
         assert_eq!(app.speed, 0);
         let archive = dir.join("current.json.before-new-campaign-1");

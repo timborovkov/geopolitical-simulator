@@ -136,6 +136,12 @@ pub struct Content {
 }
 impl Content {
     pub fn bundled() -> Result<Self, String> {
+        Self::from_json(include_str!(
+            "../../../data/initial-2000-constitutions.json"
+        ))
+    }
+    /// Preserved rules-4 pack for campaigns begun before constitutional changes.
+    pub fn finance_bundled() -> Result<Self, String> {
         Self::from_json(include_str!("../../../data/initial-2000-finance.json"))
     }
     /// Preserved rules-3 pack for campaigns begun before financing authority.
@@ -149,6 +155,7 @@ impl Content {
     pub fn bundled_for_hash(hash: u64) -> Result<Self, String> {
         for pack in [
             Self::bundled()?,
+            Self::finance_bundled()?,
             Self::market_bundled()?,
             Self::classic_bundled()?,
         ] {

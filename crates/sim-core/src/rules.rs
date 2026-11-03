@@ -927,6 +927,7 @@ impl World {
             .as_ref()
             .and_then(|rules| rules.ai_targets.get(id))
             .cloned()
+            && target != regime
             && self
                 .preview_constitution(content, id, &target, false)
                 .is_ok()

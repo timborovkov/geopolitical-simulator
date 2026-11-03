@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Default new-game rules; each campaign retains its content's explicit version.
-pub const RULES_VERSION: u32 = 4;
+pub const RULES_VERSION: u32 = 5;
 pub const MAX_DAY: u32 = 36_525;
 /// Money is in millions of constant-2000 USD-equivalent game credits.
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
