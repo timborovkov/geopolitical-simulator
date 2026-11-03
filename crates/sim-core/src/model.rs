@@ -93,13 +93,13 @@ pub struct DailyReport {
     pub service_delivery: i32,
     pub output: Money,
     pub shock: i32,
-    pub energy_produced: i64,
-    pub energy_imported: i64,
-    pub energy_used: i64,
-    pub food_produced: i64,
-    pub food_imported: i64,
-    pub food_consumed: i64,
-    pub food_lost: i64,
+    pub energy_produced: Energy,
+    pub energy_imported: Energy,
+    pub energy_used: Energy,
+    pub food_produced: Food,
+    pub food_imported: Food,
+    pub food_consumed: Food,
+    pub food_lost: Food,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Observation {
@@ -146,8 +146,8 @@ pub struct Country {
     pub next_election: Option<u32>,
     pub government_number: u32,
     pub projects: Vec<PolicyInstance>,
-    pub energy_stock: i64,
-    pub food_stock: i64,
+    pub energy_stock: Energy,
+    pub food_stock: Food,
     pub report: DailyReport,
     pub history: Vec<Observation>,
 }
@@ -315,8 +315,8 @@ impl World {
                         next_election: d.regime.competitive().then_some(730),
                         government_number: 1,
                         projects: Vec::new(),
-                        energy_stock: 0,
-                        food_stock: 0,
+                        energy_stock: Energy::ZERO,
+                        food_stock: Food::ZERO,
                         report: DailyReport::default(),
                         history: Vec::new(),
                     },
@@ -449,6 +449,28 @@ impl World {
         {
             return Err("Invalid world clock, player, roster or command sequence".into());
         }
+        let mut previous_day = 0;
+        for (index, entry) in self.journal.iter().enumerate() {
+            let command = &entry.command;
+            let valid_action = match &command.action {
+                Action::Enact { policy, value } => content
+                    .policy(policy)
+                    .is_some_and(|definition| (definition.min..=definition.max).contains(value)),
+                Action::Borrow { amount } | Action::Repay { amount } => {
+                    (1..=1_000_000_000_000).contains(&amount.0)
+                }
+            };
+            if command.id != index as u64 + 1
+                || command.day < previous_day
+                || command.day > self.day
+                || !self.countries.contains_key(&command.issuer)
+                || entry.ai == (command.issuer == self.player)
+                || !valid_action
+            {
+                return Err(format!("Invalid command journal entry {}", index + 1));
+            }
+            previous_day = command.day;
+        }
         for (id, c) in &self.countries {
             let d = content.country(id).ok_or("Unknown country in save")?;
             if id != &c.id
@@ -490,8 +512,23 @@ impl World {
                 || !(1..=200).contains(&c.energy_capacity)
                 || !(1..=200).contains(&c.food_capacity)
                 || c.population.0 != d.population
-                || !(0..=1_000_000_000).contains(&c.energy_stock)
-                || !(0..=1_000_000_000).contains(&c.food_stock)
+                || !(0..=1_000_000_000).contains(&c.energy_stock.units())
+                || !(0..=1_000_000_000).contains(&c.food_stock.units())
+                || [
+                    c.report.energy_produced,
+                    c.report.energy_imported,
+                    c.report.energy_used,
+                ]
+                .iter()
+                .any(|v| v.units() > 1_000_000_000)
+                || [
+                    c.report.food_produced,
+                    c.report.food_imported,
+                    c.report.food_consumed,
+                    c.report.food_lost,
+                ]
+                .iter()
+                .any(|v| v.units() > 1_000_000_000)
                 || c.projects.len() > content.policies.len()
                 || c.history.len() > 120
                 || c.seats.values().map(|v| u32::from(*v)).sum::<u32>() != 100

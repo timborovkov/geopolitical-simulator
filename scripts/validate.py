@@ -80,6 +80,7 @@ def main():
     commands = [["git", "diff", "--check"]]
     if not args.docs_only:
         commands += [
+            [sys.executable, "scripts/build_synthetic_world.py", "--check"],
             ["cargo", "fmt", "--all", "--", "--check"],
             ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"],
             ["cargo", "test", "--workspace", "--locked"],
@@ -87,6 +88,7 @@ def main():
             ["cargo", "build", "--workspace", "--release", "--locked"],
             ["cargo", "run", "-p", "headless", "--release", "--locked", "--", "--verify"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-test.json"],
         ]
     env = dict(os.environ, RUSTDOCFLAGS="-D warnings")
     for command in commands:

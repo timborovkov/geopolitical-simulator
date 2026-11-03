@@ -227,21 +227,130 @@ pub fn replay(original: &World, content: &Content) -> Result<World, String> {
         original.seed,
         original.scenario,
     )?;
+    let mut verified = 0;
     for entry in original.journal.iter().filter(|e| !e.ai) {
         while world.day < entry.command.day {
             world.advance(content, 1)?;
+            verify_journal(original, &world, &mut verified)?;
         }
-        world.apply(content, entry.command.clone(), false)?;
+        world
+            .apply(content, entry.command.clone(), false)
+            .map_err(|reason| {
+                format!(
+                    "Replay command #{} on {} was rejected: {reason}",
+                    entry.command.id,
+                    crate::date(entry.command.day)
+                )
+            })?;
+        verify_journal(original, &world, &mut verified)?;
     }
     while world.day < original.day {
         world.advance(content, 1)?;
+        verify_journal(original, &world, &mut verified)?;
+    }
+    if verified != original.journal.len() {
+        return Err(format!(
+            "Replay first command divergence at entry {}: expected {:?}, got <missing>",
+            verified + 1,
+            original.journal.get(verified)
+        ));
     }
     if world.hash() != original.hash() {
+        let detail = first_state_difference(original, &world)
+            .map(|difference| {
+                format!(
+                    "; first differing final-state field {}: expected {}, got {}",
+                    difference.path, difference.expected, difference.actual
+                )
+            })
+            .unwrap_or_default();
         return Err(format!(
-            "Replay diverged: expected {:016x}, got {:016x}",
+            "Replay diverged at final snapshot {}: expected {:016x}, got {:016x}{detail}",
+            crate::date(original.day),
             original.hash(),
             world.hash()
         ));
     }
     Ok(world)
+}
+
+fn verify_journal(original: &World, replayed: &World, verified: &mut usize) -> Result<(), String> {
+    while *verified < replayed.journal.len() {
+        let actual = &replayed.journal[*verified];
+        let expected = original.journal.get(*verified);
+        if expected != Some(actual) {
+            return Err(format!(
+                "Replay first command divergence at entry {} on {}: expected {:?}, got {:?}",
+                *verified + 1,
+                crate::date(actual.command.day),
+                expected,
+                actual
+            ));
+        }
+        *verified += 1;
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StateDifference {
+    /// Escaped JSON pointer, including stable country IDs for country fields.
+    pub path: String,
+    pub expected: String,
+    pub actual: String,
+}
+
+/// Compare trusted snapshots for developer inspection. The first field in
+/// canonical key/index order is not necessarily the earliest divergent tick.
+pub fn first_state_difference(expected: &World, actual: &World) -> Option<StateDifference> {
+    fn preview(value: Option<&serde_json::Value>) -> String {
+        let text = value.map_or_else(|| "<missing>".into(), ToString::to_string);
+        if text.chars().count() > 120 {
+            format!("{}…", text.chars().take(120).collect::<String>())
+        } else {
+            text
+        }
+    }
+    fn compare(
+        path: String,
+        expected: Option<&serde_json::Value>,
+        actual: Option<&serde_json::Value>,
+    ) -> Option<StateDifference> {
+        if expected == actual {
+            return None;
+        }
+        match (expected, actual) {
+            (Some(serde_json::Value::Object(a)), Some(serde_json::Value::Object(b))) => {
+                let keys: std::collections::BTreeSet<_> = a.keys().chain(b.keys()).collect();
+                for key in keys {
+                    let escaped = key.replace('~', "~0").replace('/', "~1");
+                    if let Some(difference) =
+                        compare(format!("{path}/{escaped}"), a.get(key), b.get(key))
+                    {
+                        return Some(difference);
+                    }
+                }
+            }
+            (Some(serde_json::Value::Array(a)), Some(serde_json::Value::Array(b))) => {
+                for index in 0..a.len().max(b.len()) {
+                    if let Some(difference) =
+                        compare(format!("{path}/{index}"), a.get(index), b.get(index))
+                    {
+                        return Some(difference);
+                    }
+                }
+            }
+            _ => {}
+        }
+        Some(StateDifference {
+            path,
+            expected: preview(expected),
+            actual: preview(actual),
+        })
+    }
+    compare(
+        String::new(),
+        Some(&serde_json::to_value(expected).expect("world serialization")),
+        Some(&serde_json::to_value(actual).expect("world serialization")),
+    )
 }

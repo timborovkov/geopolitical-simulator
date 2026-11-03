@@ -58,11 +58,13 @@ The [initial content pack](data/initial-2000.json) seeds 15 countries, 34 partie
 
 Money is expressed in millions of constant-2000 USD-equivalent game credits. Displayed local currency codes are identity metadata; there is no currency exchange model yet. Stocks and realized daily flows are shown separately. Policy forecasts state their assumptions.
 
+An entirely fictional [three-government fixture](data/synthetic-test.json) offers identical opening economies under parliamentary, party-council and royal authority. It has no historical-data dependencies. Launch it with `cargo run -p headless --release --locked -- --content data/synthetic-test.json --country AUR --interactive`, or pass the same `--content` option to the desktop. Rebuild it offline with `python3 scripts/build_synthetic_world.py`; `--check` verifies reproducibility. Its map markers are arbitrary test locations, not territorial claims.
+
 ## Save, recover and replay
 
 The desktop writes manual saves to the path in its sidebar, initially `saves/campaign-v2.json`. Every crossed 30-day reporting boundary writes `saves/autosave-COUNTRY-SCENARIO-v2.json`. A completed save replaces the primary file using a temporary file and retains the previous snapshot as `.json.bak`. Use **Inspect recovery snapshots** to review the primary, pending write, backup or interrupted backup/recovery stage before restoring. Originals are archived before recovery; a damaged primary never replaces the last validated backup. Interrupted writes block ordinary replacement until explicitly resolved. Saves include content/rules hashes, commands, projects and deterministic shock state; incompatible or damaged files fail without replacing the active campaign.
 
-The terminal uses `until YYYY-MM-DD`, `households`, `budget`, `data`, `save PATH`, `load PATH` and `replay`. Paths in terminal commands cannot contain spaces. `--save FILE` and `--load FILE` work in the runner. Save, rules and content formats are now version 2. Version-1 files are rejected without conversion or modification; the default v2 save paths keep them separate. Replay re-executes human commands and deterministic AI and checks the canonical final state hash. Hashes detect accidental corruption; they are not cryptographic authentication.
+The terminal uses `until YYYY-MM-DD`, `households`, `budget`, `data`, `save PATH`, `load PATH` and `replay`. Paths in terminal commands cannot contain spaces. `--save FILE` and `--load FILE` work in the runner. Save, rules and content formats are now version 2. Version-1 files are rejected without conversion or modification; the default v2 save paths keep them separate. Replay re-executes human commands and deterministic AI, checks commands in sequence and verifies the final state hash. Diagnostics identify the first differing command or final-state field; a final snapshot alone cannot establish the earliest divergent tick. Hashes detect accidental corruption; they are not cryptographic authentication.
 
 ## Validation
 
@@ -85,6 +87,7 @@ A reproducible successful crisis strategy can also be inspected and run:
 
 ```sh
 cargo run -p headless --example recovery --release --locked
+cargo run -p headless --example recovery --release --locked -- --content data/synthetic-test.json
 ```
 
 This example borrows for runway, proposes tax/spending reforms, builds supply and administrative capacity, maintains support and repays debt when affordable. It uses the same validators, costs and delays as a player. The seed-17 acceptance run establishes that every initial country has a recovery path; it is not a universal optimal AI or a guarantee of balance for every seed. See [development progress](docs/development-progress.md) for the full remaining scope.

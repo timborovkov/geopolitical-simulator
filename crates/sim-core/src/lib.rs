@@ -7,12 +7,14 @@ mod knowledge;
 mod model;
 pub mod persistence;
 mod rules;
+mod units;
 pub use budget::*;
 pub use content::*;
 pub use governance::*;
 pub use households::*;
 pub use knowledge::*;
 pub use model::*;
+pub use units::*;
 
 /// FNV-1a, fixed byte order. A reproducibility checksum, not a security primitive.
 pub fn stable_hash(bytes: &[u8]) -> u64 {

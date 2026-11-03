@@ -14,11 +14,10 @@ fn propose(world: &mut World, content: &Content, policy: &str, value: i32) {
             .expect("revalidated example action");
     }
 }
-fn play(country: &str, seed: u64) -> Result<(), String> {
-    let content = Content::bundled()?;
+fn play(content: &Content, country: &str, seed: u64) -> Result<(), String> {
     let id = CountryId(country.into());
     let definition = content.country(&id).ok_or("country")?;
-    let mut world = World::new_scenario(&content, id, seed, Scenario::FiscalSupplyCrisis)?;
+    let mut world = World::new_scenario(content, id, seed, Scenario::FiscalSupplyCrisis)?;
     while world.day < 1827 {
         let c = world.player_country();
         let forecast = c.forecast(definition);
@@ -26,7 +25,7 @@ fn play(country: &str, seed: u64) -> Result<(), String> {
         if c.accounts.treasury.0 - c.committed_cash.0 < gap.max(1) * 90 {
             let amount = Money(definition.gdp / 10);
             if c.debt.0 + amount.0 <= definition.gdp * 3 / 2 && c.accounts.external.0 >= amount.0 {
-                world.issue(&content, Action::Borrow { amount })?;
+                world.issue(content, Action::Borrow { amount })?;
             }
         }
         let c = world.player_country();
@@ -38,11 +37,11 @@ fn play(country: &str, seed: u64) -> Result<(), String> {
         if support < definition.government.threshold + 5
             || c.council_support < definition.government.council_threshold + 5
         {
-            propose(&mut world, &content, "coalition", 1);
+            propose(&mut world, content, "coalition", 1);
         }
         // Fund essential services at an affordable level while widening receipts.
         for (policy, value) in [("income_tax", 35), ("services", 8), ("welfare", 8)] {
-            propose(&mut world, &content, policy, value);
+            propose(&mut world, content, policy, value);
         }
         for (policy, needed) in [
             ("energy", world.player_country().energy_capacity < 110),
@@ -50,7 +49,7 @@ fn play(country: &str, seed: u64) -> Result<(), String> {
             ("administration", world.player_country().administration < 85),
         ] {
             if needed {
-                propose(&mut world, &content, policy, 1);
+                propose(&mut world, content, policy, 1);
             }
         }
         let c = world.player_country();
@@ -58,12 +57,12 @@ fn play(country: &str, seed: u64) -> Result<(), String> {
             && c.debt.0 > definition.gdp / 5
         {
             let amount = Money((definition.gdp / 20).min(c.debt.0));
-            world.issue(&content, Action::Repay { amount })?;
+            world.issue(content, Action::Repay { amount })?;
         }
-        world.advance(&content, (1827 - world.day).min(30))?;
+        world.advance(content, (1827 - world.day).min(30))?;
     }
-    world.validate(&content)?;
-    persistence::replay(&world, &content)?;
+    world.validate(content)?;
+    persistence::replay(&world, content)?;
     let c = world.player_country();
     if c.report.energy_coverage < 90
         || c.report.food_coverage < 90
@@ -86,13 +85,24 @@ fn play(country: &str, seed: u64) -> Result<(), String> {
     );
     Ok(())
 }
-fn main() {
-    let content = Content::bundled().expect("bundled content");
+fn run() -> Result<(), String> {
+    let args: Vec<_> = std::env::args().skip(1).collect();
+    let content = match args.as_slice() {
+        [] => Content::bundled()?,
+        [flag, path] if flag == "--content" => {
+            Content::from_json(&std::fs::read_to_string(path).map_err(|error| error.to_string())?)?
+        }
+        _ => return Err("Usage: recovery [--content FILE]".into()),
+    };
     for definition in &content.countries {
         let country = definition.id.0.as_str();
-        if let Err(error) = play(country, 17) {
-            eprintln!("{error}");
-            std::process::exit(1);
-        }
+        play(&content, country, 17)?;
+    }
+    Ok(())
+}
+fn main() {
+    if let Err(error) = run() {
+        eprintln!("{error}");
+        std::process::exit(1);
     }
 }

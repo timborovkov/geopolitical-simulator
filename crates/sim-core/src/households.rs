@@ -120,9 +120,9 @@ impl World {
         &mut self,
         content: &Content,
         id: &CountryId,
-        food_available: i64,
-        demand: i64,
-    ) -> (i64, i64) {
+        food_available: Food,
+        demand: Food,
+    ) -> (Money, Food) {
         let d = content.country(id).expect("definition");
         let weights: Vec<_> = self.countries[id]
             .households
@@ -130,7 +130,7 @@ impl World {
             .map(|h| h.population.0 as i64)
             .collect();
         let baskets = apportion((d.gdp / 365 * 60 / 100).max(1), &weights);
-        let needs = apportion(demand, &weights);
+        let needs = apportion(demand.units(), &weights);
         let mut affordable = Vec::new();
         let mut consumption = 0;
         for (index, basket) in baskets.iter().enumerate() {
@@ -154,9 +154,10 @@ impl World {
             consumption += paid;
         }
         let total_affordable: i64 = affordable.iter().sum();
-        let delivered = food_available.min(total_affordable);
+        let delivered =
+            food_available.min(Food::new(total_affordable).expect("nonnegative affordable demand"));
         let allocated = if total_affordable > 0 {
-            apportion(delivered, &affordable)
+            apportion(delivered.units(), &affordable)
         } else {
             vec![0; affordable.len()]
         };
@@ -174,6 +175,6 @@ impl World {
                 (allocated[i] * 100 / needs[i]) as i32
             };
         }
-        (consumption, delivered)
+        (Money(consumption), delivered)
     }
 }

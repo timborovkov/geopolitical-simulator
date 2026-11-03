@@ -1055,13 +1055,20 @@ impl GameApp {
             ),
             (
                 "Content scope",
-                "15 seeded countries, dated to 1 January 2000. Historical identity names are a starter curation with review limitations. Reference-country GDP and population have dated source records; other economic values, seats, election timing and preferences are authored approximations. Land outlines show geography only. This initial game does not yet implement warfare, detailed diplomacy, full historical coverage or regional service networks.",
+                "Inspect the loaded pack description and source records below. Historical facts and authored approximations are labeled separately. Land outlines show geography only. This initial game does not yet implement warfare, detailed diplomacy, full historical coverage or regional service networks.",
             ),
         ] {
             ui.strong(title);
             ui.label(text);
             ui.add_space(8.0);
         }
+        ui.strong(format!(
+            "{} · {} countries · bookmark {}",
+            self.content.name,
+            self.content.countries.len(),
+            self.content.start
+        ));
+        ui.label(&self.content.description);
         ui.label(format!(
             "Content {} · hash {:016x} · rules {}",
             self.content.id,

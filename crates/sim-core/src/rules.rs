@@ -268,8 +268,9 @@ impl World {
         Ok(())
     }
     pub fn advance_to_event(&mut self, content: &Content) -> Result<u32, String> {
+        self.advance(content, 0)?;
         let start = self.day;
-        for _ in 0..365 {
+        for _ in 0..365.min(MAX_DAY.saturating_sub(self.day)) {
             self.advance(content, 1)?;
             if self
                 .events
@@ -338,13 +339,35 @@ impl World {
         }
         let c = &self.countries[id];
         let demand = (c.population.0 / 1000) as i64;
+        let energy_demand = Energy::new(demand).expect("validated population");
+        let food_demand = Food::new(demand).expect("validated population");
         let daily = (d.gdp / 365).max(1);
-        let energy_produced = (demand * i64::from((c.energy_capacity - shock).max(0)) / 100)
-            .min((demand * 3 - c.energy_stock).max(0));
-        let food_produced = (demand * i64::from((c.food_capacity - shock).max(0)) / 100)
-            .min((demand * 11 - c.food_stock).max(0));
-        let energy_available = c.energy_stock + energy_produced;
-        let food_available = c.food_stock + food_produced;
+        let energy_produced = energy_demand
+            .scaled(i64::from((c.energy_capacity - shock).max(0)), 100)
+            .expect("bounded capacity")
+            .min(
+                energy_demand
+                    .scaled(3, 1)
+                    .expect("bounded demand")
+                    .saturating_sub(c.energy_stock),
+            );
+        let food_produced = food_demand
+            .scaled(i64::from((c.food_capacity - shock).max(0)), 100)
+            .expect("bounded capacity")
+            .min(
+                food_demand
+                    .scaled(11, 1)
+                    .expect("bounded demand")
+                    .saturating_sub(c.food_stock),
+            );
+        let energy_available = c
+            .energy_stock
+            .checked_add(energy_produced)
+            .expect("bounded energy storage");
+        let food_available = c
+            .food_stock
+            .checked_add(food_produced)
+            .expect("bounded food storage");
         let buy_import = |world: &mut Self, quantity: i64, reason: &str| {
             if quantity == 0 {
                 return 0;
@@ -353,18 +376,29 @@ impl World {
             let paid = world.pay(id, Firms, External, cost, reason);
             quantity * paid / cost
         };
-        let energy_imported = buy_import(
+        let energy_imported = Energy::new(buy_import(
             self,
-            (demand - energy_available).max(0).min(demand / 4),
+            energy_demand
+                .saturating_sub(energy_available)
+                .min(energy_demand.scaled(1, 4).expect("positive ratio"))
+                .units(),
             "Bounded energy imports",
-        );
-        let food_imported = buy_import(
+        ))
+        .expect("nonnegative imports");
+        let food_imported = Food::new(buy_import(
             self,
-            (demand - food_available).max(0).min(demand * 35 / 100),
+            food_demand
+                .saturating_sub(food_available)
+                .min(food_demand.scaled(35, 100).expect("positive ratio"))
+                .units(),
             "Bounded food imports",
-        );
-        let energy_used = (energy_available + energy_imported).min(demand);
-        let energy_coverage = (energy_used * 100 / demand) as i32;
+        ))
+        .expect("nonnegative imports");
+        let energy_supply = energy_available
+            .checked_add(energy_imported)
+            .expect("bounded energy imports");
+        let energy_used = energy_supply.min(energy_demand);
+        let energy_coverage = energy_used.coverage(energy_demand);
         let output = daily * i64::from(energy_coverage) / 100;
         self.pay(
             id,
@@ -504,13 +538,22 @@ impl World {
             "Maintenance arrears paid to original firms",
         );
         let arrears_paid = paid_external + paid_households + paid_firms;
+        let food_supply = food_available
+            .checked_add(food_imported)
+            .expect("bounded food imports");
         let (consumption, food_consumed) =
-            self.settle_households(content, id, food_available + food_imported, demand);
-        let food_left = food_available + food_imported - food_consumed;
-        let food_lost = food_left / 100;
+            self.settle_households(content, id, food_supply, food_demand);
+        let food_left = food_supply
+            .checked_sub(food_consumed)
+            .expect("delivery limited by supply");
+        let food_lost = food_left.scaled(1, 100).expect("positive loss ratio");
         let c = self.countries.get_mut(id).expect("country");
-        c.energy_stock = energy_available + energy_imported - energy_used;
-        c.food_stock = food_left - food_lost;
+        c.energy_stock = energy_supply
+            .checked_sub(energy_used)
+            .expect("usage limited by supply");
+        c.food_stock = food_left
+            .checked_sub(food_lost)
+            .expect("loss limited by stock");
         c.arrears_households.0 +=
             services_due - service_pay + welfare_due - welfare_pay - paid_households;
         c.arrears_external.0 += interest_due - interest - paid_external;
@@ -540,9 +583,9 @@ impl World {
             interest: Money(interest),
             unpaid: Money(unpaid),
             wages: Money(wages),
-            consumption: Money(consumption),
+            consumption,
             energy_coverage,
-            food_coverage: (food_consumed * 100 / demand) as i32,
+            food_coverage: food_consumed.coverage(food_demand),
             service_delivery,
             output: Money(output),
             shock,

@@ -156,12 +156,26 @@ fn sector_cash_and_physical_goods_reconcile_every_day() {
             let r = &c.report;
             assert_eq!(c.accounts.total(), c.opening_money.0);
             assert_eq!(
-                previous.energy_stock + r.energy_produced + r.energy_imported,
-                r.energy_used + c.energy_stock
+                previous
+                    .energy_stock
+                    .checked_add(r.energy_produced)
+                    .unwrap()
+                    .checked_add(r.energy_imported)
+                    .unwrap(),
+                r.energy_used.checked_add(c.energy_stock).unwrap()
             );
             assert_eq!(
-                previous.food_stock + r.food_produced + r.food_imported,
-                r.food_consumed + r.food_lost + c.food_stock
+                previous
+                    .food_stock
+                    .checked_add(r.food_produced)
+                    .unwrap()
+                    .checked_add(r.food_imported)
+                    .unwrap(),
+                r.food_consumed
+                    .checked_add(r.food_lost)
+                    .unwrap()
+                    .checked_add(c.food_stock)
+                    .unwrap()
             );
             assert_eq!(
                 c.arrears.0,
