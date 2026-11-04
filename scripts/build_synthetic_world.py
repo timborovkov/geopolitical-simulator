@@ -401,6 +401,18 @@ def build_undertaking_starter():
     return pack
 
 
+def build_fiscal_starter():
+    pack = build_undertaking_starter()
+    pack.update(schema=12, rules=12, id="initial-2000-fiscal-plans-v12", name="A New Century · annual and supplementary budgets")
+    pack["description"] += " Reviewed annual and supplementary fiscal packages use authored preparation, administration, implementation reservation and calendar accounting procedures. Enactment funds actual policy programmes; recurring purchasing remains subject to cash and delivery constraints. These plans are not historical budget laws or hard appropriation ceilings."
+    source = "authored-fiscal-plans-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model",
+                                description="Original annual/supplementary fiscal preparation, institutional review, administration costs, implementation reservations and calendar execution. No historical budget law, tax-base calibration or hard appropriation ceiling is claimed."))
+    pack["fiscal_plans"] = build_fiscal_plans()["fiscal_plans"]
+    pack["fiscal_plans"].update(source=source, source_version="starter-fiscal-plans-v1")
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -424,6 +436,7 @@ def main():
                            ("initial-2000-observed.json", build_observed_starter()),
                            ("initial-2000-territorial.json", build_territorial_starter()),
                            ("initial-2000-undertakings.json", build_undertaking_starter()),
+                           ("initial-2000-fiscal-plans.json", build_fiscal_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

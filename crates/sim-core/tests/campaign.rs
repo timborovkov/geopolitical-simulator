@@ -78,6 +78,7 @@ fn legal_routes_apply_to_all_regimes_and_support_can_be_negotiated() {
         c.legislative_support = 20;
         c.elite_support = 20;
         assert!(w.preview(&content, &d.id, "energy", 1).is_err());
+        let delivery_day = w.preview(&content, &d.id, "coalition", 1).unwrap().delay;
         w.issue(
             &content,
             Action::Enact {
@@ -86,11 +87,32 @@ fn legal_routes_apply_to_all_regimes_and_support_can_be_negotiated() {
             },
         )
         .unwrap();
-        w.advance(&content, 200).unwrap();
+        w.advance(&content, delivery_day).unwrap();
+        assert!(w.events.iter().any(|e| e.country == d.id
+            && e.day == delivery_day
+            && e.text.contains("coalition is operating")));
+        w.advance(&content, 200 - delivery_day).unwrap();
+        // The bounded news feed may expire; accepted delivery evidence is permanent.
+        let delivery = w
+            .player_country()
+            .commitments
+            .as_ref()
+            .unwrap()
+            .iter()
+            .find(|r| r.project.policy == "coalition")
+            .unwrap();
         assert!(
-            w.events
+            delivery
+                .milestones
                 .iter()
-                .any(|e| e.country == d.id && e.text.contains("coalition is operating"))
+                .any(|m| m.stage == CommitmentStage::Operating && m.day == delivery_day)
+        );
+        assert_eq!(delivery.direct_effects.len(), 3);
+        assert!(
+            delivery
+                .direct_effects
+                .iter()
+                .all(|e| e.after == (e.before + 12).min(100))
         );
         w.validate(&content).unwrap();
     }

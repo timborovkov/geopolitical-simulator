@@ -93,6 +93,8 @@ def main():
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--contested-transition"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000.json"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-observed.json"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-undertakings.json"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-undertakings.json", "--contested-transition"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-territorial.json"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-territorial.json", "--contested-transition"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-observed.json", "--contested-transition"],

@@ -1,9 +1,8 @@
 use sim_core::*;
 #[test]
 fn the_undertaking_starter_preserves_all_country_observations_and_territorial_rights() {
-    let c = Content::bundled().unwrap();
+    let c = Content::undertaking_bundled().unwrap();
     let old = Content::territorial_bundled().unwrap();
-    assert_eq!(c.rules, RULES_VERSION);
     assert_eq!(c.rules, 11);
     assert_eq!(c.schema, 11);
     assert_eq!(c.countries, old.countries);
@@ -81,7 +80,7 @@ fn the_undertaking_starter_preserves_all_country_observations_and_territorial_ri
 }
 #[test]
 fn compatible_undertakings_share_one_real_delivery_and_the_previous_roster_recovers_unchanged() {
-    let c = Content::bundled().unwrap();
+    let c = Content::undertaking_bundled().unwrap();
     let old = Content::territorial_bundled().unwrap();
     let id = CountryId("GBR".into());
     let mut w = World::new(&c, id.clone(), 17).unwrap();
