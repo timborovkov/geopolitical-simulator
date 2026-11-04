@@ -67,9 +67,9 @@ impl Panel {
     }
 }
 
-fn effect_label(field: &str) -> &str {
+pub(crate) fn effect_label(field: &str) -> &str {
     match field {
-        "income_tax" => "Income tax (% of wages)",
+        "income_tax" => "Income-tax policy setting (%)",
         "services" => "Services (% of GDP)",
         "welfare" => "Welfare (% of GDP)",
         "energy_capacity" => "Domestic energy capacity (%)",

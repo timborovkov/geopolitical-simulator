@@ -20,6 +20,7 @@ mod new_game;
 mod settings;
 mod subnational;
 mod undertakings;
+mod walkthrough;
 use eframe::egui::{self, Color32, RichText, Stroke, Vec2};
 use sim_core::{persistence, *};
 use std::{
@@ -80,6 +81,7 @@ struct GameApp {
     bundled_catalog: bool,
     new_setup: Option<new_game::Setup>,
     briefing: briefing::Briefing,
+    walkthrough: walkthrough::Panel,
 }
 impl GameApp {
     fn new(
@@ -151,6 +153,7 @@ impl GameApp {
             bundled_catalog: false,
             new_setup: None,
             briefing: briefing::Briefing::default(),
+            walkthrough: walkthrough::Panel::default(),
         }
     }
     fn advance(&mut self, days: u32) {
@@ -293,6 +296,7 @@ impl GameApp {
                 self.world = Some(w);
                 self.undertaking_panel = undertakings::Panel::default();
                 self.fiscal_panel = fiscal_plans::Panel::default();
+                self.walkthrough = walkthrough::Panel::default();
                 self.status = match self.content.rules {
                     2 => "Classic fixed-price campaign loaded. Simulation paused.",
                     3 => "Relative-price campaign loaded. Simulation paused.",
@@ -400,6 +404,7 @@ impl GameApp {
         self.cashflows = cashflows::CashFlows::default();
         self.inspector = inspector::Inspector::default();
         self.help = help::Help::default();
+        self.walkthrough = walkthrough::Panel::default();
         self.status = archive.map_or_else(
             || "New campaign started, paused.".into(),
             |path| {
@@ -465,6 +470,9 @@ impl GameApp {
                 if self.world.as_ref().is_some_and(World::is_developer_modified) { ui.colored_label(Color32::LIGHT_YELLOW, "DEVELOPER-MODIFIED"); }
                 if ui.button("Settings [F1]").clicked() { self.pause(); self.tab = Tab::Settings; }
                 if self.world.is_some() && ui.add_enabled(self.recovery.is_empty(), egui::Button::new("New campaign")).clicked() { self.open_new_campaign(); }
+                if self.world.is_some() && ui.button("First session").clicked() {
+                    self.pause();self.selected=self.world.as_ref().unwrap().player.clone();self.help.reference=false;self.tab=Tab::Guide;
+                }
             });
             if self.world.is_some() {
                 ui.horizontal_wrapped(|ui| {
@@ -671,7 +679,15 @@ impl GameApp {
         if self.world.is_none() {
             ui.add_space(10.0);
             ui.heading("Your first mandate");
-            ui.label(format!("Keep food and energy needs at 90%, approval at 50%, clear arrears and debt below opening GDP by {}. Continue as the country after elections or leadership changes.", date(self.content.review_day().expect("validated bookmark"))));
+            ui.label(format!("Keep food and energy needs at 90%, approval at 50%, clear arrears and keep debt no greater than opening GDP by {}. Continue as the country after elections or leadership changes.", date(self.content.review_day().expect("validated bookmark"))));
+            if self
+                .content
+                .finance
+                .as_ref()
+                .is_some_and(|rules| rules.maturity_days.is_some())
+            {
+                ui.label("The five-year review also requires no overdue loan principal. Check debt dates before committing cash.");
+            }
             ui.horizontal_wrapped(|ui| {
                 metric(
                     ui,
@@ -1623,6 +1639,31 @@ impl GameApp {
             }
             return;
         }
+        if let Some(world) = &self.world {
+            let navigation =
+                self.walkthrough
+                    .show(ui, &self.content, world, self.selected == world.player);
+            if let Some(navigation) = navigation {
+                self.selected = self.world.as_ref().unwrap().player.clone();
+                match navigation {
+                    walkthrough::Navigation::Open(tab) => {
+                        self.pause();
+                        self.tab = tab;
+                    }
+                    walkthrough::Navigation::Draft { policy, value } => {
+                        self.pause();
+                        self.policy = policy;
+                        self.value = value;
+                        self.tab = Tab::Policies;
+                    }
+                    walkthrough::Navigation::Advance(days) => {
+                        self.speed = 0;
+                        self.start_advance(days, true);
+                    }
+                }
+            }
+            return;
+        }
         ui.heading("Learn your first mandate");
         for (title, text) in [
             (
@@ -1768,6 +1809,7 @@ impl GameApp {
                         self.world = Some(world);
                         self.undertaking_panel = undertakings::Panel::default();
                         self.fiscal_panel = fiscal_plans::Panel::default();
+                        self.walkthrough = walkthrough::Panel::default();
                         self.recovery.clear();
                         self.status =
                             "Recovered snapshot. Original files preserved; game paused.".into();
