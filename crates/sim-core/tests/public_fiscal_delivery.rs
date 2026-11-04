@@ -8,7 +8,7 @@ fn tax(plan: &PublishedFiscalPlan) -> &PublishedFiscalDelivery {
 #[test]
 fn public_delivery_separates_review_schedule_and_phased_setting_operation_without_changing_world_state()
  {
-    let content = Content::bundled().unwrap();
+    let content = Content::national_fiscal_bundled().unwrap();
     let foreign = CountryId("GBR".into());
     let mut world = World::new(&content, CountryId("FRA".into()), 17).unwrap();
     world.advance(&content, 30).unwrap();

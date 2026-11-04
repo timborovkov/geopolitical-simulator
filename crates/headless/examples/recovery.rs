@@ -156,8 +156,30 @@ fn play(
                     35
                 },
             ),
-            ("services", 8),
-            ("welfare", 8),
+            (
+                "services",
+                if content
+                    .finance
+                    .as_ref()
+                    .is_some_and(|rules| rules.maturity_days.is_some())
+                {
+                    6
+                } else {
+                    8
+                },
+            ),
+            (
+                "welfare",
+                if content
+                    .finance
+                    .as_ref()
+                    .is_some_and(|rules| rules.maturity_days.is_some())
+                {
+                    6
+                } else {
+                    8
+                },
+            ),
         ] {
             propose(&mut world, content, policy, value);
         }

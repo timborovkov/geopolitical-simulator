@@ -182,10 +182,9 @@ fn preserved_rules13_keeps_its_original_ai_commands_and_delivered_tax_save() {
 }
 
 #[test]
-fn default_national_fiscal_reviews_preserve_the_entire_prior_roster_and_all_thirteen_packs() {
-    let content = Content::bundled().unwrap();
+fn preserved_national_fiscal_reviews_preserve_the_entire_prior_roster_and_all_thirteen_packs() {
+    let content = Content::national_fiscal_bundled().unwrap();
     let old = Content::income_bundled().unwrap();
-    assert_eq!(content.rules, RULES_VERSION);
     assert_eq!((content.schema, content.rules), (14, 14));
     assert_eq!(content.sources.len(), old.sources.len() + 1);
     assert_eq!(
@@ -227,7 +226,7 @@ fn default_national_fiscal_reviews_preserve_the_entire_prior_roster_and_all_thir
 
 #[test]
 fn mixed_format15_and_preserved_format14_recovery_keeps_the_old_campaign_and_reports_exact() {
-    let content = Content::bundled().unwrap();
+    let content = Content::national_fiscal_bundled().unwrap();
     let (old, prior) = preserved_delivery();
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     world.advance(&content, 1).unwrap();

@@ -152,6 +152,12 @@ pub struct Content {
 }
 impl Content {
     pub fn bundled() -> Result<Self, String> {
+        Self::from_json(include_str!(
+            "../../../data/initial-2000-debt-maturities.json"
+        ))
+    }
+    /// Preserved rules-14 roster before newly issued loans gained dated principal.
+    pub fn national_fiscal_bundled() -> Result<Self, String> {
         Self::from_json(include_str!("../../../data/initial-2000-fiscal-ai.json"))
     }
     /// Preserved rules-13 roster before national-balance fiscal AI reviews.
@@ -207,6 +213,7 @@ impl Content {
     pub fn bundled_for_hash(hash: u64) -> Result<Self, String> {
         for pack in [
             Self::bundled()?,
+            Self::national_fiscal_bundled()?,
             Self::income_bundled()?,
             Self::fiscal_bundled()?,
             Self::undertaking_bundled()?,

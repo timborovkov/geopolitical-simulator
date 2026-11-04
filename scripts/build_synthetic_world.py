@@ -469,6 +469,16 @@ def build_debt_maturities():
     return pack
 
 
+def build_debt_starter():
+    pack = build_fiscal_ai_starter()
+    pack.update(schema=15, rules=15, id="initial-2000-debt-maturities-v15", name="A New Century · dated loan principal")
+    pack["description"] += " New loan principal matures an authored 365 days after actual disbursement. Opening debt remains perpetual calibration; historical debt curves and actual refinancing markets are not claimed."
+    source = "authored-dated-loan-principal-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model", description="Original 365-day maturity and scheduled-principal settlement for new loans. Existing authority and emergency constraints are retained; this is not historical debt calibration or default/restructuring."))
+    pack["finance"].update(source=source, source_version="starter-financing-with-dated-principal-v1", maturity_days=365)
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -498,6 +508,7 @@ def main():
                            ("initial-2000-fiscal-plans.json", build_fiscal_starter()),
                            ("initial-2000-income-bands.json", build_income_starter()),
                            ("initial-2000-fiscal-ai.json", build_fiscal_ai_starter()),
+                           ("initial-2000-debt-maturities.json", build_debt_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"
