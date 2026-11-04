@@ -1,5 +1,5 @@
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
-use sim_core::{Content, CountryId, PublicCountryReport, Viewer, World};
+use sim_core::{Content, CountryId, PlayerView, PublicCountryReport, Viewer, World};
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Camera {
     pub longitude: f32,
@@ -65,6 +65,112 @@ enum Layer {
     Approval,
     Needs,
     Debt,
+}
+impl Layer {
+    fn title(self) -> &'static str {
+        match self {
+            Self::Countries => "Countries",
+            Self::Approval => "Approval",
+            Self::Needs => "Needs met",
+            Self::Debt => "Debt / opening GDP",
+        }
+    }
+    fn bands(self) -> (&'static str, &'static str) {
+        match self {
+            Self::Debt => ("Below 80%", "80% or above"),
+            _ => ("70% or above", "Below 70%"),
+        }
+    }
+    fn details(self, ui: &mut egui::Ui, view: Option<&PlayerView>, selected: &mut CountryId) {
+        if self == Self::Countries {
+            return;
+        }
+        let (green, amber) = self.bands();
+        ui.horizontal_wrapped(|ui| {
+            ui.strong(self.title()).on_hover_text("Colour bands are display thresholds. The five-year review uses its separate food, energy, approval and debt targets.");
+            // Use the same colour function as both the polygons and markers.
+            ui.colored_label(
+                layer_color(self, false, Some(if self == Self::Debt { 0 } else { 100 })),
+                green,
+            );
+            ui.colored_label(
+                layer_color(self, false, Some(if self == Self::Debt { 100 } else { 0 })),
+                amber,
+            );
+            ui.colored_label(layer_color(self, false, None), "Unknown");
+        });
+        let Some(view) = view else {
+            ui.small("No campaign statistics available.");
+            return;
+        };
+        let dates: std::collections::BTreeSet<_> = view
+            .reports
+            .values()
+            .filter_map(|report| report.latest.as_ref().map(|release| release.day))
+            .collect();
+        let published = view
+            .reports
+            .values()
+            .filter(|report| report.latest.is_some())
+            .count();
+        let dates = match (dates.first(), dates.last()) {
+            (Some(first), Some(last)) if first == last => {
+                format!("Published {}", sim_core::date(*first))
+            }
+            (Some(first), Some(last)) => format!(
+                "Latest release dates {} to {}",
+                sim_core::date(*first),
+                sim_core::date(*last)
+            ),
+            _ => "No statistical release yet".into(),
+        };
+        ui.small(format!(
+            "{dates} · {published}/{} countries published · campaign {}",
+            view.reports.len(),
+            sim_core::date(view.day)
+        ));
+        if self == Self::Debt {
+            ui.small("Published debt / fixed opening annual GDP. The denominator stays fixed throughout the campaign.");
+        }
+        ui.collapsing("Overlay reports — select a country", |ui| {
+            egui::Grid::new("map-overlay-reports")
+                .striped(true)
+                .show(ui, |ui| {
+                    ui.strong("Country");
+                    ui.strong(self.title());
+                    ui.strong("Published");
+                    ui.strong("Age");
+                    ui.end_row();
+                    for report in view.reports.values() {
+                        if ui
+                            .selectable_label(
+                                report.country == *selected,
+                                format!("{} {}", report.country.0, report.name),
+                            )
+                            .clicked()
+                        {
+                            *selected = report.country.clone();
+                        }
+                        ui.label(
+                            layer_value(self, Some(report))
+                                .map_or_else(|| "Unknown".into(), |value| format!("{value}%")),
+                        );
+                        ui.label(report.latest.as_ref().map_or_else(
+                            || "No release".into(),
+                            |release| sim_core::date(release.day),
+                        ));
+                        ui.label(report.latest.as_ref().map_or_else(
+                            || "—".into(),
+                            |release| {
+                                let age = view.day.saturating_sub(release.day);
+                                format!("{age} {}", if age == 1 { "day" } else { "days" })
+                            },
+                        ));
+                        ui.end_row();
+                    }
+                });
+        });
+    }
 }
 fn layer_value(layer: Layer, report: Option<&PublicCountryReport>) -> Option<i32> {
     let report = report?;
@@ -205,12 +311,7 @@ impl WorldMap {
                 self.camera.zoom = (self.camera.zoom * 1.4).min(12.0);
             }
             egui::ComboBox::from_label("Overlay")
-                .selected_text(match self.layer {
-                    Layer::Countries => "Countries",
-                    Layer::Approval => "Approval",
-                    Layer::Needs => "Needs met",
-                    Layer::Debt => "Debt / opening GDP",
-                })
+                .selected_text(self.layer.title())
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.layer, Layer::Countries, "Countries");
                     ui.selectable_value(&mut self.layer, Layer::Approval, "Approval");
@@ -418,7 +519,17 @@ impl WorldMap {
                     )
                 },
             );
-            response.clone().on_hover_text(format!("{} · {:?}\n{executive}\n{stamp}\nClick a country outline or its marker to inspect. Search covers islands omitted at this scale.",country.name,report.as_ref().map_or(&country.regime, |report| &report.regime)));
+            let overlay = if self.layer == Layer::Countries {
+                String::new()
+            } else {
+                format!(
+                    "\n{}: {}",
+                    self.layer.title(),
+                    layer_value(self.layer, report)
+                        .map_or_else(|| "Unknown".into(), |value| format!("{value}%"))
+                )
+            };
+            response.clone().on_hover_text(format!("{} · {:?}\n{executive}\n{stamp}{overlay}\nClick a country outline or its marker to inspect. Search covers islands omitted at this scale.",country.name,report.as_ref().map_or(&country.regime, |report| &report.regime)));
         }
         painter.text(
             rect.left_bottom() + Vec2::new(12.0, -12.0),
@@ -427,6 +538,7 @@ impl WorldMap {
             egui::FontId::proportional(11.0),
             Color32::GRAY,
         );
+        self.layer.details(ui, reports, selected);
         ui.small("Natural Earth reference outlines · historical border review incomplete · display shapes do not define sovereignty or simulation regions · overlays use dated reports; gray means unknown");
         self.hydrology.provenance(ui);
     }
@@ -469,6 +581,131 @@ mod tests {
             assert_eq!(selected, id);
         }
         assert_eq!(world.hash(), before);
+    }
+    #[test]
+    fn overlay_legend_and_report_table_show_unknowns_dates_and_select_without_orders() {
+        let content = Content::bundled().unwrap();
+        let opening = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        let mut released = opening.clone();
+        released.advance(&content, 31).unwrap();
+        for scale in [1.0, 1.4] {
+            for world in [&opening, &released] {
+                let before = world.hash();
+                let ctx = egui::Context::default();
+                ctx.set_zoom_factor(scale);
+                let mut map = WorldMap::new();
+                map.layer = Layer::Debt;
+                let camera = map.camera;
+                let mut selected = world.player.clone();
+                let initial = frame(
+                    &ctx,
+                    &mut map,
+                    &content,
+                    world,
+                    &mut selected,
+                    scale,
+                    vec![],
+                );
+                let texts = |out: &egui::FullOutput| {
+                    out.shapes
+                        .iter()
+                        .filter_map(|shape| match &shape.shape {
+                            egui::Shape::Text(text) => Some(text.galley.text().to_string()),
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>()
+                };
+                let labels = texts(&initial);
+                assert!(labels.iter().any(|text| text.contains("Below 80%")));
+                assert!(labels.iter().any(|text| text.contains("80% or above")));
+                assert!(
+                    labels
+                        .iter()
+                        .any(|text| text.contains("fixed opening annual GDP"))
+                );
+                let expected = if world.day == 0 {
+                    "No statistical release yet · 0/15"
+                } else {
+                    "Published 2000-01-31 · 15/15"
+                };
+                assert!(
+                    labels.iter().any(|text| text.contains(expected)),
+                    "{labels:?}"
+                );
+                let position = |out: &egui::FullOutput, label: &str| {
+                    out.shapes
+                        .iter()
+                        .find_map(|shape| match &shape.shape {
+                            egui::Shape::Text(text) if text.galley.text() == label => {
+                                Some(text.pos + Vec2::new(5.0, text.galley.size().y / 2.0))
+                            }
+                            _ => None,
+                        })
+                        .unwrap_or_else(|| panic!("missing {label}"))
+                };
+                let click = |pos| {
+                    vec![
+                        egui::Event::PointerMoved(pos),
+                        egui::Event::PointerButton {
+                            pos,
+                            button: egui::PointerButton::Primary,
+                            pressed: true,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                        egui::Event::PointerButton {
+                            pos,
+                            button: egui::PointerButton::Primary,
+                            pressed: false,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ]
+                };
+                let pos = position(&initial, "Overlay reports — select a country");
+                let _ = frame(
+                    &ctx,
+                    &mut map,
+                    &content,
+                    world,
+                    &mut selected,
+                    scale,
+                    click(pos),
+                );
+                let expanded = frame(
+                    &ctx,
+                    &mut map,
+                    &content,
+                    world,
+                    &mut selected,
+                    scale,
+                    vec![],
+                );
+                let labels = texts(&expanded);
+                let expected = if world.day == 0 {
+                    "No release"
+                } else {
+                    "1 day"
+                };
+                assert!(labels.iter().any(|text| text == expected), "{labels:?}");
+                if world.day == 0 {
+                    assert!(labels.iter().any(|text| text == "Unknown"));
+                }
+                let pos = position(&expanded, "BRA Brazil");
+                assert!(pos.y < 900.0 / scale);
+                let _ = frame(
+                    &ctx,
+                    &mut map,
+                    &content,
+                    world,
+                    &mut selected,
+                    scale,
+                    click(pos),
+                );
+                assert_eq!(selected, CountryId("BRA".into()));
+                assert_eq!(map.camera, camera);
+                assert_eq!(world.player, CountryId("GBR".into()));
+                assert_eq!(world.hash(), before);
+            }
+        }
     }
     fn frame(
         ctx: &egui::Context,
