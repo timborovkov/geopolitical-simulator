@@ -91,6 +91,8 @@ def main():
             ["cargo", "run", "-p", "headless", "--release", "--locked", "--", "--verify"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--contested-transition"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-cash-management.json"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-cash-management.json", "--contested-transition"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-debt-maturities.json"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-debt-maturities.json", "--contested-transition"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-fiscal-ai.json"],

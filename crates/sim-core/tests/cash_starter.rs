@@ -1,10 +1,10 @@
 use sim_core::*;
 
 #[test]
-fn default_cash_management_preserves_the_complete_prior_roster_and_resolves_fifteen_packs() {
-    let content = Content::bundled().unwrap();
+fn preserved_cash_management_preserves_the_complete_prior_roster_and_resolves_fifteen_packs() {
+    let content = Content::cash_bundled().unwrap();
     let old = Content::debt_bundled().unwrap();
-    assert_eq!((content.schema, content.rules), (16, RULES_VERSION));
+    assert_eq!((content.schema, content.rules), (16, 16));
     let rules = content.cash_management.as_ref().unwrap();
     assert_eq!(
         (
@@ -61,7 +61,7 @@ fn default_cash_management_preserves_the_complete_prior_roster_and_resolves_fift
 
 #[test]
 fn seeded_cash_recovery_respects_actual_receipts_and_keeps_zero_receipt_targets_unfunded() {
-    let content = Content::bundled().unwrap();
+    let content = Content::cash_bundled().unwrap();
     let (mut funded, mut no_receipts) = (0, 0);
     for d in &content.countries {
         let mut w = World::new(&content, d.id.clone(), 17).unwrap();
@@ -167,7 +167,7 @@ fn seeded_cash_recovery_respects_actual_receipts_and_keeps_zero_receipt_targets_
 
 #[test]
 fn mixed_format17_and_preserved_format16_recovery_keeps_originals_and_the_previous_golden() {
-    let content = Content::bundled().unwrap();
+    let content = Content::cash_bundled().unwrap();
     let old = Content::debt_bundled().unwrap();
     let mut prior = World::new(&old, CountryId("GBR".into()), 17).unwrap();
     prior

@@ -510,6 +510,17 @@ def build_cash_starter():
     return pack
 
 
+
+def build_interest_starter():
+    pack = build_cash_starter()
+    pack.update(schema=17, rules=17, id="initial-2000-interest-accrual-v17", name="A New Century · carried debt interest")
+    source = "authored-starter-interest-carry-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model", description="Original fixed 4% actual/365 principal-day accrual with carried fractional reporting units. Whole interest due, actual cash payments and unpaid whole-unit arrears reconcile separately. This is uniform gameplay accounting, not historical debt pricing, compounding, currency precision or legal settlement law."))
+    pack["finance"].update(interest_accrual="actual_365_carry", source=source, source_version="starter-interest-carry-v1")
+    pack["description"] += " Debt interest accrues at fixed 4% actual/365 on actual outstanding principal after scheduled redemption. Fractions carry without compounding until a whole reporting unit becomes due; only paid amounts transfer cash. Unpaid whole interest remains external arrears, while the unsettled sub-unit creditor claim survives principal retirement without becoming cash or spending authority. Tax, wage, purchase and price rounding remain whole reporting units."
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -543,6 +554,7 @@ def main():
                            ("initial-2000-fiscal-ai.json", build_fiscal_ai_starter()),
                            ("initial-2000-debt-maturities.json", build_debt_starter()),
                            ("initial-2000-cash-management.json", build_cash_starter()),
+                           ("initial-2000-interest-accrual.json", build_interest_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

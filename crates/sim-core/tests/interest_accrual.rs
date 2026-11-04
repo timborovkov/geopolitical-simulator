@@ -252,7 +252,7 @@ fn opening_budget_uses_exact_interval_interest_including_leap_year() {
     );
     assert!(InterestProjection::new(Money(-1), 0).is_err());
     assert!(InterestProjection::new(Money(1), INTEREST_DENOMINATOR).is_err());
-    let mut old = Content::bundled().unwrap();
+    let mut old = Content::cash_bundled().unwrap();
     old.finance.as_mut().unwrap().interest_accrual = Some(InterestAccrualRule::Actual365Carry);
     assert!(old.validate().is_err());
 }
