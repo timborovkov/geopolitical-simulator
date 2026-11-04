@@ -1,5 +1,7 @@
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
-use sim_core::{Content, CountryId, PlayerView, PublicCountryReport, Viewer, World};
+use sim_core::{
+    Content, CountryId, PlayerView, PublicCountryReport, PublishedObservation, Viewer, World,
+};
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Camera {
     pub longitude: f32,
@@ -66,6 +68,62 @@ enum Layer {
     Needs,
     Debt,
 }
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum ReportTime {
+    #[default]
+    Latest,
+    Published(u32),
+}
+impl ReportTime {
+    fn for_layer(self, layer: Layer) -> Self {
+        if layer == Layer::Countries {
+            Self::Latest
+        } else {
+            self
+        }
+    }
+    fn release(self, report: &PublicCountryReport) -> Option<&PublishedObservation> {
+        match self {
+            Self::Latest => report.latest.as_ref(),
+            Self::Published(day) => report
+                .history
+                .iter()
+                .filter(|release| release.day <= day)
+                .max_by_key(|release| release.day),
+        }
+    }
+    fn dates(view: Option<&PlayerView>) -> Vec<u32> {
+        let Some(view) = view else {
+            return Vec::new();
+        };
+        view.reports
+            .values()
+            .flat_map(|report| report.history.iter().map(|release| release.day))
+            .filter(|day| *day <= view.day)
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect()
+    }
+    fn normalize(&mut self, dates: &[u32]) {
+        if let Self::Published(day) = *self
+            && dates.binary_search(&day).is_err()
+        {
+            *self = Self::Latest;
+        }
+    }
+    fn picker(&mut self, ui: &mut egui::Ui, dates: &[u32]) {
+        ui.add_enabled_ui(!dates.is_empty(), |ui| {
+            egui::ComboBox::from_label("Statistics")
+                .selected_text(match *self { Self::Latest => "Latest releases".into(), Self::Published(day) => format!("As of {}", sim_core::date(day)) })
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(self, Self::Latest, "Latest releases");
+                    for day in dates.iter().rev() {
+                        ui.selectable_value(self, Self::Published(*day), format!("Published {}", sim_core::date(*day)));
+                    }
+                }).response.on_hover_text("Changes the displayed statistical releases. Campaign time follows the time controls.");
+        });
+    }
+}
 impl Layer {
     fn title(self) -> &'static str {
         match self {
@@ -81,7 +139,13 @@ impl Layer {
             _ => ("70% or above", "Below 70%"),
         }
     }
-    fn details(self, ui: &mut egui::Ui, view: Option<&PlayerView>, selected: &mut CountryId) {
+    fn details(
+        self,
+        ui: &mut egui::Ui,
+        view: Option<&PlayerView>,
+        selected: &mut CountryId,
+        time: ReportTime,
+    ) {
         if self == Self::Countries {
             return;
         }
@@ -106,12 +170,12 @@ impl Layer {
         let dates: std::collections::BTreeSet<_> = view
             .reports
             .values()
-            .filter_map(|report| report.latest.as_ref().map(|release| release.day))
+            .filter_map(|report| time.release(report).map(|release| release.day))
             .collect();
         let published = view
             .reports
             .values()
-            .filter(|report| report.latest.is_some())
+            .filter(|report| time.release(report).is_some())
             .count();
         let dates = match (dates.first(), dates.last()) {
             (Some(first), Some(last)) if first == last => {
@@ -129,6 +193,9 @@ impl Layer {
             view.reports.len(),
             sim_core::date(view.day)
         ));
+        if let ReportTime::Published(day) = time {
+            ui.small(format!("Statistics cutoff {}. Age uses the campaign date; government labels stay current and reference geography stays fixed.", sim_core::date(day)));
+        }
         if self == Self::Debt {
             ui.small("Published debt / fixed opening annual GDP. The denominator stays fixed throughout the campaign.");
         }
@@ -152,14 +219,14 @@ impl Layer {
                             *selected = report.country.clone();
                         }
                         ui.label(
-                            layer_value(self, Some(report))
+                            layer_value(self, Some(report), time)
                                 .map_or_else(|| "Unknown".into(), |value| format!("{value}%")),
                         );
-                        ui.label(report.latest.as_ref().map_or_else(
+                        ui.label(time.release(report).map_or_else(
                             || "No release".into(),
                             |release| sim_core::date(release.day),
                         ));
-                        ui.label(report.latest.as_ref().map_or_else(
+                        ui.label(time.release(report).map_or_else(
                             || "—".into(),
                             |release| {
                                 let age = view.day.saturating_sub(release.day);
@@ -172,9 +239,13 @@ impl Layer {
         });
     }
 }
-fn layer_value(layer: Layer, report: Option<&PublicCountryReport>) -> Option<i32> {
+fn layer_value(
+    layer: Layer,
+    report: Option<&PublicCountryReport>,
+    time: ReportTime,
+) -> Option<i32> {
     let report = report?;
-    let release = report.latest.as_ref()?;
+    let release = time.release(report)?;
     match layer {
         Layer::Countries => None,
         Layer::Approval => Some(release.approval),
@@ -233,6 +304,7 @@ pub struct WorldMap {
     lakes: bool,
     rivers: bool,
     water_query: String,
+    report_time: ReportTime,
     pub camera: Camera,
     layer: Layer,
 }
@@ -259,6 +331,7 @@ impl WorldMap {
             lakes: true,
             rivers: true,
             water_query: String::new(),
+            report_time: ReportTime::Latest,
             camera: Camera::default(),
             layer: Layer::Countries,
         }
@@ -290,6 +363,8 @@ impl WorldMap {
                 format!("Public reports unavailable: {error}"),
             );
         }
+        let dates = ReportTime::dates(reports);
+        self.report_time.normalize(&dates);
         let viewport = Rect::from_min_size(Pos2::ZERO, Vec2::new(ui.available_width(), height));
         ui.horizontal_wrapped(|ui| {
             if ui.button("Fit world").clicked() {
@@ -318,6 +393,9 @@ impl WorldMap {
                     ui.selectable_value(&mut self.layer, Layer::Needs, "Needs met");
                     ui.selectable_value(&mut self.layer, Layer::Debt, "Debt / opening GDP");
                 });
+            if self.layer != Layer::Countries {
+                self.report_time.picker(ui, &dates);
+            }
             ui.checkbox(&mut self.lakes, "Lakes");
             ui.checkbox(&mut self.rivers, "Rivers");
             if let Some(reference) = self.hydrology.picker(ui, &mut self.water_query) {
@@ -328,6 +406,7 @@ impl WorldMap {
                 }
             }
         });
+        let report_time = self.report_time.for_layer(self.layer);
         let (rect, response) = ui.allocate_exact_size(
             Vec2::new(ui.available_width(), height),
             Sense::click_and_drag(),
@@ -416,7 +495,11 @@ impl WorldMap {
             let color = layer_color(
                 self.layer,
                 active,
-                layer_value(self.layer, reports.and_then(|view| view.reports.get(id))),
+                layer_value(
+                    self.layer,
+                    reports.and_then(|view| view.reports.get(id)),
+                    report_time,
+                ),
             );
             let fill = Color32::from_rgba_unmultiplied(
                 color.r(),
@@ -464,6 +547,7 @@ impl WorldMap {
             let value = layer_value(
                 self.layer,
                 reports.and_then(|view| view.reports.get(&country.id)),
+                report_time,
             );
             let color = layer_color(self.layer, active, value);
             painter.circle_filled(position, if active { 6.0 } else { 4.0 }, color);
@@ -502,12 +586,14 @@ impl WorldMap {
             let executive = report
                 .as_ref()
                 .map_or(country.executive.as_str(), |r| r.executive.as_str());
-            let stamp = report.as_ref().and_then(|r| r.latest.as_ref()).map_or_else(
+            let stamp = report.and_then(|r| report_time.release(r)).map_or_else(
                 || {
                     if report_error.is_some() {
                         "Public reports unavailable".into()
-                    } else {
+                    } else if report_time == ReportTime::Latest {
                         "No statistical release yet".into()
+                    } else {
+                        "No statistical release by this date".into()
                     }
                 },
                 |o| {
@@ -525,9 +611,14 @@ impl WorldMap {
                 format!(
                     "\n{}: {}",
                     self.layer.title(),
-                    layer_value(self.layer, report)
+                    layer_value(self.layer, report, report_time)
                         .map_or_else(|| "Unknown".into(), |value| format!("{value}%"))
                 )
+            };
+            let executive = if report_time == ReportTime::Latest {
+                executive.to_string()
+            } else {
+                format!("Current executive: {executive}")
             };
             response.clone().on_hover_text(format!("{} · {:?}\n{executive}\n{stamp}{overlay}\nClick a country outline or its marker to inspect. Search covers islands omitted at this scale.",country.name,report.as_ref().map_or(&country.regime, |report| &report.regime)));
         }
@@ -538,7 +629,7 @@ impl WorldMap {
             egui::FontId::proportional(11.0),
             Color32::GRAY,
         );
-        self.layer.details(ui, reports, selected);
+        self.layer.details(ui, reports, selected, report_time);
         ui.small("Natural Earth reference outlines · historical border review incomplete · display shapes do not define sovereignty or simulation regions · overlays use dated reports; gray means unknown");
         self.hydrology.provenance(ui);
     }
@@ -552,7 +643,14 @@ mod tests {
         let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
         let id = world.player.clone();
         let opening = world.project(&content, Viewer::Observer).unwrap();
-        assert_eq!(layer_value(Layer::Approval, opening.reports.get(&id)), None);
+        assert_eq!(
+            layer_value(
+                Layer::Approval,
+                opening.reports.get(&id),
+                ReportTime::Latest
+            ),
+            None
+        );
         world.advance(&content, 31).unwrap();
         let before = world.hash();
         let view = world.project(&content, Viewer::Observer).unwrap();
@@ -560,12 +658,15 @@ mod tests {
         let release = report.latest.as_ref().unwrap();
         assert_eq!(release.day, 30);
         assert_eq!(
-            layer_value(Layer::Approval, Some(report)),
+            layer_value(Layer::Approval, Some(report), ReportTime::Latest),
             Some(release.approval)
         );
-        assert_eq!(layer_value(Layer::Needs, Some(report)), Some(release.needs));
         assert_eq!(
-            layer_value(Layer::Debt, Some(report)),
+            layer_value(Layer::Needs, Some(report), ReportTime::Latest),
+            Some(release.needs)
+        );
+        assert_eq!(
+            layer_value(Layer::Debt, Some(report), ReportTime::Latest),
             Some((release.debt.0 * 100 / report.opening_gdp.0) as i32)
         );
         let mut other = content.clone();
@@ -706,6 +807,300 @@ mod tests {
                 assert_eq!(world.hash(), before);
             }
         }
+    }
+    #[test]
+    fn historical_statistics_choose_the_last_release_by_cutoff_and_keep_gaps_unknown() {
+        let content = Content::bundled().unwrap();
+        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        world.advance(&content, 91).unwrap();
+        let before = world.hash();
+        let mut view = world.project(&content, Viewer::Observer).unwrap();
+        assert!(view.own.is_none());
+        assert_eq!(ReportTime::dates(Some(&view)), vec![30, 60, 90]);
+        let mut report = view.reports[&world.player].clone();
+        assert_eq!(
+            ReportTime::Published(30)
+                .for_layer(Layer::Countries)
+                .release(&report)
+                .unwrap()
+                .day,
+            90
+        );
+        assert_eq!(
+            ReportTime::Published(30)
+                .for_layer(Layer::Approval)
+                .release(&report)
+                .unwrap()
+                .day,
+            30
+        );
+        assert_eq!(ReportTime::Latest.release(&report).unwrap().day, 90);
+        for (cutoff, expected) in [
+            (29, None),
+            (30, Some(30)),
+            (59, Some(30)),
+            (60, Some(60)),
+            (91, Some(90)),
+        ] {
+            assert_eq!(
+                ReportTime::Published(cutoff)
+                    .release(&report)
+                    .map(|release| release.day),
+                expected
+            );
+        }
+        report.history.reverse();
+        assert_eq!(ReportTime::Published(59).release(&report).unwrap().day, 30);
+        report.history.retain(|release| release.day >= 60);
+        assert!(ReportTime::Published(30).release(&report).is_none());
+        assert_eq!(
+            layer_value(Layer::Approval, Some(&report), ReportTime::Published(30)),
+            None
+        );
+        assert_eq!(layer_color(Layer::Approval, false, None), Color32::GRAY);
+        let mut future = report.latest.clone().unwrap();
+        future.day = 120;
+        view.reports
+            .get_mut(&world.player)
+            .unwrap()
+            .history
+            .push(future);
+        assert_eq!(ReportTime::dates(Some(&view)), vec![30, 60, 90]);
+        assert_eq!(world.hash(), before);
+    }
+    fn history_text_position(out: &egui::FullOutput, label: &str) -> Pos2 {
+        out.shapes
+            .iter()
+            .find_map(|shape| match &shape.shape {
+                egui::Shape::Text(text) if text.galley.text() == label => {
+                    Some(text.pos + Vec2::new(5.0, text.galley.size().y / 2.0))
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("missing {label}"))
+    }
+    fn history_click(pos: Pos2) -> Vec<egui::Event> {
+        vec![
+            egui::Event::PointerMoved(pos),
+            egui::Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed: true,
+                modifiers: egui::Modifiers::NONE,
+            },
+            egui::Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed: false,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ]
+    }
+    fn history_labels(out: &egui::FullOutput) -> Vec<String> {
+        out.shapes
+            .iter()
+            .filter_map(|shape| match &shape.shape {
+                egui::Shape::Text(text) => Some(text.galley.text().to_string()),
+                _ => None,
+            })
+            .collect()
+    }
+    #[test]
+    fn map_publication_picker_changes_only_the_display_and_can_return_to_latest_at_two_scales() {
+        let content = Content::bundled().unwrap();
+        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        world.advance(&content, 91).unwrap();
+        let before = world.hash();
+        let report = world.public_report(&content, &world.player).unwrap();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let mut map = WorldMap::new();
+            map.layer = Layer::Approval;
+            map.lakes = false;
+            map.camera = Camera {
+                longitude: -50.0,
+                latitude: 30.0,
+                zoom: 2.0,
+            };
+            let camera = map.camera;
+            let mut selected = world.player.clone();
+            let initial = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            let pos = history_text_position(&initial, "Latest releases");
+            let _ = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                history_click(pos),
+            );
+            let menu = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            let pos = history_text_position(&menu, "Published 2000-01-31");
+            assert!(pos.x < 1200.0 / scale && pos.y < 900.0 / scale);
+            let _ = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                history_click(pos),
+            );
+            let past = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            assert_eq!(map.report_time, ReportTime::Published(30));
+            let labels = history_labels(&past);
+            let approval = ReportTime::Published(30).release(&report).unwrap().approval;
+            assert!(
+                labels
+                    .iter()
+                    .any(|text| text == &format!("GBR {approval}%")),
+                "{labels:?}"
+            );
+            assert!(
+                labels
+                    .iter()
+                    .any(|text| text.contains("Published 2000-01-31 · 15/15"))
+            );
+            assert!(
+                labels
+                    .iter()
+                    .any(|text| text.contains("government labels stay current"))
+            );
+            let pos = history_text_position(&past, "Overlay reports — select a country");
+            let _ = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                history_click(pos),
+            );
+            let table = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            assert!(history_labels(&table).iter().any(|text| text == "61 days"));
+            let pos = history_text_position(&table, "As of 2000-01-31");
+            let _ = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                history_click(pos),
+            );
+            let menu = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            let pos = history_text_position(&menu, "Latest releases");
+            let _ = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                history_click(pos),
+            );
+            let latest = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            assert_eq!(map.report_time, ReportTime::Latest);
+            assert!(
+                history_labels(&latest)
+                    .iter()
+                    .any(|text| text.contains("Published 2000-03-31 · 15/15"))
+            );
+            assert_eq!(map.camera, camera);
+            assert_eq!(selected, world.player);
+            assert!(!map.lakes && map.rivers && map.layer == Layer::Approval);
+            assert_eq!(world.hash(), before);
+        }
+    }
+    #[test]
+    fn map_publication_cutoff_survives_progression_and_resets_when_the_release_is_unavailable() {
+        let content = Content::bundled().unwrap();
+        let opening = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        let mut world = opening.clone();
+        world.advance(&content, 61).unwrap();
+        let ctx = egui::Context::default();
+        let mut map = WorldMap::new();
+        map.layer = Layer::Approval;
+        map.report_time = ReportTime::Published(30);
+        let mut selected = world.player.clone();
+        let _ = frame(&ctx, &mut map, &content, &world, &mut selected, 1.0, vec![]);
+        world.advance(&content, 30).unwrap();
+        let before = world.hash();
+        let _ = frame(&ctx, &mut map, &content, &world, &mut selected, 1.0, vec![]);
+        assert_eq!(map.report_time, ReportTime::Published(30));
+        assert_eq!(world.hash(), before);
+        let _ = frame(
+            &ctx,
+            &mut map,
+            &content,
+            &opening,
+            &mut selected,
+            1.0,
+            vec![],
+        );
+        assert_eq!(map.report_time, ReportTime::Latest);
+        assert!(ReportTime::dates(None).is_empty());
+        map.report_time = ReportTime::Published(30);
+        let mut wrong = content.clone();
+        wrong.countries[0].name.push_str(" changed");
+        let output = frame(&ctx, &mut map, &wrong, &world, &mut selected, 1.0, vec![]);
+        assert_eq!(map.report_time, ReportTime::Latest);
+        assert!(
+            history_labels(&output)
+                .iter()
+                .any(|text| text.contains("Public reports unavailable:"))
+        );
+        assert_eq!(world.hash(), before);
     }
     fn frame(
         ctx: &egui::Context,
