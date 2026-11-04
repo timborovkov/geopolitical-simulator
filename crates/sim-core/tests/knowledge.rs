@@ -64,3 +64,64 @@ fn presentation_and_projection_changes_preserve_version_two_campaign_replay() {
         sim_core::persistence::decode(&sim_core::persistence::encode(&w, &c).unwrap(), &c).unwrap();
     assert_eq!(loaded.hash(), before);
 }
+
+#[test]
+fn reports_reject_wrong_content_before_publishing_any_view() {
+    let content = Content::bundled().unwrap();
+    let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+    world.advance(&content, 31).unwrap();
+    let before = serde_json::to_value(&world).unwrap();
+    let mut renamed = content.clone();
+    renamed.countries[0].name.push_str(" changed");
+    let mut revalued = content.clone();
+    revalued.countries[0].gdp += 1;
+    let mut wrong_rules = content.clone();
+    wrong_rules.rules -= 1;
+    for other in [
+        renamed,
+        revalued,
+        wrong_rules,
+        Content::interest_bundled().unwrap(),
+    ] {
+        for id in world.countries.keys() {
+            assert!(
+                world
+                    .public_report(&other, id)
+                    .unwrap_err()
+                    .contains("exact content pack")
+            );
+        }
+        for viewer in [Viewer::Observer, Viewer::Government(world.player.clone())] {
+            assert!(
+                world
+                    .project(&other, viewer)
+                    .unwrap_err()
+                    .contains("exact content pack")
+            );
+        }
+        assert_eq!(serde_json::to_value(&world).unwrap(), before);
+    }
+}
+
+#[test]
+fn batched_public_reports_match_individual_reports_without_private_state() {
+    for content in [
+        Content::classic_bundled().unwrap(),
+        Content::bundled().unwrap(),
+    ] {
+        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        world.advance(&content, 31).unwrap();
+        let before = world.hash();
+        let observer = world.project(&content, Viewer::Observer).unwrap();
+        let government = world
+            .project(&content, Viewer::Government(world.player.clone()))
+            .unwrap();
+        assert!(observer.own.is_none());
+        assert_eq!(government.own.as_ref(), world.countries.get(&world.player));
+        assert_eq!(observer.reports, government.reports);
+        for (id, report) in &observer.reports {
+            assert_eq!(*report, world.public_report(&content, id).unwrap());
+        }
+        assert_eq!(world.hash(), before);
+    }
+}

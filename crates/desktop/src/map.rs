@@ -1,5 +1,5 @@
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
-use sim_core::{Content, CountryId, World};
+use sim_core::{Content, CountryId, PublicCountryReport, Viewer, World};
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Camera {
     pub longitude: f32,
@@ -66,19 +66,14 @@ enum Layer {
     Needs,
     Debt,
 }
-fn layer_value(
-    layer: Layer,
-    world: Option<&World>,
-    content: &Content,
-    id: &CountryId,
-) -> Option<i32> {
-    let report = world?.public_report(content, id).ok()?;
-    let release = report.latest?;
+fn layer_value(layer: Layer, report: Option<&PublicCountryReport>) -> Option<i32> {
+    let report = report?;
+    let release = report.latest.as_ref()?;
     match layer {
         Layer::Countries => None,
         Layer::Approval => Some(release.approval),
         Layer::Needs => Some(release.needs),
-        Layer::Debt => Some((release.debt.0 * 100 / content.country(id)?.gdp) as i32),
+        Layer::Debt => Some((release.debt.0 * 100 / report.opening_gdp.0) as i32),
     }
 }
 fn layer_color(layer: Layer, active: bool, value: Option<i32>) -> Color32 {
@@ -179,6 +174,16 @@ impl WorldMap {
         selected: &mut CountryId,
         height: f32,
     ) {
+        // One checked, public-only projection supplies shapes, markers and tooltips.
+        let projection = world.map(|world| world.project(content, Viewer::Observer));
+        let reports = projection.as_ref().and_then(|result| result.as_ref().ok());
+        let report_error = projection.as_ref().and_then(|result| result.as_ref().err());
+        if let Some(error) = report_error {
+            ui.colored_label(
+                Color32::LIGHT_RED,
+                format!("Public reports unavailable: {error}"),
+            );
+        }
         let viewport = Rect::from_min_size(Pos2::ZERO, Vec2::new(ui.available_width(), height));
         ui.horizontal_wrapped(|ui| {
             if ui.button("Fit world").clicked() {
@@ -310,7 +315,7 @@ impl WorldMap {
             let color = layer_color(
                 self.layer,
                 active,
-                layer_value(self.layer, world, content, id),
+                layer_value(self.layer, reports.and_then(|view| view.reports.get(id))),
             );
             let fill = Color32::from_rgba_unmultiplied(
                 color.r(),
@@ -355,7 +360,10 @@ impl WorldMap {
                 continue;
             }
             let active = country.id == *selected;
-            let value = layer_value(self.layer, world, content, &country.id);
+            let value = layer_value(
+                self.layer,
+                reports.and_then(|view| view.reports.get(&country.id)),
+            );
             let color = layer_color(self.layer, active, value);
             painter.circle_filled(position, if active { 6.0 } else { 4.0 }, color);
             if active {
@@ -389,12 +397,18 @@ impl WorldMap {
         } else if let Some(id) = hovered
             && let Some(country) = content.country(&id)
         {
-            let report = world.and_then(|w| w.public_report(content, &id).ok());
+            let report = reports.and_then(|view| view.reports.get(&id));
             let executive = report
                 .as_ref()
                 .map_or(country.executive.as_str(), |r| r.executive.as_str());
             let stamp = report.as_ref().and_then(|r| r.latest.as_ref()).map_or_else(
-                || "No statistical release yet".into(),
+                || {
+                    if report_error.is_some() {
+                        "Public reports unavailable".into()
+                    } else {
+                        "No statistical release yet".into()
+                    }
+                },
                 |o| {
                     format!(
                         "Published {} · needs {}% · approval {}%",
@@ -420,6 +434,42 @@ impl WorldMap {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn overlays_share_published_values_and_withhold_mismatched_campaign_reports() {
+        let content = Content::bundled().unwrap();
+        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        let id = world.player.clone();
+        let opening = world.project(&content, Viewer::Observer).unwrap();
+        assert_eq!(layer_value(Layer::Approval, opening.reports.get(&id)), None);
+        world.advance(&content, 31).unwrap();
+        let before = world.hash();
+        let view = world.project(&content, Viewer::Observer).unwrap();
+        let report = &view.reports[&id];
+        let release = report.latest.as_ref().unwrap();
+        assert_eq!(release.day, 30);
+        assert_eq!(
+            layer_value(Layer::Approval, Some(report)),
+            Some(release.approval)
+        );
+        assert_eq!(layer_value(Layer::Needs, Some(report)), Some(release.needs));
+        assert_eq!(
+            layer_value(Layer::Debt, Some(report)),
+            Some((release.debt.0 * 100 / report.opening_gdp.0) as i32)
+        );
+        let mut other = content.clone();
+        other.countries[0].name.push_str(" changed");
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let mut map = WorldMap::new();
+            map.layer = Layer::Debt;
+            let mut selected = id.clone();
+            let output = frame(&ctx, &mut map, &other, &world, &mut selected, scale, vec![]);
+            assert!(output.shapes.iter().any(|shape| matches!(&shape.shape, egui::Shape::Text(text) if text.galley.text().contains("Public reports unavailable:"))));
+            assert_eq!(selected, id);
+        }
+        assert_eq!(world.hash(), before);
+    }
     fn frame(
         ctx: &egui::Context,
         map: &mut WorldMap,

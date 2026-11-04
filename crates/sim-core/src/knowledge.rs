@@ -65,6 +65,21 @@ impl World {
         content: &Content,
         id: &CountryId,
     ) -> Result<PublicCountryReport, String> {
+        self.validate_report_content(content)?;
+        self.public_report_validated(content, id)
+    }
+    fn validate_report_content(&self, content: &Content) -> Result<(), String> {
+        if self.rules != content.rules || self.content_hash != content.hash() {
+            return Err("Public reports require the campaign's exact content pack".into());
+        }
+        Ok(())
+    }
+    /// The caller has checked the content once for this immutable projection.
+    fn public_report_validated(
+        &self,
+        content: &Content,
+        id: &CountryId,
+    ) -> Result<PublicCountryReport, String> {
         let c = self.countries.get(id).ok_or("Unknown country")?;
         let d = content.country(id).ok_or("Missing country definition")?;
         let history: Vec<_> = c
@@ -109,6 +124,7 @@ impl World {
     /// This function provides data minimization, not authentication. Trusted hosts
     /// assign Viewer from their authenticated role; clients cannot choose a role.
     pub fn project(&self, content: &Content, viewer: Viewer) -> Result<PlayerView, String> {
+        self.validate_report_content(content)?;
         let own = match viewer {
             Viewer::Observer => None,
             Viewer::Government(id) => Some(
@@ -120,7 +136,7 @@ impl World {
         };
         let mut reports = BTreeMap::new();
         for id in self.countries.keys() {
-            reports.insert(id.clone(), self.public_report(content, id)?);
+            reports.insert(id.clone(), self.public_report_validated(content, id)?);
         }
         Ok(PlayerView {
             day: self.day,
