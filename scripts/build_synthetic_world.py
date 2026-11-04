@@ -533,6 +533,18 @@ def build_interest_starter():
     return pack
 
 
+
+def build_technology_starter():
+    pack = build_interest_starter()
+    pack.update(schema=18, rules=18, id="initial-2000-technology-eligibility-v18", name="A New Century · programme technology prerequisites")
+    source = "authored-starter-technology-eligibility-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model", description="Original baseline programme eligibility for the 2000 bookmark. All seeded countries may commission the existing grid and agriculture programmes from the bookmark, subject to ordinary funding and governing authority. Dates denote scenario permissions, not historical scientific discovery, knowledge adoption or research completion."))
+    countries = [c["id"] for c in pack["countries"]]
+    pack["technologies"] = dict(definitions=[dict(id="grid_planning", name="Grid planning", available_from="2000-01-01", eligible_countries=countries, source=source, source_version="starter-eligibility-v1"), dict(id="agronomy", name="Agronomic planning", available_from="2000-01-01", eligible_countries=countries, source=source, source_version="starter-eligibility-v1")], policy_requirements=[dict(policy="energy", technologies=["grid_planning"]), dict(policy="agriculture", technologies=["agronomy"])])
+    pack["description"] += " Existing grid and agriculture programmes have explicitly authored technology eligibility for every seeded country from the 2000 bookmark. Eligibility grants no research, adoption, cash, capacity or faster construction; ordinary authority, funding and delivery remain necessary. These dates are scenario permissions, not historical discovery or adoption records."
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -568,6 +580,7 @@ def main():
                            ("initial-2000-debt-maturities.json", build_debt_starter()),
                            ("initial-2000-cash-management.json", build_cash_starter()),
                            ("initial-2000-interest-accrual.json", build_interest_starter()),
+                           ("initial-2000-technology-eligibility.json", build_technology_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

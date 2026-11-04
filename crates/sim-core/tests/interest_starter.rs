@@ -1,10 +1,10 @@
 use sim_core::*;
 
 #[test]
-fn default_interest_preserves_the_previous_roster_and_resolves_all_sixteen_packs() {
-    let current = Content::bundled().unwrap();
+fn preserved_interest_preserves_the_previous_roster_and_resolves_all_sixteen_packs() {
+    let current = Content::interest_bundled().unwrap();
     let old = Content::cash_bundled().unwrap();
-    assert_eq!((current.schema, current.rules), (17, RULES_VERSION));
+    assert_eq!((current.schema, current.rules), (17, 17));
     assert_eq!(current.countries.len(), 15);
     assert_eq!(current.sources.len(), old.sources.len() + 1);
     assert_eq!(
@@ -62,7 +62,7 @@ fn default_interest_preserves_the_previous_roster_and_resolves_all_sixteen_packs
 
 #[test]
 fn all_seeded_governments_accrue_actual_principal_days_and_resume_after_manual_redemption() {
-    let content = Content::bundled().unwrap();
+    let content = Content::interest_bundled().unwrap();
     for d in &content.countries {
         let mut w = World::new(&content, d.id.clone(), 17).unwrap();
         let opening = w.player_country().debt;
@@ -147,7 +147,7 @@ fn mixed_formats_18_and_17_keep_the_previous_cash_recovery_golden_and_exact_orig
         .unwrap();
     prior.advance(&old, 108).unwrap();
     assert_eq!(prior.hash(), 0xbb0378bc7ed563a4);
-    let content = Content::bundled().unwrap();
+    let content = Content::interest_bundled().unwrap();
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     world.advance(&content, 3).unwrap();
     let directory =

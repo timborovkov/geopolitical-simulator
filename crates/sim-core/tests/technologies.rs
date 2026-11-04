@@ -171,10 +171,10 @@ fn malformed_definitions_references_dates_and_unversioned_gates_are_rejected() {
         }
         assert!(Content::from_json(&d.to_string()).is_err(), "case {case}");
     }
-    let mut old = Content::bundled().unwrap();
+    let mut old = Content::interest_bundled().unwrap();
     old.technologies = fixture().technologies;
     assert!(old.validate().is_err());
-    let c = Content::bundled().unwrap();
+    let c = Content::interest_bundled().unwrap();
     let w = World::new(&c, CountryId("GBR".into()), 17).unwrap();
     assert!(
         w.policy_technology_eligibility(&c, &w.player, "energy")
