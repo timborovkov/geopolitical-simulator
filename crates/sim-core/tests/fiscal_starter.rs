@@ -9,9 +9,8 @@ fn targets(c: &Country) -> FiscalTargets {
 #[test]
 fn the_seeded_fiscal_roster_preserves_all_prior_data_and_each_country_can_deliver_a_funded_budget()
 {
-    let c = Content::bundled().unwrap();
+    let c = Content::fiscal_bundled().unwrap();
     let old = Content::undertaking_bundled().unwrap();
-    assert_eq!(c.rules, RULES_VERSION);
     assert_eq!(c.rules, 12);
     assert_eq!(c.schema, 12);
     assert_eq!(c.countries, old.countries);
@@ -116,7 +115,7 @@ fn the_seeded_fiscal_roster_preserves_all_prior_data_and_each_country_can_delive
 }
 #[test]
 fn a_pending_default_budget_recovers_without_changing_the_preserved_shared_undertaking() {
-    let c = Content::bundled().unwrap();
+    let c = Content::fiscal_bundled().unwrap();
     let old = Content::undertaking_bundled().unwrap();
     let id = CountryId("GBR".into());
     let mut w = World::new(&c, id.clone(), 17).unwrap();

@@ -429,6 +429,22 @@ def build_fiscal_starter():
     return pack
 
 
+
+def build_income_starter():
+    pack = build_fiscal_starter()
+    pack.update(schema=13, rules=13, id="initial-2000-income-bands-v13", name="A New Century · progressive private-income bands")
+    pack["description"] += " Progressive private-income withholding uses authored representative-cohort bands relative to opening GDP per resident, not historical filing law or within-cohort distributions. Public/local service payments and welfare remain outside this base. Potential tax is not treasury cash or arrears."
+    source = "authored-private-income-bands-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model", description="Original representative-cohort private-income bands, GDP-per-resident thresholds, marginal rate factors and fixed 365-day annualisation. No historical tax filing law, individual distributions or national tax-base calibration is claimed."))
+    authored = build_income_bands()
+    pack["income_taxes"] = authored["income_taxes"]
+    pack["income_taxes"].update(source=source, source_version="starter-private-income-bands-v1")
+    tax = next(p for p in pack["policies"] if p["id"] == "income_tax")
+    definition = next(p for p in authored["policies"] if p["id"] == "income_tax")
+    tax.update(name=definition["name"], description=definition["description"])
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -454,6 +470,7 @@ def main():
                            ("initial-2000-territorial.json", build_territorial_starter()),
                            ("initial-2000-undertakings.json", build_undertaking_starter()),
                            ("initial-2000-fiscal-plans.json", build_fiscal_starter()),
+                           ("initial-2000-income-bands.json", build_income_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

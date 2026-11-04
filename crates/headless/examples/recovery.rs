@@ -126,7 +126,18 @@ fn play(
             propose(&mut world, content, "coalition", 1);
         }
         // Fund essential services at an affordable level while widening receipts.
-        for (policy, value) in [("income_tax", 35), ("services", 8), ("welfare", 8)] {
+        for (policy, value) in [
+            (
+                "income_tax",
+                if content.income_taxes.is_some() {
+                    40
+                } else {
+                    35
+                },
+            ),
+            ("services", 8),
+            ("welfare", 8),
+        ] {
             propose(&mut world, content, policy, value);
         }
         for (policy, needed) in [
