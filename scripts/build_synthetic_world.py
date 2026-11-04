@@ -489,6 +489,16 @@ def build_debt_starter():
     return pack
 
 
+def build_cash_starter():
+    pack = build_debt_starter()
+    pack.update(schema=16, rules=16, id="initial-2000-cash-management-v16", name="A New Century · treasury cash management")
+    source = "authored-starter-cash-retention-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model", description="Original temporary retention of actual national cash after protected local and capital claims. Deferred operating payments remain arrears; unpaid principal remains debt. Uniform authored gameplay procedure, not historical cash-management law or payment priority."))
+    pack["cash_management"] = dict(max_target_bps=100, max_days=90, cooldown_days=90, approval_cost=3, source=source, source_version="starter-retention-v1")
+    pack["description"] += " Temporary cash retention can protect actual national funds for a future decision, up to 1% opening GDP for 90 days, with approval cost and reuse cooldown. Unfunded targets are not cash. Release, expiry or a successor government ends protection without cancelling obligations or granting spending authority."
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -520,6 +530,7 @@ def main():
                            ("initial-2000-income-bands.json", build_income_starter()),
                            ("initial-2000-fiscal-ai.json", build_fiscal_ai_starter()),
                            ("initial-2000-debt-maturities.json", build_debt_starter()),
+                           ("initial-2000-cash-management.json", build_cash_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

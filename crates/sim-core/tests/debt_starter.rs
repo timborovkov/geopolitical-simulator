@@ -1,10 +1,10 @@
 use sim_core::*;
 
 #[test]
-fn default_dated_loans_preserve_the_entire_previous_roster_and_resolve_all_fourteen_packs() {
-    let content = Content::bundled().unwrap();
+fn preserved_dated_loans_preserve_the_entire_previous_roster_and_resolve_all_fourteen_packs() {
+    let content = Content::debt_bundled().unwrap();
     let old = Content::national_fiscal_bundled().unwrap();
-    assert_eq!(content.rules, RULES_VERSION);
+    assert_eq!(content.rules, 15);
     assert_eq!((content.schema, content.rules), (15, 15));
     assert_eq!(content.finance.as_ref().unwrap().maturity_days, Some(365));
     assert_eq!(content.sources.len(), old.sources.len() + 1);
@@ -56,7 +56,7 @@ fn default_dated_loans_preserve_the_entire_previous_roster_and_resolve_all_fourt
 #[test]
 fn each_seeded_government_can_issue_a_dated_loan_through_its_ordinary_authority_and_replay_maturity()
  {
-    let content = Content::bundled().unwrap();
+    let content = Content::debt_bundled().unwrap();
     for definition in &content.countries {
         let mut world = World::new(&content, definition.id.clone(), 17).unwrap();
         let amount = Money((definition.gdp / 100).max(1));
@@ -149,7 +149,7 @@ fn each_seeded_government_can_issue_a_dated_loan_through_its_ordinary_authority_
 }
 #[test]
 fn mixed_format16_and_preserved_format15_recovery_retains_original_bytes_and_exact_content() {
-    let content = Content::bundled().unwrap();
+    let content = Content::debt_bundled().unwrap();
     let old = Content::national_fiscal_bundled().unwrap();
     let mut prior = World::new(&old, CountryId("FRA".into()), 17).unwrap();
     prior.advance(&old, 138).unwrap();

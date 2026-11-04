@@ -1,0 +1,3876 @@
+{
+  "schema": 16,
+  "id": "initial-2000-cash-management-v16",
+  "name": "A New Century · treasury cash management",
+  "start": "2000-01-01",
+  "description": "Govern for five years: keep household needs met, services funded and government stable. Country play continues after political transitions. Relative food/energy prices are authored rules-3 model assumptions, not sourced historical prices. The original fixed-price pack is retained for classic saves. Borrowing authority, consent delays and emergency political costs are authored rules-4 assumptions, not a reproduction of historical debt law. Earlier market and classic packs remain available for their original campaigns. Constitutional transitions use authored rules-5 templates, backing thresholds, costs and inertia rather than sourced historical amendment law. Starter AI prefers its opening governing form; fictional fixtures demonstrate alternative preferences. Earlier campaigns retain their original packs. Policy amendments, withdrawal, history and observed reviews use authored rules-6 procedures. Existing campaigns retain their exact original rules. Ministerial portfolios, generated nominees and preparation rules are authored gameplay definitions, not historical ministry rosters or vacancy claims. Unassigned portfolios use permanent civil service. Earlier campaigns retain their exact original rules. Independent electoral mandates, early-poll powers and calendar terms are authored gameplay assumptions, not historical national election law. Earlier campaigns retain their exact original rules. Population observations cover all 15 starter countries and GDP covers 14, from the pinned World Bank mirrors. North Korean GDP retains its explicit authored calibration. Annual observations are bookmark proxies; primary sources have not been independently reconciled. National/local budget charters and territorial procedures are authored gameplay abstractions. The two disjoint budget jurisdictions per country are population partitions, not historical administrative units, mapped boundaries or regional electorates. Local purchase levels, collected-tax shares, autonomy templates, compensation and consent proxies are original model assumptions. Public delivery pledges, governing support arrangements and linked project deadlines use authored procedures and credibility records, not historical campaign promises or party agreements. They do not supply resources or form cabinet coalitions. Existing policy authority and implementation constraints apply. Reviewed annual and supplementary fiscal packages use authored preparation, administration, implementation reservation and calendar accounting procedures. Enactment funds actual policy programmes; recurring purchasing remains subject to cash and delivery constraints. These plans are not historical budget laws or hard appropriation ceilings. Progressive private-income withholding uses authored representative-cohort bands relative to opening GDP per resident, not historical filing law or within-cohort distributions. Public/local service payments and welfare remain outside this base. Potential tax is not treasury cash or arrears. Nonplayer fiscal reviews use the national daily balance after protected local tax claims. A consolidated surplus cannot finance national obligations from protected local cash. Budget authority, submission funding, review and actual programme delivery remain ordinary shared constraints. This is an authored bounded heuristic, not historical government behavior or optimal economic planning. New loan principal matures an authored 365 days after actual disbursement. Opening debt remains perpetual calibration; historical debt curves and actual refinancing markets are not claimed. Temporary cash retention can protect actual national funds for a future decision, up to 1% opening GDP for 90 days, with approval cost and reuse cooldown. Unfunded targets are not cash. Release, expiry or a successor government ends protection without cancelling obligations or granting spending authority.",
+  "sources": [
+    {
+      "id": "identity-notes",
+      "quality": "reference_only",
+      "description": "Historical identity seed; see data/README.md for dated coverage and review limitations."
+    },
+    {
+      "id": "authored-balance-v1",
+      "quality": "authored_gameplay_approximation",
+      "description": "Original game calibration. Values, profiles and coefficients are authored except for the six explicitly recorded population/GDP observations."
+    },
+    {
+      "id": "world-bank-mirror-population",
+      "quality": "published_mirror_observation",
+      "description": "World Bank SP.POP.TOTL, 2000 observation via datasets/population, revision d4b1a4a9a17e2123baf0ef119de05bceced1ab1b. Primary API not independently rechecked. See data/starter-observations.json for provenance."
+    },
+    {
+      "id": "world-bank-mirror-gdp",
+      "quality": "published_mirror_observation",
+      "description": "World Bank NY.GDP.MKTP.CD, 2000 observation via datasets/gdp, revision 36d761dc5617982d3e50b213e02b9a1b47c4e958. Primary API not independently rechecked. See data/starter-observations.json for provenance."
+    },
+    {
+      "id": "authored-markets-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original relative-price, import, storage and basket-share assumptions. No historical price-series calibration is claimed."
+    },
+    {
+      "id": "authored-finance-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original regime-route borrowing consent, fixed-rate debt and contested emergency assumptions. No historical constitutional or debt-market calibration is claimed."
+    },
+    {
+      "id": "authored-constitutions-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original lawful and contested constitutional-transition templates, political costs, consent constraints and status-quo AI preferences. These are game assumptions, not historical constitutional procedures."
+    },
+    {
+      "id": "authored-commitments-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original amendment administration costs, per-proposal limits and observed-review intervals. These are game assumptions, not historical legislative or contracting rules."
+    },
+    {
+      "id": "authored-cabinet-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original functional portfolios, generated candidate profiles, eligibility, appointment/dismissal costs and preparation delays. No historical ministerial staffing or career claims."
+    },
+    {
+      "id": "authored-elections-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original independent electoral mandates, early-poll jurisdiction, review/campaign intervals, administration costs and calendar terms. No historical poll records, national electoral law or integrity certification is claimed."
+    },
+    {
+      "id": "authored-territorial-government-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original two-jurisdiction budget partitions, local purchasing levels, autonomy/tax-share templates, grant consent, lawful compensation and contested territorial/requisition costs. No historical territorial law, administrative geography, regional voting or local fiscal calibration is claimed."
+    },
+    {
+      "id": "authored-delivery-undertakings-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original public delivery pledges, conditional governing-support arrangements, linked programme deadlines, political effects, administration costs, fixed review/interval rules and record-based credibility. No historical election promises, party agreements, commercial contracts or treaties are claimed."
+    },
+    {
+      "id": "authored-fiscal-plans-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original annual/supplementary fiscal preparation, institutional review, administration costs, implementation reservations and calendar execution. No historical budget law, tax-base calibration or hard appropriation ceiling is claimed."
+    },
+    {
+      "id": "authored-private-income-bands-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original representative-cohort private-income bands, GDP-per-resident thresholds, marginal rate factors and fixed 365-day annualisation. No historical tax filing law, individual distributions or national tax-base calibration is claimed."
+    },
+    {
+      "id": "authored-national-fiscal-ai-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original national-funding review objective for the bounded fiscal AI. It respects protected local claims and shared legal/cash/implementation rules; it does not claim historical government decisions, privileged revenue or optimal planning."
+    },
+    {
+      "id": "authored-dated-loan-principal-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original 365-day maturity and scheduled-principal settlement for new loans. Existing authority and emergency constraints are retained; this is not historical debt calibration or default/restructuring."
+    },
+    {
+      "id": "authored-starter-cash-retention-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original temporary retention of actual national cash after protected local and capital claims. Deferred operating payments remain arrears; unpaid principal remains debt. Uniform authored gameplay procedure, not historical cash-management law or payment priority."
+    }
+  ],
+  "countries": [
+    {
+      "id": "GBR",
+      "name": "United Kingdom",
+      "capital": "London",
+      "regime": "parliamentary",
+      "executive": "Tony Blair",
+      "office": "Prime Minister",
+      "currency": "GBP",
+      "population": 58892514,
+      "gdp": 1665534,
+      "tax": 28,
+      "services": 9,
+      "welfare": 4,
+      "energy": 90,
+      "food": 75,
+      "capacity": 92,
+      "approval": 52,
+      "longitude": -3,
+      "latitude": 55,
+      "ruling_party": "GBR:labour",
+      "coalition": [
+        "GBR:labour"
+      ],
+      "parties": [
+        {
+          "id": "GBR:labour",
+          "name": "Labour Party",
+          "leader": "Tony Blair",
+          "ideology": "social_democracy",
+          "seats": 58
+        },
+        {
+          "id": "GBR:conservative",
+          "name": "Conservative Party",
+          "leader": "William Hague",
+          "ideology": "conservatism",
+          "seats": 32
+        },
+        {
+          "id": "GBR:libdem",
+          "name": "Liberal Democrats",
+          "leader": "Charles Kennedy",
+          "ideology": "liberalism",
+          "seats": 10
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "USA",
+      "name": "United States",
+      "capital": "Washington, D.C.",
+      "regime": "presidential",
+      "executive": "Bill Clinton",
+      "office": "President",
+      "currency": "USD",
+      "population": 282162411,
+      "gdp": 10250952,
+      "tax": 25,
+      "services": 7,
+      "welfare": 3,
+      "energy": 105,
+      "food": 120,
+      "capacity": 95,
+      "approval": 54,
+      "longitude": -98,
+      "latitude": 39,
+      "ruling_party": "USA:democratic",
+      "coalition": [
+        "USA:democratic"
+      ],
+      "parties": [
+        {
+          "id": "USA:democratic",
+          "name": "Democratic Party",
+          "leader": "Bill Clinton",
+          "ideology": "liberalism",
+          "seats": 49
+        },
+        {
+          "id": "USA:republican",
+          "name": "Republican Party",
+          "leader": "George W. Bush",
+          "ideology": "conservatism",
+          "seats": 51
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "FRA",
+      "name": "France",
+      "capital": "Paris",
+      "regime": "semi_presidential",
+      "executive": "Lionel Jospin",
+      "office": "Prime Minister",
+      "currency": "EUR",
+      "population": 60918661,
+      "gdp": 1365639,
+      "tax": 30,
+      "services": 10,
+      "welfare": 5,
+      "energy": 130,
+      "food": 120,
+      "capacity": 90,
+      "approval": 50,
+      "longitude": 2,
+      "latitude": 47,
+      "ruling_party": "FRA:ps",
+      "coalition": [
+        "FRA:ps"
+      ],
+      "parties": [
+        {
+          "id": "FRA:ps",
+          "name": "Socialist Party",
+          "leader": "François Hollande",
+          "ideology": "social_democracy",
+          "seats": 56
+        },
+        {
+          "id": "FRA:rpr",
+          "name": "Rally for the Republic",
+          "leader": "Michèle Alliot-Marie",
+          "ideology": "conservatism",
+          "seats": 34
+        },
+        {
+          "id": "FRA:udf",
+          "name": "Union for French Democracy",
+          "leader": "François Bayrou",
+          "ideology": "liberalism",
+          "seats": 10
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "DEU",
+      "name": "Germany",
+      "capital": "Berlin",
+      "regime": "parliamentary",
+      "executive": "Gerhard Schröder",
+      "office": "Chancellor",
+      "currency": "EUR",
+      "population": 82211508,
+      "gdp": 1947981,
+      "tax": 30,
+      "services": 10,
+      "welfare": 5,
+      "energy": 95,
+      "food": 100,
+      "capacity": 94,
+      "approval": 51,
+      "longitude": 13,
+      "latitude": 52,
+      "ruling_party": "DEU:spd",
+      "coalition": [
+        "DEU:spd",
+        "DEU:greens"
+      ],
+      "parties": [
+        {
+          "id": "DEU:spd",
+          "name": "Social Democratic Party",
+          "leader": "Gerhard Schröder",
+          "ideology": "social_democracy",
+          "seats": 45
+        },
+        {
+          "id": "DEU:greens",
+          "name": "Alliance 90/The Greens",
+          "leader": "Collective leadership",
+          "ideology": "green",
+          "seats": 10
+        },
+        {
+          "id": "DEU:cdu",
+          "name": "Christian Democratic Union",
+          "leader": "Wolfgang Schäuble",
+          "ideology": "conservatism",
+          "seats": 38
+        },
+        {
+          "id": "DEU:fdp",
+          "name": "Free Democratic Party",
+          "leader": "Wolfgang Gerhardt",
+          "ideology": "liberalism",
+          "seats": 7
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "RUS",
+      "name": "Russia",
+      "capital": "Moscow",
+      "regime": "semi_presidential",
+      "executive": "Vladimir Putin",
+      "office": "Acting President",
+      "currency": "RUB",
+      "population": 146596869,
+      "gdp": 259710,
+      "tax": 22,
+      "services": 7,
+      "welfare": 3,
+      "energy": 150,
+      "food": 90,
+      "capacity": 65,
+      "approval": 48,
+      "longitude": 80,
+      "latitude": 62,
+      "ruling_party": "RUS:unity",
+      "coalition": [
+        "RUS:unity"
+      ],
+      "parties": [
+        {
+          "id": "RUS:unity",
+          "name": "Unity",
+          "leader": "Sergei Shoigu",
+          "ideology": "conservatism",
+          "seats": 42
+        },
+        {
+          "id": "RUS:cprf",
+          "name": "Communist Party",
+          "leader": "Gennady Zyuganov",
+          "ideology": "communism",
+          "seats": 38
+        },
+        {
+          "id": "RUS:fatherland",
+          "name": "Fatherland – All Russia",
+          "leader": "Yevgeny Primakov",
+          "ideology": "conservatism",
+          "seats": 20
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "CHN",
+      "name": "China",
+      "capital": "Beijing",
+      "regime": "single_party",
+      "executive": "Jiang Zemin",
+      "office": "General Secretary",
+      "currency": "CNY",
+      "population": 1262645000,
+      "gdp": 1211331,
+      "tax": 24,
+      "services": 7,
+      "welfare": 3,
+      "energy": 100,
+      "food": 100,
+      "capacity": 76,
+      "approval": 58,
+      "longitude": 104,
+      "latitude": 35,
+      "ruling_party": "CHN:cpc",
+      "coalition": [
+        "CHN:cpc"
+      ],
+      "parties": [
+        {
+          "id": "CHN:cpc",
+          "name": "Communist Party of China",
+          "leader": "Jiang Zemin",
+          "ideology": "communism",
+          "seats": 100
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 60,
+          "income_share": 70,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 15,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 5,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "party_council",
+        "threshold": 55,
+        "consent_days": 14,
+        "council_threshold": 50,
+        "leadership_review_days": 720
+      }
+    },
+    {
+      "id": "IND",
+      "name": "India",
+      "capital": "New Delhi",
+      "regime": "parliamentary",
+      "executive": "Atal Bihari Vajpayee",
+      "office": "Prime Minister",
+      "currency": "INR",
+      "population": 1057922733,
+      "gdp": 468395,
+      "tax": 24,
+      "services": 7,
+      "welfare": 3,
+      "energy": 80,
+      "food": 105,
+      "capacity": 63,
+      "approval": 52,
+      "longitude": 79,
+      "latitude": 23,
+      "ruling_party": "IND:bjp",
+      "coalition": [
+        "IND:bjp"
+      ],
+      "parties": [
+        {
+          "id": "IND:bjp",
+          "name": "Bharatiya Janata Party",
+          "leader": "Kushabhau Thakre",
+          "ideology": "national_conservatism",
+          "seats": 51
+        },
+        {
+          "id": "IND:inc",
+          "name": "Indian National Congress",
+          "leader": "Sonia Gandhi",
+          "ideology": "social_democracy",
+          "seats": 39
+        },
+        {
+          "id": "IND:cpi",
+          "name": "Communist Party of India (Marxist)",
+          "leader": "Harkishan Singh Surjeet",
+          "ideology": "communism",
+          "seats": 10
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "JPN",
+      "name": "Japan",
+      "capital": "Tokyo",
+      "regime": "parliamentary",
+      "executive": "Keizō Obuchi",
+      "office": "Prime Minister",
+      "currency": "JPY",
+      "population": 126843000,
+      "gdp": 4968359,
+      "tax": 28,
+      "services": 9,
+      "welfare": 4,
+      "energy": 90,
+      "food": 55,
+      "capacity": 95,
+      "approval": 48,
+      "longitude": 138,
+      "latitude": 37,
+      "ruling_party": "JPN:ldp",
+      "coalition": [
+        "JPN:ldp"
+      ],
+      "parties": [
+        {
+          "id": "JPN:ldp",
+          "name": "Liberal Democratic Party",
+          "leader": "Keizō Obuchi",
+          "ideology": "conservatism",
+          "seats": 60
+        },
+        {
+          "id": "JPN:dpj",
+          "name": "Democratic Party of Japan",
+          "leader": "Yukio Hatoyama",
+          "ideology": "liberalism",
+          "seats": 30
+        },
+        {
+          "id": "JPN:jcp",
+          "name": "Japanese Communist Party",
+          "leader": "Tetsuzō Fuwa",
+          "ideology": "communism",
+          "seats": 10
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "BRA",
+      "name": "Brazil",
+      "capital": "Brasília",
+      "regime": "presidential",
+      "executive": "Fernando Henrique Cardoso",
+      "office": "President",
+      "currency": "BRL",
+      "population": 174018282,
+      "gdp": 655448,
+      "tax": 26,
+      "services": 8,
+      "welfare": 3,
+      "energy": 110,
+      "food": 140,
+      "capacity": 70,
+      "approval": 50,
+      "longitude": -52,
+      "latitude": -12,
+      "ruling_party": "BRA:psdb",
+      "coalition": [
+        "BRA:psdb"
+      ],
+      "parties": [
+        {
+          "id": "BRA:psdb",
+          "name": "Brazilian Social Democracy Party",
+          "leader": "Teotônio Vilela Filho",
+          "ideology": "social_democracy",
+          "seats": 52
+        },
+        {
+          "id": "BRA:pt",
+          "name": "Workers’ Party",
+          "leader": "José Dirceu",
+          "ideology": "democratic_socialism",
+          "seats": 33
+        },
+        {
+          "id": "BRA:pmdb",
+          "name": "Brazilian Democratic Movement Party",
+          "leader": "Jader Barbalho",
+          "ideology": "centrism",
+          "seats": 15
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "ZAF",
+      "name": "South Africa",
+      "capital": "Pretoria",
+      "regime": "parliamentary",
+      "executive": "Thabo Mbeki",
+      "office": "President",
+      "currency": "ZAR",
+      "population": 47159719,
+      "gdp": 151752,
+      "tax": 27,
+      "services": 8,
+      "welfare": 4,
+      "energy": 115,
+      "food": 105,
+      "capacity": 72,
+      "approval": 58,
+      "longitude": 25,
+      "latitude": -29,
+      "ruling_party": "ZAF:anc",
+      "coalition": [
+        "ZAF:anc"
+      ],
+      "parties": [
+        {
+          "id": "ZAF:anc",
+          "name": "African National Congress",
+          "leader": "Thabo Mbeki",
+          "ideology": "social_democracy",
+          "seats": 66
+        },
+        {
+          "id": "ZAF:dp",
+          "name": "Democratic Party",
+          "leader": "Tony Leon",
+          "ideology": "liberalism",
+          "seats": 20
+        },
+        {
+          "id": "ZAF:ifp",
+          "name": "Inkatha Freedom Party",
+          "leader": "Mangosuthu Buthelezi",
+          "ideology": "conservatism",
+          "seats": 14
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "SAU",
+      "name": "Saudi Arabia",
+      "capital": "Riyadh",
+      "regime": "absolute_monarchy",
+      "executive": "Fahd bin Abdulaziz",
+      "office": "King",
+      "currency": "SAR",
+      "population": 16177722,
+      "gdp": 189514,
+      "tax": 18,
+      "services": 7,
+      "welfare": 3,
+      "energy": 170,
+      "food": 50,
+      "capacity": 76,
+      "approval": 60,
+      "longitude": 45,
+      "latitude": 24,
+      "ruling_party": "SAU:royal",
+      "coalition": [
+        "SAU:royal"
+      ],
+      "parties": [
+        {
+          "id": "SAU:royal",
+          "name": "Royal governing council",
+          "leader": "Fahd bin Abdulaziz",
+          "ideology": "monarchism",
+          "seats": 100
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 45,
+          "income_share": 50,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 25,
+          "income_share": 20,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 20,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "royal_decree",
+        "threshold": 50,
+        "consent_days": 0,
+        "council_threshold": 45,
+        "leadership_review_days": 360
+      }
+    },
+    {
+      "id": "IRN",
+      "name": "Iran",
+      "capital": "Tehran",
+      "regime": "theocracy",
+      "executive": "Ali Khamenei",
+      "office": "Supreme Leader",
+      "currency": "IRR",
+      "population": 66418659,
+      "gdp": 109591,
+      "tax": 22,
+      "services": 7,
+      "welfare": 3,
+      "energy": 125,
+      "food": 95,
+      "capacity": 67,
+      "approval": 52,
+      "longitude": 54,
+      "latitude": 33,
+      "ruling_party": "IRN:clerical",
+      "coalition": [
+        "IRN:clerical"
+      ],
+      "parties": [
+        {
+          "id": "IRN:clerical",
+          "name": "Clerical establishment",
+          "leader": "Ali Khamenei",
+          "ideology": "political_islam",
+          "seats": 60
+        },
+        {
+          "id": "IRN:reform",
+          "name": "Reformist bloc",
+          "leader": "Mohammad Khatami",
+          "ideology": "reformism",
+          "seats": 40
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "religious_council",
+        "threshold": 40,
+        "consent_days": 7,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "CUB",
+      "name": "Cuba",
+      "capital": "Havana",
+      "regime": "single_party",
+      "executive": "Fidel Castro",
+      "office": "President",
+      "currency": "CUP",
+      "population": 11109109,
+      "gdp": 30565,
+      "tax": 30,
+      "services": 10,
+      "welfare": 5,
+      "energy": 70,
+      "food": 75,
+      "capacity": 74,
+      "approval": 56,
+      "longitude": -79,
+      "latitude": 22,
+      "ruling_party": "CUB:pcc",
+      "coalition": [
+        "CUB:pcc"
+      ],
+      "parties": [
+        {
+          "id": "CUB:pcc",
+          "name": "Communist Party of Cuba",
+          "leader": "Fidel Castro",
+          "ideology": "communism",
+          "seats": 100
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "party_council",
+        "threshold": 55,
+        "consent_days": 14,
+        "council_threshold": 50,
+        "leadership_review_days": 720
+      }
+    },
+    {
+      "id": "PRK",
+      "name": "North Korea",
+      "capital": "Pyongyang",
+      "regime": "personalist",
+      "executive": "Kim Jong Il",
+      "office": "General Secretary",
+      "currency": "KPW",
+      "population": 23665910,
+      "gdp": 17000,
+      "tax": 30,
+      "services": 8,
+      "welfare": 3,
+      "energy": 65,
+      "food": 70,
+      "capacity": 48,
+      "approval": 50,
+      "longitude": 127,
+      "latitude": 40,
+      "ruling_party": "PRK:wpk",
+      "coalition": [
+        "PRK:wpk"
+      ],
+      "parties": [
+        {
+          "id": "PRK:wpk",
+          "name": "Workers’ Party of Korea",
+          "leader": "Kim Jong Il",
+          "ideology": "juche",
+          "seats": 100
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "executive_decree",
+        "threshold": 40,
+        "consent_days": 0,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    },
+    {
+      "id": "MMR",
+      "name": "Myanmar",
+      "capital": "Yangon",
+      "regime": "military",
+      "executive": "Than Shwe",
+      "office": "Council Chairman",
+      "currency": "MMK",
+      "population": 45290841,
+      "gdp": 8905,
+      "tax": 22,
+      "services": 6,
+      "welfare": 2,
+      "energy": 75,
+      "food": 110,
+      "capacity": 45,
+      "approval": 48,
+      "longitude": 96,
+      "latitude": 21,
+      "ruling_party": "MMR:spdc",
+      "coalition": [
+        "MMR:spdc"
+      ],
+      "parties": [
+        {
+          "id": "MMR:spdc",
+          "name": "State Peace and Development Council",
+          "leader": "Than Shwe",
+          "ideology": "military_nationalism",
+          "seats": 100
+        }
+      ],
+      "quality": "mixed_observed_and_authored",
+      "identity_source": "identity-notes",
+      "economic_source": "authored-balance-v1",
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "military_council",
+        "threshold": 40,
+        "consent_days": 7,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      }
+    }
+  ],
+  "policies": [
+    {
+      "id": "income_tax",
+      "name": "Standard private-income marginal rate",
+      "min": 10,
+      "max": 45,
+      "days": 30,
+      "cost_bps": 2,
+      "description": "Set the standard marginal reference rate for authored private-income bands. Withholding uses actual private income, representative cohort means and collection capacity; benefits and public/local wages remain outside this base. Full tax filing law and other bases are not modeled.",
+      "groups": "Workers, pensioners, public employees"
+    },
+    {
+      "id": "services",
+      "name": "Public service budget",
+      "min": 4,
+      "max": 18,
+      "days": 60,
+      "cost_bps": 8,
+      "description": "Annual spending as % of modeled GDP. Delivery improves gradually and is limited by administrative capacity.",
+      "groups": "Service users and public employees"
+    },
+    {
+      "id": "welfare",
+      "name": "Household safety net",
+      "min": 0,
+      "max": 12,
+      "days": 30,
+      "cost_bps": 3,
+      "description": "Annual transfers as % of modeled GDP. Payments reach household accounts only when funded.",
+      "groups": "Low-income households"
+    },
+    {
+      "id": "energy",
+      "name": "Energy capacity program",
+      "min": 1,
+      "max": 1,
+      "days": 90,
+      "cost_bps": 50,
+      "description": "Build 15 percentage points of domestic energy coverage. Capital is reserved during consent and paid before implementation; operating costs begin on completion.",
+      "groups": "Industry and energy consumers"
+    },
+    {
+      "id": "agriculture",
+      "name": "Food resilience program",
+      "min": 1,
+      "max": 1,
+      "days": 120,
+      "cost_bps": 35,
+      "description": "Build 15 percentage points of food supply. Requires time and funded maintenance.",
+      "groups": "Farmers and household consumers"
+    },
+    {
+      "id": "administration",
+      "name": "Civil service modernization",
+      "min": 1,
+      "max": 1,
+      "days": 180,
+      "cost_bps": 40,
+      "description": "Increase administrative capacity by 8 points, improving tax collection and service delivery.",
+      "groups": "Taxpayers and public employees"
+    },
+    {
+      "id": "coalition",
+      "name": "Negotiate governing support",
+      "min": 1,
+      "max": 1,
+      "days": 45,
+      "cost_bps": 10,
+      "description": "Negotiate with parliamentary partners; adds up to 12 support points for the present government. Bargaining uses administrative resources.",
+      "groups": "Legislative parties and governing elites"
+    }
+  ],
+  "facts": [
+    {
+      "country": "GBR",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "58892514",
+      "original_units": "persons",
+      "applied_value": 58892514,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "USA",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "282162411",
+      "original_units": "persons",
+      "applied_value": 282162411,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "FRA",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "60918661",
+      "original_units": "persons",
+      "applied_value": 60918661,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "DEU",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "82211508",
+      "original_units": "persons",
+      "applied_value": 82211508,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "RUS",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "146596869",
+      "original_units": "persons",
+      "applied_value": 146596869,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "CHN",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "1262645000",
+      "original_units": "persons",
+      "applied_value": 1262645000,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "IND",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "1057922733",
+      "original_units": "persons",
+      "applied_value": 1057922733,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "JPN",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "126843000",
+      "original_units": "persons",
+      "applied_value": 126843000,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "BRA",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "174018282",
+      "original_units": "persons",
+      "applied_value": 174018282,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "ZAF",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "47159719",
+      "original_units": "persons",
+      "applied_value": 47159719,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "SAU",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "16177722",
+      "original_units": "persons",
+      "applied_value": 16177722,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "IRN",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "66418659",
+      "original_units": "persons",
+      "applied_value": 66418659,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "CUB",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "11109109",
+      "original_units": "persons",
+      "applied_value": 11109109,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "PRK",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "23665910",
+      "original_units": "persons",
+      "applied_value": 23665910,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "MMR",
+      "field": "population",
+      "observation_period": "2000",
+      "original_value": "45290841",
+      "original_units": "persons",
+      "applied_value": 45290841,
+      "source": "world-bank-mirror-population",
+      "source_version": "d4b1a4a9a17e2123baf0ef119de05bceced1ab1b",
+      "quality": "published_mirror_observation",
+      "transformation": "Use annual population observation as bookmark population proxy; not a 1 January census."
+    },
+    {
+      "country": "GBR",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "1665534876683.3105",
+      "original_units": "current USD",
+      "applied_value": 1665534,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "USA",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "10250952000000.0",
+      "original_units": "current USD",
+      "applied_value": 10250952,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "FRA",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "1365639660792.1597",
+      "original_units": "current USD",
+      "applied_value": 1365639,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "DEU",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "1947981991011.7688",
+      "original_units": "current USD",
+      "applied_value": 1947981,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "RUS",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "259710142196.94278",
+      "original_units": "current USD",
+      "applied_value": 259710,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "CHN",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "1211331651866.086",
+      "original_units": "current USD",
+      "applied_value": 1211331,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "IND",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "468395521654.4579",
+      "original_units": "current USD",
+      "applied_value": 468395,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "JPN",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "4968359075956.591",
+      "original_units": "current USD",
+      "applied_value": 4968359,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "BRA",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "655448231983.5271",
+      "original_units": "current USD",
+      "applied_value": 655448,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "ZAF",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "151752757215.3085",
+      "original_units": "current USD",
+      "applied_value": 151752,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "SAU",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "189514933333.33334",
+      "original_units": "current USD",
+      "applied_value": 189514,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "IRN",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "109591707801.43082",
+      "original_units": "current USD",
+      "applied_value": 109591,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "CUB",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "30565400000.0",
+      "original_units": "current USD",
+      "applied_value": 30565,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    },
+    {
+      "country": "MMR",
+      "field": "gdp",
+      "observation_period": "2000",
+      "original_value": "8905066163.586428",
+      "original_units": "current USD",
+      "applied_value": 8905,
+      "source": "world-bank-mirror-gdp",
+      "source_version": "36d761dc5617982d3e50b213e02b9a1b47c4e958",
+      "quality": "published_mirror_observation",
+      "transformation": "Truncate annual current-USD GDP to million USD; use as opening game GDP. No PPP or exchange-rate transformation."
+    }
+  ],
+  "rules": 16,
+  "markets": {
+    "food_budget_share_bps": 4000,
+    "source": "authored-markets-v1",
+    "source_version": "relative-prices-v1",
+    "goods": [
+      {
+        "id": "energy",
+        "kind": "energy",
+        "name": "Energy",
+        "unit": "modeled energy unit",
+        "minimum_price_bps": 5000,
+        "maximum_price_bps": 20000,
+        "adjustment_bps": 250,
+        "import_limit_bps": 2500,
+        "storage_days": 3,
+        "loss_bps": 0
+      },
+      {
+        "id": "food",
+        "kind": "food",
+        "name": "Essential food",
+        "unit": "modeled food-basket unit",
+        "minimum_price_bps": 5000,
+        "maximum_price_bps": 20000,
+        "adjustment_bps": 250,
+        "import_limit_bps": 3500,
+        "storage_days": 11,
+        "loss_bps": 100
+      }
+    ]
+  },
+  "finance": {
+    "source": "authored-dated-loan-principal-v1",
+    "source_version": "starter-financing-with-dated-principal-v1",
+    "authorities": [
+      {
+        "id": "borrowing:legislature",
+        "label": "Legislative borrowing consent",
+        "route": "legislature",
+        "consent_days": 14
+      },
+      {
+        "id": "borrowing:party_council",
+        "label": "Party council borrowing consent",
+        "route": "party_council",
+        "consent_days": 21
+      },
+      {
+        "id": "borrowing:royal_decree",
+        "label": "Royal borrowing decree",
+        "route": "royal_decree",
+        "consent_days": 0
+      },
+      {
+        "id": "borrowing:religious_council",
+        "label": "Religious council borrowing consent",
+        "route": "religious_council",
+        "consent_days": 30
+      },
+      {
+        "id": "borrowing:military_council",
+        "label": "Military council borrowing consent",
+        "route": "military_council",
+        "consent_days": 7
+      },
+      {
+        "id": "borrowing:executive_decree",
+        "label": "Executive borrowing decree",
+        "route": "executive_decree",
+        "consent_days": 0
+      }
+    ],
+    "emergency": {
+      "council_threshold": 65,
+      "approval_cost": 15,
+      "legislative_cost": 20,
+      "elite_cost": 10,
+      "council_cost": 20,
+      "cooldown_days": 180
+    },
+    "maturity_days": 365
+  },
+  "constitutions": {
+    "templates": [
+      {
+        "regime": "parliamentary",
+        "title": "parliamentary cabinet",
+        "government": {
+          "route": "legislature",
+          "threshold": 51,
+          "council_threshold": 0,
+          "consent_days": 14,
+          "leadership_review_days": null
+        }
+      },
+      {
+        "regime": "presidential",
+        "title": "presidential cabinet",
+        "government": {
+          "route": "legislature",
+          "threshold": 51,
+          "council_threshold": 0,
+          "consent_days": 21,
+          "leadership_review_days": null
+        }
+      },
+      {
+        "regime": "semi_presidential",
+        "title": "semi-presidential cabinet",
+        "government": {
+          "route": "legislature",
+          "threshold": 51,
+          "council_threshold": 0,
+          "consent_days": 21,
+          "leadership_review_days": null
+        }
+      },
+      {
+        "regime": "single_party",
+        "title": "party council",
+        "government": {
+          "route": "party_council",
+          "threshold": 55,
+          "council_threshold": 50,
+          "consent_days": 21,
+          "leadership_review_days": 180
+        }
+      },
+      {
+        "regime": "absolute_monarchy",
+        "title": "royal court",
+        "government": {
+          "route": "royal_decree",
+          "threshold": 50,
+          "council_threshold": 45,
+          "consent_days": 0,
+          "leadership_review_days": 90
+        }
+      },
+      {
+        "regime": "theocracy",
+        "title": "religious council",
+        "government": {
+          "route": "religious_council",
+          "threshold": 55,
+          "council_threshold": 55,
+          "consent_days": 30,
+          "leadership_review_days": 180
+        }
+      },
+      {
+        "regime": "personalist",
+        "title": "executive council",
+        "government": {
+          "route": "executive_decree",
+          "threshold": 50,
+          "council_threshold": 45,
+          "consent_days": 0,
+          "leadership_review_days": 90
+        }
+      },
+      {
+        "regime": "military",
+        "title": "military council",
+        "government": {
+          "route": "military_council",
+          "threshold": 55,
+          "council_threshold": 55,
+          "consent_days": 7,
+          "leadership_review_days": 90
+        }
+      }
+    ],
+    "source": "authored-constitutions-v1",
+    "source_version": "constitutional-transitions-v1",
+    "cooldown_days": 180,
+    "ai_targets": {
+      "GBR": "parliamentary",
+      "USA": "presidential",
+      "FRA": "semi_presidential",
+      "DEU": "parliamentary",
+      "RUS": "semi_presidential",
+      "CHN": "single_party",
+      "IND": "parliamentary",
+      "JPN": "parliamentary",
+      "BRA": "presidential",
+      "ZAF": "parliamentary",
+      "SAU": "absolute_monarchy",
+      "IRN": "theocracy",
+      "CUB": "single_party",
+      "PRK": "personalist",
+      "MMR": "military"
+    },
+    "lawful": {
+      "days": 90,
+      "cost_bps": 50,
+      "upfront_bps": 2000,
+      "legislative_threshold": 67,
+      "elite_threshold": 75,
+      "council_threshold": 65,
+      "approval_threshold": 55,
+      "approval_cost": 3,
+      "legislative_cost": 5,
+      "elite_cost": 10,
+      "council_cost": 5
+    },
+    "contested": {
+      "days": 14,
+      "cost_bps": 100,
+      "upfront_bps": 10000,
+      "legislative_threshold": 0,
+      "elite_threshold": 80,
+      "council_threshold": 80,
+      "approval_threshold": 0,
+      "approval_cost": 20,
+      "legislative_cost": 25,
+      "elite_cost": 15,
+      "council_cost": 20
+    }
+  },
+  "commitments": {
+    "amendment_fee_bps": 1000,
+    "maximum_amendments": 3,
+    "evaluation_days": 30,
+    "source": "authored-commitments-v1",
+    "source_version": "policy-commitments-v1"
+  },
+  "cabinet": {
+    "portfolios": [
+      {
+        "id": "portfolio:GBR:finance",
+        "country": "GBR",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:GBR:supply",
+        "country": "GBR",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:GBR:administration",
+        "country": "GBR",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:USA:finance",
+        "country": "USA",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:USA:supply",
+        "country": "USA",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:USA:administration",
+        "country": "USA",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:FRA:finance",
+        "country": "FRA",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:FRA:supply",
+        "country": "FRA",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:FRA:administration",
+        "country": "FRA",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:DEU:finance",
+        "country": "DEU",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:DEU:supply",
+        "country": "DEU",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:DEU:administration",
+        "country": "DEU",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:RUS:finance",
+        "country": "RUS",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:RUS:supply",
+        "country": "RUS",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:RUS:administration",
+        "country": "RUS",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:CHN:finance",
+        "country": "CHN",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:CHN:supply",
+        "country": "CHN",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:CHN:administration",
+        "country": "CHN",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:IND:finance",
+        "country": "IND",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:IND:supply",
+        "country": "IND",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:IND:administration",
+        "country": "IND",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:JPN:finance",
+        "country": "JPN",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:JPN:supply",
+        "country": "JPN",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:JPN:administration",
+        "country": "JPN",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:BRA:finance",
+        "country": "BRA",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:BRA:supply",
+        "country": "BRA",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:BRA:administration",
+        "country": "BRA",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:ZAF:finance",
+        "country": "ZAF",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:ZAF:supply",
+        "country": "ZAF",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:ZAF:administration",
+        "country": "ZAF",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:SAU:finance",
+        "country": "SAU",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:SAU:supply",
+        "country": "SAU",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:SAU:administration",
+        "country": "SAU",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:IRN:finance",
+        "country": "IRN",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:IRN:supply",
+        "country": "IRN",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:IRN:administration",
+        "country": "IRN",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:CUB:finance",
+        "country": "CUB",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:CUB:supply",
+        "country": "CUB",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:CUB:administration",
+        "country": "CUB",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:PRK:finance",
+        "country": "PRK",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:PRK:supply",
+        "country": "PRK",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:PRK:administration",
+        "country": "PRK",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:MMR:finance",
+        "country": "MMR",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:MMR:supply",
+        "country": "MMR",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:MMR:administration",
+        "country": "MMR",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      }
+    ],
+    "candidates": [
+      {
+        "person": "generated:GBR:finance:professional",
+        "office": "portfolio:GBR:finance",
+        "name": "Generated GBR finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:GBR:finance:consensus",
+        "office": "portfolio:GBR:finance",
+        "name": "Generated GBR finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:GBR:supply:professional",
+        "office": "portfolio:GBR:supply",
+        "name": "Generated GBR supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:GBR:supply:consensus",
+        "office": "portfolio:GBR:supply",
+        "name": "Generated GBR supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:GBR:administration:professional",
+        "office": "portfolio:GBR:administration",
+        "name": "Generated GBR administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:GBR:administration:consensus",
+        "office": "portfolio:GBR:administration",
+        "name": "Generated GBR administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:USA:finance:professional",
+        "office": "portfolio:USA:finance",
+        "name": "Generated USA finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:USA:finance:consensus",
+        "office": "portfolio:USA:finance",
+        "name": "Generated USA finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:USA:supply:professional",
+        "office": "portfolio:USA:supply",
+        "name": "Generated USA supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:USA:supply:consensus",
+        "office": "portfolio:USA:supply",
+        "name": "Generated USA supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:USA:administration:professional",
+        "office": "portfolio:USA:administration",
+        "name": "Generated USA administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:USA:administration:consensus",
+        "office": "portfolio:USA:administration",
+        "name": "Generated USA administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:FRA:finance:professional",
+        "office": "portfolio:FRA:finance",
+        "name": "Generated FRA finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:FRA:finance:consensus",
+        "office": "portfolio:FRA:finance",
+        "name": "Generated FRA finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:FRA:supply:professional",
+        "office": "portfolio:FRA:supply",
+        "name": "Generated FRA supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:FRA:supply:consensus",
+        "office": "portfolio:FRA:supply",
+        "name": "Generated FRA supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:FRA:administration:professional",
+        "office": "portfolio:FRA:administration",
+        "name": "Generated FRA administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:FRA:administration:consensus",
+        "office": "portfolio:FRA:administration",
+        "name": "Generated FRA administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:DEU:finance:professional",
+        "office": "portfolio:DEU:finance",
+        "name": "Generated DEU finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:DEU:finance:consensus",
+        "office": "portfolio:DEU:finance",
+        "name": "Generated DEU finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:DEU:supply:professional",
+        "office": "portfolio:DEU:supply",
+        "name": "Generated DEU supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:DEU:supply:consensus",
+        "office": "portfolio:DEU:supply",
+        "name": "Generated DEU supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:DEU:administration:professional",
+        "office": "portfolio:DEU:administration",
+        "name": "Generated DEU administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:DEU:administration:consensus",
+        "office": "portfolio:DEU:administration",
+        "name": "Generated DEU administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:RUS:finance:professional",
+        "office": "portfolio:RUS:finance",
+        "name": "Generated RUS finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:RUS:finance:consensus",
+        "office": "portfolio:RUS:finance",
+        "name": "Generated RUS finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:RUS:supply:professional",
+        "office": "portfolio:RUS:supply",
+        "name": "Generated RUS supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:RUS:supply:consensus",
+        "office": "portfolio:RUS:supply",
+        "name": "Generated RUS supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:RUS:administration:professional",
+        "office": "portfolio:RUS:administration",
+        "name": "Generated RUS administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:RUS:administration:consensus",
+        "office": "portfolio:RUS:administration",
+        "name": "Generated RUS administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:CHN:finance:professional",
+        "office": "portfolio:CHN:finance",
+        "name": "Generated CHN finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:CHN:finance:consensus",
+        "office": "portfolio:CHN:finance",
+        "name": "Generated CHN finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:CHN:supply:professional",
+        "office": "portfolio:CHN:supply",
+        "name": "Generated CHN supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:CHN:supply:consensus",
+        "office": "portfolio:CHN:supply",
+        "name": "Generated CHN supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:CHN:administration:professional",
+        "office": "portfolio:CHN:administration",
+        "name": "Generated CHN administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:CHN:administration:consensus",
+        "office": "portfolio:CHN:administration",
+        "name": "Generated CHN administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:IND:finance:professional",
+        "office": "portfolio:IND:finance",
+        "name": "Generated IND finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:IND:finance:consensus",
+        "office": "portfolio:IND:finance",
+        "name": "Generated IND finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:IND:supply:professional",
+        "office": "portfolio:IND:supply",
+        "name": "Generated IND supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:IND:supply:consensus",
+        "office": "portfolio:IND:supply",
+        "name": "Generated IND supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:IND:administration:professional",
+        "office": "portfolio:IND:administration",
+        "name": "Generated IND administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:IND:administration:consensus",
+        "office": "portfolio:IND:administration",
+        "name": "Generated IND administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:JPN:finance:professional",
+        "office": "portfolio:JPN:finance",
+        "name": "Generated JPN finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:JPN:finance:consensus",
+        "office": "portfolio:JPN:finance",
+        "name": "Generated JPN finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:JPN:supply:professional",
+        "office": "portfolio:JPN:supply",
+        "name": "Generated JPN supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:JPN:supply:consensus",
+        "office": "portfolio:JPN:supply",
+        "name": "Generated JPN supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:JPN:administration:professional",
+        "office": "portfolio:JPN:administration",
+        "name": "Generated JPN administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:JPN:administration:consensus",
+        "office": "portfolio:JPN:administration",
+        "name": "Generated JPN administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:BRA:finance:professional",
+        "office": "portfolio:BRA:finance",
+        "name": "Generated BRA finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:BRA:finance:consensus",
+        "office": "portfolio:BRA:finance",
+        "name": "Generated BRA finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:BRA:supply:professional",
+        "office": "portfolio:BRA:supply",
+        "name": "Generated BRA supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:BRA:supply:consensus",
+        "office": "portfolio:BRA:supply",
+        "name": "Generated BRA supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:BRA:administration:professional",
+        "office": "portfolio:BRA:administration",
+        "name": "Generated BRA administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:BRA:administration:consensus",
+        "office": "portfolio:BRA:administration",
+        "name": "Generated BRA administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:ZAF:finance:professional",
+        "office": "portfolio:ZAF:finance",
+        "name": "Generated ZAF finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:ZAF:finance:consensus",
+        "office": "portfolio:ZAF:finance",
+        "name": "Generated ZAF finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:ZAF:supply:professional",
+        "office": "portfolio:ZAF:supply",
+        "name": "Generated ZAF supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:ZAF:supply:consensus",
+        "office": "portfolio:ZAF:supply",
+        "name": "Generated ZAF supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:ZAF:administration:professional",
+        "office": "portfolio:ZAF:administration",
+        "name": "Generated ZAF administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:ZAF:administration:consensus",
+        "office": "portfolio:ZAF:administration",
+        "name": "Generated ZAF administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:SAU:finance:professional",
+        "office": "portfolio:SAU:finance",
+        "name": "Generated SAU finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:SAU:finance:consensus",
+        "office": "portfolio:SAU:finance",
+        "name": "Generated SAU finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:SAU:supply:professional",
+        "office": "portfolio:SAU:supply",
+        "name": "Generated SAU supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:SAU:supply:consensus",
+        "office": "portfolio:SAU:supply",
+        "name": "Generated SAU supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:SAU:administration:professional",
+        "office": "portfolio:SAU:administration",
+        "name": "Generated SAU administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:SAU:administration:consensus",
+        "office": "portfolio:SAU:administration",
+        "name": "Generated SAU administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:IRN:finance:professional",
+        "office": "portfolio:IRN:finance",
+        "name": "Generated IRN finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:IRN:finance:consensus",
+        "office": "portfolio:IRN:finance",
+        "name": "Generated IRN finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:IRN:supply:professional",
+        "office": "portfolio:IRN:supply",
+        "name": "Generated IRN supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:IRN:supply:consensus",
+        "office": "portfolio:IRN:supply",
+        "name": "Generated IRN supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:IRN:administration:professional",
+        "office": "portfolio:IRN:administration",
+        "name": "Generated IRN administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:IRN:administration:consensus",
+        "office": "portfolio:IRN:administration",
+        "name": "Generated IRN administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:CUB:finance:professional",
+        "office": "portfolio:CUB:finance",
+        "name": "Generated CUB finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:CUB:finance:consensus",
+        "office": "portfolio:CUB:finance",
+        "name": "Generated CUB finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:CUB:supply:professional",
+        "office": "portfolio:CUB:supply",
+        "name": "Generated CUB supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:CUB:supply:consensus",
+        "office": "portfolio:CUB:supply",
+        "name": "Generated CUB supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:CUB:administration:professional",
+        "office": "portfolio:CUB:administration",
+        "name": "Generated CUB administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:CUB:administration:consensus",
+        "office": "portfolio:CUB:administration",
+        "name": "Generated CUB administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:PRK:finance:professional",
+        "office": "portfolio:PRK:finance",
+        "name": "Generated PRK finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:PRK:finance:consensus",
+        "office": "portfolio:PRK:finance",
+        "name": "Generated PRK finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:PRK:supply:professional",
+        "office": "portfolio:PRK:supply",
+        "name": "Generated PRK supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:PRK:supply:consensus",
+        "office": "portfolio:PRK:supply",
+        "name": "Generated PRK supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:PRK:administration:professional",
+        "office": "portfolio:PRK:administration",
+        "name": "Generated PRK administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:PRK:administration:consensus",
+        "office": "portfolio:PRK:administration",
+        "name": "Generated PRK administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:MMR:finance:professional",
+        "office": "portfolio:MMR:finance",
+        "name": "Generated MMR finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:MMR:finance:consensus",
+        "office": "portfolio:MMR:finance",
+        "name": "Generated MMR finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:MMR:supply:professional",
+        "office": "portfolio:MMR:supply",
+        "name": "Generated MMR supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:MMR:supply:consensus",
+        "office": "portfolio:MMR:supply",
+        "name": "Generated MMR supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:MMR:administration:professional",
+        "office": "portfolio:MMR:administration",
+        "name": "Generated MMR administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:MMR:administration:consensus",
+        "office": "portfolio:MMR:administration",
+        "name": "Generated MMR administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      }
+    ],
+    "appointment_cost_bps": 2,
+    "dismissal_cost_bps": 1,
+    "cooldown_days": 90,
+    "vacancy_preparation_days": 30,
+    "source": "authored-cabinet-v1",
+    "source_version": "ministerial-portfolios-v1"
+  },
+  "elections": {
+    "mandates": [
+      {
+        "authority": "authority:GBR:elections",
+        "country": "GBR",
+        "title": "GBR electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:USA:elections",
+        "country": "USA",
+        "title": "USA electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:FRA:elections",
+        "country": "FRA",
+        "title": "FRA electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:DEU:elections",
+        "country": "DEU",
+        "title": "DEU electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:RUS:elections",
+        "country": "RUS",
+        "title": "RUS electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:CHN:elections",
+        "country": "CHN",
+        "title": "CHN electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:IND:elections",
+        "country": "IND",
+        "title": "IND electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:JPN:elections",
+        "country": "JPN",
+        "title": "JPN electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:BRA:elections",
+        "country": "BRA",
+        "title": "BRA electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:ZAF:elections",
+        "country": "ZAF",
+        "title": "ZAF electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:SAU:elections",
+        "country": "SAU",
+        "title": "SAU electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:IRN:elections",
+        "country": "IRN",
+        "title": "IRN electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:CUB:elections",
+        "country": "CUB",
+        "title": "CUB electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:PRK:elections",
+        "country": "PRK",
+        "title": "PRK electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:MMR:elections",
+        "country": "MMR",
+        "title": "MMR electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      }
+    ],
+    "decision_days": 7,
+    "campaign_days": 60,
+    "minimum_interval_days": 365,
+    "regular_term_years": 4,
+    "administration_cost_bps": 5,
+    "source": "authored-elections-v1",
+    "source_version": "electoral-mandates-v1"
+  },
+  "subnational": {
+    "charters": [
+      {
+        "country": "GBR",
+        "form": "decentralized_unitary",
+        "regions": [
+          {
+            "id": "region:GBR:regional",
+            "authority": "authority:GBR:regional",
+            "name": "Authored GBR regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1200,
+            "autonomous_services": true,
+            "service_level": 2
+          },
+          {
+            "id": "region:GBR:municipal",
+            "authority": "authority:GBR:municipal",
+            "name": "Authored GBR municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 800,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "USA",
+        "form": "federation",
+        "regions": [
+          {
+            "id": "region:USA:regional",
+            "authority": "authority:USA:regional",
+            "name": "Authored USA regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1800,
+            "autonomous_services": true,
+            "service_level": 2
+          },
+          {
+            "id": "region:USA:municipal",
+            "authority": "authority:USA:municipal",
+            "name": "Authored USA municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 1200,
+            "autonomous_services": true,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "FRA",
+        "form": "decentralized_unitary",
+        "regions": [
+          {
+            "id": "region:FRA:regional",
+            "authority": "authority:FRA:regional",
+            "name": "Authored FRA regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1200,
+            "autonomous_services": true,
+            "service_level": 2
+          },
+          {
+            "id": "region:FRA:municipal",
+            "authority": "authority:FRA:municipal",
+            "name": "Authored FRA municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 800,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "DEU",
+        "form": "federation",
+        "regions": [
+          {
+            "id": "region:DEU:regional",
+            "authority": "authority:DEU:regional",
+            "name": "Authored DEU regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1800,
+            "autonomous_services": true,
+            "service_level": 2
+          },
+          {
+            "id": "region:DEU:municipal",
+            "authority": "authority:DEU:municipal",
+            "name": "Authored DEU municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 1200,
+            "autonomous_services": true,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "RUS",
+        "form": "federation",
+        "regions": [
+          {
+            "id": "region:RUS:regional",
+            "authority": "authority:RUS:regional",
+            "name": "Authored RUS regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1800,
+            "autonomous_services": true,
+            "service_level": 2
+          },
+          {
+            "id": "region:RUS:municipal",
+            "authority": "authority:RUS:municipal",
+            "name": "Authored RUS municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 1200,
+            "autonomous_services": true,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "CHN",
+        "form": "delegated_unitary",
+        "regions": [
+          {
+            "id": "region:CHN:regional",
+            "authority": "authority:CHN:regional",
+            "name": "Authored CHN regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 600,
+            "autonomous_services": false,
+            "service_level": 2
+          },
+          {
+            "id": "region:CHN:municipal",
+            "authority": "authority:CHN:municipal",
+            "name": "Authored CHN municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 400,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "IND",
+        "form": "federation",
+        "regions": [
+          {
+            "id": "region:IND:regional",
+            "authority": "authority:IND:regional",
+            "name": "Authored IND regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1800,
+            "autonomous_services": true,
+            "service_level": 2
+          },
+          {
+            "id": "region:IND:municipal",
+            "authority": "authority:IND:municipal",
+            "name": "Authored IND municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 1200,
+            "autonomous_services": true,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "JPN",
+        "form": "decentralized_unitary",
+        "regions": [
+          {
+            "id": "region:JPN:regional",
+            "authority": "authority:JPN:regional",
+            "name": "Authored JPN regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1200,
+            "autonomous_services": true,
+            "service_level": 2
+          },
+          {
+            "id": "region:JPN:municipal",
+            "authority": "authority:JPN:municipal",
+            "name": "Authored JPN municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 800,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "BRA",
+        "form": "federation",
+        "regions": [
+          {
+            "id": "region:BRA:regional",
+            "authority": "authority:BRA:regional",
+            "name": "Authored BRA regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1800,
+            "autonomous_services": true,
+            "service_level": 2
+          },
+          {
+            "id": "region:BRA:municipal",
+            "authority": "authority:BRA:municipal",
+            "name": "Authored BRA municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 1200,
+            "autonomous_services": true,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "ZAF",
+        "form": "decentralized_unitary",
+        "regions": [
+          {
+            "id": "region:ZAF:regional",
+            "authority": "authority:ZAF:regional",
+            "name": "Authored ZAF regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1200,
+            "autonomous_services": true,
+            "service_level": 2
+          },
+          {
+            "id": "region:ZAF:municipal",
+            "authority": "authority:ZAF:municipal",
+            "name": "Authored ZAF municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 800,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "SAU",
+        "form": "delegated_unitary",
+        "regions": [
+          {
+            "id": "region:SAU:regional",
+            "authority": "authority:SAU:regional",
+            "name": "Authored SAU regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 600,
+            "autonomous_services": false,
+            "service_level": 2
+          },
+          {
+            "id": "region:SAU:municipal",
+            "authority": "authority:SAU:municipal",
+            "name": "Authored SAU municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 400,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "IRN",
+        "form": "delegated_unitary",
+        "regions": [
+          {
+            "id": "region:IRN:regional",
+            "authority": "authority:IRN:regional",
+            "name": "Authored IRN regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 600,
+            "autonomous_services": false,
+            "service_level": 2
+          },
+          {
+            "id": "region:IRN:municipal",
+            "authority": "authority:IRN:municipal",
+            "name": "Authored IRN municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 400,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "CUB",
+        "form": "delegated_unitary",
+        "regions": [
+          {
+            "id": "region:CUB:regional",
+            "authority": "authority:CUB:regional",
+            "name": "Authored CUB regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 600,
+            "autonomous_services": false,
+            "service_level": 2
+          },
+          {
+            "id": "region:CUB:municipal",
+            "authority": "authority:CUB:municipal",
+            "name": "Authored CUB municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 400,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "PRK",
+        "form": "delegated_unitary",
+        "regions": [
+          {
+            "id": "region:PRK:regional",
+            "authority": "authority:PRK:regional",
+            "name": "Authored PRK regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 600,
+            "autonomous_services": false,
+            "service_level": 2
+          },
+          {
+            "id": "region:PRK:municipal",
+            "authority": "authority:PRK:municipal",
+            "name": "Authored PRK municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 400,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "MMR",
+        "form": "delegated_unitary",
+        "regions": [
+          {
+            "id": "region:MMR:regional",
+            "authority": "authority:MMR:regional",
+            "name": "Authored MMR regional budget authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 600,
+            "autonomous_services": false,
+            "service_level": 2
+          },
+          {
+            "id": "region:MMR:municipal",
+            "authority": "authority:MMR:municipal",
+            "name": "Authored MMR municipal budget authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 400,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      }
+    ],
+    "grant_review_days": 14,
+    "cooldown_days": 90,
+    "administration_cost_bps": 2,
+    "absorption_days": 180,
+    "source": "authored-territorial-government-v1",
+    "source_version": "starter-budget-jurisdictions-v1"
+  },
+  "territorial": {
+    "templates": [
+      {
+        "form": "federation",
+        "tax_pool_bps": 3000
+      },
+      {
+        "form": "decentralized_unitary",
+        "tax_pool_bps": 2000
+      },
+      {
+        "form": "delegated_unitary",
+        "tax_pool_bps": 1000
+      }
+    ],
+    "lawful": {
+      "days": 90,
+      "cost_bps": 50,
+      "upfront_bps": 2000,
+      "legislative_threshold": 67,
+      "elite_threshold": 75,
+      "council_threshold": 65,
+      "approval_threshold": 55,
+      "approval_cost": 3,
+      "legislative_cost": 5,
+      "elite_cost": 10,
+      "council_cost": 5
+    },
+    "contested": {
+      "days": 14,
+      "cost_bps": 100,
+      "upfront_bps": 10000,
+      "legislative_threshold": 0,
+      "elite_threshold": 80,
+      "council_threshold": 80,
+      "approval_threshold": 0,
+      "approval_cost": 20,
+      "legislative_cost": 25,
+      "elite_cost": 15,
+      "council_cost": 20
+    },
+    "cooldown_days": 180,
+    "local_consent_approval": 65,
+    "compensation_bps": 50,
+    "requisition": {
+      "administration_cost_bps": 25,
+      "elite_threshold": 80,
+      "council_threshold": 80,
+      "approval_cost": 20,
+      "legislative_cost": 20,
+      "elite_cost": 15,
+      "council_cost": 20,
+      "cooldown_days": 180
+    },
+    "ai_targets": {
+      "GBR": "decentralized_unitary",
+      "USA": "federation",
+      "FRA": "decentralized_unitary",
+      "DEU": "federation",
+      "RUS": "federation",
+      "CHN": "delegated_unitary",
+      "IND": "federation",
+      "JPN": "decentralized_unitary",
+      "BRA": "federation",
+      "ZAF": "decentralized_unitary",
+      "SAU": "delegated_unitary",
+      "IRN": "delegated_unitary",
+      "CUB": "delegated_unitary",
+      "PRK": "delegated_unitary",
+      "MMR": "delegated_unitary"
+    },
+    "source": "authored-territorial-government-v1",
+    "source_version": "starter-territorial-procedures-v1"
+  },
+  "undertakings": {
+    "cooldown_days": 180,
+    "maximum_open": 3,
+    "source": "authored-delivery-undertakings-v1",
+    "source_version": "starter-delivery-undertakings-v1",
+    "templates": [
+      {
+        "id": "energy-pledge",
+        "name": "Public energy delivery pledge",
+        "kind": "public_pledge",
+        "policy": "energy",
+        "direction": "at_least",
+        "delta": 15,
+        "review_days": 7,
+        "deadline_days": 180,
+        "administration_cost_bps": 2,
+        "minimum_credibility": 0,
+        "elite_threshold": 0,
+        "council_threshold": 0,
+        "acceptance": {
+          "approval": 3,
+          "legislative": 0,
+          "elite": 0,
+          "council": 0
+        },
+        "breach": {
+          "approval": -8,
+          "legislative": 0,
+          "elite": 0,
+          "council": -3
+        }
+      },
+      {
+        "id": "service-agreement",
+        "name": "Governing support for a service commitment",
+        "kind": "support_agreement",
+        "policy": "services",
+        "direction": "at_least",
+        "delta": 1,
+        "review_days": 14,
+        "deadline_days": 180,
+        "administration_cost_bps": 5,
+        "minimum_credibility": 40,
+        "elite_threshold": 30,
+        "council_threshold": 30,
+        "acceptance": {
+          "approval": 0,
+          "legislative": 12,
+          "elite": 12,
+          "council": 12
+        },
+        "breach": {
+          "approval": -5,
+          "legislative": -18,
+          "elite": -18,
+          "council": -18
+        }
+      },
+      {
+        "id": "project-deadline",
+        "name": "Public deadline for an existing policy project",
+        "kind": "project_deadline",
+        "policy": null,
+        "direction": "at_least",
+        "delta": 0,
+        "review_days": 7,
+        "deadline_days": 365,
+        "administration_cost_bps": 1,
+        "minimum_credibility": 0,
+        "elite_threshold": 0,
+        "council_threshold": 0,
+        "acceptance": {
+          "approval": 0,
+          "legislative": 0,
+          "elite": 0,
+          "council": 0
+        },
+        "breach": {
+          "approval": -3,
+          "legislative": 0,
+          "elite": 0,
+          "council": 0
+        }
+      }
+    ]
+  },
+  "fiscal_plans": {
+    "review_days": 14,
+    "cooldown_days": 30,
+    "annual_window_days": 180,
+    "administration_cost_bps": 3,
+    "source": "authored-fiscal-plans-v1",
+    "source_version": "starter-fiscal-plans-v1"
+  },
+  "income_taxes": {
+    "annualisation_days": 365,
+    "bands": [
+      {
+        "id": "exempt",
+        "lower_gdp_per_resident_bps": 0,
+        "rate_multiplier_bps": 0
+      },
+      {
+        "id": "standard",
+        "lower_gdp_per_resident_bps": 1000,
+        "rate_multiplier_bps": 10000
+      },
+      {
+        "id": "upper",
+        "lower_gdp_per_resident_bps": 7500,
+        "rate_multiplier_bps": 15000
+      },
+      {
+        "id": "top",
+        "lower_gdp_per_resident_bps": 15000,
+        "rate_multiplier_bps": 20000
+      }
+    ],
+    "source": "authored-private-income-bands-v1",
+    "source_version": "starter-private-income-bands-v1"
+  },
+  "cash_management": {
+    "max_target_bps": 100,
+    "max_days": 90,
+    "cooldown_days": 90,
+    "approval_cost": 3,
+    "source": "authored-starter-cash-retention-v1",
+    "source_version": "starter-retention-v1"
+  }
+}
