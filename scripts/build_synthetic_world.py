@@ -490,6 +490,18 @@ def build_interest_accrual():
     return pack
 
 
+
+def build_technology_eligibility():
+    pack = build_interest_accrual()
+    pack.update(schema=18, rules=18, id="synthetic-technology-eligibility-v18", name="Fictional dated programme eligibility")
+    source = "authored-technology-eligibility-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model", description="Original fictional scenario prerequisites for programme commissioning. Dates and eligible countries are authored restrictions, not historical scientific discovery, adoption, research progress or future innovation predictions."))
+    countries = [c["id"] for c in pack["countries"]]
+    pack["technologies"] = dict(definitions=[dict(id="grid_planning", name="Grid planning", available_from="2000-01-31", eligible_countries=countries, source=source, source_version="fictional-eligibility-v1"), dict(id="agronomy", name="Agronomic planning", available_from="1990-01-01", eligible_countries=countries, source=source, source_version="fictional-eligibility-v1")], policy_requirements=[dict(policy="energy", technologies=["grid_planning"]), dict(policy="agriculture", technologies=["agronomy"])])
+    pack["description"] += " Grid programme commissioning is unavailable before 2000-01-31 in this fictional scenario. Agronomic planning is already eligible. Eligibility permits an ordinary proposal; it grants no research, adopted technology, cash, capacity or shortened construction. All prerequisites, governing backing, full funding and delivery remain necessary. Full research and adoption dynamics remain outside this scenario."
+    return pack
+
+
 def build_debt_starter():
     pack = build_fiscal_ai_starter()
     pack.update(schema=15, rules=15, id="initial-2000-debt-maturities-v15", name="A New Century · dated loan principal")
@@ -541,6 +553,7 @@ def main():
                            ("synthetic-debt-maturities-test.json", build_debt_maturities()),
                            ("synthetic-cash-management-test.json", build_cash_management()),
                            ("synthetic-interest-accrual-test.json", build_interest_accrual()),
+                           ("synthetic-technology-eligibility-test.json", build_technology_eligibility()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

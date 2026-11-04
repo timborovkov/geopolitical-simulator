@@ -8,7 +8,7 @@ The preserved `initial-2000-debt-maturities.json` uses **content schema 15 / rul
 
 The preserved `initial-2000-fiscal-ai.json` uses content/rules 14 and retains perpetual new loans with national-funding fiscal AI. The income-band (13), fiscal (12), undertaking (11), territorial (10), expanded-observation/electoral (8), cabinet (7), commitment (6), constitutional (5), financing (4), market (3) and classic (2) packs also remain available. All sixteen retain the 15-country political roster, 34 parties/governing bodies, eight opening regime configurations, four household groups per country and seven policies. Territorial models retain thirty authored budget authorities without historical regional geography claims. Both clients embed all sixteen. Saves resolve by exact content hash; `--content FILE` pins a local pack and unknown hashes require their original file.
 
-Rules 2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17 write snapshot formats 3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18 respectively; rules 9 is available in the fictional subnational fixture. Classic rules 2 also accept compatible format-2 snapshots. Loading retains the original rules. Version-1 packs/saves remain unsupported.
+Rules 2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18 write snapshot formats 3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19 respectively; rules 9 is available in the fictional subnational fixture. Classic rules 2 also accept compatible format-2 snapshots. Loading retains the original rules. Version-1 packs/saves remain unsupported.
 
 ## Coverage and identity
 
@@ -154,3 +154,7 @@ Local grants and delegated service orders use the preserved rules-9 mechanics; l
 ## Carried debt interest
 
 `synthetic-interest-accrual-test.json` isolates the same rules-17 convention with three fictional governments and its retained 180-day new-loan terms. The default pack retains 365-day terms and uses separate `authored-starter-interest-carry-v1` provenance. All previous country, party, observation, policy, tax, local-government and cash-management definitions remain unchanged. Earlier bundled packs retain their exact definitions and hashes. Fictional fixtures still require their original explicit file on loading.
+
+## Dated technology eligibility
+
+`synthetic-technology-eligibility-test.json` isolates content/rules 18 and snapshot format 19. Its typed technology definitions, earliest commissioning dates, eligible-country lists and policy prerequisites are attributed to `authored-technology-eligibility-v1`. Grid planning becomes eligible on 2000-01-31; agronomic planning is already eligible at the bookmark. These fictional dates are authored restrictions, not historical discoveries, adoption records or innovation forecasts. All prerequisites must pass before ordinary policy or fiscal-package commissioning. Passing the date creates no cash, capacity, researched/adopted knowledge or shortened construction. The default and all sixteen bundled packs are unchanged, and this fixture still requires its original explicit file on loading.

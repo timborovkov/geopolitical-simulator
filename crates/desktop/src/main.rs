@@ -20,6 +20,7 @@ mod markets;
 mod new_game;
 mod settings;
 mod subnational;
+mod technologies;
 mod undertakings;
 mod walkthrough;
 use eframe::egui::{self, Color32, RichText, Stroke, Vec2};
@@ -1094,6 +1095,7 @@ impl GameApp {
             ui.label("Foreign government: select your own country to issue commands.");
             return;
         }
+        technologies::show(ui, &self.content, w, &self.policy);
         if self.policy == "income_tax" {
             income_taxes::show(ui, &self.content, w, Some(self.value));
         }

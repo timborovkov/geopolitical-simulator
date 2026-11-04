@@ -49,6 +49,7 @@ impl World {
             return Err("A pending budget reserves the fiscal policies; withdraw it before proposing a separate change".into());
         }
         government.check(c, policy, value)?;
+        self.check_policy_technologies(content, country, policy)?;
         if policy == "energy" && c.energy_capacity >= 200
             || policy == "agriculture" && c.food_capacity >= 200
             || policy == "administration" && c.administration >= 100
@@ -369,6 +370,7 @@ impl World {
                 if content.fiscal_plans.is_some() {
                     self.review_budget(content, id);
                 }
+                self.notice_technology_dates(content, id);
                 self.resolve_cash_hold(id);
                 self.resolve_constitution(content, id);
                 self.resolve_cash_hold(id);

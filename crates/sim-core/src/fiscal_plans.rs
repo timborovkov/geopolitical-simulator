@@ -717,6 +717,11 @@ impl World {
                     "Invalid fiscal-plan identity, targets, cost, sponsor or calendar".into(),
                 );
             }
+            if let Some(technologies) = &content.technologies {
+                for (policy, _) in b.targets.changed(&b.baseline) {
+                    technologies.check_at(id, &policy, b.proposed_day)?;
+                }
+            }
             previous_next = b.proposed_day + rules.cooldown_days;
             for f in [&b.baseline_forecast, &b.planned_forecast] {
                 if !f.valid() || (content.rules >= 17) != f.interest_accrual.is_some() {

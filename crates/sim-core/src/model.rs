@@ -794,6 +794,11 @@ impl World {
             {
                 return Err(format!("Invalid command journal entry {}", index + 1));
             }
+            if let (Some(technologies), Action::Enact { policy, .. }) =
+                (&content.technologies, &command.action)
+            {
+                technologies.check_at(&command.issuer, policy, command.day)?;
+            }
             previous_day = command.day;
         }
         for (id, c) in &self.countries {
