@@ -461,6 +461,14 @@ def build_fiscal_ai_starter():
     return pack
 
 
+def build_debt_maturities():
+    pack = build_fiscal_ai()
+    pack.update(schema=15, rules=15, id="synthetic-debt-maturities-v15", name="Fictional dated loan principal")
+    pack["description"] += " Newly disbursed loans have an authored 180-day bullet maturity. Opening debt remains a perpetual calibration, not a historical issuance. Scheduled principal uses available national cash after protected local claims and reservations, before interest and national purchases. Unpaid matured principal remains outstanding without being duplicated as operating arrears. Separate ordinary borrowing can fund repayment but is not guaranteed refinancing. No historical maturity curve, default/restructuring, FX or market pricing is claimed."
+    pack["finance"].update(maturity_days=180, source_version="authored-dated-loans-v1")
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -478,6 +486,7 @@ def main():
                            ("synthetic-fiscal-plans-test.json", build_fiscal_plans()),
                            ("synthetic-income-bands-test.json", build_income_bands()),
                            ("synthetic-national-fiscal-ai-test.json", build_fiscal_ai()),
+                           ("synthetic-debt-maturities-test.json", build_debt_maturities()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

@@ -827,6 +827,19 @@ impl GameApp {
             }
         }
 
+        if let Some(financing) = &c.financing {
+            let due = financing.principal_due_through(world.day).0;
+            let upcoming = financing
+                .principal_due_through(world.day.saturating_add(30))
+                .0
+                - due;
+            if due > 0 || upcoming > 0 {
+                ui.label(format!("Debt principal: {due}m overdue/due; {upcoming}m additionally due within 30 days. Refinancing is not automatic."));
+                if ui.button("Review principal repayment calendar").clicked() {
+                    self.tab = Tab::Treasury;
+                }
+            }
+        }
         if authority_blocked {
             ui.label("Governing support is below the threshold for ordinary policy decisions. Negotiate support before committing to a new program.");
             if ui.button("Draft governing support talks").clicked() {

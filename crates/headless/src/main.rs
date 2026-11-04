@@ -757,6 +757,9 @@ fn play(
                             |days| format!("{days} fully covered days")
                         )
                     );
+                    if content.finance.as_ref().is_some_and(|rules|rules.maturity_days.is_some()) {
+                        println!("Dated principal within horizon: {}m; conditional total {}m. Subtracts full due principal (existing overdue principal from tomorrow); recurring interest is held fixed after repayment, conservatively overstating it. No automatic refinancing.",plan.principal_due.0,plan.conditional_principal_due.0);
+                    }
                     for point in plan.points.iter().filter(|point| {
                         point.day == world.day
                             || point.day == world.day + horizon
@@ -791,9 +794,10 @@ fn play(
                                 request.id.0
                             );
                         }
+                        println!("Principal due/overdue now {}m; including next 30 days {}m. Outstanding matured principal remains debt, not duplicated operating arrears.",financing.principal_due_through(world.day).0,financing.principal_due_through(world.day.saturating_add(30)).0);
                         for loan in &financing.instruments {
                             println!(
-                                "Debt #{} · {} · {:?} · original {}m · outstanding {}m · recognized/issued {} · fixed 4% annual, perpetual, voluntary FIFO redemption · {:?}",
+                                "Debt #{} · {} · {:?} · original {}m · outstanding {}m · recognized/issued {} · fixed 4% annual, voluntary FIFO redemption · {:?}",
                                 loan.id.0,
                                 loan.creditor.0,
                                 loan.currency,
@@ -802,6 +806,9 @@ fn play(
                                 date(loan.issued_day),
                                 loan.origin
                             );
+                            if let Some(day) = loan.maturity_day {
+                                println!("  Principal due {} · automatic repayment {}m · remaining {}m{}",date(day),loan.maturity_repaid.unwrap_or(Money(0)).0,loan.outstanding.0,if day <= world.day && loan.outstanding.0 > 0 {" OVERDUE"} else {""});
+                            } else {println!("  Perpetual principal, no mandatory maturity date.");}
                         }
                         println!(
                             "Emergency acts {} · next eligible {} (backing and credit checks still apply)",
@@ -825,6 +832,9 @@ fn play(
                             preview.consent_days
                         ),
                         Err(reason) => println!("Ordinary borrowing unavailable: {reason}"),
+                    }
+                    if let Some(term) = content.finance.as_ref().and_then(|rules|rules.maturity_days) {
+                        println!("New principal matures {term} days after actual disbursement. Separate refinancing requires authority and finite creditor funds.");
                     }
                     match world.preview_emergency_borrowing(content, &world.player, amount) {
                         Ok(rule) => println!(

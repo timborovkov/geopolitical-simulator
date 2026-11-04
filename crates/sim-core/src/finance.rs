@@ -32,6 +32,9 @@ pub struct EmergencyFinance {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct FinanceDefinition {
     pub authorities: Vec<BorrowingAuthority>,
+    /// Authored term for newly disbursed loans; opening calibration stays perpetual.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maturity_days: Option<u32>,
     pub emergency: Option<EmergencyFinance>,
     pub source: String,
     pub source_version: String,
@@ -43,6 +46,13 @@ impl FinanceDefinition {
             .find(|authority| &authority.route == route)
     }
     pub fn validate(&self, content: &Content) -> Result<(), String> {
+        if (content.rules >= 15) != self.maturity_days.is_some()
+            || self
+                .maturity_days
+                .is_some_and(|days| !(30..=3650).contains(&days))
+        {
+            return Err("Dated loan principal requires rules 15 and a 30–3650 day term".into());
+        }
         if self.authorities.len() > 6
             || self.source_version.is_empty()
             || !content
@@ -105,8 +115,12 @@ pub struct DebtInstrument {
     /// claim that the country's actual debt originated on that date.
     pub issued_day: u32,
     pub annual_rate_bps: u32,
-    /// This version issues voluntary-redemption, fixed-rate perpetual debt.
+    /// None denotes perpetual principal, including the opening calibration.
     pub maturity_day: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maturity_repaid: Option<Money>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_maturity_payment_day: Option<u32>,
     pub origin: DebtOrigin,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -140,12 +154,24 @@ impl Financing {
                 issued_day: day,
                 annual_rate_bps: 400,
                 maturity_day: None,
+                maturity_repaid: None,
+                last_maturity_payment_day: None,
                 origin: DebtOrigin::OpeningCalibration,
             }],
             pending: None,
             emergency_count: 0,
             next_emergency_day: day,
         }
+    }
+    /// Principal already due or becoming due by this date; no interest or perpetual debt.
+    pub fn principal_due_through(&self, day: u32) -> Money {
+        Money(
+            self.instruments
+                .iter()
+                .filter(|loan| loan.maturity_day.is_some_and(|due| due <= day))
+                .map(|loan| loan.outstanding.0)
+                .sum(),
+        )
     }
     pub(crate) fn repay(&mut self, amount: Money) {
         let mut remaining = amount.0;
@@ -197,14 +223,33 @@ impl Financing {
                 || instrument.outstanding.0 < 0
                 || instrument.outstanding.0 > instrument.original_principal.0
                 || instrument.annual_rate_bps != 400
-                || instrument.maturity_day.is_some()
+                || instrument.maturity_day
+                    != if index == 0 {
+                        None
+                    } else {
+                        rules
+                            .maturity_days
+                            .and_then(|days| instrument.issued_day.checked_add(days))
+                    }
+                || instrument.maturity_day.is_some_and(|day| day > MAX_DAY)
                 || instrument.issued_day < previous_issue
                 || instrument.issued_day > world.day
             {
                 return Err("Invalid debt terms, chronology, creditor or principal".into());
             }
-            let redeemed = repayments.min(instrument.original_principal.0);
-            if instrument.outstanding.0 != instrument.original_principal.0 - redeemed {
+            let scheduled = instrument.maturity_repaid.map_or(0, |paid| paid.0);
+            if instrument.maturity_repaid.is_some() != instrument.maturity_day.is_some()
+                || scheduled < 0
+                || scheduled > instrument.original_principal.0
+                || (scheduled > 0) != instrument.last_maturity_payment_day.is_some()
+                || instrument.last_maturity_payment_day.is_some_and(|day| {
+                    day > world.day || instrument.maturity_day.is_none_or(|due| day < due)
+                })
+            {
+                return Err("Invalid dated principal repayment history".into());
+            }
+            let redeemed = repayments.min(instrument.original_principal.0 - scheduled);
+            if instrument.outstanding.0 != instrument.original_principal.0 - scheduled - redeemed {
                 return Err(
                     "Debt redemption differs from journaled FIFO principal repayments".into(),
                 );
@@ -343,6 +388,14 @@ pub struct BorrowingPreview {
 impl World {
     fn check_credit(&self, content: &Content, id: &CountryId, amount: Money) -> Result<(), String> {
         let country = self.countries.get(id).ok_or("Unknown borrowing country")?;
+        if content
+            .finance
+            .as_ref()
+            .and_then(|r| r.maturity_days)
+            .is_some_and(|term| self.day.checked_add(term).is_none_or(|day| day > MAX_DAY))
+        {
+            return Err("Loan maturity would exceed the campaign calendar".into());
+        }
         let definition = content
             .country(id)
             .ok_or("Missing borrowing country definition")?;
@@ -395,6 +448,13 @@ impl World {
             .checked_add(authority.consent_days)
             .filter(|day| *day <= MAX_DAY)
             .ok_or("No time remains for institutional loan approval")?;
+        if rules.maturity_days.is_some_and(|term| {
+            decision_day
+                .checked_add(term)
+                .is_none_or(|day| day > MAX_DAY)
+        }) {
+            return Err("Loan maturity would exceed the campaign calendar".into());
+        }
         Ok(BorrowingPreview {
             amount,
             authority: authority.id.clone(),
@@ -434,7 +494,14 @@ impl World {
         }
         Ok(rule.clone())
     }
-    fn disburse_loan(&mut self, id: &CountryId, loan: LoanId, amount: Money, contested: bool) {
+    fn disburse_loan(
+        &mut self,
+        content: &Content,
+        id: &CountryId,
+        loan: LoanId,
+        amount: Money,
+        contested: bool,
+    ) {
         self.pay(
             id,
             Account::External,
@@ -462,10 +529,90 @@ impl World {
                 outstanding: amount,
                 issued_day: self.day,
                 annual_rate_bps: 400,
-                maturity_day: None,
+                maturity_day: content
+                    .finance
+                    .as_ref()
+                    .and_then(|r| r.maturity_days)
+                    .map(|days| self.day + days),
+                maturity_repaid: content
+                    .finance
+                    .as_ref()
+                    .and_then(|r| r.maturity_days)
+                    .map(|_| Money(0)),
+                last_maturity_payment_day: None,
                 origin: DebtOrigin::AcceptedRequest { contested },
             });
-        self.event(id, true, format!("Loan #{} disbursed: {}m from the finite external creditor at 4% annual interest, with voluntary principal repayment.{}", loan.0, amount.0, if contested { " Constitutional borrowing consent was bypassed through an explicit contested act." } else { " Institutional authority and financing were checked at disbursement." }));
+        let terms = content
+            .finance
+            .as_ref()
+            .and_then(|r| r.maturity_days)
+            .map_or_else(
+                || "voluntary principal repayment".into(),
+                |days| format!("principal due {}", date(self.day + days)),
+            );
+        self.event(id, true, format!("Loan #{} disbursed: {}m from the finite external creditor at 4% annual interest, with {terms}.{}", loan.0, amount.0, if contested { " Constitutional borrowing consent was bypassed through an explicit contested act." } else { " Institutional authority and financing were checked at disbursement." }));
+    }
+    /// Called after current tax/local settlement and before interest and national purchases.
+    pub(crate) fn settle_maturities(&mut self, id: &CountryId) {
+        let upcoming: Vec<_> =
+            self.countries[id]
+                .financing
+                .as_ref()
+                .map_or_else(Vec::new, |state| {
+                    state
+                        .instruments
+                        .iter()
+                        .filter(|loan| {
+                            loan.outstanding.0 > 0 && loan.maturity_day == self.day.checked_add(30)
+                        })
+                        .map(|loan| (loan.id, loan.outstanding.0, loan.maturity_day.unwrap()))
+                        .collect()
+                });
+        for (loan, principal, day) in upcoming {
+            self.event(id,true,format!("Loan #{}: {principal}m principal is due in 30 days on {}. Review the repayment calendar and available cash; borrowing consent and refinancing are not guaranteed.",loan.0,date(day)));
+        }
+        let due: Vec<_> = self.countries[id]
+            .financing
+            .as_ref()
+            .map_or_else(Vec::new, |state| {
+                state
+                    .instruments
+                    .iter()
+                    .filter(|loan| {
+                        loan.outstanding.0 > 0
+                            && loan.maturity_day.is_some_and(|day| day <= self.day)
+                    })
+                    .map(|loan| (loan.id, loan.outstanding.0, loan.maturity_day.unwrap()))
+                    .collect()
+            });
+        for (loan, outstanding, maturity) in due {
+            let paid = self.pay(
+                id,
+                Account::Treasury,
+                Account::External,
+                outstanding,
+                "Maturing external principal repaid",
+            );
+            if paid > 0 {
+                let country = self.countries.get_mut(id).expect("country");
+                country.debt.0 -= paid;
+                country.budget.principal_repaid.0 += paid;
+                let record = country
+                    .financing
+                    .as_mut()
+                    .unwrap()
+                    .instruments
+                    .iter_mut()
+                    .find(|row| row.id == loan)
+                    .unwrap();
+                record.outstanding.0 -= paid;
+                record.maturity_repaid.as_mut().unwrap().0 += paid;
+                record.last_maturity_payment_day = Some(self.day);
+            }
+            if self.day == maturity || paid == outstanding {
+                self.event(id, true, format!("Loan #{} principal due {}: paid {paid}m; {}m remains overdue principal. Overdue principal remains in debt and is not counted again as operating arrears. Refinancing requires a separately authorized loan; no automatic rollover.",loan.0,date(maturity),outstanding-paid));
+            }
+        }
     }
     pub(crate) fn request_borrowing(
         &mut self,
@@ -476,7 +623,7 @@ impl World {
     ) -> Result<(), String> {
         let preview = self.preview_borrowing(content, id, amount)?;
         if preview.consent_days == 0 {
-            self.disburse_loan(id, loan, amount, false);
+            self.disburse_loan(content, id, loan, amount, false);
         } else {
             let country = self.countries.get_mut(id).expect("country");
             country.financing.as_mut().expect("financing state").pending = Some(BorrowingRequest {
@@ -518,7 +665,7 @@ impl World {
         country.legislative_support = (country.legislative_support - rule.legislative_cost).max(0);
         country.elite_support = (country.elite_support - rule.elite_cost).max(0);
         country.council_support = (country.council_support - rule.council_cost).max(0);
-        self.disburse_loan(id, loan, amount, true);
+        self.disburse_loan(content, id, loan, amount, true);
         self.event(id, true, format!("Contested financing costs: approval -{}, legislature -{}, elite -{}, council -{} (floored at zero). Next emergency borrowing is available after {}.", rule.approval_cost, rule.legislative_cost, rule.elite_cost, rule.council_cost, date(next)));
         Ok(())
     }
@@ -571,7 +718,7 @@ impl World {
             .expect("financing")
             .pending = None;
         match result {
-            Ok(()) => self.disburse_loan(id, request.id, request.amount, false),
+            Ok(()) => self.disburse_loan(content, id, request.id, request.amount, false),
             Err(reason) => self.event(
                 id,
                 true,

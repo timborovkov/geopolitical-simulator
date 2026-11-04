@@ -406,6 +406,9 @@ impl World {
                     && c.report.energy_coverage >= 90
                     && c.approval >= 50
                     && c.arrears.0 == 0
+                    && c.financing
+                        .as_ref()
+                        .is_none_or(|state| state.principal_due_through(self.day).0 == 0)
                     && c.debt.0 <= content.country(&self.player).expect("player").gdp;
                 let message = if self.is_developer_modified() {
                     if won {
@@ -650,6 +653,9 @@ impl World {
             groups: withholding,
         });
         let regional_payments = self.settle_subnational(content, id, revenue);
+        if content.rules >= 15 {
+            self.settle_maturities(id);
+        }
         let c = &self.countries[id];
         let services_due = daily * i64::from(c.services) / 100;
         let welfare_due = daily * i64::from(c.welfare) / 100;
@@ -1089,7 +1095,20 @@ impl World {
             }
             return;
         }
-        let candidate = if c.available_cash().0 < d.gdp / 100 || c.arrears.0 > 0 {
+        let upcoming_principal = c.financing.as_ref().map_or(0, |state| {
+            let notice = content
+                .finance
+                .as_ref()
+                .and_then(|rules| rules.authority(&government.route))
+                .map_or(30, |authority| authority.consent_days + 30);
+            state
+                .principal_due_through(self.day.saturating_add(notice))
+                .0
+        });
+        let candidate = if c.available_cash().0 < d.gdp / 100
+            || c.arrears.0 > 0
+            || upcoming_principal > c.available_cash().0
+        {
             Action::Borrow {
                 amount: Money(d.gdp / 20),
             }
@@ -1231,4 +1250,60 @@ pub(crate) fn policy_forecast(
         })
         .collect();
     (Money(annual), household_impacts)
+}
+
+#[cfg(test)]
+mod maturity_ai_tests {
+    use super::*;
+    #[test]
+    fn ai_anticipates_principal_with_normal_credit_gates_before_the_current_cash_threshold() {
+        let mut json: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../data/synthetic-debt-maturities-test.json"
+        ))
+        .unwrap();
+        json["finance"]["maturity_days"] = 60.into();
+        for country in json["countries"].as_array_mut().unwrap() {
+            country["tax"] = 45.into();
+            country["services"] = 4.into();
+            country["welfare"] = 0.into();
+            country["capacity"] = 100.into();
+            country["energy"] = 120.into();
+            country["food"] = 120.into();
+        }
+        json["policies"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|policy| policy["id"] == "energy")
+            .unwrap()["cost_bps"] = 1000.into();
+        let content = Content::from_json(&json.to_string()).unwrap();
+        let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+        let foreign = CountryId("COR".into());
+        for action in [
+            Action::Borrow {
+                amount: Money(10000),
+            },
+            Action::Enact {
+                policy: "energy".into(),
+                value: 1,
+            },
+        ] {
+            let command = world.command(foreign.clone(), action);
+            world.apply(&content, command, CommandOrigin::Ai).unwrap();
+        }
+        assert!(world.countries[&foreign].available_cash().0 > 1000);
+        world.advance(&content, 29).unwrap();
+        assert!(world.countries[&foreign].available_cash().0 > 1000);
+        assert!(world.countries[&foreign].available_cash().0 < 10000);
+        world.advance(&content, 1).unwrap();
+        assert!(world.journal.iter().any(|entry| entry.command.day == 30
+            && entry.command.issuer == foreign
+            && matches!(
+                entry.command.action,
+                Action::Borrow {
+                    amount: Money(5000)
+                }
+            )));
+        world.validate(&content).unwrap();
+    }
 }

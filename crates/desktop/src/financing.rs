@@ -9,6 +9,16 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
     ui.separator();
     ui.strong("Borrowing authority & debt");
     ui.label("Pending borrowing is not available cash. Approval rechecks governing backing, the debt ceiling and the finite creditor's cash.");
+    if let Some(term) = content
+        .finance
+        .as_ref()
+        .and_then(|rules| rules.maturity_days)
+    {
+        ui.label(format!("New loans: fixed 4% annual interest; principal due {term} days after actual disbursement. Repayment uses uncommitted national cash after protected local claims, before interest and national purchases. Refinancing requires a separately approved loan."));
+        let due = state.principal_due_through(world.day).0;
+        let upcoming = state.principal_due_through(world.day.saturating_add(30)).0 - due;
+        ui.colored_label(if due > 0 {Color32::LIGHT_RED} else {Color32::LIGHT_YELLOW},format!("Overdue/due principal {due}m · additional principal due in next 30 days {upcoming}m. Unpaid principal stays in debt; operating arrears are separate."));
+    }
     if let Some(request) = &state.pending {
         ui.label(format!(
             "Pending #{} · {}m · decision {} · {}",
@@ -44,6 +54,17 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
                 preview.consent_days,
                 date(preview.decision_day)
             ));
+            if let Some(term) = content
+                .finance
+                .as_ref()
+                .and_then(|rules| rules.maturity_days)
+            {
+                ui.label(format!(
+                    "If approved on schedule: {}m principal due {}.",
+                    money,
+                    date(preview.decision_day + term)
+                ));
+            }
             if ui
                 .button(if preview.consent_days == 0 {
                     "Issue authorized loan"
@@ -74,15 +95,78 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
         }
     });
     egui::CollapsingHeader::new("Debt instruments · reconciled principal").show(ui, |ui| {
-        ui.small("Constant-2000 reporting credits, not local-currency FX. Fixed 4% perpetual debt; voluntary repayment clears oldest principal first. Opening debt is an authored bookmark calibration, not a claim about historical issuance dates.");
+        ui.small("Constant-2000 reporting credits, not local-currency FX. Fixed 4% interest; voluntary repayment clears oldest principal first. Dated principal automatically falls due where specified. Opening debt is an authored bookmark calibration, not a claim about historical issuance dates.");
         for loan in &state.instruments {
             let origin = match loan.origin {
                 DebtOrigin::OpeningCalibration => "Opening calibration",
                 DebtOrigin::AcceptedRequest { contested: false } => "Authorized borrowing",
                 DebtOrigin::AcceptedRequest { contested: true } => "Contested borrowing",
             };
+            let maturity = loan.maturity_day.map_or_else(||"perpetual".into(), |day| format!("principal due {} · automatically repaid {}m{}",date(day),loan.maturity_repaid.unwrap_or(Money(0)).0,if day<=world.day && loan.outstanding.0>0 {" · OVERDUE"}else{""}));
             ui.label(format!("#{} · {origin} · outstanding {}m / original {}m · {} · creditor {}", loan.id.0, loan.outstanding.0, loan.original_principal.0, date(loan.issued_day), loan.creditor.0));
+            ui.small(maturity);
         }
     });
     action
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn dated_debt_screen_exposes_maturity_and_refinancing_limits_without_issuing_commands() {
+        let content = Content::from_json(include_str!(
+            "../../../data/synthetic-debt-maturities-test.json"
+        ))
+        .unwrap();
+        let mut world = World::new(&content, CountryId("COR".into()), 17).unwrap();
+        world
+            .issue(
+                &content,
+                Action::Borrow {
+                    amount: Money(1000),
+                },
+            )
+            .unwrap();
+        let hash = world.hash();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let output = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(1440.0 / scale, 940.0 / scale),
+                    )),
+                    ..Default::default()
+                },
+                |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        assert!(show(ui, &content, &world, &mut 1000).is_none());
+                    });
+                },
+            );
+            let labels = output
+                .shapes
+                .iter()
+                .filter_map(|shape| {
+                    if let egui::Shape::Text(text) = &shape.shape {
+                        Some(text.galley.text())
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            for expected in [
+                "180 days after actual disbursement",
+                "Overdue/due principal 0m",
+                "separately approved loan",
+                "2000-06-29",
+            ] {
+                assert!(labels.contains(expected), "{expected} at scale {scale}");
+            }
+        }
+        assert_eq!(world.hash(), hash);
+    }
 }

@@ -22,11 +22,15 @@ pub struct FundingOutlook {
     pub covered_days: Option<u64>,
     pub additional_daily_interest: Money,
     pub loan: Option<LoanAssumption>,
+    pub principal_due: Money,
+    pub conditional_principal_due: Money,
     pub points: Vec<FundingPoint>,
 }
 impl World {
     /// Owner-only, unchanged-policy scenario excluding shocks, price changes,
     /// arrears repayments, new commitments and scheduled policy delivery.
+    /// Subtracts contractual dated principal, holding recurring interest fixed
+    /// after repayment as a conservative unchanged-run-rate assumption.
     pub fn funding_outlook(
         &self,
         content: &Content,
@@ -81,10 +85,38 @@ impl World {
                 .0
                 - forecast.daily_interest.0;
         }
+        let principal_due = country.financing.as_ref().map_or(Money(0), |state| {
+            state.principal_due_through(self.day + horizon)
+        });
+        let assumed_maturity = loan.and_then(|assumption| {
+            content
+                .finance
+                .as_ref()
+                .and_then(|r| r.maturity_days)
+                .and_then(|term| assumption.decision_day.checked_add(term))
+        });
+        if assumed_maturity.is_some_and(|day| day > MAX_DAY) {
+            return Err("Hypothetical loan maturity exceeds the campaign calendar".into());
+        }
+        let conditional_principal_due = Money(
+            principal_due.0
+                + loan
+                    .filter(|_| assumed_maturity.is_some_and(|day| day <= self.day + horizon))
+                    .map_or(0, |assumption| assumption.amount.0),
+        );
         let mut points = Vec::with_capacity(horizon as usize + 1);
         for offset in 0..=horizon {
             let day = self.day + offset;
-            let baseline = i128::from(available) + i128::from(balance) * i128::from(offset);
+            let due = if offset == 0 {
+                0
+            } else {
+                country
+                    .financing
+                    .as_ref()
+                    .map_or(0, |state| state.principal_due_through(day).0)
+            };
+            let baseline =
+                i128::from(available) + i128::from(balance) * i128::from(offset) - i128::from(due);
             let mut if_approved = baseline;
             if let Some(assumption) = loan.filter(|assumption| day >= assumption.decision_day) {
                 // A future approval precedes that day's settlement/interest;
@@ -93,6 +125,9 @@ impl World {
                     day - assumption.decision_day + u32::from(assumption.decision_day > self.day);
                 if_approved += i128::from(assumption.amount.0)
                     - i128::from(additional_interest) * i128::from(interest_days);
+            }
+            if offset > 0 && assumed_maturity.is_some_and(|due| due <= day) {
+                if_approved -= i128::from(loan.expect("assumed maturity requires loan").amount.0);
             }
             points.push(FundingPoint {
                 day,
@@ -115,6 +150,8 @@ impl World {
                 .then(|| (i128::from(available) / -i128::from(balance)) as u64),
             additional_daily_interest: Money(additional_interest),
             loan,
+            principal_due,
+            conditional_principal_due,
             points,
         })
     }

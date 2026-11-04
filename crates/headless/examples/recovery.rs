@@ -74,6 +74,24 @@ fn play(
             loans += 1;
             world.advance(content, preview.consent_days)?;
         }
+        // Short dated loans can mature during the support negotiations. Obtain
+        // any needed replacement cash through the same ordinary consent route.
+        if content
+            .finance
+            .as_ref()
+            .is_some_and(|finance| finance.maturity_days.is_some())
+        {
+            let cost = (definition.gdp * rules.route(true)?.cost_bps / 10000).max(1);
+            for _ in 0..3 {
+                if world.player_country().available_cash().0 >= cost {
+                    break;
+                }
+                let amount = Money(definition.gdp / 10);
+                let preview = world.preview_borrowing(content, &world.player, amount)?;
+                world.issue(content, Action::Borrow { amount })?;
+                world.advance(content, preview.consent_days)?;
+            }
+        }
         world.issue(
             content,
             Action::Reconstitute {
@@ -98,7 +116,10 @@ fn play(
     while world.day < review_day {
         let c = world.player_country();
         let gap = -world.funding_outlook(content, 0, None)?.daily_balance.0;
-        if c.available_cash().0 < gap.max(1) * 90 {
+        let upcoming_principal = c.financing.as_ref().map_or(0, |state| {
+            state.principal_due_through(world.day.saturating_add(90)).0
+        });
+        if c.available_cash().0 < gap.max(1) * 90 + upcoming_principal {
             let amount = Money(definition.gdp / 10);
             if c.debt.0 + amount.0 <= definition.gdp * 3 / 2
                 && c.accounts.external.0 >= amount.0
@@ -150,7 +171,15 @@ fn play(
             }
         }
         let c = world.player_country();
-        if c.available_cash().0 > definition.gdp / 8 && c.debt.0 > definition.gdp / 5 {
+        // Hold cash for dated principal instead of voluntarily retiring perpetual
+        // calibration debt with cash needed for a near-term contractual payment.
+        let scheduled_principal = c
+            .financing
+            .as_ref()
+            .map_or(0, |state| state.principal_due_through(MAX_DAY).0);
+        if c.available_cash().0 > definition.gdp / 8 + scheduled_principal
+            && c.debt.0 > definition.gdp / 5
+        {
             let amount = Money((definition.gdp / 20).min(c.debt.0));
             world.issue(content, Action::Repay { amount })?;
         }
@@ -163,6 +192,9 @@ fn play(
         || c.report.food_coverage < 90
         || c.approval < 50
         || c.arrears.0 != 0
+        || c.financing
+            .as_ref()
+            .is_some_and(|state| state.principal_due_through(world.day).0 > 0)
         || c.debt.0 > definition.gdp
     {
         return Err(format!(

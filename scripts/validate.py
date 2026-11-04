@@ -125,6 +125,8 @@ def main():
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-income-bands.json", "--contested-transition"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-national-fiscal-ai-test.json"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-national-fiscal-ai-test.json", "--contested-transition"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-debt-maturities-test.json", "--contested-transition"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-debt-maturities-test.json"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-fiscal-plans.json"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-fiscal-plans.json", "--contested-transition"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-income-bands-test.json"],

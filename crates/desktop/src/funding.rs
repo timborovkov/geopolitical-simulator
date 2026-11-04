@@ -52,6 +52,19 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, amount: i64, chart: &
             );
         }
     }
+    if content
+        .finance
+        .as_ref()
+        .is_some_and(|rules| rules.maturity_days.is_some())
+    {
+        ui.colored_label(
+            Color32::LIGHT_YELLOW,
+            format!(
+                "Principal due within {horizon} days: {}m · including conditional borrowing: {}m.",
+                outlook.principal_due.0, outlook.conditional_principal_due.0
+            ),
+        );
+    }
     if country.arrears.0 > 0 {
         ui.colored_label(Color32::LIGHT_YELLOW, format!("Outstanding arrears {}m are additional claims; their repayment is excluded from this simplified outlook.", country.arrears.0));
     }
@@ -69,6 +82,9 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, amount: i64, chart: &
     }
     egui::CollapsingHeader::new("Compare conditional financing · funding chart").show(ui, |ui| {
         ui.small("Forecast, not treasury cash or an approval guarantee. Holds current policy and receipts constant. Excludes supply shocks, market-price changes, arrears repayment and pending-program delivery; those may change the result.");
+        if content.finance.as_ref().is_some_and(|rules|rules.maturity_days.is_some()) {
+            ui.small("Includes full dated principal and existing overdue principal from tomorrow. Recurring interest stays at the current run rate after repayment, conservatively overstating later interest. Negative balances are funding gaps; refinancing requires approval.");
+        }
         if let Some(loan) = outlook.loan {
             ui.label(format!("{} {}m if approved on {} · additional interest {}m/day after disbursement.", if pending.is_some() { "Pending request:" } else { "Selected ordinary borrowing:" }, loan.amount.0, date(loan.decision_day), outlook.additional_daily_interest.0));
             if let Some(before) = outlook.points.iter().find(|point| point.day + 1 == loan.decision_day)
