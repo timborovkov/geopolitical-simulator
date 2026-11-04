@@ -901,6 +901,27 @@ impl GameApp {
                 ));
             }
         }
+        if let Some(territory) = &report.territorial {
+            ui.label(format!(
+                "Current territorial settlement: {:?}",
+                territory.form
+            ));
+            if let Some(change) = &territory.last_change {
+                ui.label(format!(
+                    "Last charter change {} · contested {}",
+                    date(change.day),
+                    change.contested
+                ));
+            }
+            if let Some(claim) = &territory.last_requisition {
+                ui.label(format!(
+                    "Last contested local-fund requisition {} · {} · {}m",
+                    date(claim.day),
+                    claim.region.0,
+                    claim.amount.0
+                ));
+            }
+        }
         if let Some(authorities) = &report.regional_authorities {
             for authority in authorities {
                 ui.label(format!(

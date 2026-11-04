@@ -141,6 +141,8 @@ pub struct Content {
     pub elections: Option<crate::ElectionDefinition>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subnational: Option<crate::SubnationalDefinition>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub territorial: Option<crate::TerritorialDefinition>,
 }
 impl Content {
     pub fn bundled() -> Result<Self, String> {
@@ -198,8 +200,8 @@ impl Content {
     pub fn from_json(json: &str) -> Result<Self, String> {
         let header: serde_json::Value =
             serde_json::from_str(json).map_err(|e| format!("Content JSON: {e}"))?;
-        if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2..=9)) {
-            return Err("Unsupported content schema: expected version 2 through 9".into());
+        if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2..=10)) {
+            return Err("Unsupported content schema: expected version 2 through 10".into());
         }
         let mut content: Self =
             serde_json::from_str(json).map_err(|e| format!("Content JSON: {e}"))?;
@@ -253,7 +255,7 @@ impl Content {
             .map_err(|_| "Bookmark must permit a five-year review no later than 2100-01-01".into())
     }
     pub fn validate(&self) -> Result<(), String> {
-        if !matches!(self.schema, 2..=9) || self.countries.is_empty() {
+        if !matches!(self.schema, 2..=10) || self.countries.is_empty() {
             return Err("Unsupported content schema, bookmark or empty roster".into());
         }
         self.start_day()?;
@@ -264,30 +266,35 @@ impl Content {
             (4, Some(markets), Some(finance), None) if self.schema == 4 => {
                 markets.validate(self)?; finance.validate(self)?;
             }
-            (5..=9, Some(markets), Some(finance), Some(constitutions)) if self.schema == self.rules => {
+            (5..=10, Some(markets), Some(finance), Some(constitutions)) if self.schema == self.rules => {
                 markets.validate(self)?; finance.validate(self)?; constitutions.validate(self)?;
             }
-            _ => return Err("Supported rules/content definitions are 2 (fixed prices), 3 (markets), 4 (financing authority), 5 (constitutional transitions), 6 (commitment lifecycle), 7 (ministerial appointments), 8 (electoral authorities), and 9 (subnational mandates)".into()),
+            _ => return Err("Supported rules/content definitions are 2 (fixed prices), 3 (markets), 4 (financing authority), 5 (constitutional transitions), 6 (commitment lifecycle), 7 (ministerial appointments), 8 (electoral authorities), 9 (subnational mandates), and 10 (territorial reforms)".into()),
         }
         match (&self.commitments, self.rules) {
-            (Some(rules), 6..=9) => rules.validate(self)?,
+            (Some(rules), 6..=10) => rules.validate(self)?,
             (None, 2..=5) => {}
             _ => return Err("Commitment lifecycle requires rules/content 6".into()),
         }
         match (&self.cabinet, self.rules) {
-            (Some(rules), 7..=9) => rules.validate(self)?,
+            (Some(rules), 7..=10) => rules.validate(self)?,
             (None, 2..=6) => {}
             _ => return Err("Ministerial appointments require rules/content 7".into()),
         }
         match (&self.elections, self.rules) {
-            (Some(rules), 8 | 9) => rules.validate(self)?,
+            (Some(rules), 8..=10) => rules.validate(self)?,
             (None, 2..=7) => {}
             _ => return Err("Electoral authority workflow requires rules/content 8".into()),
         }
         match (&self.subnational, self.rules) {
-            (Some(rules), 9) => rules.validate(self)?,
+            (Some(rules), 9 | 10) => rules.validate(self)?,
             (None, 2..=8) => {}
             _ => return Err("Subnational mandates require rules/content 9".into()),
+        }
+        match (&self.territorial, self.rules) {
+            (Some(rules), 10) => rules.validate(self)?,
+            (None, 2..=9) => {}
+            _ => return Err("Territorial reform requires rules/content 10".into()),
         }
         if let Some(identities) = &self.identities {
             identities.validate(self)?;

@@ -111,6 +111,8 @@ def main():
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-election-test.json"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-subnational-test.json"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-subnational-test.json", "--contested-transition"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-territorial-test.json"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-territorial-test.json", "--contested-transition"],
         ]
     env = dict(os.environ, RUSTDOCFLAGS="-D warnings")
     for command in commands:

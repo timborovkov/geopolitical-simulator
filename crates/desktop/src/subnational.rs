@@ -4,6 +4,9 @@ use std::collections::BTreeMap;
 #[derive(Default)]
 pub struct Panel {
     settings: BTreeMap<RegionId, (i32, u32, i32)>,
+    territorial_target: Option<TerritorialForm>,
+    contested_territorial: bool,
+    requisitions: BTreeMap<RegionId, i64>,
 }
 pub fn tier(tier: &RegionalTier) -> &'static str {
     match tier {
@@ -21,16 +24,29 @@ impl Panel {
         let mut action = None;
         ui.separator();
         ui.heading("Subnational powers & public funds");
-        ui.label(match charter.form {
-            TerritorialForm::Federation => "Federal territorial charter",
-            TerritorialForm::DecentralizedUnitary => "Decentralized unitary charter",
-            TerritorialForm::DelegatedUnitary => "Unitary charter with delegated administration",
-        });
+        ui.label(
+            match world
+                .territorial_form_at(content, &world.player, world.day)
+                .ok()?
+            {
+                TerritorialForm::Federation => "Federal territorial charter",
+                TerritorialForm::DecentralizedUnitary => "Decentralized unitary charter",
+                TerritorialForm::DelegatedUnitary => {
+                    "Unitary charter with delegated administration"
+                }
+            },
+        );
         ui.small("These are authored budget jurisdictions, with no historical regional boundary claims. Their population shares partition this scenario's country; regional geography and separate regional household groups are not modeled.");
         ui.label(format!("Consolidated public cash {}m · protected local funds/escrow {}m · national uncommitted cash {}m.",c.accounts.treasury.0,c.regional_protected_cash().0,c.available_cash().0));
-        ui.label("Tax entitlements stay with local authorities. National orders, fees and debt repayment cannot spend them. Base purchases are placed only when funded; grants pre-fund additional work for a fixed term.");
+        ui.label("Tax entitlements stay with local authorities. Ordinary national orders, fees and debt repayment cannot spend them. Base purchases are placed only when funded; grants pre-fund additional work for a fixed term.");
         ui.small("Service purchasing levels are annual GDP points weighted by the jurisdiction's population share. Payments reach public-service households; they do not add physical capacity or certify service quality/staffing. Public accounts consolidate both levels of government.");
-        for mandate in &charter.regions {
+        if let Some(command) = self.show_territorial(ui, content, world) {
+            action = Some(command);
+        }
+        for original in &charter.regions {
+            let mandate = world
+                .regional_mandate_at(content, &world.player, &original.id, world.day)
+                .ok()?;
             let local = state
                 .regions
                 .iter()
@@ -61,6 +77,17 @@ impl Panel {
                     }
                     Err(reason)=>{ui.label(format!("Cannot offer: {reason}"));}
                 }
+                if let Some(rule) = content.territorial.as_ref().and_then(|r|r.requisition.as_ref()) {
+                    egui::CollapsingHeader::new("Contested requisition of local base funds").id_salt(("requisition",&mandate.id.0)).show(ui,|ui| {
+                        ui.label(format!("Violates this local mandate. Requires elite {}, council {}. Costs approval {}, legislature {}, elite {}, council {}; interval {} days. Accepted grants and pending escrow remain protected.",rule.elite_threshold,rule.council_threshold,rule.approval_cost,rule.legislative_cost,rule.elite_cost,rule.council_cost,rule.cooldown_days));
+                        let amount=self.requisitions.entry(mandate.id.clone()).or_insert(1);
+                        ui.horizontal(|ui|{ui.label("Base funds claimed (m)");ui.add(egui::DragValue::new(amount).range(1..=local.cash.0.max(1)));});
+                        match world.preview_regional_requisition(content,&world.player,&mandate.id,Money(*amount)) {
+                            Ok(p)=>{ui.label(format!("Reclassify {}m to national discretion and pay {}m administration. Consolidated principal is unchanged.",p.amount.0,p.fee.0));if ui.button("Issue contested requisition").clicked(){action=Some(Action::RequisitionRegionalFunds{region:mandate.id.clone(),amount:p.amount});}}
+                            Err(reason)=>{ui.label(format!("Cannot requisition: {reason}"));}
+                        }
+                    });
+                }
                 if mandate.autonomous_services {ui.label("This authority controls its own base service level. Your government can offer a funded grant, but cannot order a different base level.");}
                 else {
                     ui.strong("Delegated base service order");
@@ -79,10 +106,126 @@ impl Panel {
         });
         action
     }
+    fn show_territorial(
+        &mut self,
+        ui: &mut Ui,
+        content: &Content,
+        world: &World,
+    ) -> Option<Action> {
+        let rules = content.territorial.as_ref()?;
+        let state = world.player_country().territorial.as_ref()?;
+        let mut action = None;
+        egui::CollapsingHeader::new("Change territorial settlement").show(ui,|ui| {
+            ui.label("Lawful changes require national backing. Loss of local autonomy or tax rights also needs the authored public-service household consent proxy and funded compensation. This proxy does not model regional voting. Contested changes use effective-power backing and incur political costs.");
+            ui.small("Build national backing through Policies & delivery → Negotiate governing support. Inspect the public-service group under Households & needs for the consent proxy.");
+            let target=self.territorial_target.get_or_insert(TerritorialForm::Federation);
+            egui::ComboBox::from_id_salt("territorial-target").selected_text(format!("{target:?}")).show_ui(ui,|ui| {
+                for template in &rules.templates {ui.selectable_value(target,template.form.clone(),format!("{:?} · {}% collected tax",template.form,template.tax_pool_bps/100));}
+            });
+            ui.checkbox(&mut self.contested_territorial,"Use contested effective-power route");
+            let route=rules.route(self.contested_territorial);
+            if let Ok(route)=route {ui.label(format!("Review {} days; backing legislature {} / elite {}, council {}, approval {}. On enactment: approval -{}, legislature -{}, elite -{}, council -{}. Reform interval {} days.",route.days,route.legislative_threshold,route.elite_threshold,route.council_threshold,route.approval_threshold,route.approval_cost,route.legislative_cost,route.elite_cost,route.council_cost,rules.cooldown_days));}
+            match world.preview_territorial_reform(content,&world.player,target,self.contested_territorial) {
+                Ok(p)=>{ui.label(format!("Pay {}m now; reserve {}m. Total administration {}m; local compensation {}m across {} authorities. Review {}. Existing local cash and accepted grant terms continue.",p.upfront.0,p.reserved.0,p.admin_cost.0,p.compensations.iter().map(|r|r.amount.0).sum::<i64>(),p.compensations.len(),date(p.decision_day)));if ui.button("Submit territorial reform").clicked(){action=Some(Action::ReformTerritory{target:target.clone(),contested:self.contested_territorial});}}
+                Err(reason)=>{ui.label(format!("Cannot reform: {reason}"));}
+            }
+            for record in state.reforms.iter().rev(){ui.label(format!("#{} · {:?} → {:?} · {:?} · review {} · paid/reserved {}/{}m",record.id.0,record.from,record.target,record.status,date(record.decision_day),record.paid_admin.0,record.reserved.0));if record.status==TerritorialReformStatus::Pending&&ui.button(format!("Withdraw territorial request #{}",record.id.0)).clicked(){action=Some(Action::WithdrawTerritorialReform{request:record.id});}}
+            for claim in state.requisitions.iter().rev(){ui.label(format!("{} · contested claim #{} · {} · {}m base funds · {}m administration",date(claim.day),claim.id.0,claim.region.0,claim.amount.0,claim.fee.0));}
+        });
+        action
+    }
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn territorial_preview_shows_costs_and_waits_for_explicit_submission_at_two_scales() {
+        for scale in [1.0, 1.4] {
+            let mut content = Content::from_json(include_str!(
+                "../../../data/synthetic-territorial-test.json"
+            ))
+            .unwrap();
+            let route = &mut content.territorial.as_mut().unwrap().lawful;
+            route.elite_threshold = 50;
+            route.council_threshold = 40;
+            let world = World::new(&content, CountryId("COR".into()), 17).unwrap();
+            let hash = world.hash();
+            let mut panel = Panel::default();
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            ctx.style_mut(|s| s.animation_time = 0.0);
+            let input = egui::RawInput {
+                focused: true,
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1440.0 / scale, 940.0 / scale),
+                )),
+                ..Default::default()
+            };
+            let mut action = None;
+            let draw = |panel: &mut Panel, action: &mut Option<Action>, input: egui::RawInput| {
+                ctx.run(input, |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        *action = panel.show_territorial(ui, &content, &world);
+                    });
+                })
+            };
+            let position = |o: &egui::FullOutput, label: &str| {
+                o.shapes
+                    .iter()
+                    .find_map(|s| match &s.shape {
+                        egui::Shape::Text(t) if t.galley.text() == label => {
+                            let p = t.pos + t.galley.size() / 2.0;
+                            assert!(s.clip_rect.contains(p));
+                            Some(p)
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| panic!("Missing {label}"))
+            };
+            let output = draw(&mut panel, &mut action, input.clone());
+            let header = position(&output, "Change territorial settlement");
+            for pressed in [true, false] {
+                let mut click = input.clone();
+                click.events = vec![
+                    egui::Event::PointerMoved(header),
+                    egui::Event::PointerButton {
+                        pos: header,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ];
+                draw(&mut panel, &mut action, click);
+            }
+            let output = draw(&mut panel, &mut action, input.clone());
+            assert!(action.is_none());
+            assert_eq!(world.hash(), hash);
+            assert!(output.shapes.iter().any(|s|matches!(&s.shape,egui::Shape::Text(t) if t.galley.text().contains("Pay 100m now; reserve 400m"))));
+            let button = position(&output, "Submit territorial reform");
+            for pressed in [true, false] {
+                let mut click = input.clone();
+                click.events = vec![
+                    egui::Event::PointerMoved(button),
+                    egui::Event::PointerButton {
+                        pos: button,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ];
+                draw(&mut panel, &mut action, click);
+            }
+            assert_eq!(
+                action,
+                Some(Action::ReformTerritory {
+                    target: TerritorialForm::Federation,
+                    contested: false
+                })
+            );
+            assert_eq!(world.hash(), hash);
+        }
+    }
     #[test]
     fn a_local_grant_preview_requires_an_explicit_order_and_shows_its_separate_fee_and_escrow() {
         for scale in [1.0, 1.4] {

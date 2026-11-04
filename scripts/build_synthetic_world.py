@@ -227,6 +227,22 @@ def build_subnational():
     return pack
 
 
+def build_territorial():
+    pack = build_subnational()
+    pack.update(schema=10, rules=10, id="synthetic-territorial-v10", name="Fictional territorial reforms",
+                description="Authored territorial reform, local consent/compensation and contested base-fund requisition. Consolidated public money is conserved. Regional voting, coercive forces and historical territorial law are not modeled.")
+    pack["territorial"] = dict(
+        templates=[dict(form=form, tax_pool_bps=share) for form,share in
+                   [("federation",3000),("decentralized_unitary",2000),("delegated_unitary",1000)]],
+        lawful=pack["constitutions"]["lawful"].copy(), contested=pack["constitutions"]["contested"].copy(),
+        cooldown_days=180, local_consent_approval=65, compensation_bps=50,
+        requisition=dict(administration_cost_bps=25, elite_threshold=80, council_threshold=80,
+                         approval_cost=20, legislative_cost=20, elite_cost=15, council_cost=20, cooldown_days=180),
+        ai_targets={"AUR":"federation","BOR":"decentralized_unitary","COR":"decentralized_unitary"},
+        source="synthetic-original", source_version="authored-territorial-reforms-v1")
+    return pack
+
+
 def build_market_starter():
     pack = json.loads((ROOT / "data/initial-2000.json").read_text(encoding="utf-8"))
     pack.update(schema=3, rules=3, id="initial-2000-markets-v3",
@@ -328,6 +344,7 @@ def main():
                            ("synthetic-cabinet-test.json", build_cabinet()),
                            ("synthetic-election-test.json", build_elections()),
                            ("synthetic-subnational-test.json", build_subnational()),
+                           ("synthetic-territorial-test.json", build_territorial()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

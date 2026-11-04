@@ -166,9 +166,22 @@ pub struct Country {
     pub electoral_authority: Option<ElectoralAuthority>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subnational: Option<SubnationalState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub territorial: Option<TerritorialState>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
+    ReformTerritory {
+        target: TerritorialForm,
+        contested: bool,
+    },
+    WithdrawTerritorialReform {
+        request: TerritorialOrderId,
+    },
+    RequisitionRegionalFunds {
+        region: RegionId,
+        amount: Money,
+    },
     RegionalOrder {
         region: RegionId,
         kind: RegionalOrderKind,
@@ -394,6 +407,10 @@ impl World {
                             .cabinet
                             .as_ref()
                             .map(|rules| Cabinet::new(rules, &d.id, start_day)),
+                        territorial: content
+                            .territorial
+                            .as_ref()
+                            .map(|_| TerritorialState::new(start_day)),
                         subnational: content.subnational.as_ref().map(|rules| {
                             SubnationalState::new(rules.charter(&d.id).expect("charter"), start_day)
                         }),
@@ -551,6 +568,25 @@ impl World {
         for (index, entry) in self.journal.iter().enumerate() {
             let command = &entry.command;
             let valid_action = match &command.action {
+                Action::ReformTerritory { .. } => content.territorial.is_some(),
+                Action::RequisitionRegionalFunds { region, amount } => {
+                    content.territorial.is_some()
+                        && amount.0 > 0
+                        && content
+                            .subnational
+                            .as_ref()
+                            .and_then(|r| r.charter(&command.issuer))
+                            .is_some_and(|c| c.regions.iter().any(|r| r.id == *region))
+                }
+                Action::WithdrawTerritorialReform { request } => {
+                    content.territorial.is_some()
+                        && request.0 > 0
+                        && request.0 < command.id
+                        && self.journal.get(request.0 as usize - 1).is_some_and(|e| {
+                            e.command.issuer == command.issuer
+                                && matches!(e.command.action, Action::ReformTerritory { .. })
+                        })
+                }
                 Action::RegionalOrder { region, .. } => content
                     .subnational
                     .as_ref()
@@ -695,6 +731,7 @@ impl World {
             self.validate_commitments(content, id)?;
             self.validate_cabinet(content, id)?;
             self.validate_electoral_authority(content, id)?;
+            self.validate_territorial(content, id)?;
             self.validate_subnational(content, id)?;
             if id != &c.id
                 || c.accounts.checked_total() != Some(c.opening_money.0)
@@ -826,6 +863,12 @@ impl World {
                         c.constitution
                             .as_ref()
                             .map_or(Money(0), Constitution::reserved_cash)
+                            .0,
+                    )
+                    + i128::from(
+                        c.territorial
+                            .as_ref()
+                            .map_or(Money(0), TerritorialState::reserved_cash)
                             .0,
                     )
                     != i128::from(c.committed_cash.0)

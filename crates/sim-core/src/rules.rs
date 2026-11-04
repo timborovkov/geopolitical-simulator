@@ -125,6 +125,24 @@ impl World {
             .ok_or("Missing country content")?;
         let id = command.issuer.clone();
         match &command.action {
+            Action::ReformTerritory { target, contested } => self.request_territorial_reform(
+                content,
+                &id,
+                target,
+                *contested,
+                TerritorialOrderId(command.id),
+            )?,
+            Action::WithdrawTerritorialReform { request } => {
+                self.withdraw_territorial_reform(&id, *request)?
+            }
+            Action::RequisitionRegionalFunds { region, amount } => self
+                .requisition_regional_funds(
+                    content,
+                    &id,
+                    region,
+                    *amount,
+                    TerritorialOrderId(command.id),
+                )?,
             Action::RegionalOrder { region, kind } => self.request_regional_order(
                 content,
                 &id,
@@ -281,9 +299,11 @@ impl World {
             self.day += 1;
             for id in &ids {
                 self.resolve_constitution(content, id);
+                self.territorial_succession(id);
+                self.resolve_territorial_reforms(content, id);
                 self.sync_electoral_mandate(content, id);
                 self.resolve_election_requests(content, id);
-                self.regional_succession(id);
+                self.regional_succession(content, id);
                 self.resolve_regional_orders(content, id);
                 self.cabinet_succession(id);
                 self.resolve_appointments(content, id);
@@ -305,7 +325,8 @@ impl World {
                     }
                 }
                 self.sync_electoral_mandate(content, id);
-                self.regional_succession(id);
+                self.territorial_succession(id);
+                self.regional_succession(content, id);
                 self.cabinet_succession(id);
             }
             if self.day.is_multiple_of(30) {
@@ -937,6 +958,7 @@ impl World {
         self.ai_appointments(content, id);
         self.ai_election_request(content, id);
         self.ai_regional_order(content, id);
+        self.ai_territorial_turn(content, id);
         let c = &self.countries[id];
         let d = content.country(id).expect("country");
         let government = self

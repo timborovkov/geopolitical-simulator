@@ -19,6 +19,7 @@ mod outlook;
 pub mod persistence;
 mod rules;
 mod subnational;
+mod territorial;
 mod units;
 pub use budget::*;
 pub use cabinet::*;
@@ -47,3 +48,4 @@ pub fn stable_hash(bytes: &[u8]) -> u64 {
 }
 
 pub use subnational::*;
+pub use territorial::*;

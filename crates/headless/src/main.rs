@@ -136,7 +136,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if developer {
                         println!(
@@ -267,6 +267,87 @@ fn play(
                         amount: Money(number(words.get(1))?),
                     },
                 )?,
+                "territory" => {
+                    let state = world
+                        .player_country()
+                        .territorial
+                        .as_ref()
+                        .ok_or("No territorial reform workflow")?;
+                    println!(
+                        "Current settlement {:?}",
+                        world.territorial_form_at(content, &world.player, world.day)?
+                    );
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(state).map_err(|e| e.to_string())?
+                    );
+                }
+                "preview-territory" | "reform-territory" => {
+                    let target: TerritorialForm =
+                        serde_json::from_value(serde_json::Value::String(
+                            words
+                                .get(1)
+                                .ok_or(
+                                    "Use federation, decentralized_unitary or delegated_unitary",
+                                )?
+                                .to_string(),
+                        ))
+                        .map_err(|e| e.to_string())?;
+                    let contested = match words.get(2).copied() {
+                        Some("lawful") => false,
+                        Some("contested") => true,
+                        _ => return Err("Choose lawful or contested".into()),
+                    };
+                    if words[0] == "preview-territory" {
+                        println!(
+                            "{:?}",
+                            world.preview_territorial_reform(
+                                content,
+                                &world.player,
+                                &target,
+                                contested
+                            )?
+                        );
+                    } else {
+                        world.issue(content, Action::ReformTerritory { target, contested })?;
+                    }
+                }
+                "withdraw-territory" => world.issue(
+                    content,
+                    Action::WithdrawTerritorialReform {
+                        request: TerritorialOrderId(
+                            words
+                                .get(1)
+                                .ok_or("Missing request ID")?
+                                .parse()
+                                .map_err(|_| "Invalid request ID")?,
+                        ),
+                    },
+                )?,
+                "preview-requisition" | "requisition" => {
+                    let region = RegionId(words.get(1).ok_or("Missing region")?.to_string());
+                    let amount = Money(
+                        words
+                            .get(2)
+                            .ok_or("Missing millions")?
+                            .parse()
+                            .map_err(|_| "Invalid millions")?,
+                    );
+                    if words[0] == "preview-requisition" {
+                        println!(
+                            "{:?}",
+                            world.preview_regional_requisition(
+                                content,
+                                &world.player,
+                                &region,
+                                amount
+                            )?
+                        );
+                    } else {
+                        world
+                            .issue(content, Action::RequisitionRegionalFunds { region, amount })?;
+                    }
+                }
                 "regions" => {
                     let rules = content
                         .subnational
@@ -292,6 +373,17 @@ fn play(
                         )
                         .map_err(|error| error.to_string())?
                     );
+                    for original in &rules.charter(&world.player).expect("charter").regions {
+                        println!(
+                            "Current mandate: {:?}",
+                            world.regional_mandate_at(
+                                content,
+                                &world.player,
+                                &original.id,
+                                world.day
+                            )?
+                        );
+                    }
                     println!(
                         "Consolidated public cash {}m; protected local funds/escrow {}m; national uncommitted cash {}m. National government cannot reclaim accepted grants or order autonomous base service levels.",
                         world.player_country().accounts.treasury.0,

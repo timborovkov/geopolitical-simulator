@@ -204,6 +204,8 @@ pub struct RegionalOrder {
     pub decision_day: u32,
     pub end_day: Option<u32>,
     pub sponsor: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub charter_revision: Option<u32>,
     pub baseline_level: i32,
     pub paid_administration: Money,
     pub principal: Money,
@@ -317,9 +319,7 @@ impl World {
             .subnational
             .as_ref()
             .ok_or("This campaign has no subnational mandate workflow")?;
-        let mandate = rules
-            .mandate(id, region)
-            .ok_or("This jurisdiction is outside your government")?;
+        let mandate = self.regional_mandate_at(content, id, region, self.day)?;
         let country = self.countries.get(id).ok_or("Unknown country")?;
         let state = country
             .subnational
@@ -437,6 +437,7 @@ impl World {
             preview.fee.0,
             "Subnational decision administration",
         );
+        let charter_revision = self.territorial_revision(content, id, self.day);
         let country = self.countries.get_mut(id).expect("country");
         country.budget.capital.0 += preview.fee.0;
         let state = country.subnational.as_mut().expect("subnational");
@@ -455,6 +456,7 @@ impl World {
             decision_day: preview.decision_day,
             end_day: preview.end_day,
             sponsor: country.government_number,
+            charter_revision,
             baseline_level: local.service_level,
             paid_administration: preview.fee,
             principal: preview.principal,
@@ -491,23 +493,29 @@ impl World {
         self.event(id,true,format!("Regional order #{} withdrawn. Public escrow released to national availability; administration and interval remain.",order.0));
         Ok(())
     }
-    pub(crate) fn regional_succession(&mut self, id: &CountryId) {
+    pub(crate) fn regional_succession(&mut self, content: &Content, id: &CountryId) {
+        let revision = self.territorial_revision(content, id, self.day);
         let country = self.countries.get_mut(id).expect("country");
         let Some(state) = &mut country.subnational else {
             return;
         };
         let mut changed = false;
+        let mut charter_changed = false;
         for order in &mut state.orders {
             if order.status == RegionalOrderStatus::Pending
-                && order.sponsor != country.government_number
+                && (order.sponsor != country.government_number
+                    || order.charter_revision != revision)
             {
+                charter_changed |= order.charter_revision != revision;
                 order.status = RegionalOrderStatus::Superseded;
                 order.resolved_day = Some(self.day);
                 order.escrow = Money(0);
                 changed = true;
             }
         }
-        if changed {
+        if charter_changed {
+            self.event(id, true, "New territorial charter superseded pending regional offers and released their escrow. Accepted local grant contracts and existing local cash continue.");
+        } else if changed {
             self.event(id,true,"Successor cabinet superseded pending regional offers and released their escrow. Accepted local grants and tax entitlements continue under their separate mandates.");
         }
     }
@@ -602,7 +610,10 @@ impl World {
         };
         let charter = rules.charter(id).expect("charter");
         let d = content.country(id).expect("country");
-        let shares: Vec<_> = charter
+        let shares: Vec<_> = self.countries[id]
+            .subnational
+            .as_ref()
+            .expect("subnational")
             .regions
             .iter()
             .map(|r| r.tax_entitlement_bps)
@@ -768,7 +779,7 @@ impl World {
         {
             return Err("Invalid protected public cash or regional order coverage".into());
         }
-        let shares: Vec<_> = charter
+        let shares: Vec<_> = state
             .regions
             .iter()
             .map(|r| r.tax_entitlement_bps)
@@ -781,6 +792,7 @@ impl World {
         };
         for ((local, mandate), receipt) in state.regions.iter().zip(&charter.regions).zip(receipts)
         {
+            let mandate = self.regional_mandate_at(content, id, &mandate.id, self.day)?;
             let proposals: Vec<_> = state
                 .orders
                 .iter()
@@ -845,7 +857,9 @@ impl World {
                 || [local.cash.0, local.tax_received.0, local.base_spent.0]
                     .iter()
                     .any(|v| !(0..=1_000_000_000_000).contains(v))
-                || local.tax_received.0 - local.base_spent.0 != local.cash.0
+                || i128::from(local.tax_received.0) - i128::from(local.base_spent.0)
+                    + self.regional_internal_adjustment(id, &local.id)
+                    != i128::from(local.cash.0)
             {
                 return Err(
                     "Invalid regional entitlement, service authority, cash identity or interval"
@@ -901,7 +915,9 @@ impl World {
                         || last.paid_base.0 > local.base_spent.0
                         || last.tax_receipts.0 > local.tax_received.0
                         || i128::from(last.paid_supplement.0) != supplements
-                        || last.closing_cash != local.cash
+                        || i128::from(last.closing_cash.0)
+                            + self.regional_post_settlement_adjustment(id, &local.id)
+                            != i128::from(local.cash.0)
                         || ledger
                             != i128::from(last.paid_base.0) + i128::from(last.paid_supplement.0)
                     {
@@ -913,9 +929,7 @@ impl World {
         }
         for (order, origin) in state.orders.iter().zip(origins) {
             let command = &origin.command;
-            let mandate = rules
-                .mandate(id, &order.region)
-                .ok_or("Regional order outside the charter")?;
+            let mandate = self.regional_mandate_at(content, id, &order.region, command.day)?;
             let kind = match &command.action {
                 Action::RegionalOrder { region, kind }
                     if region == &order.region && kind == &order.kind =>
@@ -953,6 +967,7 @@ impl World {
             };
             if order.id.0 != command.id
                 || order.proposed_day != command.day
+                || order.charter_revision != self.territorial_revision(content, id, command.day)
                 || command.day.checked_add(delay) != Some(order.decision_day)
                 || order.decision_day > MAX_DAY
                 || order.sponsor == 0
@@ -1027,6 +1042,8 @@ impl World {
                         && order.remaining.0 == 0
                         && order.spent.0 == 0
                         && order.sponsor == c.government_number
+                        && order.charter_revision
+                            == self.territorial_revision(content, id, self.day)
                 }
                 RegionalOrderStatus::Implementing => {
                     matches!(kind, RegionalOrderKind::Grant { .. })
@@ -1068,7 +1085,11 @@ impl World {
                 }
                 RegionalOrderStatus::Superseded => {
                     released
-                        && order.sponsor < c.government_number
+                        && (order.sponsor < c.government_number
+                            || order.resolved_day.is_some_and(|day| {
+                                order.charter_revision
+                                    != self.territorial_revision(content, id, day)
+                            }))
                         && order
                             .resolved_day
                             .is_some_and(|day| day >= order.proposed_day && day <= self.day)
@@ -1107,7 +1128,10 @@ impl World {
                     authority: mandate.authority.clone(),
                     name: mandate.name.clone(),
                     tier: mandate.tier.clone(),
-                    autonomous_services: mandate.autonomous_services,
+                    autonomous_services: self
+                        .regional_mandate_at(content, id, &mandate.id, self.day)
+                        .expect("regional mandate")
+                        .autonomous_services,
                     service_level: state
                         .regions
                         .iter()
