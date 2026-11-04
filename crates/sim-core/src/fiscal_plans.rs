@@ -152,13 +152,28 @@ pub struct BudgetPreview {
     pub planned_national_balance: Money,
     pub route: String,
 }
-/// Only enacted settings are published. Deliberations, cash and private project IDs stay private.
+/// Historical operation of a published policy setting, not a payment or outcome claim.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PublishedFiscalOperation {
+    pub day: u32,
+    pub value: i32,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PublishedFiscalDelivery {
+    pub policy: String,
+    pub target: i32,
+    pub scheduled_day: u32,
+    pub operation: Option<PublishedFiscalOperation>,
+}
+/// Enacted targets and setting-operation evidence. Cash and private project IDs stay private.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PublishedFiscalPlan {
     pub year: u32,
     pub enacted_day: u32,
     pub first_scheduled_delivery: u32,
     pub targets: FiscalTargets,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub delivery: Vec<PublishedFiscalDelivery>,
 }
 fn year(day: u32) -> u32 {
     date(day)[..4].parse().expect("calendar year")
@@ -515,23 +530,55 @@ impl World {
                 .bills
                 .iter()
                 .filter(|b| b.status == BudgetBillStatus::Enacted)
-                .map(|b| PublishedFiscalPlan {
-                    year: b.year,
-                    enacted_day: b.resolved_day.expect("resolved bill"),
-                    first_scheduled_delivery: b
+                .map(|b| {
+                    let delivery: Vec<_> = b
                         .programmes
                         .iter()
                         .filter_map(|p| {
-                            self.countries[id]
+                            let record = self.countries[id]
                                 .commitments
                                 .as_ref()?
                                 .iter()
-                                .find(|r| r.id == p.project)
-                                .map(|r| r.project.due_day)
+                                .find(|r| r.id == p.project)?;
+                            let target = b
+                                .targets
+                                .entries()
+                                .into_iter()
+                                .find(|(policy, _)| *policy == p.policy.as_str())?
+                                .1;
+                            let operation = record
+                                .milestones
+                                .iter()
+                                .find(|m| m.stage == CommitmentStage::Operating)
+                                .and_then(|milestone| {
+                                    record
+                                        .direct_effects
+                                        .iter()
+                                        .find(|e| e.field == p.policy)
+                                        .map(|effect| PublishedFiscalOperation {
+                                            day: milestone.day,
+                                            value: effect.after,
+                                        })
+                                });
+                            Some(PublishedFiscalDelivery {
+                                policy: p.policy.clone(),
+                                target,
+                                scheduled_day: record.project.due_day,
+                                operation,
+                            })
                         })
-                        .min()
-                        .expect("enacted programmes"),
-                    targets: b.targets.clone(),
+                        .collect();
+                    PublishedFiscalPlan {
+                        year: b.year,
+                        enacted_day: b.resolved_day.expect("resolved bill"),
+                        first_scheduled_delivery: delivery
+                            .iter()
+                            .map(|p| p.scheduled_day)
+                            .min()
+                            .expect("enacted programmes"),
+                        targets: b.targets.clone(),
+                        delivery,
+                    }
                 })
                 .collect(),
         )

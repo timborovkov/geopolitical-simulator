@@ -88,9 +88,103 @@ impl Panel {
         action
     }
 }
+fn published_value(policy: &str, value: i32) -> String {
+    match policy {
+        "income_tax" => format!("{value}%"),
+        "services" | "welfare" => format!("{value}% GDP"),
+        _ => value.to_string(),
+    }
+}
+/// Public setting history only; this component has no world or command entry point.
+pub fn published_delivery(
+    ui: &mut Ui,
+    content: &Content,
+    country: &CountryId,
+    plan: &PublishedFiscalPlan,
+    open: bool,
+) {
+    egui::CollapsingHeader::new("Policy setting changes · schedule & observed operation")
+        .id_salt(("public-fiscal-delivery",country.0.as_str(),plan.year,plan.enacted_day))
+        .default_open(open).show(ui, |ui| {
+            if plan.delivery.is_empty() {
+                ui.label("No setting-operation details are published.");
+                return;
+            }
+            egui::ScrollArea::horizontal().id_salt(("public-fiscal-table",country.0.as_str(),plan.year,plan.enacted_day)).show(ui, |ui| {
+                egui::Grid::new(("public-fiscal-grid",country.0.as_str(),plan.year,plan.enacted_day)).striped(true).show(ui, |ui| {
+                    for title in ["Policy setting", "Approved target", "Scheduled change", "Observed setting change"] {ui.strong(title);}
+                    ui.end_row();
+                    for row in &plan.delivery {
+                        ui.label(content.policy(&row.policy).map_or(row.policy.as_str(),|p|p.name.as_str()));
+                        ui.label(published_value(&row.policy,row.target));
+                        ui.label(date(row.scheduled_day));
+                        ui.label(row.operation.as_ref().map_or_else(||"No published setting change".into(),|operation|format!("{} · {}",published_value(&row.policy,operation.value),date(operation.day))));
+                        ui.end_row();
+                    }
+                });
+            });
+            ui.small("These are historical policy-setting changes. Daily funding and country outcomes are separate; later decisions can change operating settings again.");
+        });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn published_setting_history_shows_partial_operation_and_dates_at_two_scales() {
+        for scale in [1.0, 1.4] {
+            let content = Content::bundled().unwrap();
+            let mut world = World::new(&content, CountryId("FRA".into()), 17).unwrap();
+            world.advance(&content, 108).unwrap();
+            let hash = world.hash();
+            let foreign = CountryId("GBR".into());
+            let report = world.public_report(&content, &foreign).unwrap();
+            let plan = &report.fiscal_plans.as_ref().unwrap()[0];
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let output = ctx.run(
+                egui::RawInput {
+                    focused: true,
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(1440.0 / scale, 940.0 / scale),
+                    )),
+                    ..Default::default()
+                },
+                |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        published_delivery(ui, &content, &foreign, plan, true)
+                    });
+                },
+            );
+            let labels = output
+                .shapes
+                .iter()
+                .filter_map(|shape| {
+                    if let egui::Shape::Text(text) = &shape.shape {
+                        Some(text.galley.text())
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            for expected in [
+                "30% · 2000-04-18",
+                "No published setting change",
+                "8% GDP",
+                "2000-05-18",
+                "historical policy-setting changes",
+            ] {
+                assert!(
+                    labels.contains(expected),
+                    "{expected} missing at scale {scale}"
+                );
+            }
+            assert_eq!(world.hash(), hash);
+        }
+    }
+
     #[test]
     fn fiscal_preview_is_read_only_and_submission_is_explicit_at_two_scales() {
         for scale in [1.0, 1.4] {

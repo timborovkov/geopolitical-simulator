@@ -913,8 +913,15 @@ impl GameApp {
             }
         }
         if let Some(plans) = &report.fiscal_plans {
-            for p in plans {
-                ui.label(format!("Enacted fiscal plan {}: {} {}%, services {}% GDP, welfare {}% GDP; first scheduled delivery {}. Actual programme delivery remains separate.",p.year,if self.content.income_taxes.is_some(){"standard income-tax rate"}else{"tax"},p.targets.income_tax,p.targets.services,p.targets.welfare,date(p.first_scheduled_delivery)));
+            for (index, p) in plans.iter().enumerate().rev() {
+                ui.label(format!("Fiscal plan {} · approved {}: {} {}%, services {}% GDP, welfare {}% GDP; first scheduled setting change {}.",p.year,date(p.enacted_day),if self.content.income_taxes.is_some(){"standard income-tax rate"}else{"tax"},p.targets.income_tax,p.targets.services,p.targets.welfare,date(p.first_scheduled_delivery)));
+                fiscal_plans::published_delivery(
+                    ui,
+                    &self.content,
+                    &report.country,
+                    p,
+                    index + 1 == plans.len(),
+                );
             }
         }
         if let Some(undertakings) = &report.undertakings {
@@ -1759,7 +1766,11 @@ impl GameApp {
             }
         }
         egui::CentralPanel::default().show(ctx, |ui| {
-            let mut scroll = egui::ScrollArea::vertical().id_salt(("main_scroll", self.tab));
+            let mut scroll = egui::ScrollArea::vertical().id_salt((
+                "main_scroll",
+                self.tab,
+                self.selected.0.as_str(),
+            ));
             if opened_chronicle {
                 scroll = scroll.vertical_scroll_offset(0.0);
             }
@@ -2419,6 +2430,23 @@ mod interface_tests {
         assert!(
             !visible(&returned, "Treasury & accounts"),
             "Returning must preserve Treasury's own scroll position"
+        );
+        let foreign = CountryId("BOR".into());
+        let heading = format!(
+            "{} · published country report",
+            app.content.country(&foreign).unwrap().name
+        );
+        app.selected = foreign;
+        let country = render(&mut app, 4.0, vec![]);
+        assert!(
+            visible(&country, &heading),
+            "A different country must open at its own report context"
+        );
+        app.selected = CountryId("AUR".into());
+        let returned = render(&mut app, 5.0, vec![]);
+        assert!(
+            !visible(&returned, "Treasury & accounts"),
+            "Returning from another country must preserve the original report position"
         );
         assert_eq!(app.world.unwrap().hash(), hash);
     }
