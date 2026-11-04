@@ -523,6 +523,24 @@ def build_cash_starter():
 
 
 
+def build_sovereignty():
+    pack = build_technology_eligibility()
+    pack.update(schema=19, rules=19, id="synthetic-sovereignty-v19", name="Fictional sovereignty and recognition references")
+    source = "authored-sovereignty-reference-v1"
+    pack["sources"].append(dict(id=source, quality="authored_synthetic_fixture", description="Original fictional territory claims, administration, occupation and bilateral recognition. Separate from government, regime, map outlines and campaign outcomes; not historical or legal assertions."))
+    def provenance(**fields):
+        return dict(**fields, source=source, source_version="fictional-reference-v1", quality="authored")
+    def period(start="1990-01-01", end=None):
+        return dict(valid_from=start, valid_to=end)
+    territories = [provenance(id=identifier, name=name) for identifier, name in [("aurora_home", "Aurora mainland"), ("boreal_home", "Boreal mainland"), ("coral_home", "Coral mainland"), ("strait", "Fictional Strait Islands"), ("unrecorded", "Unrecorded test territory")]]
+    references = [provenance(id=identifier+"_opening", territory=identifier, validity=period(), sovereignty=dict(kind="sovereign", country=country), control=dict(kind="civil_administration", country=country)) for identifier,country in [("aurora_home","AUR"),("boreal_home","BOR"),("coral_home","COR")]]
+    references += [provenance(id="strait_opening", territory="strait", validity=period(end="2001-01-01"), sovereignty=dict(kind="sovereign", country="AUR"), control=dict(kind="occupation", occupier="BOR")), provenance(id="strait_later", territory="strait", validity=period("2001-01-01"), sovereignty=dict(kind="disputed", claimants=["AUR","BOR"]), control=dict(kind="civil_administration", country="COR")), provenance(id="unrecorded_opening", territory="unrecorded", validity=period(), sovereignty=dict(kind="unknown"), control=dict(kind="unknown"))]
+    recognition = [provenance(id="cor_aur", observer="COR", subject="AUR", position="recognized", validity=period()), provenance(id="bor_aur_opening", observer="BOR", subject="AUR", position="not_recognized", validity=period(end="2001-01-01")), provenance(id="bor_aur_later", observer="BOR", subject="AUR", position="recognized", validity=period("2001-01-01")), provenance(id="aur_bor", observer="AUR", subject="BOR", position="unknown", validity=period())]
+    pack["sovereignty"] = dict(territories=territories, references=references, recognition=recognition)
+    pack["description"] += " Fictional legal sovereignty, occupation, civil administration, disputed claims and directional recognition are independently attributed bookmark references. Future records select later bookmarks, never force a campaign transfer. Unknown records are explicit; absent recognition means unknown. No military, diplomatic, revenue, border or map-geometry effects are granted."
+    return pack
+
+
 def build_interest_starter():
     pack = build_cash_starter()
     pack.update(schema=17, rules=17, id="initial-2000-interest-accrual-v17", name="A New Century · carried debt interest")
@@ -566,6 +584,7 @@ def main():
                            ("synthetic-cash-management-test.json", build_cash_management()),
                            ("synthetic-interest-accrual-test.json", build_interest_accrual()),
                            ("synthetic-technology-eligibility-test.json", build_technology_eligibility()),
+                           ("synthetic-sovereignty-test.json", build_sovereignty()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

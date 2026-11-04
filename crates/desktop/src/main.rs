@@ -19,6 +19,7 @@ mod map;
 mod markets;
 mod new_game;
 mod settings;
+mod sovereignty;
 mod subnational;
 mod technologies;
 mod undertakings;
@@ -665,6 +666,7 @@ impl GameApp {
             for fact in facts {ui.label(format!("{}: {} {} ({} observation; source {}). Applied {}. {}",fact.field,fact.original_value,fact.original_units,fact.observation_period,fact.source,fact.applied_value,fact.transformation));ui.small(format!("Pinned mirror revision {}. Primary API not independently reconciled.",fact.source_version));}
             ui.small("Debt, capacities, household profiles, seats, preferences and political rules are authored. Identity names remain a starter curation; all simulated outcomes branch from the bookmark.");
         });
+        sovereignty::show(ui, &self.content, &self.selected);
         let offices = self.content.bookmark_offices(&self.selected);
         if !offices.is_empty() {
             ui.collapsing(format!("Reference offices at {}", self.content.start), |ui| {

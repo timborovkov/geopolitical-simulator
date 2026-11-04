@@ -33,10 +33,10 @@ impl Validity {
     pub fn contains(&self, date: CivilDate) -> bool {
         self.valid_from <= date && self.valid_to.is_none_or(|end| date < end)
     }
-    fn valid(&self) -> bool {
+    pub(crate) fn valid(&self) -> bool {
         self.valid_to.is_none_or(|end| self.valid_from < end)
     }
-    fn overlaps(&self, other: &Self) -> bool {
+    pub(crate) fn overlaps(&self, other: &Self) -> bool {
         self.valid_to.is_none_or(|end| other.valid_from < end)
             && other.valid_to.is_none_or(|end| self.valid_from < end)
     }

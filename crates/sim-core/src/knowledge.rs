@@ -27,6 +27,9 @@ pub struct PublicCountryReport {
     pub government_title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ministers: Option<Vec<PublishedMinister>>,
+    /// Dated bookmark references, separate from live government and private state.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bookmark_sovereignty: Option<BookmarkSovereigntyReport>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub electoral_authority: Option<PublicElectionReport>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -88,6 +91,7 @@ impl World {
                 .and_then(|change| content.constitutions.as_ref()?.template(&change.to))
                 .map_or_else(|| d.office.clone(), |template| template.title.clone()),
             ministers: self.published_ministers(content, id),
+            bookmark_sovereignty: content.bookmark_sovereignty(id)?,
             electoral_authority: self.published_election(content, id),
             regional_authorities: self.published_regions(content, id),
             territorial: self.published_territorial(content, id),

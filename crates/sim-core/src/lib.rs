@@ -22,6 +22,7 @@ mod model;
 mod outlook;
 pub mod persistence;
 mod rules;
+mod sovereignty;
 mod subnational;
 mod technologies;
 mod territorial;
@@ -48,6 +49,7 @@ pub use living_standards::*;
 pub use markets::*;
 pub use model::*;
 pub use outlook::*;
+pub use sovereignty::*;
 pub use units::*;
 
 /// FNV-1a, fixed byte order. A reproducibility checksum, not a security primitive.

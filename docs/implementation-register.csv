@@ -9,7 +9,7 @@ P01-07,1,Simulation kernel and command boundary,"Separate world truth, actor kno
 P01-08,1,Simulation kernel and command boundary,Headless executable that can load a tiny world and advance it without graphics or SQL in the inner loop.,partial
 P02-01,2,Content schema and historical world identity,"Versioned definitions for countries, territories, offices, people, parties, organizations, goods, sectors, laws, technologies and scenario rules. Minimal dated technology eligibility is available immediately; the full research/adoption graph comes later.",partial
 P02-02,2,Content schema and historical world identity,"Date-effective records: founding, dissolution, terms of office, membership, currency and territorial changes.",partial
-P02-03,2,Content schema and historical world identity,"Country identity separate from government, regime, legal sovereignty, occupation, recognition and map geometry.",proposed
+P02-03,2,Content schema and historical world identity,"Country identity separate from government, regime, legal sovereignty, occupation, recognition and map geometry.",partial
 P02-04,2,Content schema and historical world identity,"Source provenance, observed year, units, revisions, uncertainty and missing-data status for facts.",partial
 P02-05,2,Content schema and historical world identity,"CSV/JSON import and validation, stable external-ID crosswalks, reproducible content packs and localization keys.",partial
 P02-06,2,Content schema and historical world identity,A small synthetic test world plus the scaffold for the entire historical world. Synthetic fixtures make rules testable without relying on incomplete historical data.,partial
