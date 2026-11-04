@@ -14,3 +14,9 @@ unsafe_code = "forbid"
 
 [workspace.lints.clippy]
 all = "warn"
+
+# Long campaign/replay checks exercise production-like loops without dropping guards.
+[profile.test.package.sim-core]
+opt-level = 1
+debug-assertions = true
+overflow-checks = true
