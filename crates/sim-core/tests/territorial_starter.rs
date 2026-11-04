@@ -1,9 +1,8 @@
 use sim_core::*;
 #[test]
 fn the_territorial_starter_retains_all_reference_data_with_explicit_authored_local_definitions() {
-    let c = Content::bundled().unwrap();
+    let c = Content::territorial_bundled().unwrap();
     let old = Content::observed_bundled().unwrap();
-    assert_eq!(c.rules, RULES_VERSION);
     assert_eq!(c.rules, 10);
     assert_eq!(c.schema, 10);
     assert_eq!(c.countries, old.countries);
@@ -69,7 +68,7 @@ fn the_territorial_starter_retains_all_reference_data_with_explicit_authored_loc
 }
 #[test]
 fn default_local_grants_recover_without_migrating_a_preserved_observed_campaign() {
-    let c = Content::bundled().unwrap();
+    let c = Content::territorial_bundled().unwrap();
     let old = Content::observed_bundled().unwrap();
     let mut w = World::new(&c, CountryId("GBR".into()), 17).unwrap();
     let region = RegionId("region:GBR:regional".into());

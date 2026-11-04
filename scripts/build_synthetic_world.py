@@ -378,6 +378,20 @@ def build_territorial_starter():
     return pack
 
 
+def build_undertaking_starter():
+    pack = build_territorial_starter()
+    pack.update(schema=11, rules=11, id="initial-2000-undertakings-v11", name="A New Century · delivery undertakings")
+    pack["description"] += " Public delivery pledges, governing support arrangements and linked project deadlines use authored procedures and credibility records, not historical campaign promises or party agreements. They do not supply resources or form cabinet coalitions. Existing policy authority and implementation constraints apply."
+    source = "authored-delivery-undertakings-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model",
+                                description="Original public delivery pledges, conditional governing-support arrangements, linked programme deadlines, political effects, administration costs, fixed review/interval rules and record-based credibility. No historical election promises, party agreements, commercial contracts or treaties are claimed."))
+    pack["undertakings"] = build_undertakings()["undertakings"]
+    pack["undertakings"].update(source=source, source_version="starter-delivery-undertakings-v1")
+    # Full-year linked deadlines accommodate the roster's longer administration programmes.
+    next(t for t in pack["undertakings"]["templates"] if t["kind"]=="project_deadline")["deadline_days"] = 365
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -399,6 +413,7 @@ def main():
                            ("initial-2000-elections.json", build_election_starter()),
                            ("initial-2000-observed.json", build_observed_starter()),
                            ("initial-2000-territorial.json", build_territorial_starter()),
+                           ("initial-2000-undertakings.json", build_undertaking_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"
