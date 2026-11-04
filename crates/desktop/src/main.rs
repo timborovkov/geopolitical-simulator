@@ -2889,4 +2889,160 @@ mod interface_tests {
         assert_eq!(app.world.as_ref().unwrap().hash(), wanted.hash());
         std::fs::remove_dir_all(dir).unwrap();
     }
+    #[test]
+    fn physical_reference_confirmation_and_clear_cannot_trigger_campaign_shortcuts() {
+        let content = Content::bundled().unwrap();
+        let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        let before = world.hash();
+        let ctx = egui::Context::default();
+        let mut app = GameApp::from_context(&ctx, content, settings::Preferences::default());
+        app.selected = world.player.clone();
+        app.world = Some(world);
+        let render = |app: &mut GameApp, time: f64, events: Vec<egui::Event>| {
+            ctx.run(
+                egui::RawInput {
+                    focused: true,
+                    time: Some(time),
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(1440.0, 940.0),
+                    )),
+                    events,
+                    ..Default::default()
+                },
+                |ctx| app.render(ctx),
+            )
+        };
+        let output = render(&mut app, 0.0, vec![]);
+        let p = output
+            .shapes
+            .iter()
+            .find_map(|s| {
+                if let egui::Shape::Text(t) = &s.shape {
+                    (t.galley.text() == "Find lake / river")
+                        .then_some(t.pos + t.galley.size() / 2.0)
+                } else {
+                    None
+                }
+            })
+            .unwrap();
+        for (time, pressed) in [(0.1, true), (0.2, false)] {
+            render(
+                &mut app,
+                time,
+                vec![
+                    egui::Event::PointerMoved(p),
+                    egui::Event::PointerButton {
+                        pos: p,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ],
+            );
+        }
+        assert!(ctx.wants_keyboard_input());
+        let key = |key, pressed| egui::Event::Key {
+            key,
+            physical_key: None,
+            pressed,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        };
+        render(
+            &mut app,
+            0.3,
+            vec![
+                key(egui::Key::N, true),
+                egui::Event::Text("amazon".into()),
+                key(egui::Key::N, false),
+                key(egui::Key::Enter, true),
+                key(egui::Key::Enter, false),
+            ],
+        );
+        assert!(
+            app.pending.is_none(),
+            "confirming a text lookup must not request the next campaign event"
+        );
+        assert_eq!(app.speed, 0);
+        assert_eq!(app.selected, CountryId("GBR".into()));
+        assert_eq!(app.world.as_ref().unwrap().hash(), before);
+        // Clearing/filtering is an editor action, not an instruction to dismiss the popup.
+        let focused = app.map.camera;
+        let output = render(&mut app, 0.4, vec![]);
+        let point = |output: &egui::FullOutput, label: &str| {
+            output
+                .shapes
+                .iter()
+                .find_map(|s| {
+                    if let egui::Shape::Text(t) = &s.shape {
+                        (t.galley.text() == label).then_some(t.pos + t.galley.size() / 2.0)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_else(|| panic!("missing {label}"))
+        };
+        let p = point(&output, "Find lake / river");
+        for (time, pressed) in [(0.5, true), (0.6, false)] {
+            render(
+                &mut app,
+                time,
+                vec![
+                    egui::Event::PointerMoved(p),
+                    egui::Event::PointerButton {
+                        pos: p,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ],
+            );
+        }
+        let output = render(&mut app, 0.7, vec![egui::Event::Text("river peace".into())]);
+        let p = point(&output, "Clear");
+        for (time, pressed) in [(0.8, true), (0.9, false)] {
+            render(
+                &mut app,
+                time,
+                vec![
+                    egui::Event::PointerMoved(p),
+                    egui::Event::PointerButton {
+                        pos: p,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ],
+            );
+        }
+        render(&mut app, 1.0, vec![]);
+        let output = render(&mut app, 1.1, vec![]);
+        point(&output, "Matches: 39");
+        assert!(ctx.wants_keyboard_input());
+        let output = render(
+            &mut app,
+            1.2,
+            vec![
+                key(egui::Key::N, true),
+                key(egui::Key::Space, true),
+                egui::Event::Text("not a listed feature".into()),
+                key(egui::Key::N, false),
+                key(egui::Key::Space, false),
+                key(egui::Key::Enter, true),
+                key(egui::Key::Enter, false),
+            ],
+        );
+        point(&output, "No matching physical reference features.");
+        assert!(app.pending.is_none());
+        assert_eq!(app.speed, 0);
+        assert_eq!(app.world.as_ref().unwrap().hash(), before);
+        assert_eq!(app.map.camera, focused);
+        assert_eq!(app.selected, CountryId("GBR".into()));
+        let target = crate::hydrology::Hydrology::bundled()
+            .matches("amazon")
+            .remove(0);
+        assert_eq!(app.map.camera.longitude, target.bounds.center().x);
+        assert_eq!(app.map.camera.latitude, target.bounds.center().y);
+    }
 }

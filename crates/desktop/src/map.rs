@@ -44,6 +44,16 @@ impl Camera {
         self.latitude = anchor[1] + relative.y / scale;
         self.clamp();
     }
+    fn focus_bounds(&mut self, bounds: Rect, viewport: Rect) {
+        let span = bounds.size().max(Vec2::splat(0.25));
+        let scale = Camera::default().scale(viewport);
+        self.longitude = bounds.center().x;
+        self.latitude = bounds.center().y;
+        self.zoom = ((viewport.width() * 0.8 / (span.x * scale))
+            .min(viewport.height() * 0.8 / (span.y * scale)))
+        .clamp(1.0, 12.0);
+        self.clamp();
+    }
     fn clamp(&mut self) {
         self.longitude = self.longitude.clamp(-180.0, 180.0);
         self.latitude = self.latitude.clamp(-90.0, 90.0);
@@ -121,6 +131,7 @@ pub struct WorldMap {
     hydrology: crate::hydrology::Hydrology,
     lakes: bool,
     rivers: bool,
+    water_query: String,
     pub camera: Camera,
     layer: Layer,
 }
@@ -146,6 +157,7 @@ impl WorldMap {
             hydrology: crate::hydrology::Hydrology::bundled(),
             lakes: true,
             rivers: true,
+            water_query: String::new(),
             camera: Camera::default(),
             layer: Layer::Countries,
         }
@@ -167,6 +179,7 @@ impl WorldMap {
         selected: &mut CountryId,
         height: f32,
     ) {
+        let viewport = Rect::from_min_size(Pos2::ZERO, Vec2::new(ui.available_width(), height));
         ui.horizontal_wrapped(|ui| {
             if ui.button("Fit world").clicked() {
                 self.camera = Camera::default();
@@ -201,6 +214,13 @@ impl WorldMap {
                 });
             ui.checkbox(&mut self.lakes, "Lakes");
             ui.checkbox(&mut self.rivers, "Rivers");
+            if let Some(reference) = self.hydrology.picker(ui, &mut self.water_query) {
+                self.camera.focus_bounds(reference.bounds, viewport);
+                match reference.kind {
+                    crate::hydrology::WaterKind::Lake => self.lakes = true,
+                    crate::hydrology::WaterKind::River => self.rivers = true,
+                }
+            }
         });
         let (rect, response) = ui.allocate_exact_size(
             Vec2::new(ui.available_width(), height),
@@ -400,33 +420,33 @@ impl WorldMap {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn frame(
+        ctx: &egui::Context,
+        map: &mut WorldMap,
+        content: &Content,
+        world: &World,
+        selected: &mut CountryId,
+        scale: f32,
+        events: Vec<egui::Event>,
+    ) -> egui::FullOutput {
+        ctx.run(
+            egui::RawInput {
+                screen_rect: Some(Rect::from_min_size(
+                    Pos2::ZERO,
+                    Vec2::new(1200.0 / scale, 900.0 / scale),
+                )),
+                events,
+                ..Default::default()
+            },
+            |ctx| {
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    map.show(ui, content, Some(world), selected, 350.0)
+                });
+            },
+        )
+    }
     #[test]
     fn physical_layer_mouse_controls_preserve_camera_selection_and_campaign_at_two_scales() {
-        fn frame(
-            ctx: &egui::Context,
-            map: &mut WorldMap,
-            content: &Content,
-            world: &World,
-            selected: &mut CountryId,
-            scale: f32,
-            events: Vec<egui::Event>,
-        ) -> egui::FullOutput {
-            ctx.run(
-                egui::RawInput {
-                    screen_rect: Some(Rect::from_min_size(
-                        Pos2::ZERO,
-                        Vec2::new(1200.0 / scale, 900.0 / scale),
-                    )),
-                    events,
-                    ..Default::default()
-                },
-                |ctx| {
-                    egui::CentralPanel::default().show(ctx, |ui| {
-                        map.show(ui, content, Some(world), selected, 350.0)
-                    });
-                },
-            )
-        }
         let content = Content::bundled().unwrap();
         let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
         world.advance(&content, 30).unwrap();
@@ -505,6 +525,220 @@ mod tests {
         }
     }
 
+    #[test]
+    fn reference_picker_handles_mouse_aliases_and_keyboard_ambiguity_without_country_orders() {
+        fn text(output: &egui::FullOutput, label: &str) -> Pos2 {
+            output
+                .shapes
+                .iter()
+                .find_map(|s| {
+                    if let egui::Shape::Text(t) = &s.shape {
+                        (t.galley.text() == label)
+                            .then_some(t.pos + Vec2::new(3.0, t.galley.size().y / 2.0))
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_else(|| panic!("missing {label}"))
+        }
+        fn click(
+            ctx: &egui::Context,
+            map: &mut WorldMap,
+            content: &Content,
+            world: &World,
+            selected: &mut CountryId,
+            scale: f32,
+            p: Pos2,
+        ) -> egui::FullOutput {
+            let pointer = |pressed| {
+                vec![
+                    egui::Event::PointerMoved(p),
+                    egui::Event::PointerButton {
+                        pos: p,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ]
+            };
+            frame(ctx, map, content, world, selected, scale, pointer(true));
+            frame(ctx, map, content, world, selected, scale, pointer(false))
+        }
+        let key = |key| {
+            [true, false]
+                .into_iter()
+                .map(|pressed| egui::Event::Key {
+                    key,
+                    physical_key: None,
+                    pressed,
+                    repeat: false,
+                    modifiers: egui::Modifiers::NONE,
+                })
+                .collect()
+        };
+        let content = Content::bundled().unwrap();
+        let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        let before = world.hash();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let mut map = WorldMap::new();
+            map.lakes = false;
+            map.rivers = false;
+            map.layer = Layer::Debt;
+            let camera = map.camera;
+            let mut selected = world.player.clone();
+            let output = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            let p = text(&output, "Find lake / river");
+            click(&ctx, &mut map, &content, &world, &mut selected, scale, p);
+            let output = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![egui::Event::Text("lake balkhash".into())],
+            );
+            assert_eq!(map.water_query, "lake balkhash");
+            assert_eq!(map.camera, camera);
+            assert_eq!(selected, world.player);
+            let p = text(&output, "Balqash Köli · lake-0009");
+            assert!(
+                Rect::from_min_size(Pos2::ZERO, Vec2::new(1200.0 / scale, 900.0 / scale))
+                    .contains(p)
+            );
+            click(&ctx, &mut map, &content, &world, &mut selected, scale, p);
+            let target = map.hydrology.matches("lake balkhash").remove(0);
+            assert_eq!(map.camera.longitude, target.bounds.center().x);
+            assert_eq!(map.camera.latitude, target.bounds.center().y);
+            assert!(map.lakes && !map.rivers);
+            assert_eq!(selected, world.player);
+            assert!(map.layer == Layer::Debt);
+            let focused = map.camera;
+            let output = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            let p = text(&output, "Find lake / river");
+            click(&ctx, &mut map, &content, &world, &mut selected, scale, p);
+            frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![egui::Event::Text("river peace".into())],
+            );
+            let output = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                key(egui::Key::Enter),
+            );
+            assert_eq!(map.camera, focused);
+            text(&output, "Peace · river-0004");
+            text(&output, "Peace · river-0007");
+            frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                key(egui::Key::Escape),
+            );
+            let output = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            let p = text(&output, "Find lake / river");
+            click(&ctx, &mut map, &content, &world, &mut selected, scale, p);
+            frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![egui::Event::Text("river-0012".into())],
+            );
+            assert_eq!(map.camera, focused);
+            frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                key(egui::Key::Enter),
+            );
+            let target = map.hydrology.matches("river-0012").remove(0);
+            assert_eq!(map.camera.longitude, target.bounds.center().x);
+            assert_eq!(map.camera.latitude, target.bounds.center().y);
+            assert!(map.lakes && map.rivers);
+            assert_eq!(selected, world.player);
+            assert!(map.layer == Layer::Debt);
+            assert_eq!(world.hash(), before);
+        }
+    }
+
+    #[test]
+    fn reference_focus_fits_all_source_bounds_and_does_not_depend_on_the_previous_view() {
+        let h = crate::hydrology::Hydrology::bundled();
+        for rect in [
+            Rect::from_min_size(Pos2::new(80.0, 140.0), Vec2::new(1000.0, 400.0)),
+            Rect::from_min_size(Pos2::ZERO, Vec2::new(420.0, 300.0)),
+        ] {
+            for reference in h.matches("") {
+                let mut a = Camera::default();
+                let mut b = Camera {
+                    longitude: 150.0,
+                    latitude: -60.0,
+                    zoom: 12.0,
+                };
+                a.focus_bounds(reference.bounds, rect);
+                b.focus_bounds(reference.bounds, rect);
+                assert_eq!(a, b);
+                assert!((1.0..=12.0).contains(&a.zoom));
+                let center = a.project(
+                    rect,
+                    [reference.bounds.center().x, reference.bounds.center().y],
+                );
+                assert!(center.distance(rect.center()) < 0.001);
+                for point in [reference.bounds.min, reference.bounds.max] {
+                    assert!(
+                        rect.shrink(2.0)
+                            .contains(a.project(rect, [point.x, point.y])),
+                        "{} must fit {rect:?}",
+                        reference.id
+                    );
+                }
+            }
+        }
+    }
     #[test]
     fn zoom_preserves_the_geographic_point_under_the_cursor() {
         let rect = Rect::from_min_size(Pos2::ZERO, Vec2::new(1000.0, 500.0));
