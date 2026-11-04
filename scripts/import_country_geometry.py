@@ -103,11 +103,11 @@ def serialize(value):
 def validate_compiled():
     path = ROOT / "data/country-outlines-110m.json"
     raw = path.read_bytes()
-    manifest = json.loads((ROOT / "data/country-outlines-manifest.json").read_text())
+    manifest = json.loads((ROOT / "data/country-outlines-manifest.json").read_text(encoding="utf-8"))
     if hashlib.sha256(raw).hexdigest() != manifest["compiled_sha256"]:
         raise ValueError("Compiled geometry differs from its manifest checksum")
     compiled = json.loads(raw)
-    roster = {c["id"] for c in json.loads((ROOT / "data/initial-2000.json").read_text())["countries"]}
+    roster = {c["id"] for c in json.loads((ROOT / "data/initial-2000.json").read_text(encoding="utf-8"))["countries"]}
     if compiled.keys() != roster:
         raise ValueError("Reference geometry roster differs from starter pack")
     for country, country_polygons in compiled.items():
@@ -149,7 +149,7 @@ def main():
     attributes, geometry = records(raw["dbf"]), shapes(raw["shp"])
     if len(attributes) != len(geometry):
         raise ValueError("Geometry and attribute record counts differ")
-    roster = {c["id"] for c in json.loads((ROOT / "data/initial-2000.json").read_text())["countries"]}
+    roster = {c["id"] for c in json.loads((ROOT / "data/initial-2000.json").read_text(encoding="utf-8"))["countries"]}
     compiled = {}
     for row, rings in zip(attributes, geometry):
         identifier = row["adm0_a3"]
