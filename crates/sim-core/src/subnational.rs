@@ -268,7 +268,8 @@ impl Country {
                 .treasury
                 .0
                 .saturating_sub(self.committed_cash.0)
-                .saturating_sub(self.regional_protected_cash().0),
+                .saturating_sub(self.regional_protected_cash().0)
+                .saturating_sub(self.retained_cash().0),
         )
     }
     pub(crate) fn regional_planned_spending(&self, d: &CountryDefinition) -> i64 {

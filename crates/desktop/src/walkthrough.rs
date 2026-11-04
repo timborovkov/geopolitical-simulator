@@ -144,6 +144,15 @@ impl Panel {
                     }
                     Err(reason) => {
                         ui.label(format!("This option is currently blocked: {reason}. Inspect the standard decision screen to see its requirements."));
+                        if content.cash_management.is_some() {
+                            ui.label("Treasury can retain actual receipts for a later decision, at an approval cost and with deferred-payment consequences. Retention grants no cash or authority.");
+                            if ui
+                                .button("Inspect funding and temporary retention")
+                                .clicked()
+                            {
+                                navigation = Some(Navigation::Open(Tab::Treasury));
+                            }
+                        }
                     }
                 }
                 if ui

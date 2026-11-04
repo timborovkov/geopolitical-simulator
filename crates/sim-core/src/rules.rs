@@ -19,6 +19,18 @@ impl World {
         value: i32,
         consent_satisfied: bool,
     ) -> Result<PolicyPreview, String> {
+        self.preview_policy_funding(content, country, policy, value, consent_satisfied, true)
+    }
+    /// Planning may omit the cash gate; actual commands always require full funding.
+    pub(crate) fn preview_policy_funding(
+        &self,
+        content: &Content,
+        country: &CountryId,
+        policy: &str,
+        value: i32,
+        consent_satisfied: bool,
+        require_cash: bool,
+    ) -> Result<PolicyPreview, String> {
         let c = self.countries.get(country).ok_or("Unknown country")?;
         let government = self.governing_rules(content, country)?;
         let d = content
@@ -59,7 +71,7 @@ impl World {
         }
         let cost = Money((d.gdp * p.cost_bps / 10000).max(1));
         let available = c.available_cash().0;
-        if available < cost.0 {
+        if require_cash && available < cost.0 {
             return Err(format!(
                 "Insufficient uncommitted treasury: requires {}m; available {available}m",
                 cost.0
@@ -156,6 +168,10 @@ impl World {
             .ok_or("Missing country content")?;
         let id = command.issuer.clone();
         match &command.action {
+            Action::HoldCash { target, days } => {
+                self.hold_cash(content, &id, CashHoldId(command.id), *target, *days)?
+            }
+            Action::ReleaseCash { request } => self.release_cash(&id, *request, command.id)?,
             Action::ProposeBudget { year, targets } => {
                 self.propose_budget(content, &id, BudgetBillId(command.id), *year, targets)?
             }
@@ -353,7 +369,9 @@ impl World {
                 if content.fiscal_plans.is_some() {
                     self.review_budget(content, id);
                 }
+                self.resolve_cash_hold(id);
                 self.resolve_constitution(content, id);
+                self.resolve_cash_hold(id);
                 self.undertaking_succession(id);
                 self.resolve_undertaking_reviews(content, id);
                 self.territorial_succession(id);
@@ -391,6 +409,7 @@ impl World {
                 self.regional_succession(content, id);
                 self.cabinet_succession(id);
                 self.budget_succession(id);
+                self.resolve_cash_hold(id);
             }
             if self.day.is_multiple_of(30) {
                 for id in &ids {
@@ -653,6 +672,7 @@ impl World {
             groups: withholding,
         });
         let regional_payments = self.settle_subnational(content, id, revenue);
+        self.notice_cash_hold(id);
         if content.rules >= 15 {
             self.settle_maturities(id);
         }
@@ -1052,6 +1072,9 @@ impl World {
         self.event(id, false, summary);
     }
     fn ai_turn(&mut self, content: &Content, id: &CountryId) {
+        if self.ai_cash_management(content, id) {
+            return;
+        }
         self.ai_appointments(content, id);
         self.ai_election_request(content, id);
         self.ai_regional_order(content, id);

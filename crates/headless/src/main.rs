@@ -146,7 +146,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nincome-tax-bands | income-tax-report | preview-income-tax STANDARD_RATE\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | public-report COUNTRY | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nincome-tax-bands | income-tax-report | preview-income-tax STANDARD_RATE\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\ncash-retention | preview-retention MILLIONS DAYS | retain-cash MILLIONS DAYS | release-cash ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | public-report COUNTRY | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if content.finance.as_ref().is_some_and(|rules|rules.maturity_days.is_some()) {
                         println!("The five-year objective also requires zero overdue loan principal; inspect finance for contractual dates.");
@@ -760,6 +760,7 @@ fn play(
                             |days| format!("{days} fully covered days")
                         )
                     );
+                    if world.player_country().cash_management.as_ref().is_some_and(|s|s.active().is_some()) { println!("Retained cash {}m excluded. Projection holds retention fixed; future capture and automatic release are not simulated.",world.player_country().retained_cash().0); }
                     if content.finance.as_ref().is_some_and(|rules|rules.maturity_days.is_some()) {
                         println!("Dated principal within horizon: {}m; conditional total {}m. Subtracts full due principal (existing overdue principal from tomorrow); recurring interest is held fixed after repayment, conservatively overstating it. No automatic refinancing.",plan.principal_due.0,plan.conditional_principal_due.0);
                     }
@@ -784,6 +785,18 @@ fn play(
                         );
                     }
                 }
+                "cash-retention" => {
+                    let c = world.player_country();
+                    let state = c.cash_management.as_ref().ok_or("This campaign has no temporary cash retention")?;
+                    println!("Actual retained cash {}m; spendable {}m; target is not money. Deferring operating payments creates arrears; matured principal remains due. Release before funding a normal decision.", c.retained_cash().0, c.available_cash().0);
+                    println!("{}", serde_json::to_string_pretty(state).map_err(|e|e.to_string())?);
+                }
+                "preview-retention" => {
+                    let preview = world.preview_cash_hold(content, &world.player, Money(number(words.get(1))?), number(words.get(2))?)?;
+                    println!("Target {}m; actual protected now {}m; approval -{}; expiry {}; reuse {}. Unfilled target is not cash. Wages, welfare and interest may become arrears; matured principal may remain unpaid. Local claims and project reservations remain protected.", preview.target.0, preview.retained_now.0, preview.approval_cost, date(preview.expiry_day), date(preview.next_allowed_day));
+                }
+                "retain-cash" => world.issue(content, Action::HoldCash { target: Money(number(words.get(1))?), days: number(words.get(2))? })?,
+                "release-cash" => world.issue(content, Action::ReleaseCash { request: CashHoldId(number(words.get(1))?) })?,
                 "finance" => {
                     if let Some(financing) = &world.player_country().financing {
                         println!("Borrowing authority · pending funds are not treasury cash");

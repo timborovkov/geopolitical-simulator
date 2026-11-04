@@ -114,6 +114,8 @@ pub struct Observation {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Country {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cash_management: Option<CashManagement>,
     pub id: CountryId,
     pub population: Population,
     pub accounts: Accounts,
@@ -177,6 +179,13 @@ pub struct Country {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
+    HoldCash {
+        target: Money,
+        days: u32,
+    },
+    ReleaseCash {
+        request: CashHoldId,
+    },
     ProposeBudget {
         year: u32,
         targets: FiscalTargets,
@@ -458,6 +467,10 @@ impl World {
                             .constitutions
                             .as_ref()
                             .map(|_| Constitution::new(d.regime.clone(), start_day)),
+                        cash_management: content
+                            .cash_management
+                            .as_ref()
+                            .map(|_| CashManagement::default()),
                         financing: content
                             .finance
                             .as_ref()
@@ -603,6 +616,13 @@ impl World {
         for (index, entry) in self.journal.iter().enumerate() {
             let command = &entry.command;
             let valid_action = match &command.action {
+                Action::HoldCash { target, days } => content
+                    .cash_management
+                    .as_ref()
+                    .is_some_and(|r| target.0 > 0 && (1..=r.max_days).contains(days)),
+                Action::ReleaseCash { request } => {
+                    content.cash_management.is_some() && request.0 > 0 && request.0 < command.id
+                }
                 Action::ProposeBudget { year, targets } => {
                     content.fiscal_plans.is_some()
                         && (2000..=2099).contains(year)
@@ -794,6 +814,7 @@ impl World {
                 (Some(financing), Some(_)) => financing.validate(self, content, id)?,
                 _ => return Err("Country financing differs from campaign rules/content".into()),
             }
+            self.validate_cash_management(content, id)?;
             self.validate_income_taxes(content, id)?;
             self.validate_fiscal_plans(content, id)?;
             self.validate_commitments(content, id)?;

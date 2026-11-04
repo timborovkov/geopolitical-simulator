@@ -42,6 +42,13 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, amount: i64, chart: &
         "Uncommitted cash {}m · current no-shock balance {:+}m/day.",
         outlook.available_cash.0, outlook.daily_balance.0
     ));
+    if country
+        .cash_management
+        .as_ref()
+        .is_some_and(|s| s.active().is_some())
+    {
+        ui.colored_label(Color32::LIGHT_YELLOW, format!("Temporary retention: {}m actual cash excluded above. This comparison holds that protection constant; it does not simulate future capture or automatic release. Inspect the retention controls before using this forecast.", country.retained_cash().0));
+    }
     match outlook.covered_days {
         Some(days) => {
             ui.colored_label(if days < 30 { Color32::LIGHT_YELLOW } else { Color32::LIGHT_GRAY }, format!("Available cash covers {days} full days of this deficit. Pending borrowing is excluded."));

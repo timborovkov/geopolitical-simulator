@@ -2,6 +2,7 @@
 mod budget;
 mod cabinet;
 mod calendar;
+mod cash_management;
 mod commitments;
 mod constitution;
 mod content;
@@ -27,6 +28,7 @@ mod units;
 pub use budget::*;
 pub use cabinet::*;
 pub use calendar::*;
+pub use cash_management::*;
 pub use commitments::*;
 pub use constitution::*;
 pub use content::*;

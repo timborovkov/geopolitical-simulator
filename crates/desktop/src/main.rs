@@ -2,6 +2,7 @@ mod advance;
 mod analysis;
 mod briefing;
 mod cabinet;
+mod cash_management;
 mod cashflows;
 mod charts;
 mod commitments;
@@ -60,6 +61,7 @@ struct GameApp {
     pause_alerts: bool,
     save_path: String,
     money: i64,
+    cash_management: cash_management::Panel,
     funding_chart: charts::Chart,
     constitution_panel: constitutions::Panel,
     commitment_panel: commitments::Panel,
@@ -132,6 +134,7 @@ impl GameApp {
             pause_alerts: true,
             save_path,
             money: 1000,
+            cash_management: cash_management::Panel::default(),
             funding_chart: charts::Chart::default(),
             constitution_panel: constitutions::Panel::default(),
             commitment_panel: commitments::Panel::default(),
@@ -1340,9 +1343,10 @@ impl GameApp {
             self.value = c.tax;
             self.tab = Tab::Policies;
         }
+        let cash_action = self.cash_management.show(ui, &self.content, w);
         let budget_action = self.fiscal_panel.show(ui, &self.content, w);
         let lending_action = financing::show(ui, &self.content, w, &mut self.money);
-        let mut finance_action = budget_action.or(lending_action);
+        let mut finance_action = cash_action.or(budget_action).or(lending_action);
         if self.content.finance.is_none() {
             ui.horizontal_wrapped(|ui| {
                 ui.label("Principal (m)");

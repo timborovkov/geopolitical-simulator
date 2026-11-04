@@ -469,6 +469,16 @@ def build_debt_maturities():
     return pack
 
 
+def build_cash_management():
+    pack = build_debt_maturities()
+    pack.update(schema=16, rules=16, id="synthetic-cash-management-v16", name="Fictional temporary cash retention")
+    source = "authored-temporary-cash-retention-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model", description="Original bounded temporary protection of actual national cash for a future decision. Deferring operating payments creates arrears; unpaid principal remains debt. This is not a historical cash-management or legal-priority claim."))
+    pack["cash_management"] = dict(max_target_bps=100, max_days=90, cooldown_days=90, approval_cost=3, source=source, source_version="authored-retention-v1")
+    pack["description"] += " Temporary cash retention protects only actual national cash after capital/local reservations, up to 1% opening GDP for at most 90 days. Approval falls by three points; a 90-day reuse cooldown applies from creation. Release, expiry or government change ends protection without cancelling any obligation or granting spending authority."
+    return pack
+
+
 def build_debt_starter():
     pack = build_fiscal_ai_starter()
     pack.update(schema=15, rules=15, id="initial-2000-debt-maturities-v15", name="A New Century · dated loan principal")
@@ -497,6 +507,7 @@ def main():
                            ("synthetic-income-bands-test.json", build_income_bands()),
                            ("synthetic-national-fiscal-ai-test.json", build_fiscal_ai()),
                            ("synthetic-debt-maturities-test.json", build_debt_maturities()),
+                           ("synthetic-cash-management-test.json", build_cash_management()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),
