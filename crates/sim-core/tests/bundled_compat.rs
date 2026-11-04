@@ -73,7 +73,7 @@ fn electoral_starter_preserves_prior_country_policy_and_reference_data() {
 #[test]
 fn bundled_recovery_selects_exact_pack_and_preserves_converted_backup_bytes() {
     let classic = Content::classic_bundled().unwrap();
-    let current = Content::bundled().unwrap();
+    let current = Content::observed_bundled().unwrap();
     let player = CountryId("GBR".into());
     let mut older = World::new(&classic, player.clone(), 17).unwrap();
     older
@@ -159,7 +159,7 @@ fn preserved_market_pack_replays_and_recovers_without_financing_migration() {
     let mut original = World::new(&market, CountryId("GBR".into()), 2000).unwrap();
     original.advance(&market, 360).unwrap();
     assert_eq!(original.hash(), 0x8ef1c8a84552a107);
-    let current = Content::bundled().unwrap();
+    let current = Content::observed_bundled().unwrap();
     let mut newer = World::new(&current, original.player.clone(), 42).unwrap();
     newer
         .issue(
@@ -211,7 +211,7 @@ fn preserved_financing_pack_keeps_its_golden_and_pending_loan_when_restored_from
             },
         )
         .unwrap();
-    let current = Content::bundled().unwrap();
+    let current = Content::observed_bundled().unwrap();
     let current_world = World::new(&current, original.player.clone(), 42).unwrap();
     let dir = std::env::temp_dir().join(format!("geosim-finance-recovery-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
@@ -272,7 +272,7 @@ fn earlier_constitutional_pending_request_recovers_without_policy_lifecycle_migr
             },
         )
         .unwrap();
-    let current = Content::bundled().unwrap();
+    let current = Content::observed_bundled().unwrap();
     let current_world = World::new(&current, pending.player.clone(), 42).unwrap();
     let dir = std::env::temp_dir().join(format!(
         "geosim-constitution-recovery-{}",
@@ -345,7 +345,7 @@ fn earlier_commitment_amendment_recovers_without_new_preparation_delays() {
         )
         .unwrap();
     assert_eq!(pending.hash(), 0xbb5fb19faa310498);
-    let current = Content::bundled().unwrap();
+    let current = Content::observed_bundled().unwrap();
     let current_world = World::new(&current, pending.player.clone(), 42).unwrap();
     let dir =
         std::env::temp_dir().join(format!("geosim-commitment-recovery-{}", std::process::id()));
@@ -400,7 +400,7 @@ fn earlier_pending_minister_recovers_without_electoral_rules_or_changed_consent(
         )
         .unwrap();
     assert_eq!(pending.hash(), 0x27b6cdc4d32c00b3);
-    let current = Content::bundled().unwrap();
+    let current = Content::observed_bundled().unwrap();
     let world = World::new(&current, pending.player.clone(), 42).unwrap();
     let dir = std::env::temp_dir().join(format!("geosim-cabinet-recovery-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
@@ -433,7 +433,7 @@ fn earlier_pending_minister_recovers_without_electoral_rules_or_changed_consent(
 
 #[test]
 fn default_early_poll_preserves_a_retained_cabinet_and_its_commissioned_programme() {
-    let content = Content::bundled().unwrap();
+    let content = Content::observed_bundled().unwrap();
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     world
         .issue(
@@ -497,7 +497,7 @@ fn default_early_poll_preserves_a_retained_cabinet_and_its_commissioned_programm
 
 #[test]
 fn expanded_observations_keep_the_same_rules_and_political_calibration_with_explicit_missing_gdp() {
-    let current = Content::bundled().unwrap();
+    let current = Content::observed_bundled().unwrap();
     let earlier = Content::electoral_bundled().unwrap();
     assert_eq!(current.rules, earlier.rules);
     assert_ne!(current.hash(), earlier.hash());
@@ -567,7 +567,7 @@ fn earlier_electoral_roster_recovers_its_pending_poll_without_recalibrating_othe
         .unwrap();
     pending.issue(&earlier, Action::RequestElection).unwrap();
     assert_eq!(pending.hash(), 0x2b7a4b18ebe0fe40);
-    let current = Content::bundled().unwrap();
+    let current = Content::observed_bundled().unwrap();
     let world = World::new(&current, pending.player.clone(), 42).unwrap();
     let dir = std::env::temp_dir().join(format!(
         "geosim-electoral-roster-recovery-{}",

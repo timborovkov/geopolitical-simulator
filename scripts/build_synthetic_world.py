@@ -332,6 +332,33 @@ def build_observed_starter():
     return apply_manifest(pack, manifest)
 
 
+def build_territorial_starter():
+    pack = build_observed_starter()
+    pack.update(schema=10, rules=10, id="initial-2000-territorial-v10", name="A New Century · territorial government")
+    pack["description"] += " National/local budget charters and territorial procedures are authored gameplay abstractions. The two disjoint budget jurisdictions per country are population partitions, not historical administrative units, mapped boundaries or regional electorates. Local purchase levels, collected-tax shares, autonomy templates, compensation and consent proxies are original model assumptions."
+    source = "authored-territorial-government-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model",
+                                description="Original two-jurisdiction budget partitions, local purchasing levels, autonomy/tax-share templates, grant consent, lawful compensation and contested territorial/requisition costs. No historical territorial law, administrative geography, regional voting or local fiscal calibration is claimed."))
+    federal = {"USA", "BRA", "DEU", "IND", "RUS"}
+    charters = []
+    for country in pack["countries"]:
+        code = country["id"]
+        form = "federation" if code in federal else "decentralized_unitary" if country["regime"] in {"parliamentary","presidential","semi_presidential"} else "delegated_unitary"
+        pool = {"federation":3000,"decentralized_unitary":2000,"delegated_unitary":1000}[form]
+        charters.append(dict(country=code, form=form,
+            regions=[dict(id=f"region:{code}:{key}", authority=f"authority:{code}:{key}",
+                          name=f"Authored {code} {label} budget authority", tier=tier,
+                          population_share_bps=population, tax_entitlement_bps=pool*population//10000,
+                          autonomous_services=form=="federation" or form=="decentralized_unitary" and key=="regional", service_level=2)
+                     for key,label,tier,population in [("regional","regional","region",6000),("municipal","municipal","municipality",4000)]]))
+    pack["subnational"] = build_subnational()["subnational"]
+    pack["subnational"].update(charters=charters, source=source, source_version="starter-budget-jurisdictions-v1")
+    pack["territorial"] = build_territorial()["territorial"]
+    pack["territorial"].update(source=source, source_version="starter-territorial-procedures-v1",
+                               ai_targets={charter["country"]:charter["form"] for charter in charters})
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -351,6 +378,7 @@ def main():
                            ("initial-2000-commitments.json", build_commitment_starter()),
                            ("initial-2000-elections.json", build_election_starter()),
                            ("initial-2000-observed.json", build_observed_starter()),
+                           ("initial-2000-territorial.json", build_territorial_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

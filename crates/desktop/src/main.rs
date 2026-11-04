@@ -2049,7 +2049,7 @@ mod interface_tests {
         let expected_new = setup.prepare().unwrap().hash();
         app.begin_new_campaign(&setup, true).unwrap();
         assert_eq!(app.world.as_ref().unwrap().hash(), expected_new);
-        assert_eq!(app.content.rules, 8);
+        assert_eq!(app.content.rules, 10);
         assert_eq!(app.selected.0, "CHN");
         assert_eq!(app.speed, 0);
         let archive = dir.join("current.json.before-new-campaign-1");

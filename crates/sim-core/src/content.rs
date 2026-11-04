@@ -146,6 +146,10 @@ pub struct Content {
 }
 impl Content {
     pub fn bundled() -> Result<Self, String> {
+        Self::from_json(include_str!("../../../data/initial-2000-territorial.json"))
+    }
+    /// Preserved rules-8 roster before authored territorial government.
+    pub fn observed_bundled() -> Result<Self, String> {
         Self::from_json(include_str!("../../../data/initial-2000-observed.json"))
     }
     /// Preserved rules-8 roster before expanded population/GDP observations.
@@ -181,6 +185,7 @@ impl Content {
     pub fn bundled_for_hash(hash: u64) -> Result<Self, String> {
         for pack in [
             Self::bundled()?,
+            Self::observed_bundled()?,
             Self::electoral_bundled()?,
             Self::cabinet_bundled()?,
             Self::commitment_bundled()?,
