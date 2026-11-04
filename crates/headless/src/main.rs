@@ -136,7 +136,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if developer {
                         println!(
@@ -265,6 +265,73 @@ fn play(
                     content,
                     Action::Borrow {
                         amount: Money(number(words.get(1))?),
+                    },
+                )?,
+                "regions" => {
+                    let rules = content
+                        .subnational
+                        .as_ref()
+                        .ok_or("This campaign has no subnational mandate workflow")?;
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(
+                            rules
+                                .charter(&world.player)
+                                .ok_or("Missing territorial charter")?
+                        )
+                        .map_err(|error| error.to_string())?
+                    );
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(
+                            world
+                                .player_country()
+                                .subnational
+                                .as_ref()
+                                .ok_or("Missing local accounts")?
+                        )
+                        .map_err(|error| error.to_string())?
+                    );
+                    println!(
+                        "Consolidated public cash {}m; protected local funds/escrow {}m; national uncommitted cash {}m. National government cannot reclaim accepted grants or order autonomous base service levels.",
+                        world.player_country().accounts.treasury.0,
+                        world.player_country().regional_protected_cash().0,
+                        world.player_country().available_cash().0
+                    );
+                }
+                "preview-region-grant" | "region-grant" => {
+                    let region = RegionId(words.get(1).ok_or("Missing region ID")?.to_string());
+                    let kind = RegionalOrderKind::Grant {
+                        boost: number(words.get(2))?,
+                        days: number(words.get(3))?,
+                    };
+                    if words[0] == "preview-region-grant" {
+                        println!(
+                            "{:?}",
+                            world.preview_regional_order(content, &world.player, &region, &kind)?
+                        );
+                    } else {
+                        world.issue(content, Action::RegionalOrder { region, kind })?;
+                    }
+                }
+                "preview-region-services" | "region-services" => {
+                    let region = RegionId(words.get(1).ok_or("Missing region ID")?.to_string());
+                    let kind = RegionalOrderKind::Directive {
+                        level: number(words.get(2))?,
+                    };
+                    if words[0] == "preview-region-services" {
+                        println!(
+                            "{:?}",
+                            world.preview_regional_order(content, &world.player, &region, &kind)?
+                        );
+                    } else {
+                        world.issue(content, Action::RegionalOrder { region, kind })?;
+                    }
+                }
+                "cancel-region" => world.issue(
+                    content,
+                    Action::CancelRegionalOrder {
+                        order: RegionalOrderId(number(words.get(1))?),
                     },
                 )?,
                 "elections" => {

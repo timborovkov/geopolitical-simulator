@@ -29,6 +29,8 @@ pub struct PublicCountryReport {
     pub ministers: Option<Vec<PublishedMinister>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub electoral_authority: Option<PublicElectionReport>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub regional_authorities: Option<Vec<PublishedRegionalAuthority>>,
     pub population: Population,
     pub opening_gdp: Money,
     pub initial_data_quality: String,
@@ -81,6 +83,7 @@ impl World {
                 .map_or_else(|| d.office.clone(), |template| template.title.clone()),
             ministers: self.published_ministers(content, id),
             electoral_authority: self.published_election(content, id),
+            regional_authorities: self.published_regions(content, id),
             population: c.population,
             opening_gdp: Money(d.gdp),
             initial_data_quality: d.quality.clone(),

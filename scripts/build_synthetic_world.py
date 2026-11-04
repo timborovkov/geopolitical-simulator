@@ -209,6 +209,24 @@ def build_elections():
     return pack
 
 
+def build_subnational():
+    pack = build_elections()
+    pack.update(schema=9, rules=9, id="synthetic-subnational-v9", name="Fictional territorial charters",
+                description="Authored non-overlapping budget jurisdictions, tax entitlements and autonomous/delegated service powers. No historical regional geography, local tax rates, staffing or physical service capacity is claimed. Protected local public subaccounts remain part of consolidated treasury. Local base purchases are limited by available local funds; funded supplements retain their own paid terms.")
+    charters = []
+    for country in pack["countries"]:
+        code = country["id"]
+        charters.append(dict(country=code, form={"AUR":"decentralized_unitary", "BOR":"federation", "COR":"delegated_unitary"}[code],
+            regions=[dict(id=f"region:{code}:{key}", authority=f"authority:{code}:{key}", name=f"Fictional {code} {name}",
+                          tier="autonomous_jurisdiction" if key=="province" and code!="COR" else "municipality" if key=="city" else "region",
+                          population_share_bps=population, tax_entitlement_bps=tax, autonomous_services=code=="BOR" or code=="AUR" and key=="province", service_level=2)
+                     for key,name,population,tax in [("province","provincial authority",6000,1500),("city","municipal authority",4000,500)]]))
+    pack["subnational"] = dict(charters=charters, grant_review_days=14, cooldown_days=90,
+                               administration_cost_bps=2, absorption_days=180,
+                               source="synthetic-original", source_version="authored-territorial-charters-v1")
+    return pack
+
+
 def build_market_starter():
     pack = json.loads((ROOT / "data/initial-2000.json").read_text(encoding="utf-8"))
     pack.update(schema=3, rules=3, id="initial-2000-markets-v3",
@@ -309,6 +327,7 @@ def main():
                            ("synthetic-commitment-test.json", build_commitments()),
                            ("synthetic-cabinet-test.json", build_cabinet()),
                            ("synthetic-election-test.json", build_elections()),
+                           ("synthetic-subnational-test.json", build_subnational()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

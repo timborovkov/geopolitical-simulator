@@ -97,9 +97,8 @@ fn play(
     let review_day = content.review_day()?;
     while world.day < review_day {
         let c = world.player_country();
-        let forecast = c.forecast(definition);
-        let gap = forecast.daily_spending.0 + forecast.daily_interest.0 - forecast.daily_revenue.0;
-        if c.accounts.treasury.0 - c.committed_cash.0 < gap.max(1) * 90 {
+        let gap = -world.funding_outlook(content, 0, None)?.daily_balance.0;
+        if c.available_cash().0 < gap.max(1) * 90 {
             let amount = Money(definition.gdp / 10);
             if c.debt.0 + amount.0 <= definition.gdp * 3 / 2
                 && c.accounts.external.0 >= amount.0
@@ -140,9 +139,7 @@ fn play(
             }
         }
         let c = world.player_country();
-        if c.accounts.treasury.0 - c.committed_cash.0 > definition.gdp / 8
-            && c.debt.0 > definition.gdp / 5
-        {
+        if c.available_cash().0 > definition.gdp / 8 && c.debt.0 > definition.gdp / 5 {
             let amount = Money((definition.gdp / 20).min(c.debt.0));
             world.issue(content, Action::Repay { amount })?;
         }

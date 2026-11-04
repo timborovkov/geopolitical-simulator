@@ -256,7 +256,7 @@ impl World {
                 / 10000)
                 .max(1),
         );
-        if fee.0 > c.accounts.treasury.0 - c.committed_cash.0 {
+        if fee.0 > c.available_cash().0 {
             return Err("Appointment administration requires uncommitted treasury".into());
         }
         let decision_day = self
@@ -360,7 +360,7 @@ impl World {
         let fee = Money(
             (content.country(id).expect("country").gdp * rules.dismissal_cost_bps / 10000).max(1),
         );
-        if fee.0 > c.accounts.treasury.0 - c.committed_cash.0 {
+        if fee.0 > c.available_cash().0 {
             return Err("Dismissal administration requires uncommitted treasury".into());
         }
         Ok(fee)

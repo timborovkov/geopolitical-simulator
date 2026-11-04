@@ -404,7 +404,7 @@ impl World {
         let cost = Money(
             (content.country(id).ok_or("Missing country")?.gdp * route.cost_bps / 10000).max(1),
         );
-        if country.accounts.treasury.0 - country.committed_cash.0 < cost.0 {
+        if country.available_cash().0 < cost.0 {
             return Err(format!(
                 "Constitutional transition requires {}m of uncommitted cash",
                 cost.0

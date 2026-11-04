@@ -164,9 +164,18 @@ pub struct Country {
     pub cabinet: Option<Cabinet>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub electoral_authority: Option<ElectoralAuthority>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subnational: Option<SubnationalState>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
+    RegionalOrder {
+        region: RegionId,
+        kind: RegionalOrderKind,
+    },
+    CancelRegionalOrder {
+        order: RegionalOrderId,
+    },
     RequestElection,
     WithdrawElectionRequest {
         request: ElectionRequestId,
@@ -385,6 +394,9 @@ impl World {
                             .cabinet
                             .as_ref()
                             .map(|rules| Cabinet::new(rules, &d.id, start_day)),
+                        subnational: content.subnational.as_ref().map(|rules| {
+                            SubnationalState::new(rules.charter(&d.id).expect("charter"), start_day)
+                        }),
                         electoral_authority: content.elections.as_ref().map(|rules| {
                             ElectoralAuthority::new(rules, d.regime.clone(), start_day)
                         }),
@@ -485,9 +497,7 @@ impl World {
     ) -> i64 {
         let c = self.countries.get_mut(country).expect("known country");
         let requested = if from == Account::Treasury {
-            amount
-                .max(0)
-                .min(c.accounts.treasury.0 - c.committed_cash.0)
+            amount.max(0).min(c.available_cash().0)
         } else {
             amount
         };
@@ -541,6 +551,19 @@ impl World {
         for (index, entry) in self.journal.iter().enumerate() {
             let command = &entry.command;
             let valid_action = match &command.action {
+                Action::RegionalOrder { region, .. } => content
+                    .subnational
+                    .as_ref()
+                    .is_some_and(|rules| rules.mandate(&command.issuer, region).is_some()),
+                Action::CancelRegionalOrder { order } => {
+                    content.subnational.is_some()
+                        && order.0 > 0
+                        && order.0 < command.id
+                        && self.journal.get(order.0 as usize - 1).is_some_and(|entry| {
+                            entry.command.issuer == command.issuer
+                                && matches!(entry.command.action, Action::RegionalOrder { .. })
+                        })
+                }
                 Action::RequestElection => content.elections.is_some(),
                 Action::WithdrawElectionRequest { request } => {
                     content.elections.is_some()
@@ -672,6 +695,7 @@ impl World {
             self.validate_commitments(content, id)?;
             self.validate_cabinet(content, id)?;
             self.validate_electoral_authority(content, id)?;
+            self.validate_subnational(content, id)?;
             if id != &c.id
                 || c.accounts.checked_total() != Some(c.opening_money.0)
                 || c.opening_money.0 != d.gdp / 20 + d.gdp / 3 + d.gdp / 2 + d.gdp * 3

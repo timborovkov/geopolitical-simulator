@@ -96,7 +96,8 @@ impl Country {
             daily_spending: Money(
                 daily * i64::from(self.services) / 100
                     + daily * i64::from(self.welfare) / 100
-                    + maintenance,
+                    + maintenance
+                    + self.regional_planned_spending(d),
             ),
             daily_interest: Money((self.debt.0 * 4 / 100 / 365).max(i64::from(self.debt.0 > 0))),
         }

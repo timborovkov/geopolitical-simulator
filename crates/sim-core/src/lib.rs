@@ -18,6 +18,7 @@ mod model;
 mod outlook;
 pub mod persistence;
 mod rules;
+mod subnational;
 mod units;
 pub use budget::*;
 pub use cabinet::*;
@@ -44,3 +45,5 @@ pub fn stable_hash(bytes: &[u8]) -> u64 {
         (h ^ u64::from(*b)).wrapping_mul(0x100000001b3)
     })
 }
+
+pub use subnational::*;

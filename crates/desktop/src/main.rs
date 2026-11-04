@@ -16,6 +16,7 @@ mod map;
 mod markets;
 mod new_game;
 mod settings;
+mod subnational;
 use eframe::egui::{self, Color32, RichText, Stroke, Vec2};
 use sim_core::{persistence, *};
 use std::{
@@ -59,6 +60,7 @@ struct GameApp {
     constitution_panel: constitutions::Panel,
     commitment_panel: commitments::Panel,
     cabinet_panel: cabinet::Panel,
+    subnational_panel: subnational::Panel,
     sort_gdp: bool,
     show_ledger: bool,
     recovery: Vec<persistence::RecoveryCandidate>,
@@ -127,6 +129,7 @@ impl GameApp {
             constitution_panel: constitutions::Panel::default(),
             commitment_panel: commitments::Panel::default(),
             cabinet_panel: cabinet::Panel::default(),
+            subnational_panel: subnational::Panel::default(),
             sort_gdp: false,
             show_ledger: false,
             recovery: Vec::new(),
@@ -289,6 +292,7 @@ impl GameApp {
                     6 => "Policy-lifecycle campaign loaded. Simulation paused.",
                     7 => "Ministerial-appointment campaign loaded. Simulation paused.",
                     8 => "Electoral-authority campaign loaded. Simulation paused.",
+                    9 => "Subnational-mandate campaign loaded. Simulation paused.",
                     _ => "Campaign loaded. Simulation paused.",
                 }
                 .into();
@@ -763,8 +767,16 @@ impl GameApp {
             c.report.energy_coverage,
             c.report.food_coverage,
             c.tax,
-            c.accounts.treasury.0 - c.committed_cash.0,
-            c.report.spending.0 + c.report.interest.0 + c.report.unpaid.0 - c.report.revenue.0,
+            c.available_cash().0,
+            c.report.spending.0 + c.report.interest.0 + c.report.unpaid.0 - c.report.revenue.0
+                + c.subnational.as_ref().map_or(0, |state| {
+                    state
+                        .regions
+                        .iter()
+                        .filter_map(|region| region.last.as_ref())
+                        .map(|last| last.tax_receipts.0 - last.paid_base.0 - last.paid_supplement.0)
+                        .sum::<i64>()
+                }),
         );
         let rules = world
             .governing_rules(&self.content, &world.player)
@@ -889,6 +901,21 @@ impl GameApp {
                 ));
             }
         }
+        if let Some(authorities) = &report.regional_authorities {
+            for authority in authorities {
+                ui.label(format!(
+                    "{} · {} · base purchasing level {} · {}",
+                    authority.name,
+                    subnational::tier(&authority.tier),
+                    authority.service_level,
+                    if authority.autonomous_services {
+                        "Autonomous service powers"
+                    } else {
+                        "Delegated service powers"
+                    }
+                ));
+            }
+        }
         if let Some(ministers) = &report.ministers {
             for minister in ministers {
                 ui.label(format!(
@@ -1009,8 +1036,7 @@ impl GameApp {
                     self.policy = "coalition".into();
                     self.value = self.content.policy("coalition").expect("policy").min;
                 }
-                if (definition.gdp * p.cost_bps / 10000).max(1)
-                    > c.accounts.treasury.0 - c.committed_cash.0
+                if (definition.gdp * p.cost_bps / 10000).max(1) > c.available_cash().0
                     && ui.button("Review treasury and financing").clicked()
                 {
                     self.tab = Tab::Treasury;
@@ -1224,17 +1250,25 @@ impl GameApp {
             });
         }
         ui.separator();
+        if c.subnational.is_some() {
+            ui.label("Public cash and execution consolidate national and local accounts. National availability excludes regional entitlements, accepted local grants and pending grant escrow.");
+            ui.small("Frozen forecasts project current purchasing rates; regional grant term records show their finite end dates separately. The funding outlook uses national cash flow after local tax entitlements.");
+        }
         egui::Grid::new("accounts")
             .striped(true)
             .min_col_width(180.0)
             .show(ui, |ui| {
                 for (name, value) in [
-                    ("Treasury cash", c.accounts.treasury.0),
-                    ("Reserved policy capital", c.committed_cash.0),
                     (
-                        "Available treasury",
-                        c.accounts.treasury.0 - c.committed_cash.0,
+                        if c.subnational.is_some() {
+                            "Consolidated public cash"
+                        } else {
+                            "Treasury cash"
+                        },
+                        c.accounts.treasury.0,
                     ),
+                    ("Reserved policy capital", c.committed_cash.0),
+                    ("Available treasury", c.available_cash().0),
                     ("Household cash", c.accounts.households.0),
                     ("Business cash", c.accounts.firms.0),
                     ("External counterpart cash", c.accounts.external.0),
@@ -1250,6 +1284,11 @@ impl GameApp {
                 ] {
                     ui.label(name);
                     ui.monospace(format!("{value}m"));
+                    ui.end_row();
+                }
+                if c.subnational.is_some() {
+                    ui.label("Protected local funds / escrow");
+                    ui.monospace(format!("{}m", c.regional_protected_cash().0));
                     ui.end_row();
                 }
             });
@@ -1416,6 +1455,11 @@ impl GameApp {
         ui.label("Cohort needs, disposable income, taxes, employment and funded services affect opinion. Parliamentary support, elite backing and council backing are distinct. Seat allocation, succession and preferences remain scenario approximations.");
         if let Some(world) = &self.world
             && let Some(action) = self.cabinet_panel.show(ui, &self.content, world)
+        {
+            self.issue(action);
+        }
+        if let Some(world) = &self.world
+            && let Some(action) = self.subnational_panel.show(ui, &self.content, world)
         {
             self.issue(action);
         }

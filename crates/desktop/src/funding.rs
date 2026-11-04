@@ -35,6 +35,9 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, amount: i64, chart: &
         }
     };
     ui.strong("Funding outlook · unchanged-policy scenario");
+    if country.subnational.is_some() {
+        ui.small("National funding excludes protected local funds and grant escrow. This run rate subtracts local tax entitlements; local spending from those protected funds is accounted for separately.");
+    }
     ui.label(format!(
         "Uncommitted cash {}m · current no-shock balance {:+}m/day.",
         outlook.available_cash.0, outlook.daily_balance.0

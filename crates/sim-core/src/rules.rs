@@ -43,7 +43,7 @@ impl World {
             return Err("The proposed level is already in force".into());
         }
         let cost = Money((d.gdp * p.cost_bps / 10000).max(1));
-        let available = c.accounts.treasury.0 - c.committed_cash.0;
+        let available = c.available_cash().0;
         if available < cost.0 {
             return Err(format!(
                 "Insufficient uncommitted treasury: requires {}m; available {available}m",
@@ -125,6 +125,14 @@ impl World {
             .ok_or("Missing country content")?;
         let id = command.issuer.clone();
         match &command.action {
+            Action::RegionalOrder { region, kind } => self.request_regional_order(
+                content,
+                &id,
+                region,
+                kind,
+                RegionalOrderId(command.id),
+            )?,
+            Action::CancelRegionalOrder { order } => self.cancel_regional_order(&id, *order)?,
             Action::RequestElection => {
                 self.request_election(content, &id, ElectionRequestId(command.id))?
             }
@@ -218,10 +226,7 @@ impl World {
             }
             Action::CancelBorrow { request } => self.cancel_borrowing(&id, *request)?,
             Action::Repay { amount } => {
-                if amount.0 <= 0
-                    || amount.0 > c.debt.0
-                    || amount.0 > c.accounts.treasury.0 - c.committed_cash.0
-                {
+                if amount.0 <= 0 || amount.0 > c.debt.0 || amount.0 > c.available_cash().0 {
                     return Err("Repayment must be positive and covered by uncommitted cash and debt principal".into());
                 }
                 self.pay(
@@ -278,6 +283,8 @@ impl World {
                 self.resolve_constitution(content, id);
                 self.sync_electoral_mandate(content, id);
                 self.resolve_election_requests(content, id);
+                self.regional_succession(id);
+                self.resolve_regional_orders(content, id);
                 self.cabinet_succession(id);
                 self.resolve_appointments(content, id);
                 self.resolve_consents(content, id);
@@ -298,6 +305,7 @@ impl World {
                     }
                 }
                 self.sync_electoral_mandate(content, id);
+                self.regional_succession(id);
                 self.cabinet_succession(id);
             }
             if self.day.is_multiple_of(30) {
@@ -529,6 +537,7 @@ impl World {
             self.countries.get_mut(id).expect("country").households[index].tax = Money(paid);
             revenue += paid;
         }
+        let regional_payments = self.settle_subnational(content, id, revenue);
         let c = &self.countries[id];
         let services_due = daily * i64::from(c.services) / 100;
         let welfare_due = daily * i64::from(c.welfare) / 100;
@@ -686,10 +695,13 @@ impl World {
             h.employed.0 = h.working_age.0 * 90 / 100 * paid as u64 / planned.max(1) as u64;
         }
         c.budget.revenue.0 += revenue;
-        c.budget.payments.0 += service_pay + welfare_pay + maintenance + arrears_paid + interest;
+        c.budget.payments.0 +=
+            service_pay + welfare_pay + maintenance + arrears_paid + interest + regional_payments;
         c.report = DailyReport {
             revenue: Money(revenue),
-            spending: Money(service_pay + welfare_pay + maintenance + arrears_paid),
+            spending: Money(
+                service_pay + welfare_pay + maintenance + arrears_paid + regional_payments,
+            ),
             interest: Money(interest),
             unpaid: Money(unpaid),
             wages: Money(wages),
@@ -924,6 +936,7 @@ impl World {
     fn ai_turn(&mut self, content: &Content, id: &CountryId) {
         self.ai_appointments(content, id);
         self.ai_election_request(content, id);
+        self.ai_regional_order(content, id);
         let c = &self.countries[id];
         let d = content.country(id).expect("country");
         let government = self
@@ -961,41 +974,40 @@ impl World {
             }
             return;
         }
-        let candidate =
-            if c.accounts.treasury.0 - c.committed_cash.0 < d.gdp / 100 || c.arrears.0 > 0 {
-                Action::Borrow {
-                    amount: Money(d.gdp / 20),
-                }
+        let candidate = if c.available_cash().0 < d.gdp / 100 || c.arrears.0 > 0 {
+            Action::Borrow {
+                amount: Money(d.gdp / 20),
+            }
+        } else {
+            let policy = if regime.competitive() && c.legislative_support < government.threshold
+                || !regime.competitive()
+                    && (c.elite_support < government.threshold + 5
+                        || c.council_support < government.council_threshold + 10)
+            {
+                "coalition"
+            } else if c.energy_capacity < 110 {
+                "energy"
+            } else if c.food_capacity < 100 {
+                "agriculture"
+            } else if c.administration < 85 {
+                "administration"
+            } else if c.debt.0 > d.gdp / 5 && c.accounts.treasury.0 > d.gdp / 10 {
+                let command = self.command(
+                    id.clone(),
+                    Action::Repay {
+                        amount: Money(d.gdp / 100),
+                    },
+                );
+                let _ = self.apply(content, command, CommandOrigin::Ai);
+                return;
             } else {
-                let policy = if regime.competitive() && c.legislative_support < government.threshold
-                    || !regime.competitive()
-                        && (c.elite_support < government.threshold + 5
-                            || c.council_support < government.council_threshold + 10)
-                {
-                    "coalition"
-                } else if c.energy_capacity < 110 {
-                    "energy"
-                } else if c.food_capacity < 100 {
-                    "agriculture"
-                } else if c.administration < 85 {
-                    "administration"
-                } else if c.debt.0 > d.gdp / 5 && c.accounts.treasury.0 > d.gdp / 10 {
-                    let command = self.command(
-                        id.clone(),
-                        Action::Repay {
-                            amount: Money(d.gdp / 100),
-                        },
-                    );
-                    let _ = self.apply(content, command, CommandOrigin::Ai);
-                    return;
-                } else {
-                    return;
-                };
-                Action::Enact {
-                    policy: policy.into(),
-                    value: 1,
-                }
+                return;
             };
+            Action::Enact {
+                policy: policy.into(),
+                value: 1,
+            }
+        };
         let reason = format!(
             "AI review: chose {candidate:?} to address the highest-ranked financing, support or supply constraint."
         );

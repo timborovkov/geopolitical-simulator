@@ -54,16 +54,16 @@ impl World {
         if !(0..=1_000_000_000_000).contains(&country.debt.0) {
             return Err("Invalid debt for funding outlook".into());
         }
-        let available = country
-            .accounts
-            .treasury
-            .0
-            .checked_sub(country.committed_cash.0)
-            .filter(|cash| *cash >= 0)
-            .ok_or("Invalid available treasury for funding outlook")?;
+        let available = country.available_cash().0;
+        if available < 0 {
+            return Err("Invalid available treasury for funding outlook".into());
+        }
         let forecast = country.forecast(definition);
-        let balance =
-            forecast.daily_revenue.0 - forecast.daily_spending.0 - forecast.daily_interest.0;
+        let balance = forecast.daily_revenue.0
+            - country.regional_tax_entitlement(forecast.daily_revenue.0)
+            - forecast.daily_spending.0
+            + country.regional_planned_spending(definition)
+            - forecast.daily_interest.0;
         let mut additional_interest = 0;
         if let Some(assumption) = loan {
             if assumption.amount.0 <= 0

@@ -153,7 +153,7 @@ impl World {
         let government = self.governing_rules(content, id)?;
         government.check(c, &p.policy, value)?;
         let fee = Money((p.cost.0 * rules.amendment_fee_bps / 10000).max(1));
-        if fee.0 > c.accounts.treasury.0 - c.committed_cash.0 {
+        if fee.0 > c.available_cash().0 {
             return Err("Amendment administration requires uncommitted treasury cash".into());
         }
         let consent_day = self
