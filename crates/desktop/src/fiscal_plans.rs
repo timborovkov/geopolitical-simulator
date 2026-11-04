@@ -55,6 +55,9 @@ impl Panel {
                     }
                     ui.label(format!("Conditional daily forecast (consolidated) after all programmes operate: revenue {}m to {}m; spending {}m to {}m; interest {}m. Opening GDP, current supply/collection and funded purchasing are held fixed; future borrowing and shocks are excluded.",p.baseline_forecast.daily_revenue.0,p.planned_forecast.daily_revenue.0,p.baseline_forecast.daily_spending.0,p.planned_forecast.daily_spending.0,p.planned_forecast.daily_interest.0));
                     ui.label(format!("National daily balance after protected local tax shares: {:+}m to {:+}m. Consolidated flows above include local purchasing; these local funds cannot finance national obligations.",p.baseline_national_balance.0,p.planned_national_balance.0));
+                    if !p.party_preference_feedback.is_empty() {
+                        ui.label(&p.party_preference_feedback);
+                    }
                     if p.planned_national_balance.0 < 0 {
                         ui.colored_label(egui::Color32::LIGHT_YELLOW,"This plan forecasts a recurring national funding gap. Reserved implementation cash does not finance daily spending.");
                     }

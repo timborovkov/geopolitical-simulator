@@ -146,7 +146,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "status | countries | policies | sovereignty [COUNTRY] | technologies [POLICY] | preview POLICY VALUE | plan-policy POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nincome-tax-bands | income-tax-report | preview-income-tax STANDARD_RATE\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\ncash-retention | preview-retention MILLIONS DAYS | retain-cash MILLIONS DAYS | release-cash ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | public-report COUNTRY | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "status | countries | policies | party-preferences [COUNTRY] | party-alignment | sovereignty [COUNTRY] | technologies [POLICY] | preview POLICY VALUE | plan-policy POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nincome-tax-bands | income-tax-report | preview-income-tax STANDARD_RATE\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\ncash-retention | preview-retention MILLIONS DAYS | retain-cash MILLIONS DAYS | release-cash ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | public-report COUNTRY | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if content.finance.as_ref().is_some_and(|rules|rules.maturity_days.is_some()) {
                         println!("The five-year objective also requires zero overdue loan principal; inspect finance for contractual dates.");
@@ -1106,6 +1106,24 @@ fn play(
                             o.needs
                         );
                     }
+                }
+                "party-preferences" => {
+                    let country = CountryId(words.get(1).map_or(world.player.0.as_str(), |value| *value).to_string());
+                    let definition = content.country(&country).ok_or("Unknown country")?;
+                    if let Some(rules) = &content.party_preferences {
+                        println!("Party preference model {}@{}; authored/reference positions, independent of ideology labels.", rules.source, rules.source_version);
+                        for profile in rules.profiles.iter().filter(|p| p.country == country) {
+                            let party = definition.parties.iter().find(|p| p.id == profile.party.0).ok_or("Missing party")?;
+                            println!("{} [{}] · {:?} · {}@{}", party.name, party.id, profile.quality, profile.source, profile.source_version);
+                            for position in &profile.positions { println!("{} · preferred {} · relative importance {}", position.policy, position.preferred.as_ref().map_or_else(|| "Unknown".into(), |range| format!("{}..{}", range.min, range.max)), position.importance); }
+                        }
+                    } else { println!("This pack defines no party policy-preference model."); }
+                }
+                "party-alignment" => {
+                    if let Some(report) = world.party_alignment_for(content, &world.player, &FiscalTargets::current(world.player_country()))? {
+                        println!("{}", serde_json::to_string_pretty(&report).map_err(|e| e.to_string())?);
+                        println!("Only operating policy levels affect the backing target; held backing follows monthly political reviews and other opinion/funding effects.");
+                    } else { println!("This campaign has no party policy-preference model."); }
                 }
                 "parties" => {
                     let d = content.country(&world.player).expect("player");

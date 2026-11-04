@@ -101,6 +101,18 @@ impl World {
         {
             return Err("Implementation would exceed the campaign calendar".into());
         }
+        let party_feedback = if FiscalTargets::is_fiscal(policy) {
+            let mut targets = FiscalTargets::current(c);
+            match policy {
+                "income_tax" => targets.income_tax = value,
+                "services" => targets.services = value,
+                "welfare" => targets.welfare = value,
+                _ => unreachable!(),
+            }
+            self.party_preference_forecast_text(content, country, &targets)?
+        } else {
+            String::new()
+        };
         Ok(PolicyPreview {
             cost,
             delay: consent_delay + p.days + (100 - c.administration) as u32 / 2 + preparation,
@@ -118,13 +130,14 @@ impl World {
                 } else {
                     "current collection"
                 }
-            ) + &if content.cabinet.is_some() {
-                format!(
-                    " Portfolio preparation adds {preparation} days. An approved minister can reduce preparation for future proposals; existing deadlines are retained."
-                )
-            } else {
-                String::new()
-            },
+            ) + &party_feedback
+                + &if content.cabinet.is_some() {
+                    format!(
+                        " Portfolio preparation adds {preparation} days. An approved minister can reduce preparation for future proposals; existing deadlines are retained."
+                    )
+                } else {
+                    String::new()
+                },
         })
     }
     pub(crate) fn apply(
@@ -960,6 +973,11 @@ impl World {
             .find(|h| h.id == "public")
             .expect("public")
             .approval;
+        let party_penalty = content.party_preferences.as_ref().map_or(0, |rules| {
+            rules
+                .operating_penalty(content, d, c, &government.route)
+                .expect("validated party preferences and operating fiscal settings")
+        });
         let council_target = match government.route {
             DecisionRoute::PartyCouncil => (public + c.administration) / 2,
             DecisionRoute::RoyalDecree => (owners + public) / 2,
@@ -967,12 +985,24 @@ impl World {
         } - if c.arrears.0 > 0 { 20 } else { 0 };
         c.council_support =
             (c.council_support + (council_target - c.council_support).signum() * 2).clamp(0, 100);
-        let elite_target =
-            (40 + owners / 3 + public / 4 - if c.arrears.0 > 0 { 30 } else { 0 }).clamp(5, 95);
+        let elite_target = (40 + owners / 3 + public / 4
+            - if c.arrears.0 > 0 { 30 } else { 0 }
+            - if government.route == DecisionRoute::PartyCouncil {
+                party_penalty
+            } else {
+                0
+            })
+        .clamp(5, 95);
         c.elite_support += (elite_target - c.elite_support).signum();
         if regime.competitive() && self.day.is_multiple_of(30) {
             let base: i32 = c.coalition.iter().map(|id| i32::from(c.seats[id])).sum();
-            let target = (base + (c.approval - 50) / 5).clamp(0, 100);
+            let target = (base + (c.approval - 50) / 5
+                - if government.route == DecisionRoute::Legislature {
+                    party_penalty
+                } else {
+                    0
+                })
+            .clamp(0, 100);
             c.legislative_support += (target - c.legislative_support).signum();
             c.confidence_crises = if c.legislative_support < government.threshold {
                 c.confidence_crises + 1

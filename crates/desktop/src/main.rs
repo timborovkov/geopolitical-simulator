@@ -19,6 +19,7 @@ mod inspector;
 mod map;
 mod markets;
 mod new_game;
+mod party_preferences;
 mod settings;
 mod sovereignty;
 mod subnational;
@@ -1541,6 +1542,7 @@ impl GameApp {
         }
     }
     fn politics(&mut self, ui: &mut egui::Ui) {
+        party_preferences::show_reference(ui, &self.content, &self.selected);
         if self.foreign_report(ui) {
             return;
         }
@@ -1613,6 +1615,9 @@ impl GameApp {
                 ui.end_row();
             }
         });
+        if let Some(world) = &self.world {
+            party_preferences::show_owned(ui, &self.content, world);
+        }
         if c.is_some()
             && self.content.policy("coalition").is_some()
             && ui.button("Review governing-support agreement").clicked()

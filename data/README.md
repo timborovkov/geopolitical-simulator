@@ -10,7 +10,7 @@ The preserved `initial-2000-debt-maturities.json` uses **content schema 15 / rul
 
 The preserved `initial-2000-fiscal-ai.json` uses content/rules 14 and retains perpetual new loans with national-funding fiscal AI. The income-band (13), fiscal (12), undertaking (11), territorial (10), expanded-observation/electoral (8), cabinet (7), commitment (6), constitutional (5), financing (4), market (3) and classic (2) packs also remain available. All seventeen retain the 15-country political roster, 34 parties/governing bodies, eight opening regime configurations, four household groups per country and seven policies. Territorial models retain thirty authored budget authorities without historical regional geography claims. Both clients embed all seventeen. Saves resolve by exact content hash; `--content FILE` pins a local pack and unknown hashes require their original file.
 
-Rules 2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19 write snapshot formats 3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19/20 respectively; rules 9 is available in the fictional subnational fixture. Classic rules 2 also accept compatible format-2 snapshots. Loading retains the original rules. Version-1 packs/saves remain unsupported.
+Rules 2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19/20 write snapshot formats 3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19/20/21 respectively; rules 9 is available in the fictional subnational fixture. Classic rules 2 also accept compatible format-2 snapshots. Loading retains the original rules. Version-1 packs/saves remain unsupported.
 
 ## Coverage and identity
 
@@ -81,6 +81,14 @@ Rebuild with `python3 scripts/import_hydrology.py --source-dir DIRECTORY`, conta
 `synthetic-test.json` is an independent, entirely authored three-country pack: Aurora Republic, Boreal Union and Coral Crown. Their opening economies and household partitions are equal; decision routes, consent delays and council gates differ. All names, institutions, party bodies, statistics and marker locations are fictional test content. The real-land backdrop supplies no fictional borders or sovereignty. No historical observations or external datasets are used.
 
 `python3 scripts/build_synthetic_world.py` produces the pack deterministically from explicit definitions. `--check` compares the committed output without writing. Both clients accept it through `--content`; the terminal also needs `--country AUR` (or BOR/COR). The recovery example accepts `--content data/synthetic-test.json` and tests the same five-year crisis objective through ordinary commands. Synthetic tests establish rule consistency; they do not establish historical accuracy or real-world calibration.
+
+## Fictional party preferences
+
+`synthetic-party-preferences-test.json` uses content/rules 20 and snapshot format 21. It extends the fictional sovereignty fixture, restoring Boreal's single-party/party-council route to exercise ruling-party leadership alongside Aurora's legislature and Coral's royal council. Every registered party has explicit income-tax, services and welfare positions, relative importance, source/revision and quality; `preferred: null` means unknown. Boreal's second party is unknown on every axis and Coral's second party has unknown welfare preferences. Positions and influence limits use separate `authored-party-policy-preferences-v1` attribution. No historical party preferences are claimed.
+
+For each known axis, distance beyond the preferred interval is divided by the policy's full permitted span. Importance weights combine the three axes; unknown axes contribute no modeled pressure while reducing reported coverage. Legislative sponsors are weighted by current coalition seats; party leadership uses only the current ruling party. The weighted distance scales a separately authored maximum target reduction (0–20 points). Existing monthly drift moves held legislative or elite backing towards its adjusted target. Council support remains independent, and other governing routes have no party-preference penalty. Previews use hypothetical delivered targets; pending declarations do not change operating alignment. Ordinary authority, resources, consent, delivery, paid support and AI commands remain in force.
+
+The default rules-18 roster and all seventeen bundled packs are unchanged. Original fixture content is required on load. Rules 20 may explicitly omit the unrelated sovereignty catalogue, leaving reference geography unknown. Wider social/institutional/regional/foreign-policy preferences, faction and leader positions, dynamic platforms and full legislative voting remain unfinished.
 
 ## Dated identities and bookmarks
 

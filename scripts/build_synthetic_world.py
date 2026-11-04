@@ -1,4 +1,5 @@
 """Rebuild test fixtures and the market starter from committed inputs, without network access."""
+from copy import deepcopy
 import argparse
 import json
 from import_reference_data import apply_manifest
@@ -541,6 +542,28 @@ def build_sovereignty():
     return pack
 
 
+def build_party_preferences():
+    pack = deepcopy(build_sovereignty())
+    pack.update(schema=20, rules=20, id="synthetic-party-preferences-v20", name="Fictional governing-party policy preferences")
+    source = "authored-party-policy-preferences-v1"
+    pack["sources"].append(dict(id=source, quality="authored_synthetic_fixture", description="Original fictional economic policy positions and bounded governing-party alignment pressure. No historical party platforms, roll-call votes, ideology-label bonuses or additional legal powers are asserted."))
+    boreal = next(c for c in pack["countries"] if c["id"] == "BOR")
+    template = next(t for t in pack["constitutions"]["templates"] if t["regime"] == "single_party")
+    boreal.update(regime="single_party", government=deepcopy(template["government"]), office=template["title"])
+    profiles = []
+    for country in pack["countries"]:
+        for party in country["parties"]:
+            governing = party["id"] == country["ruling_party"]
+            ranges = [(24, 30), (7, 11), (3, 6)] if governing else [(10, 18), (4, 8), (0, 3)]
+            unknown = party["id"] == "BOR-2"
+            positions = [dict(policy=policy, importance=importance, preferred=None if unknown or (party["id"] == "COR-2" and policy == "welfare") else dict(min=bounds[0], max=bounds[1])) for policy, importance, bounds in zip(["income_tax", "services", "welfare"], [3, 2, 2], ranges)]
+            profiles.append(dict(country=country["id"], party=party["id"], positions=positions, source=source, source_version="fictional-positions-v1", quality="unknown" if unknown else "authored"))
+    influences = [dict(country=country, legislative_max_penalty=legislative, party_leadership_max_penalty=leadership) for country, legislative, leadership in [("AUR", 20, 0), ("BOR", 20, 15), ("COR", 0, 0)]]
+    pack["party_preferences"] = dict(profiles=profiles, influences=influences, source=source, source_version="fictional-influence-v1")
+    pack["description"] += " Economic preferences use explicit fiscal target ranges and importance weights, independently of ideology labels. Operating policy distance can lower the backing target for a governing coalition or ruling-party leadership, with gradual existing political reviews. Unknown positions create no pressure and remain identified. Aurora uses parliamentary coalition seats; Boreal begins under party-council leadership; Coral's royal route has advisory positions only. Positions grant no cash, votes, consent exemption or extra powers. Other preference dimensions and party organization remain unfinished."
+    return pack
+
+
 def build_interest_starter():
     pack = build_cash_starter()
     pack.update(schema=17, rules=17, id="initial-2000-interest-accrual-v17", name="A New Century · carried debt interest")
@@ -585,6 +608,7 @@ def main():
                            ("synthetic-interest-accrual-test.json", build_interest_accrual()),
                            ("synthetic-technology-eligibility-test.json", build_technology_eligibility()),
                            ("synthetic-sovereignty-test.json", build_sovereignty()),
+                           ("synthetic-party-preferences-test.json", build_party_preferences()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

@@ -151,6 +151,7 @@ pub struct BudgetPreview {
     pub baseline_national_balance: Money,
     pub planned_national_balance: Money,
     pub route: String,
+    pub party_preference_feedback: String,
 }
 /// Historical operation of a published policy setting, not a payment or outcome claim.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -310,6 +311,7 @@ impl World {
             baseline_national_balance,
             planned_national_balance,
             route: g.label(),
+            party_preference_feedback: self.party_preference_forecast_text(content, id, targets)?,
         })
     }
     pub(crate) fn propose_budget(
