@@ -35,6 +35,8 @@ pub struct PublicCountryReport {
     pub territorial: Option<TerritorialReport>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub undertakings: Option<PublicUndertakingReport>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fiscal_plans: Option<Vec<PublishedFiscalPlan>>,
     pub population: Population,
     pub opening_gdp: Money,
     pub initial_data_quality: String,
@@ -90,6 +92,7 @@ impl World {
             regional_authorities: self.published_regions(content, id),
             territorial: self.published_territorial(content, id),
             undertakings: self.published_undertakings(id),
+            fiscal_plans: self.published_fiscal_plans(id),
             population: c.population,
             opening_gdp: Money(d.gdp),
             initial_data_quality: d.quality.clone(),

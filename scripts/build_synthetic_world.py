@@ -262,6 +262,15 @@ def build_undertakings():
     return pack
 
 
+def build_fiscal_plans():
+    pack = build_undertakings()
+    pack.update(schema=12, rules=12, id="synthetic-fiscal-plans-v12", name="Fictional annual and supplementary budgets",
+                description="Authored combined fiscal proposals with institutional review, administration costs and fully reserved policy implementation. Enacted annual or supplementary plans fund actual tax/service/welfare programmes; delivery dates, daily cash execution and conditional forecasts remain distinct. This is not historical budget law or a hard appropriation ceiling.")
+    pack["fiscal_plans"] = dict(review_days=14, cooldown_days=30, annual_window_days=180, administration_cost_bps=3,
+                               source="synthetic-original", source_version="authored-fiscal-plans-v1")
+    return pack
+
+
 def build_market_starter():
     pack = json.loads((ROOT / "data/initial-2000.json").read_text(encoding="utf-8"))
     pack.update(schema=3, rules=3, id="initial-2000-markets-v3",
@@ -406,6 +415,7 @@ def main():
                            ("synthetic-subnational-test.json", build_subnational()),
                            ("synthetic-territorial-test.json", build_territorial()),
                            ("synthetic-undertakings-test.json", build_undertakings()),
+                           ("synthetic-fiscal-plans-test.json", build_fiscal_plans()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

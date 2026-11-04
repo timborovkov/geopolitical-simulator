@@ -170,9 +170,18 @@ pub struct Country {
     pub territorial: Option<TerritorialState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub undertakings: Option<Undertakings>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fiscal_plans: Option<FiscalPlans>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
+    ProposeBudget {
+        year: u32,
+        targets: FiscalTargets,
+    },
+    WithdrawBudget {
+        request: BudgetBillId,
+    },
     DeclareUndertaking {
         template: String,
         project: Option<CommitmentId>,
@@ -267,6 +276,8 @@ pub struct JournalEntry {
     pub ai: bool,
     #[serde(default, skip_serializing_if = "crate::developer::is_false")]
     pub developer: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub budget_bill: Option<BudgetBillId>,
 }
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -366,6 +377,7 @@ impl World {
                             start_day,
                             end_day: crate::budget::next_fiscal_end(start_day),
                             opening_cash: accounts.treasury,
+                            opening_day_settled: content.fiscal_plans.as_ref().map(|_| false),
                             forecast: BudgetForecast {
                                 daily_revenue: Money(
                                     d.gdp / 365 * 70 / 100
@@ -412,6 +424,10 @@ impl World {
                         government_number: 1,
                         projects: Vec::new(),
                         commitments: content.commitments.as_ref().map(|_| Vec::new()),
+                        fiscal_plans: content
+                            .fiscal_plans
+                            .as_ref()
+                            .map(|_| FiscalPlans::new(start_day)),
                         cabinet: content
                             .cabinet
                             .as_ref()
@@ -581,6 +597,20 @@ impl World {
         for (index, entry) in self.journal.iter().enumerate() {
             let command = &entry.command;
             let valid_action = match &command.action {
+                Action::ProposeBudget { year, targets } => {
+                    content.fiscal_plans.is_some()
+                        && (2000..=2099).contains(year)
+                        && targets.valid(content)
+                }
+                Action::WithdrawBudget { request } => {
+                    content.fiscal_plans.is_some()
+                        && request.0 > 0
+                        && request.0 < command.id
+                        && self.journal.get(request.0 as usize - 1).is_some_and(|e| {
+                            e.command.issuer == command.issuer
+                                && matches!(e.command.action, Action::ProposeBudget { .. })
+                        })
+                }
                 Action::DeclareUndertaking { template, .. } => content
                     .undertakings
                     .as_ref()
@@ -729,6 +759,10 @@ impl World {
                 || entry.ai == (command.issuer == self.player)
                 || (entry.ai && entry.developer)
                 || entry.developer != matches!(command.action, Action::Developer { .. })
+                || (entry.budget_bill.is_some()
+                    && (content.fiscal_plans.is_none()
+                        || entry.developer
+                        || !matches!(command.action, Action::Enact { .. })))
                 || !valid_action
             {
                 return Err(format!("Invalid command journal entry {}", index + 1));
@@ -754,6 +788,7 @@ impl World {
                 (Some(financing), Some(_)) => financing.validate(self, content, id)?,
                 _ => return Err("Country financing differs from campaign rules/content".into()),
             }
+            self.validate_fiscal_plans(content, id)?;
             self.validate_commitments(content, id)?;
             self.validate_undertakings(content, id)?;
             self.validate_cabinet(content, id)?;
@@ -898,15 +933,31 @@ impl World {
                             .map_or(Money(0), TerritorialState::reserved_cash)
                             .0,
                     )
+                    + i128::from(
+                        c.fiscal_plans
+                            .as_ref()
+                            .map_or(Money(0), FiscalPlans::reserved_cash)
+                            .0,
+                    )
                     != i128::from(c.committed_cash.0)
                 || c.budget.start_day < start_day
                 || c.budget.start_day > self.day
                 || c.budget.end_day <= self.day
                 || c.budget.end_day > MAX_DAY + 366
+                || c.budget.opening_day_settled
+                    != content
+                        .fiscal_plans
+                        .as_ref()
+                        .map(|_| c.budget.start_day != start_day)
                 || !c.budget.valid_ranges()
                 || c.budget.expected_cash() != c.accounts.treasury.0
                 || c.budget_reviews.iter().any(|r| {
                     r.period.start_day < start_day
+                        || r.period.opening_day_settled
+                            != content
+                                .fiscal_plans
+                                .as_ref()
+                                .map(|_| r.period.start_day != start_day)
                         || !r.period.valid_ranges()
                         || r.period.expected_cash() != r.closing_cash.0
                 })

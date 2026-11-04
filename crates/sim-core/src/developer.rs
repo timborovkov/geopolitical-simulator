@@ -7,6 +7,7 @@ pub(crate) enum CommandOrigin {
     Player,
     Ai,
     Developer,
+    Budget(BudgetBillId),
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]

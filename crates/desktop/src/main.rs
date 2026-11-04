@@ -8,6 +8,7 @@ mod commitments;
 mod constitutions;
 mod elections;
 mod financing;
+mod fiscal_plans;
 mod funding;
 mod geometry;
 mod help;
@@ -61,6 +62,7 @@ struct GameApp {
     constitution_panel: constitutions::Panel,
     commitment_panel: commitments::Panel,
     undertaking_panel: undertakings::Panel,
+    fiscal_panel: fiscal_plans::Panel,
     cabinet_panel: cabinet::Panel,
     subnational_panel: subnational::Panel,
     sort_gdp: bool,
@@ -131,6 +133,7 @@ impl GameApp {
             constitution_panel: constitutions::Panel::default(),
             commitment_panel: commitments::Panel::default(),
             undertaking_panel: undertakings::Panel::default(),
+            fiscal_panel: fiscal_plans::Panel::default(),
             cabinet_panel: cabinet::Panel::default(),
             subnational_panel: subnational::Panel::default(),
             sort_gdp: false,
@@ -288,6 +291,7 @@ impl GameApp {
                 self.target_date = date((w.day + 30).min(MAX_DAY));
                 self.world = Some(w);
                 self.undertaking_panel = undertakings::Panel::default();
+                self.fiscal_panel = fiscal_plans::Panel::default();
                 self.status = match self.content.rules {
                     2 => "Classic fixed-price campaign loaded. Simulation paused.",
                     3 => "Relative-price campaign loaded. Simulation paused.",
@@ -390,6 +394,7 @@ impl GameApp {
         self.constitution_panel = constitutions::Panel::default();
         self.commitment_panel = commitments::Panel::default();
         self.undertaking_panel = undertakings::Panel::default();
+        self.fiscal_panel = fiscal_plans::Panel::default();
         self.cabinet_panel = cabinet::Panel::default();
         self.cashflows = cashflows::CashFlows::default();
         self.inspector = inspector::Inspector::default();
@@ -906,6 +911,11 @@ impl GameApp {
                 ));
             }
         }
+        if let Some(plans) = &report.fiscal_plans {
+            for p in plans {
+                ui.label(format!("Enacted fiscal plan {}: tax {}%, services {}% GDP, welfare {}% GDP; first scheduled delivery {}. Actual programme delivery remains separate.",p.year,p.targets.income_tax,p.targets.services,p.targets.welfare,date(p.first_scheduled_delivery)));
+            }
+        }
         if let Some(undertakings) = &report.undertakings {
             ui.label(format!(
                 "Public delivery credibility: {} / 100",
@@ -1274,7 +1284,9 @@ impl GameApp {
                 .min;
             self.tab = Tab::Policies;
         }
-        let mut finance_action = financing::show(ui, &self.content, w, &mut self.money);
+        let budget_action = self.fiscal_panel.show(ui, &self.content, w);
+        let lending_action = financing::show(ui, &self.content, w, &mut self.money);
+        let mut finance_action = budget_action.or(lending_action);
         if self.content.finance.is_none() {
             ui.horizontal_wrapped(|ui| {
                 ui.label("Principal (m)");
@@ -1715,6 +1727,7 @@ impl GameApp {
                         self.target_date = date((world.day + 30).min(MAX_DAY));
                         self.world = Some(world);
                         self.undertaking_panel = undertakings::Panel::default();
+                        self.fiscal_panel = fiscal_plans::Panel::default();
                         self.recovery.clear();
                         self.status =
                             "Recovered snapshot. Original files preserved; game paused.".into();
@@ -2353,6 +2366,14 @@ mod interface_tests {
             (
                 Content::from_json(include_str!(
                     "../../../data/synthetic-undertakings-test.json"
+                ))
+                .unwrap(),
+                "AUR",
+                "BOR",
+            ),
+            (
+                Content::from_json(include_str!(
+                    "../../../data/synthetic-fiscal-plans-test.json"
                 ))
                 .unwrap(),
                 "AUR",

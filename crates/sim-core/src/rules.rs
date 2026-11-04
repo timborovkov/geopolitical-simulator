@@ -9,6 +9,16 @@ impl World {
         policy: &str,
         value: i32,
     ) -> Result<PolicyPreview, String> {
+        self.preview_policy(content, country, policy, value, false)
+    }
+    pub(crate) fn preview_policy(
+        &self,
+        content: &Content,
+        country: &CountryId,
+        policy: &str,
+        value: i32,
+        consent_satisfied: bool,
+    ) -> Result<PolicyPreview, String> {
         let c = self.countries.get(country).ok_or("Unknown country")?;
         let government = self.governing_rules(content, country)?;
         let d = content
@@ -20,6 +30,11 @@ impl World {
         }
         if c.projects.iter().any(|p| p.policy == policy) {
             return Err("This policy already has a pending commitment".into());
+        }
+        if FiscalTargets::is_fiscal(policy)
+            && c.fiscal_plans.as_ref().is_some_and(FiscalPlans::pending)
+        {
+            return Err("A pending budget reserves the fiscal policies; withdraw it before proposing a separate change".into());
         }
         government.check(c, policy, value)?;
         if policy == "energy" && c.energy_capacity >= 200
@@ -50,7 +65,7 @@ impl World {
                 cost.0
             ));
         }
-        let consent_delay = if policy == "coalition" {
+        let consent_delay = if policy == "coalition" || consent_satisfied {
             0
         } else {
             government.consent_days
@@ -108,7 +123,16 @@ impl World {
             .next_command
             .checked_add(1)
             .ok_or("Command ID space exhausted")?;
-        let ai = origin == CommandOrigin::Ai;
+        let budget_bill = if let CommandOrigin::Budget(bill) = origin {
+            Some(bill)
+        } else {
+            None
+        };
+        if budget_bill.is_some() && !matches!(command.action, Action::Enact { .. }) {
+            return Err("Budget dispatch only permits its enacted fiscal programmes".into());
+        }
+        let ai =
+            origin == CommandOrigin::Ai || (budget_bill.is_some() && command.issuer != self.player);
         let developer = origin == CommandOrigin::Developer;
         if developer != matches!(command.action, Action::Developer { .. }) {
             return Err("Developer edits require an explicitly enabled developer host; normal player/AI commands cannot use them".into());
@@ -125,6 +149,10 @@ impl World {
             .ok_or("Missing country content")?;
         let id = command.issuer.clone();
         match &command.action {
+            Action::ProposeBudget { year, targets } => {
+                self.propose_budget(content, &id, BudgetBillId(command.id), *year, targets)?
+            }
+            Action::WithdrawBudget { request } => self.withdraw_budget(&id, *request)?,
             Action::DeclareUndertaking { template, project } => self.declare_undertaking(
                 content,
                 &id,
@@ -177,7 +205,11 @@ impl World {
                 self.cancel_commitment(content, &id, *request)?
             }
             Action::Enact { policy, value } => {
-                let preview = self.preview(content, &id, policy, *value)?;
+                let preview = if let Some(bill) = budget_bill {
+                    self.preview_budget_programme(content, &id, bill, policy, *value)?
+                } else {
+                    self.preview(content, &id, policy, *value)?
+                };
                 let next_project = self
                     .next_project
                     .checked_add(1)
@@ -291,6 +323,7 @@ impl World {
             command,
             ai,
             developer,
+            budget_bill,
         });
         self.next_command = next_command;
         Ok(())
@@ -308,6 +341,11 @@ impl World {
         for _ in 0..days {
             self.day += 1;
             for id in &ids {
+                // Fiscal-plan campaigns close the prior calendar year before any
+                // January decisions, delivery payments or recurring settlement.
+                if content.fiscal_plans.is_some() {
+                    self.review_budget(content, id);
+                }
                 self.resolve_constitution(content, id);
                 self.undertaking_succession(id);
                 self.resolve_undertaking_reviews(content, id);
@@ -319,13 +357,16 @@ impl World {
                 self.resolve_regional_orders(content, id);
                 self.cabinet_succession(id);
                 self.resolve_appointments(content, id);
+                self.resolve_budget_bills(content, id);
                 self.resolve_consents(content, id);
                 self.resolve_borrowing(content, id);
                 self.complete_projects(content, id);
                 self.settle(content, id);
                 self.evaluate_commitments(id);
                 self.evaluate_undertakings(content, id);
-                self.review_budget(content, id);
+                if content.fiscal_plans.is_none() {
+                    self.review_budget(content, id);
+                }
                 let election_due = self.countries[id].next_election == Some(self.day);
                 let previous_government = self.countries[id].government_number;
                 if self.day.is_multiple_of(30)
@@ -342,6 +383,7 @@ impl World {
                 self.territorial_succession(id);
                 self.regional_succession(content, id);
                 self.cabinet_succession(id);
+                self.budget_succession(id);
             }
             if self.day.is_multiple_of(30) {
                 for id in &ids {
@@ -973,6 +1015,7 @@ impl World {
         self.ai_election_request(content, id);
         self.ai_regional_order(content, id);
         self.ai_territorial_turn(content, id);
+        self.ai_budget_turn(content, id);
         self.ai_undertaking_turn(content, id);
         let c = &self.countries[id];
         let d = content.country(id).expect("country");

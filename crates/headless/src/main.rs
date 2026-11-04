@@ -136,7 +136,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if developer {
                         println!(
@@ -265,6 +265,39 @@ fn play(
                     content,
                     Action::Borrow {
                         amount: Money(number(words.get(1))?),
+                    },
+                )?,
+                "fiscal-plans" => println!(
+                    "{}",
+                    serde_json::to_string_pretty(
+                        world
+                            .player_country()
+                            .fiscal_plans
+                            .as_ref()
+                            .ok_or("No fiscal-plan workflow")?
+                    )
+                    .map_err(|e| e.to_string())?
+                ),
+                "preview-budget" | "propose-budget" => {
+                    let year = number(words.get(1))?;
+                    let targets = FiscalTargets {
+                        income_tax: number(words.get(2))?,
+                        services: number(words.get(3))?,
+                        welfare: number(words.get(4))?,
+                    };
+                    if words[0] == "preview-budget" {
+                        println!(
+                            "{:?}",
+                            world.preview_budget(content, &world.player, year, &targets)?
+                        );
+                    } else {
+                        world.issue(content, Action::ProposeBudget { year, targets })?;
+                    }
+                }
+                "withdraw-budget" => world.issue(
+                    content,
+                    Action::WithdrawBudget {
+                        request: BudgetBillId(number(words.get(1))?),
                     },
                 )?,
                 "undertaking-templates" => println!(

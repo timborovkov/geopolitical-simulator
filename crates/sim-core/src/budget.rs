@@ -12,6 +12,10 @@ pub struct BudgetPeriod {
     pub start_day: u32,
     pub end_day: u32,
     pub opening_cash: Money,
+    /// Calendar execution: initial opening has no flow; later years settle January 1.
+    /// None preserves the earlier elapsed-period accounting convention.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub opening_day_settled: Option<bool>,
     pub forecast: BudgetForecast,
     pub revenue: Money,
     pub payments: Money,
@@ -48,14 +52,22 @@ impl BudgetPeriod {
             - self.principal_repaid.0
     }
     pub fn expected_revenue(&self, day: u32) -> i64 {
-        self.forecast.daily_revenue.0 * i64::from(day.min(self.end_day) - self.start_day)
+        let days = match self.opening_day_settled {
+            None => day.min(self.end_day).saturating_sub(self.start_day),
+            Some(included) => {
+                day.min(self.end_day - 1).saturating_sub(self.start_day)
+                    + u32::from(included && day >= self.start_day)
+            }
+        };
+        self.forecast.daily_revenue.0 * i64::from(days)
     }
     pub fn forecast_closing_cash(&self) -> i64 {
         self.opening_cash.0
-            + i64::from(self.end_day - self.start_day)
-                * (self.forecast.daily_revenue.0
-                    - self.forecast.daily_spending.0
-                    - self.forecast.daily_interest.0)
+            + i64::from(
+                self.end_day - self.start_day - u32::from(self.opening_day_settled == Some(false)),
+            ) * (self.forecast.daily_revenue.0
+                - self.forecast.daily_spending.0
+                - self.forecast.daily_interest.0)
     }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -143,6 +155,7 @@ impl World {
             start_day: self.day,
             end_day: next_fiscal_end(self.day),
             opening_cash: c.accounts.treasury,
+            opening_day_settled: content.fiscal_plans.as_ref().map(|_| true),
             forecast: c.forecast(d),
             revenue: Money(0),
             payments: Money(0),
