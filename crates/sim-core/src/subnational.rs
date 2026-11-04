@@ -803,7 +803,24 @@ impl World {
                     _ => None,
                 })
                 .unwrap_or(mandate.service_level);
+            // A zero-delay player decree is issued after this day's settlement.
+            // Keep the historical plan distinct from the current purchasing level.
+            let settled_level = proposals
+                .iter()
+                .rev()
+                .find_map(|order| match (&order.kind, &order.status) {
+                    (RegionalOrderKind::Directive { level }, RegionalOrderStatus::Delivered)
+                        if order.decision_day <= self.day
+                            && (order.decision_day < self.day
+                                || order.proposed_day < order.decision_day) =>
+                    {
+                        Some(*level)
+                    }
+                    _ => None,
+                })
+                .unwrap_or(mandate.service_level);
             if !(0..=8).contains(&local.service_level)
+                || !(0..=8).contains(&settled_level)
                 || local.id != mandate.id
                 || local.population_share_bps != mandate.population_share_bps
                 || local.tax_entitlement_bps != mandate.tax_entitlement_bps
@@ -877,7 +894,7 @@ impl World {
                             != regional_daily_cost(
                                 d.gdp,
                                 mandate.population_share_bps,
-                                local.service_level,
+                                settled_level,
                             )
                         || last.paid_base.0 < 0
                         || last.paid_base.0 > last.requested_base.0

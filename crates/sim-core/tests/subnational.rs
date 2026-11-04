@@ -488,3 +488,40 @@ fn a_local_absorption_mandate_can_refuse_a_grant_even_when_national_backing_rema
     assert!(w.player_country().legislative_support >= 51);
     check(&w, &c);
 }
+
+#[test]
+fn an_instant_royal_order_after_settlement_keeps_the_dated_report_and_can_save_immediately() {
+    let c = content();
+    let mut w = start(&c, "COR");
+    w.advance(&c, 1).unwrap();
+    let settled = w.player_country().subnational.as_ref().unwrap().regions[1]
+        .last
+        .clone();
+    let before = w.player_country().accounts.treasury;
+    w.issue(
+        &c,
+        Action::RegionalOrder {
+            region: region("COR", "city"),
+            kind: RegionalOrderKind::Directive { level: 3 },
+        },
+    )
+    .unwrap();
+    assert_eq!(w.player_country().accounts.treasury.0, before.0 - 20);
+    assert_eq!(
+        w.player_country().subnational.as_ref().unwrap().regions[1].service_level,
+        3
+    );
+    assert_eq!(
+        w.player_country().subnational.as_ref().unwrap().regions[1].last,
+        settled
+    );
+    check(&w, &c);
+    w.advance(&c, 1).unwrap();
+    let current = w.player_country().subnational.as_ref().unwrap().regions[1]
+        .last
+        .as_ref()
+        .unwrap();
+    assert_eq!(current.requested_base, Money(3));
+    assert_eq!(current.day, 2);
+    check(&w, &c);
+}
