@@ -11,7 +11,7 @@ pub struct Polygon {
     bounds: Rect,
 }
 impl Polygon {
-    fn new(rings: Rings) -> Self {
+    pub(crate) fn new(rings: Rings) -> Self {
         assert!(!rings.is_empty(), "bundled polygon exterior");
         let mut points = Vec::new();
         let mut holes = Vec::new();
@@ -41,7 +41,7 @@ impl Polygon {
             bounds,
         }
     }
-    fn contains(&self, point: [f32; 2]) -> bool {
+    pub(crate) fn contains(&self, point: [f32; 2]) -> bool {
         self.bounds.contains(Pos2::new(point[0], point[1]))
             && inside_ring(&self.rings[0], point)
             && !self.rings[1..].iter().any(|hole| inside_ring(hole, point))

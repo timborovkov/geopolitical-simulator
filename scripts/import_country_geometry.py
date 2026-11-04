@@ -43,17 +43,17 @@ def records(raw):
     return result
 
 
-def shapes(raw):
-    if struct.unpack_from(">i", raw)[0] != 9994 or struct.unpack_from("<i", raw, 32)[0] != 5:
-        raise ValueError("Expected a polygon shapefile")
+def shapes(raw, expected_type=5):
+    if struct.unpack_from(">i", raw)[0] != 9994 or struct.unpack_from("<i", raw, 32)[0] != expected_type:
+        raise ValueError(f"Expected shapefile type {expected_type}")
     result = []
     offset = 100
     while offset < len(raw):
         _, length = struct.unpack_from(">ii", raw, offset)
         record = raw[offset + 8:offset + 8 + length * 2]
         offset += 8 + length * 2
-        if len(record) != length * 2 or struct.unpack_from("<i", record)[0] != 5:
-            raise ValueError("Truncated or non-polygon shape")
+        if len(record) != length * 2 or struct.unpack_from("<i", record)[0] != expected_type:
+            raise ValueError("Truncated or unexpected shape type")
         parts, count = struct.unpack_from("<ii", record, 36)
         indexes = list(struct.unpack_from("<" + "i" * parts, record, 44)) + [count]
         points = [list(struct.unpack_from("<dd", record, 44 + parts * 4 + i * 16))

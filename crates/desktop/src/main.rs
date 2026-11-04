@@ -13,6 +13,7 @@ mod fiscal_plans;
 mod funding;
 mod geometry;
 mod help;
+mod hydrology;
 mod income_taxes;
 mod inspector;
 mod map;

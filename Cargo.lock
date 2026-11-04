@@ -418,6 +418,7 @@ version = "0.1.0"
 dependencies = [
  "earcutr",
  "eframe",
+ "serde",
  "serde_json",
  "sim-core",
  "wgpu",

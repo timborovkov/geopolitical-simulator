@@ -1,6 +1,6 @@
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
 use sim_core::{Content, CountryId, World};
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Camera {
     pub longitude: f32,
     pub latitude: f32,
@@ -118,6 +118,9 @@ fn nearest_marker(
 pub struct WorldMap {
     land: Vec<(Vec<[f32; 2]>, Vec<usize>)>,
     atlas: crate::geometry::Atlas,
+    hydrology: crate::hydrology::Hydrology,
+    lakes: bool,
+    rivers: bool,
     pub camera: Camera,
     layer: Layer,
 }
@@ -140,6 +143,9 @@ impl WorldMap {
         Self {
             land,
             atlas: crate::geometry::Atlas::bundled(),
+            hydrology: crate::hydrology::Hydrology::bundled(),
+            lakes: true,
+            rivers: true,
             camera: Camera::default(),
             layer: Layer::Countries,
         }
@@ -193,6 +199,8 @@ impl WorldMap {
                     ui.selectable_value(&mut self.layer, Layer::Needs, "Needs met");
                     ui.selectable_value(&mut self.layer, Layer::Debt, "Debt / opening GDP");
                 });
+            ui.checkbox(&mut self.lakes, "Lakes");
+            ui.checkbox(&mut self.rivers, "Rivers");
         });
         let (rect, response) = ui.allocate_exact_size(
             Vec2::new(ui.available_width(), height),
@@ -313,6 +321,8 @@ impl WorldMap {
                 }
             }
         }
+        self.hydrology
+            .paint(&painter, project, self.lakes, self.rivers);
         let hovered = response
             .hover_pos()
             .and_then(|p| self.pick(content, rect, p));
@@ -343,7 +353,20 @@ impl WorldMap {
                 occupied.push(label_rect.expand(2.0));
             }
         }
-        if let Some(id) = hovered
+        let water = response.hover_pos().and_then(|cursor| {
+            self.hydrology.hover(
+                self.camera.unproject(rect, cursor),
+                cursor,
+                project,
+                self.lakes,
+                self.rivers,
+            )
+        });
+        if let Some((feature, kind)) = water {
+            response
+                .clone()
+                .on_hover_text(self.hydrology.hover_text(feature, kind));
+        } else if let Some(id) = hovered
             && let Some(country) = content.country(&id)
         {
             let report = world.and_then(|w| w.public_report(content, &id).ok());
@@ -361,7 +384,7 @@ impl WorldMap {
                     )
                 },
             );
-            response.clone().on_hover_text(format!("{} · {:?}\n{executive}\n{stamp}\nClick country land or its marker to inspect. Search covers islands omitted at this scale.",country.name,report.as_ref().map_or(&country.regime, |report| &report.regime)));
+            response.clone().on_hover_text(format!("{} · {:?}\n{executive}\n{stamp}\nClick a country outline or its marker to inspect. Search covers islands omitted at this scale.",country.name,report.as_ref().map_or(&country.regime, |report| &report.regime)));
         }
         painter.text(
             rect.left_bottom() + Vec2::new(12.0, -12.0),
@@ -371,11 +394,117 @@ impl WorldMap {
             Color32::GRAY,
         );
         ui.small("Natural Earth reference outlines · historical border review incomplete · display shapes do not define sovereignty or simulation regions · overlays use dated reports; gray means unknown");
+        self.hydrology.provenance(ui);
     }
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn physical_layer_mouse_controls_preserve_camera_selection_and_campaign_at_two_scales() {
+        fn frame(
+            ctx: &egui::Context,
+            map: &mut WorldMap,
+            content: &Content,
+            world: &World,
+            selected: &mut CountryId,
+            scale: f32,
+            events: Vec<egui::Event>,
+        ) -> egui::FullOutput {
+            ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(Rect::from_min_size(
+                        Pos2::ZERO,
+                        Vec2::new(1200.0 / scale, 900.0 / scale),
+                    )),
+                    events,
+                    ..Default::default()
+                },
+                |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        map.show(ui, content, Some(world), selected, 350.0)
+                    });
+                },
+            )
+        }
+        let content = Content::bundled().unwrap();
+        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        world.advance(&content, 30).unwrap();
+        let before = world.hash();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let mut map = WorldMap::new();
+            map.camera = Camera {
+                longitude: -75.0,
+                latitude: 43.0,
+                zoom: 4.0,
+            };
+            let camera = map.camera;
+            let mut selected = world.player.clone();
+            let initial = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            let label_position = |output: &egui::FullOutput, name: &str| {
+                output
+                    .shapes
+                    .iter()
+                    .find_map(|s| {
+                        if let egui::Shape::Text(t) = &s.shape {
+                            (t.galley.text() == name)
+                                .then_some(t.pos + Vec2::new(3.0, t.galley.size().y / 2.0))
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap()
+            };
+            for label in ["Lakes", "Rivers"] {
+                let p = label_position(&initial, label);
+                assert!(p.x < 1200.0 / scale && p.y < 900.0 / scale);
+                for pressed in [true, false] {
+                    frame(
+                        &ctx,
+                        &mut map,
+                        &content,
+                        &world,
+                        &mut selected,
+                        scale,
+                        vec![
+                            egui::Event::PointerMoved(p),
+                            egui::Event::PointerButton {
+                                pos: p,
+                                button: egui::PointerButton::Primary,
+                                pressed,
+                                modifiers: egui::Modifiers::NONE,
+                            },
+                        ],
+                    );
+                }
+            }
+            assert!(!map.lakes && !map.rivers);
+            assert_eq!(map.camera, camera);
+            assert_eq!(selected, world.player);
+            assert!(map.layer == Layer::Countries);
+            // Re-enabling the physical display must not alter country-outline picking.
+            let rect = Rect::from_min_size(Pos2::ZERO, Vec2::new(1000.0, 500.0));
+            let point = map.camera.project(rect, [-80.0, 40.0]);
+            assert!(rect.contains(point));
+            let prior = map.pick(&content, rect, point);
+            assert_eq!(prior, Some(CountryId("USA".into())));
+            map.lakes = true;
+            map.rivers = true;
+            assert_eq!(map.pick(&content, rect, point), prior);
+            assert_eq!(world.hash(), before);
+        }
+    }
+
     #[test]
     fn zoom_preserves_the_geographic_point_under_the_cursor() {
         let rect = Rect::from_min_size(Pos2::ZERO, Vec2::new(1000.0, 500.0));
