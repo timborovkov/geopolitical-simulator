@@ -9,6 +9,17 @@ pub const INTEREST_YEAR: DaySpan = DaySpan::new(INTEREST_YEAR_DAYS);
 pub const INTEREST_DENOMINATOR: u32 = INTEREST_YEAR_DAYS * 10_000;
 const MAX_PRINCIPAL: i64 = 1_000_000_000_000;
 
+/// Preserved pre-carry convention: truncate the combined daily rate, then apply
+/// the minimum whole charge for positive principal. No fractional carry is added.
+pub(crate) fn minimum_daily_interest(principal: Money) -> Money {
+    let whole = MoneyScale::ONE
+        .basis_points(BasisPoints::new(400))
+        .and_then(|scale| scale.spread_over(INTEREST_YEAR))
+        .and_then(|scale| scale.apply(principal))
+        .expect("bounded legacy interest");
+    Money(whole.0.max(i64::from(principal.0 > 0)))
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum InterestAccrualRule {
     #[serde(rename = "actual_365_carry")]
@@ -230,7 +241,7 @@ impl World {
         {
             state.assess(c.debt, self.day)
         } else {
-            Money((c.debt.0 * 4 / 100 / 365).max(i64::from(c.debt.0 > 0)))
+            minimum_daily_interest(c.debt)
         }
     }
     pub(crate) fn record_interest_payment(&mut self, id: &CountryId, paid: Money) {

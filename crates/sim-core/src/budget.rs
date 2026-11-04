@@ -1,6 +1,14 @@
 //! Fiscal projections are fixed assumptions, distinct from realized cash execution.
 use crate::*;
 use serde::{Deserialize, Serialize};
+/// Preserve the existing daily-GDP rounding boundary before applying a policy rate.
+pub(crate) fn daily_policy_spending(daily_gdp: Money, level: i32) -> Money {
+    Percent::try_from(level)
+        .expect("validated spending level")
+        .scale(daily_gdp)
+        .expect("bounded daily policy spending")
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BudgetForecast {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -144,7 +152,14 @@ impl Country {
             .enumerate()
             .map(|(index, amount)| {
                 taxes.map_or_else(
-                    || amount * i64::from(self.tax) * i64::from(self.administration) / 10000,
+                    || {
+                        crate::income_taxes::flat_withholding(
+                            Money(*amount),
+                            self.tax,
+                            self.administration,
+                        )
+                        .0
+                    },
                     |t| {
                         t.assess(
                             d,
@@ -177,14 +192,14 @@ impl Country {
             });
         BudgetForecast {
             daily_interest: interest_accrual.as_ref().map_or_else(
-                || Money((self.debt.0 * 4 / 100 / 365).max(i64::from(self.debt.0 > 0))),
+                || crate::interest::minimum_daily_interest(self.debt),
                 |p| p.due(1).expect("bounded daily projection"),
             ),
             interest_accrual,
             daily_revenue: Money(revenue),
             daily_spending: Money(
-                daily * i64::from(self.services) / 100
-                    + daily * i64::from(self.welfare) / 100
+                daily_policy_spending(Money(daily), self.services).0
+                    + daily_policy_spending(Money(daily), self.welfare).0
                     + maintenance
                     + self.regional_planned_spending(d),
             ),

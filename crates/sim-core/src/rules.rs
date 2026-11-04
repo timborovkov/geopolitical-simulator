@@ -639,7 +639,6 @@ impl World {
         let c = &self.countries[id];
         let standard_rate = c.tax;
         let administration = c.administration;
-        let effective_tax = i64::from(c.tax) * i64::from(c.administration);
         let mut revenue = 0;
         let mut withholding = Vec::new();
         for index in 0..d.households.len() {
@@ -649,9 +648,10 @@ impl World {
                     .assess(d, h.population, h.income, standard_rate, administration)
                     .expect("validated income bands and bounded private income")
             });
-            let due = assessment
-                .as_ref()
-                .map_or(h.income.0 * effective_tax / 10000, |a| a.collectible.0);
+            let due = assessment.as_ref().map_or_else(
+                || crate::income_taxes::flat_withholding(h.income, standard_rate, administration).0,
+                |a| a.collectible.0,
+            );
             let paid = self.pay_group(id, index, Treasury, due, "Income tax on private income");
             let h = &mut self.countries.get_mut(id).expect("country").households[index];
             h.tax = Money(paid);
@@ -680,8 +680,8 @@ impl World {
         }
         let interest_due = self.assess_interest(id).0;
         let c = &self.countries[id];
-        let services_due = daily * i64::from(c.services) / 100;
-        let welfare_due = daily * i64::from(c.welfare) / 100;
+        let services_due = crate::budget::daily_policy_spending(Money(daily), c.services).0;
+        let welfare_due = crate::budget::daily_policy_spending(Money(daily), c.welfare).0;
         let maintenance_due = daily
             * i64::from(
                 (c.energy_capacity - c.opening_energy_capacity).max(0)

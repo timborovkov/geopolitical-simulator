@@ -123,3 +123,62 @@ pub struct ProratedMoney {
     pub whole: Money,
     pub remainder: MoneyRemainder,
 }
+
+impl TryFrom<i32> for Percent {
+    type Error = std::num::TryFromIntError;
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        u32::try_from(value).map(Self)
+    }
+}
+
+/// Compose rate and period factors before rounding money towards zero once.
+/// Reduced fractions retain precision between factors; overflow returns None.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MoneyScale {
+    numerator: u64,
+    denominator: u64,
+}
+impl MoneyScale {
+    pub const ONE: Self = Self {
+        numerator: 1,
+        denominator: 1,
+    };
+    pub fn percent(self, rate: Percent) -> Option<Self> {
+        self.multiply(u64::from(rate.units()), 100)
+    }
+    pub fn basis_points(self, rate: BasisPoints) -> Option<Self> {
+        self.multiply(u64::from(rate.units()), u64::from(BasisPoints::DENOMINATOR))
+    }
+    /// Uniformly spread an amount over a nonzero number of days.
+    pub fn spread_over(self, period: DaySpan) -> Option<Self> {
+        self.multiply(1, u64::from(period.units()))
+    }
+    pub fn apply(self, amount: Money) -> Option<Money> {
+        let scaled = i128::from(amount.0).checked_mul(i128::from(self.numerator))?
+            / i128::from(self.denominator);
+        i64::try_from(scaled).ok().map(Money)
+    }
+    fn multiply(self, numerator: u64, denominator: u64) -> Option<Self> {
+        if denominator == 0 {
+            return None;
+        }
+        // Cross-cancel before multiplication so equal factors do not overflow.
+        fn gcd(mut a: u64, mut b: u64) -> u64 {
+            while b != 0 {
+                let remainder = a % b;
+                a = b;
+                b = remainder;
+            }
+            a
+        }
+        let common = gcd(numerator, denominator);
+        let numerator = numerator / common;
+        let denominator = denominator / common;
+        let left = gcd(self.numerator, denominator);
+        let right = gcd(numerator, self.denominator);
+        Some(Self {
+            numerator: (self.numerator / left).checked_mul(numerator / right)?,
+            denominator: (self.denominator / right).checked_mul(denominator / left)?,
+        })
+    }
+}

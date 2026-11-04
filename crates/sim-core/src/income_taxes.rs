@@ -4,6 +4,17 @@ use crate::*;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
+/// Flat-rule withholding keeps both rate factors until cash is rounded once.
+pub(crate) fn flat_withholding(gross: Money, standard_rate: i32, administration: i32) -> Money {
+    MoneyScale::ONE
+        .percent(Percent::try_from(standard_rate).expect("validated standard tax rate"))
+        .and_then(|scale| {
+            scale.percent(Percent::try_from(administration).expect("validated collection capacity"))
+        })
+        .and_then(|scale| scale.apply(gross))
+        .expect("bounded flat income withholding")
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(transparent)]
 pub struct IncomeTaxBandId(pub String);

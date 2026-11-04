@@ -205,3 +205,78 @@ fn typed_interest_intervals_retain_fractions_across_conditional_principal() {
     forged.daily_numerator += 1;
     assert!(forged.due_for(days).is_err());
 }
+
+#[test]
+fn composed_money_rates_round_once_and_keep_period_units() {
+    let combined = MoneyScale::ONE
+        .percent(Percent::new(10))
+        .unwrap()
+        .percent(Percent::new(90))
+        .unwrap();
+    assert_eq!(combined.apply(Money(19)), Some(Money(1)));
+    assert_eq!(combined.apply(Money(-19)), Some(Money(-1)));
+    assert_eq!(
+        Percent::new(90).scale(Percent::new(10).scale(Money(19)).unwrap()),
+        Some(Money(0))
+    );
+    let equivalent = MoneyScale::ONE
+        .basis_points(BasisPoints::new(1000))
+        .unwrap()
+        .percent(Percent::new(90))
+        .unwrap();
+    assert_eq!(combined, equivalent);
+    let daily = MoneyScale::ONE
+        .percent(Percent::new(4))
+        .unwrap()
+        .spread_over(DaySpan::new(365))
+        .unwrap();
+    assert_eq!(daily.apply(Money(36_500)), Some(Money(4)));
+    assert_eq!(daily.apply(Money(-36_500)), Some(Money(-4)));
+    assert_eq!(
+        daily,
+        MoneyScale::ONE
+            .spread_over(DaySpan::new(365))
+            .unwrap()
+            .percent(Percent::new(4))
+            .unwrap()
+    );
+    assert!(MoneyScale::ONE.spread_over(DaySpan::ZERO).is_none());
+    assert!(Percent::try_from(-1).is_err());
+}
+
+#[test]
+fn composed_money_rates_cancel_factors_and_reject_overflow() {
+    let mut identity = MoneyScale::ONE;
+    for _ in 0..100 {
+        identity = identity
+            .percent(Percent::new(100))
+            .unwrap()
+            .basis_points(BasisPoints::new(10_000))
+            .unwrap();
+    }
+    assert_eq!(identity, MoneyScale::ONE);
+    for amount in [i64::MIN, i64::MAX] {
+        assert_eq!(identity.apply(Money(amount)), Some(Money(amount)));
+        assert!(
+            identity
+                .percent(Percent::new(101))
+                .unwrap()
+                .apply(Money(amount))
+                .is_none()
+        );
+    }
+    let zero = MoneyScale::ONE
+        .percent(Percent::ZERO)
+        .unwrap()
+        .percent(Percent::new(u32::MAX))
+        .unwrap()
+        .spread_over(DaySpan::new(u32::MAX))
+        .unwrap();
+    assert_eq!(zero.apply(Money(i64::MAX)), Some(Money(0)));
+    let large = MoneyScale::ONE
+        .percent(Percent::new(u32::MAX))
+        .unwrap()
+        .percent(Percent::new(u32::MAX))
+        .unwrap();
+    assert!(large.percent(Percent::new(u32::MAX)).is_none());
+}

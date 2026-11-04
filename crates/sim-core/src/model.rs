@@ -391,17 +391,25 @@ impl World {
                             opening_day_settled: content.fiscal_plans.as_ref().map(|_| false),
                             forecast: BudgetForecast {
                                 interest_accrual: None,
-                                daily_revenue: Money(
-                                    d.gdp / 365 * 70 / 100
-                                        * i64::from(d.tax)
-                                        * i64::from(d.capacity)
-                                        / 10000,
+                                daily_revenue: crate::income_taxes::flat_withholding(
+                                    Money(d.gdp / 365 * 70 / 100),
+                                    d.tax,
+                                    d.capacity,
                                 ),
                                 daily_spending: Money(
-                                    d.gdp / 365 * i64::from(d.services) / 100
-                                        + d.gdp / 365 * i64::from(d.welfare) / 100,
+                                    crate::budget::daily_policy_spending(
+                                        Money(d.gdp / 365),
+                                        d.services,
+                                    )
+                                    .0 + crate::budget::daily_policy_spending(
+                                        Money(d.gdp / 365),
+                                        d.welfare,
+                                    )
+                                    .0,
                                 ),
-                                daily_interest: Money((d.gdp / 3 * 4 / 100 / 365).max(1)),
+                                daily_interest: crate::interest::minimum_daily_interest(Money(
+                                    d.gdp / 3,
+                                )),
                             },
                             revenue: Money(0),
                             payments: Money(0),
