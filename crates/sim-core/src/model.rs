@@ -390,6 +390,7 @@ impl World {
                             opening_cash: accounts.treasury,
                             opening_day_settled: content.fiscal_plans.as_ref().map(|_| false),
                             forecast: BudgetForecast {
+                                interest_accrual: None,
                                 daily_revenue: Money(
                                     d.gdp / 365 * 70 / 100
                                         * i64::from(d.tax)
@@ -474,7 +475,7 @@ impl World {
                         financing: content
                             .finance
                             .as_ref()
-                            .map(|_| Financing::new(d, start_day)),
+                            .map(|rules| Financing::with_rules(d, start_day, rules)),
                     },
                 )
             })
@@ -977,6 +978,7 @@ impl World {
                         .fiscal_plans
                         .as_ref()
                         .map(|_| c.budget.start_day != start_day)
+                || (content.rules >= 17) != c.budget.forecast.interest_accrual.is_some()
                 || !c.budget.valid_ranges()
                 || c.budget.expected_cash() != c.accounts.treasury.0
                 || c.budget_reviews.iter().any(|r| {
@@ -986,6 +988,7 @@ impl World {
                                 .fiscal_plans
                                 .as_ref()
                                 .map(|_| r.period.start_day != start_day)
+                        || (content.rules >= 17) != r.period.forecast.interest_accrual.is_some()
                         || !r.period.valid_ranges()
                         || r.period.expected_cash() != r.closing_cash.0
                 })

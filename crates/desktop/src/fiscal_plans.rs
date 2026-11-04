@@ -50,6 +50,9 @@ impl Panel {
             match world.preview_budget(content, &world.player, year, targets) {
                 Ok(p) => {
                     ui.label(format!("Fiscal year {year} · {} · review {} · legal start {}. Pay {}m administration now; reserve {}m implementation cash.",p.route,date(p.review_day),date(p.effective_day),p.fee.0,p.implementation_cost.0));
+                    if let Some(interest) = &p.planned_forecast.interest_accrual {
+                        ui.small(format!("Interest mean {:.4}m/day; whole amount below is due on the next settlement with the current carry. Later daily dues vary as fractions accumulate. National balance figures round down to whole units.",interest.average_per_day()));
+                    }
                     ui.label(format!("Conditional daily forecast (consolidated) after all programmes operate: revenue {}m to {}m; spending {}m to {}m; interest {}m. Opening GDP, current supply/collection and funded purchasing are held fixed; future borrowing and shocks are excluded.",p.baseline_forecast.daily_revenue.0,p.planned_forecast.daily_revenue.0,p.baseline_forecast.daily_spending.0,p.planned_forecast.daily_spending.0,p.planned_forecast.daily_interest.0));
                     ui.label(format!("National daily balance after protected local tax shares: {:+}m to {:+}m. Consolidated flows above include local purchasing; these local funds cannot finance national obligations.",p.baseline_national_balance.0,p.planned_national_balance.0));
                     if p.planned_national_balance.0 < 0 {

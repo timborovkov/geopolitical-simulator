@@ -31,6 +31,8 @@ pub struct EmergencyFinance {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct FinanceDefinition {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interest_accrual: Option<InterestAccrualRule>,
     pub authorities: Vec<BorrowingAuthority>,
     /// Authored term for newly disbursed loans; opening calibration stays perpetual.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -46,6 +48,9 @@ impl FinanceDefinition {
             .find(|authority| &authority.route == route)
     }
     pub fn validate(&self, content: &Content) -> Result<(), String> {
+        if (content.rules >= 17) != self.interest_accrual.is_some() {
+            return Err("Carried daily interest requires rules/content 17".into());
+        }
         if (content.rules >= 15) != self.maturity_days.is_some()
             || self
                 .maturity_days
@@ -134,6 +139,8 @@ pub struct BorrowingRequest {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Financing {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interest_accrual: Option<AccruedInterest>,
     pub instruments: Vec<DebtInstrument>,
     pub pending: Option<BorrowingRequest>,
     pub emergency_count: u32,
@@ -145,6 +152,7 @@ fn creditor(country: &CountryId) -> CreditorId {
 impl Financing {
     pub fn new(country: &CountryDefinition, day: u32) -> Self {
         Self {
+            interest_accrual: None,
             instruments: vec![DebtInstrument {
                 id: LoanId(0),
                 creditor: creditor(&country.id),
@@ -162,6 +170,14 @@ impl Financing {
             emergency_count: 0,
             next_emergency_day: day,
         }
+    }
+    pub fn with_rules(country: &CountryDefinition, day: u32, rules: &FinanceDefinition) -> Self {
+        let mut state = Self::new(country, day);
+        state.interest_accrual = rules
+            .interest_accrual
+            .as_ref()
+            .map(|_| AccruedInterest::default());
+        state
     }
     /// Principal already due or becoming due by this date; no interest or perpetual debt.
     pub fn principal_due_through(&self, day: u32) -> Money {
@@ -303,6 +319,11 @@ impl Financing {
                 }
                 _ => return Err("Invalid opening debt or debt origin".into()),
             }
+        }
+        match (&self.interest_accrual, &rules.interest_accrual) {
+            (None, None) => {}
+            (Some(state), Some(_)) => state.validate(world, content, id)?,
+            _ => return Err("Interest state differs from the campaign's financing rules".into()),
         }
         if repayments != 0 || total != country.debt.0 {
             return Err("Debt instruments do not reconcile to public principal".into());

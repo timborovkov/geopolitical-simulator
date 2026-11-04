@@ -38,10 +38,14 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, amount: i64, chart: &
     if country.subnational.is_some() {
         ui.small("National funding excludes protected local funds and grant escrow. This run rate subtracts local tax entitlements; local spending from those protected funds is accounted for separately.");
     }
-    ui.label(format!(
-        "Uncommitted cash {}m · current no-shock balance {:+}m/day.",
-        outlook.available_cash.0, outlook.daily_balance.0
-    ));
+    if let Some(interest) = &outlook.interest_accrual {
+        ui.label(format!("Uncommitted cash {}m · current mean no-shock balance {:+.4}m/day. Interest due over {horizon} days: {}m without borrowing, {}m if approved; existing fractional carry is included.",outlook.available_cash.0,interest.national_daily_numerator as f64 / f64::from(INTEREST_DENOMINATOR),interest.without_loan_due.0,interest.if_approved_due.0));
+    } else {
+        ui.label(format!(
+            "Uncommitted cash {}m · current no-shock balance {:+}m/day.",
+            outlook.available_cash.0, outlook.daily_balance.0
+        ));
+    }
     if country
         .cash_management
         .as_ref()
@@ -49,14 +53,18 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, amount: i64, chart: &
     {
         ui.colored_label(Color32::LIGHT_YELLOW, format!("Temporary retention: {}m actual cash excluded above. This comparison holds that protection constant; it does not simulate future capture or automatic release. Inspect the retention controls before using this forecast.", country.retained_cash().0));
     }
-    match outlook.covered_days {
-        Some(days) => {
-            ui.colored_label(if days < 30 { Color32::LIGHT_YELLOW } else { Color32::LIGHT_GRAY }, format!("Available cash covers {days} full days of this deficit. Pending borrowing is excluded."));
-        }
-        None => {
-            ui.label(
+    if outlook.interest_accrual.is_some() {
+        ui.label(outlook.covered_days.map_or_else(|| format!("No funding gap within this {horizon}-day scenario; later funding is not guaranteed."),|days|format!("First projected funding gap after {days} fully covered days. Pending borrowing is excluded.")));
+    } else {
+        match outlook.covered_days {
+            Some(days) => {
+                ui.colored_label(if days < 30 { Color32::LIGHT_YELLOW } else { Color32::LIGHT_GRAY }, format!("Available cash covers {days} full days of this deficit. Pending borrowing is excluded."));
+            }
+            None => {
+                ui.label(
                 "Current run rate is balanced or positive; this does not guarantee future funding.",
             );
+            }
         }
     }
     if content
@@ -93,7 +101,8 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, amount: i64, chart: &
             ui.small("Includes full dated principal and existing overdue principal from tomorrow. Recurring interest stays at the current run rate after repayment, conservatively overstating later interest. Negative balances are funding gaps; refinancing requires approval.");
         }
         if let Some(loan) = outlook.loan {
-            ui.label(format!("{} {}m if approved on {} · additional interest {}m/day after disbursement.", if pending.is_some() { "Pending request:" } else { "Selected ordinary borrowing:" }, loan.amount.0, date(loan.decision_day), outlook.additional_daily_interest.0));
+            let rate = outlook.interest_accrual.as_ref().map_or_else(||format!("{}m/day",outlook.additional_daily_interest.0), |i|format!("{:.4}m/day mean",i.additional_daily_numerator as f64 / f64::from(INTEREST_DENOMINATOR)));
+            ui.label(format!("{} {}m if approved on {} · additional interest {rate} after disbursement.", if pending.is_some() { "Pending request:" } else { "Selected ordinary borrowing:" }, loan.amount.0, date(loan.decision_day)));
             if let Some(before) = outlook.points.iter().find(|point| point.day + 1 == loan.decision_day)
                 && before.without_loan.0 < 0 {
                 ui.colored_label(Color32::LIGHT_YELLOW, "The current deficit would exhaust available cash before the borrowing decision. Review spending, revenues or the explicit emergency route and its political costs.");

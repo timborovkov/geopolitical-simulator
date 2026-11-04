@@ -676,10 +676,10 @@ impl World {
         if content.rules >= 15 {
             self.settle_maturities(id);
         }
+        let interest_due = self.assess_interest(id).0;
         let c = &self.countries[id];
         let services_due = daily * i64::from(c.services) / 100;
         let welfare_due = daily * i64::from(c.welfare) / 100;
-        let interest_due = (c.debt.0 * 4 / 100 / 365).max(i64::from(c.debt.0 > 0));
         let maintenance_due = daily
             * i64::from(
                 (c.energy_capacity - c.opening_energy_capacity).max(0)
@@ -754,6 +754,7 @@ impl World {
             .iter()
             .map(|h| h.arrears.0)
             .collect();
+        self.record_interest_payment(id, Money(interest + paid_external));
         let paid_households = if household_arrears > 0 {
             self.pay_income(
                 id,

@@ -3,9 +3,27 @@ use crate::*;
 use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BudgetForecast {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interest_accrual: Option<InterestProjection>,
     pub daily_revenue: Money,
     pub daily_spending: Money,
+    /// With accrual, whole dues on the next settlement using the opening carry.
     pub daily_interest: Money,
+}
+impl BudgetForecast {
+    pub fn valid(&self) -> bool {
+        [
+            self.daily_revenue.0,
+            self.daily_spending.0,
+            self.daily_interest.0,
+        ]
+        .iter()
+        .all(|v| (0..=1_000_000_000).contains(v))
+            && self
+                .interest_accrual
+                .as_ref()
+                .is_none_or(|p| p.valid() && self.daily_interest == p.due(1).unwrap_or(Money(-1)))
+    }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BudgetPeriod {
@@ -37,13 +55,7 @@ impl BudgetPeriod {
             ]
             .iter()
             .all(|v| (0..=1_000_000_000_000).contains(v))
-            && [
-                self.forecast.daily_revenue.0,
-                self.forecast.daily_spending.0,
-                self.forecast.daily_interest.0,
-            ]
-            .iter()
-            .all(|v| (0..=1_000_000_000).contains(v))
+            && self.forecast.valid()
     }
     pub fn expected_cash(&self) -> i64 {
         self.opening_cash.0 + self.revenue.0 + self.borrowing.0
@@ -62,6 +74,14 @@ impl BudgetPeriod {
         self.forecast.daily_revenue.0 * i64::from(days)
     }
     pub fn forecast_closing_cash(&self) -> i64 {
+        let days =
+            self.end_day - self.start_day - u32::from(self.opening_day_settled == Some(false));
+        if let Some(interest) = &self.forecast.interest_accrual {
+            return self.opening_cash.0
+                + i64::from(days)
+                    * (self.forecast.daily_revenue.0 - self.forecast.daily_spending.0)
+                - interest.due(days).expect("validated budget projection").0;
+        }
         self.opening_cash.0
             + i64::from(
                 self.end_day - self.start_day - u32::from(self.opening_day_settled == Some(false)),
@@ -98,13 +118,18 @@ impl Country {
         d: &CountryDefinition,
         forecast: &BudgetForecast,
     ) -> Money {
-        Money(
-            forecast.daily_revenue.0
-                - self.regional_tax_entitlement(forecast.daily_revenue.0)
-                - forecast.daily_spending.0
-                + self.regional_planned_spending(d)
-                - forecast.daily_interest.0,
-        )
+        let operating = forecast.daily_revenue.0
+            - self.regional_tax_entitlement(forecast.daily_revenue.0)
+            - forecast.daily_spending.0
+            + self.regional_planned_spending(d);
+        if let Some(interest) = &forecast.interest_accrual {
+            Money(
+                (operating * i64::from(INTEREST_DENOMINATOR) - interest.daily_numerator as i64)
+                    .div_euclid(i64::from(INTEREST_DENOMINATOR)),
+            )
+        } else {
+            Money(operating - forecast.daily_interest.0)
+        }
     }
     /// Conditional unchanged-policy forecast using this campaign's tax definition.
     pub fn forecast(
@@ -142,7 +167,20 @@ impl Country {
             )
             / 15
             / 1000;
+        let interest_accrual = self
+            .financing
+            .as_ref()
+            .and_then(|f| f.interest_accrual.as_ref())
+            .map(|state| {
+                InterestProjection::new(self.debt, state.remainder)
+                    .expect("validated principal and interest remainder")
+            });
         BudgetForecast {
+            daily_interest: interest_accrual.as_ref().map_or_else(
+                || Money((self.debt.0 * 4 / 100 / 365).max(i64::from(self.debt.0 > 0))),
+                |p| p.due(1).expect("bounded daily projection"),
+            ),
+            interest_accrual,
             daily_revenue: Money(revenue),
             daily_spending: Money(
                 daily * i64::from(self.services) / 100
@@ -150,7 +188,6 @@ impl Country {
                     + maintenance
                     + self.regional_planned_spending(d),
             ),
-            daily_interest: Money((self.debt.0 * 4 / 100 / 365).max(i64::from(self.debt.0 > 0))),
         }
     }
 }

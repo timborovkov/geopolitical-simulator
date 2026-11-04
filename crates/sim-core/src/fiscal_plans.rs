@@ -719,14 +719,13 @@ impl World {
             }
             previous_next = b.proposed_day + rules.cooldown_days;
             for f in [&b.baseline_forecast, &b.planned_forecast] {
-                if [f.daily_revenue.0, f.daily_spending.0, f.daily_interest.0]
-                    .iter()
-                    .any(|n| !(0..=1_000_000_000).contains(n))
-                {
+                if !f.valid() || (content.rules >= 17) != f.interest_accrual.is_some() {
                     return Err("Invalid budget forecast assumptions".into());
                 }
             }
-            if b.planned_forecast.daily_interest != b.baseline_forecast.daily_interest {
+            if b.planned_forecast.daily_interest != b.baseline_forecast.daily_interest
+                || b.planned_forecast.interest_accrual != b.baseline_forecast.interest_accrual
+            {
                 return Err("A fiscal proposal cannot create forecast financing".into());
             }
             if b.status == BudgetBillStatus::Pending {

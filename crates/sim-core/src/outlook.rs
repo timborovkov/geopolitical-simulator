@@ -54,16 +54,28 @@ pub struct FundingPoint {
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FundingOutlook {
+    pub interest_accrual: Option<InterestOutlook>,
     pub available_cash: Money,
+    /// Whole-unit run rate; carried-interest means round down. Charts use exact interval dues.
     pub daily_balance: Money,
-    /// Whole days of the current deficit covered by available cash. None means
-    /// a balanced or positive run rate, not a guarantee against future shortfalls.
+    /// Earlier rules: whole days of the current deficit; None is a nonnegative run rate.
+    /// Carried interest: full days before the first projected gap, including dated
+    /// principal; None means no gap within this horizon, not a future guarantee.
     pub covered_days: Option<u64>,
+    /// Next-settlement whole-unit difference; use interest_accrual for mean rates.
     pub additional_daily_interest: Money,
     pub loan: Option<LoanAssumption>,
     pub principal_due: Money,
     pub conditional_principal_due: Money,
     pub points: Vec<FundingPoint>,
+}
+/// Integer ratios use INTEREST_DENOMINATOR. Totals share the existing carry.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct InterestOutlook {
+    pub national_daily_numerator: i64,
+    pub additional_daily_numerator: u64,
+    pub without_loan_due: Money,
+    pub if_approved_due: Money,
 }
 impl World {
     /// Owner-only, unchanged-policy scenario excluding shocks, price changes,
@@ -103,6 +115,10 @@ impl World {
         }
         let forecast = country.forecast(definition, content.income_taxes.as_ref());
         let balance = country.national_daily_balance(definition, &forecast).0;
+        let operating = forecast.daily_revenue.0
+            - country.regional_tax_entitlement(forecast.daily_revenue.0)
+            - forecast.daily_spending.0
+            + country.regional_planned_spending(definition);
         let mut additional_interest = 0;
         if let Some(assumption) = loan {
             if assumption.amount.0 <= 0
@@ -118,6 +134,9 @@ impl World {
                 .0
                 .checked_add(assumption.amount.0)
                 .ok_or("Hypothetical debt overflow")?;
+            if after_loan.debt.0 > 1_000_000_000_000 {
+                return Err("Hypothetical debt exceeds the supported principal range".into());
+            }
             additional_interest = after_loan
                 .forecast(definition, content.income_taxes.as_ref())
                 .daily_interest
@@ -144,6 +163,7 @@ impl World {
                     .map_or(0, |assumption| assumption.amount.0),
         );
         let mut points = Vec::with_capacity(horizon as usize + 1);
+        let mut final_interest = (Money(0), Money(0));
         for offset in 0..=horizon {
             let day = self.day + offset;
             let due = if offset == 0 {
@@ -154,16 +174,30 @@ impl World {
                     .as_ref()
                     .map_or(0, |state| state.principal_due_through(day).0)
             };
-            let baseline =
+            let mut baseline =
                 i128::from(available) + i128::from(balance) * i128::from(offset) - i128::from(due);
+            if let Some(interest) = &forecast.interest_accrual {
+                final_interest.0 = interest.due(offset)?;
+                final_interest.1 = final_interest.0;
+                baseline = i128::from(available) + i128::from(operating) * i128::from(offset)
+                    - i128::from(final_interest.0.0)
+                    - i128::from(due);
+            }
             let mut if_approved = baseline;
             if let Some(assumption) = loan.filter(|assumption| day >= assumption.decision_day) {
                 // A future approval precedes that day's settlement/interest;
                 // an immediate manual draw is after today's settlement.
                 let interest_days =
                     day - assumption.decision_day + u32::from(assumption.decision_day > self.day);
-                if_approved += i128::from(assumption.amount.0)
-                    - i128::from(additional_interest) * i128::from(interest_days);
+                if let Some(interest) = &forecast.interest_accrual {
+                    final_interest.1 =
+                        interest.due_with_addition(offset, assumption.amount, interest_days)?;
+                    if_approved += i128::from(assumption.amount.0)
+                        - i128::from(final_interest.1.0 - final_interest.0.0);
+                } else {
+                    if_approved += i128::from(assumption.amount.0)
+                        - i128::from(additional_interest) * i128::from(interest_days);
+                }
             }
             if offset > 0 && assumed_maturity.is_some_and(|due| due <= day) {
                 if_approved -= i128::from(loan.expect("assumed maturity requires loan").amount.0);
@@ -183,10 +217,27 @@ impl World {
             });
         }
         Ok(FundingOutlook {
+            interest_accrual: forecast
+                .interest_accrual
+                .as_ref()
+                .map(|interest| InterestOutlook {
+                    national_daily_numerator: operating * i64::from(INTEREST_DENOMINATOR)
+                        - interest.daily_numerator as i64,
+                    additional_daily_numerator: loan
+                        .map_or(0, |l| l.amount.0 as u64 * u64::from(INTEREST_RATE_BPS)),
+                    without_loan_due: final_interest.0,
+                    if_approved_due: final_interest.1,
+                }),
             available_cash: Money(available),
             daily_balance: Money(balance),
-            covered_days: (balance < 0)
-                .then(|| (i128::from(available) / -i128::from(balance)) as u64),
+            covered_days: if forecast.interest_accrual.is_some() {
+                points
+                    .iter()
+                    .find(|p| p.without_loan.0 < 0)
+                    .map(|p| u64::from((p.day - self.day).saturating_sub(1)))
+            } else {
+                (balance < 0).then(|| (i128::from(available) / -i128::from(balance)) as u64)
+            },
             additional_daily_interest: Money(additional_interest),
             loan,
             principal_due,

@@ -37,6 +37,13 @@ fn entries(content: &Content) -> Vec<Entry> {
     ].into_iter().map(|(title, body, tab)| Entry {
         title: title.into(), body: body.into(), destination: Destination { tab, country: None, policy: None }
     }).collect();
+    if content
+        .finance
+        .as_ref()
+        .is_some_and(|f| f.interest_accrual.is_some())
+    {
+        entries.push(Entry {title:"Carried interest and whole cash settlement".into(),body:"This campaign accrues fixed 4% annual interest with an actual/365 denominator on outstanding principal after scheduled redemption. Fractions carry without compounding until a whole million-credit unit becomes due. Treasury distinguishes cumulative assessment, actual payments, unpaid whole-unit arrears and a noncash fractional creditor claim. The fraction survives retiring all principal and never funds a decision. Manual loans and repayments after settlement affect the next day; delayed approval before settlement affects that day's principal basis. Funding charts use the same carried fraction and interval dues; mean rates are display values. In this ruleset, covered days means the interval before the first projected negative balance within the selected horizon, including dated principal. Taxes, wages and purchases still round to whole reporting units. Earlier campaign rules remain unchanged.".into(),destination:Destination {tab:Tab::Treasury,country:None,policy:None}});
+    }
     if content.cash_management.is_some() {
         entries.push(Entry {title:"Temporary retention of actual national cash".into(),body:"Treasury can protect a bounded amount of real national cash for a later decision. A cash-blocked policy offers Plan cash retention for this decision to prefill its full implementation cost in Treasury. Preparing a draft spends nothing and leaves existing retention unchanged. Compare planned decision returns to the chosen policy and value for normal approval after actual funding; authority and pending-programme restrictions still apply. Unfunded targets create no money. Existing capital reservations and protected local claims retain first claim. Actual tax receipts can fill the target before maturity, interest, wages and welfare payments; deferring operating payments creates arrears and unpaid dated principal remains outstanding. Creation has an approval cost and reuse cooldown. Release while paused before proposing a decision through normal funding, backing and delay rules. Expiry or a new government automatically releases actual cash, without cancelling any obligation. Funding scenarios exclude current retained cash and hold protection constant rather than predicting future capture or expiry.".into(),destination:Destination {tab:Tab::Treasury,country:None,policy:None}});
     }

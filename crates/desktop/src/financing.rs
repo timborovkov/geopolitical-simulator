@@ -8,6 +8,21 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
     let mut action = None;
     ui.separator();
     ui.strong("Borrowing authority & debt");
+    if let Some(interest) = &state.interest_accrual {
+        ui.label(
+            "Interest accrual · fixed 4% annual, actual/365; fractions carry without compounding.",
+        );
+        ui.label(format!(
+            "Whole interest assessed {}m · actually paid {}m · unpaid whole interest {}m.",
+            interest.whole_assessed().0,
+            interest.paid.0,
+            world.player_country().arrears_external.0
+        ));
+        ui.label(format!("Unsettled fraction {}/{} of 1m credits. This is a creditor claim, never available cash; it survives principal retirement until a whole unit becomes due.", interest.remainder, INTEREST_DENOMINATOR));
+        if let Some(last) = &interest.last {
+            ui.small(format!("Latest assessment {} · principal basis {}m · whole interest due {}m. Manual borrowing and repayments made afterward affect the next day.", date(last.day), last.principal.0, last.amount_due.0));
+        }
+    }
     ui.label("Pending borrowing is not available cash. Approval rechecks governing backing, the debt ceiling and the finite creditor's cash.");
     if let Some(term) = content
         .finance
@@ -113,6 +128,57 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn carried_interest_screen_reports_actual_payments_and_fraction_at_two_scales() {
+        let content = Content::from_json(include_str!(
+            "../../../data/synthetic-interest-accrual-test.json"
+        ))
+        .unwrap();
+        let mut world = World::new(&content, CountryId("COR".into()), 17).unwrap();
+        world.advance(&content, 3).unwrap();
+        let before = world.hash();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let output = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(1440.0 / scale, 940.0 / scale),
+                    )),
+                    ..Default::default()
+                },
+                |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        assert!(show(ui, &content, &world, &mut 1000).is_none());
+                    });
+                },
+            );
+            let labels = output
+                .shapes
+                .iter()
+                .filter_map(|shape| {
+                    if let egui::Shape::Text(text) = &shape.shape {
+                        Some(text.galley.text())
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            for text in [
+                "actual/365",
+                "Whole interest assessed 10m",
+                "actually paid 10m",
+                "Unsettled fraction 3499600/3650000",
+                "2000-01-04",
+                "whole interest due 3m",
+            ] {
+                assert!(labels.contains(text), "{text} at {scale}");
+            }
+        }
+        assert_eq!(world.hash(), before);
+    }
     #[test]
     fn dated_debt_screen_exposes_maturity_and_refinancing_limits_without_issuing_commands() {
         let content = Content::from_json(include_str!(

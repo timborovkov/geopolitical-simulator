@@ -1,0 +1,1112 @@
+{
+  "schema": 17,
+  "id": "synthetic-interest-accrual-v17",
+  "name": "Fictional carried debt interest",
+  "start": "2000-01-01",
+  "description": "Authored progressive withholding on actually received private income, using a representative resident within each cohort and 365-day annualisation relative to opening GDP per resident. The existing income-tax policy sets a standard marginal reference rate; source-defined bands scale it. Public/local wages and welfare are outside this private-income base. Collection capacity affects actual withholding; potential tax is not treasury cash or an arrears claim. No historical tax filing law, intra-cohort distribution or other tax bases are claimed. Fiscal AI reviews use the national daily balance after protected local claims, while earlier rules retain their original consolidated trigger. Authority, available cash, fees, review and real programme delivery remain ordinary shared constraints. This is an authored bounded heuristic, not historical government behavior or optimal economic planning. Newly disbursed loans have an authored 180-day bullet maturity. Opening debt remains a perpetual calibration, not a historical issuance. Scheduled principal uses available national cash after protected local claims and reservations, before interest and national purchases. Unpaid matured principal remains outstanding without being duplicated as operating arrears. Separate ordinary borrowing can fund repayment but is not guaranteed refinancing. No historical maturity curve, default/restructuring, FX or market pricing is claimed. Temporary cash retention protects only actual national cash after capital/local reservations, up to 1% opening GDP for at most 90 days. Approval falls by three points; a 90-day reuse cooldown applies from creation. Release, expiry or government change ends protection without cancelling any obligation or granting spending authority. Debt interest accrues at fixed 4% actual/365 on outstanding principal after scheduled principal settlement. Fractions carry without compounding; only whole reporting units become due. Cash payments and unpaid whole-unit external arrears reconcile separately. A sub-unit remainder survives retirement of principal and is not cash or spending authority. Taxes, wages, purchases and prices still use whole million-credit units.",
+  "sources": [
+    {
+      "id": "synthetic-original",
+      "quality": "authored_synthetic_fixture",
+      "description": "Original fictional content for repeatable rules tests; no historical claims."
+    },
+    {
+      "id": "authored-temporary-cash-retention-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original bounded temporary protection of actual national cash for a future decision. Deferring operating payments creates arrears; unpaid principal remains debt. This is not a historical cash-management or legal-priority claim."
+    },
+    {
+      "id": "authored-interest-carry-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original fixed 400-basis-point actual/365 principal-day accrual. Fractional reporting credits carry until a whole unit becomes due. No historical debt pricing, currency precision, compounding or legal settlement convention is claimed."
+    }
+  ],
+  "facts": [],
+  "countries": [
+    {
+      "id": "AUR",
+      "name": "Aurora Republic (fictional)",
+      "capital": "Aurora Republic test capital",
+      "regime": "parliamentary",
+      "executive": "Fictional delegate AUR-1",
+      "office": "Test governing office",
+      "currency": "TEST",
+      "population": 1000000,
+      "gdp": 100000,
+      "tax": 24,
+      "services": 9,
+      "welfare": 4,
+      "energy": 80,
+      "food": 80,
+      "capacity": 70,
+      "approval": 55,
+      "longitude": 0,
+      "latitude": 30,
+      "ruling_party": "AUR-1",
+      "coalition": [
+        "AUR-1"
+      ],
+      "parties": [
+        {
+          "id": "AUR-1",
+          "name": "Aurora Republic body 1",
+          "leader": "Fictional delegate AUR-1",
+          "ideology": "Authored test profile",
+          "seats": 60
+        },
+        {
+          "id": "AUR-2",
+          "name": "Aurora Republic body 2",
+          "leader": "Fictional delegate AUR-2",
+          "ideology": "Authored test profile",
+          "seats": 40
+        }
+      ],
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      },
+      "quality": "authored_synthetic_fixture",
+      "identity_source": "synthetic-original",
+      "economic_source": "synthetic-original"
+    },
+    {
+      "id": "BOR",
+      "name": "Boreal Union (fictional)",
+      "capital": "Boreal Union test capital",
+      "regime": "presidential",
+      "executive": "Fictional delegate BOR-1",
+      "office": "Test governing office",
+      "currency": "TEST",
+      "population": 1000000,
+      "gdp": 100000,
+      "tax": 24,
+      "services": 9,
+      "welfare": 4,
+      "energy": 80,
+      "food": 80,
+      "capacity": 70,
+      "approval": 55,
+      "longitude": 40,
+      "latitude": 30,
+      "ruling_party": "BOR-1",
+      "coalition": [
+        "BOR-1"
+      ],
+      "parties": [
+        {
+          "id": "BOR-1",
+          "name": "Boreal Union body 1",
+          "leader": "Fictional delegate BOR-1",
+          "ideology": "Authored test profile",
+          "seats": 60
+        },
+        {
+          "id": "BOR-2",
+          "name": "Boreal Union body 2",
+          "leader": "Fictional delegate BOR-2",
+          "ideology": "Authored test profile",
+          "seats": 40
+        }
+      ],
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "council_threshold": 0,
+        "consent_days": 21,
+        "leadership_review_days": null
+      },
+      "quality": "authored_synthetic_fixture",
+      "identity_source": "synthetic-original",
+      "economic_source": "synthetic-original"
+    },
+    {
+      "id": "COR",
+      "name": "Coral Crown (fictional)",
+      "capital": "Coral Crown test capital",
+      "regime": "absolute_monarchy",
+      "executive": "Fictional delegate COR-1",
+      "office": "Test governing office",
+      "currency": "TEST",
+      "population": 1000000,
+      "gdp": 100000,
+      "tax": 24,
+      "services": 9,
+      "welfare": 4,
+      "energy": 80,
+      "food": 80,
+      "capacity": 70,
+      "approval": 55,
+      "longitude": 80,
+      "latitude": 30,
+      "ruling_party": "COR-1",
+      "coalition": [
+        "COR-1"
+      ],
+      "parties": [
+        {
+          "id": "COR-1",
+          "name": "Coral Crown body 1",
+          "leader": "Fictional delegate COR-1",
+          "ideology": "Authored test profile",
+          "seats": 60
+        },
+        {
+          "id": "COR-2",
+          "name": "Coral Crown body 2",
+          "leader": "Fictional delegate COR-2",
+          "ideology": "Authored test profile",
+          "seats": 40
+        }
+      ],
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "royal_decree",
+        "threshold": 50,
+        "consent_days": 0,
+        "council_threshold": 45,
+        "leadership_review_days": 360
+      },
+      "quality": "authored_synthetic_fixture",
+      "identity_source": "synthetic-original",
+      "economic_source": "synthetic-original"
+    }
+  ],
+  "policies": [
+    {
+      "id": "income_tax",
+      "name": "Standard private-income marginal rate",
+      "min": 10,
+      "max": 45,
+      "days": 30,
+      "cost_bps": 2,
+      "description": "Set the standard marginal reference rate for authored private-income bands. Withholding uses actual private income, representative cohort means and collection capacity; benefits and public/local wages remain outside this base. Full tax filing law and other bases are not modeled.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "services",
+      "name": "Public service budget",
+      "min": 4,
+      "max": 18,
+      "days": 60,
+      "cost_bps": 8,
+      "description": "Authorize annual service spending as a GDP percentage.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "welfare",
+      "name": "Household safety net",
+      "min": 0,
+      "max": 12,
+      "days": 30,
+      "cost_bps": 3,
+      "description": "Authorize targeted transfers as a GDP percentage.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "energy",
+      "name": "Energy capacity program",
+      "min": 1,
+      "max": 1,
+      "days": 90,
+      "cost_bps": 50,
+      "description": "Add 15 energy capacity points after implementation.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "agriculture",
+      "name": "Food resilience program",
+      "min": 1,
+      "max": 1,
+      "days": 120,
+      "cost_bps": 35,
+      "description": "Add 15 food capacity points after implementation.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "administration",
+      "name": "Civil service modernization",
+      "min": 1,
+      "max": 1,
+      "days": 180,
+      "cost_bps": 40,
+      "description": "Add 8 administration points after implementation.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "coalition",
+      "name": "Negotiate governing support",
+      "min": 1,
+      "max": 1,
+      "days": 45,
+      "cost_bps": 10,
+      "description": "Negotiate support through the configured governing route.",
+      "groups": "Fictional household and governing groups"
+    }
+  ],
+  "rules": 17,
+  "markets": {
+    "food_budget_share_bps": 4000,
+    "source": "synthetic-original",
+    "source_version": "authored-market-v1",
+    "goods": [
+      {
+        "id": "test:power",
+        "kind": "energy",
+        "name": "Fictional energy",
+        "unit": "modeled energy unit",
+        "minimum_price_bps": 5000,
+        "maximum_price_bps": 20000,
+        "adjustment_bps": 250,
+        "import_limit_bps": 2500,
+        "storage_days": 3,
+        "loss_bps": 0
+      },
+      {
+        "id": "test:staple",
+        "kind": "food",
+        "name": "Fictional essential food",
+        "unit": "modeled food-basket unit",
+        "minimum_price_bps": 5000,
+        "maximum_price_bps": 20000,
+        "adjustment_bps": 250,
+        "import_limit_bps": 3500,
+        "storage_days": 11,
+        "loss_bps": 100
+      }
+    ]
+  },
+  "finance": {
+    "source": "authored-interest-carry-v1",
+    "source_version": "authored-interest-carry-v1",
+    "authorities": [
+      {
+        "id": "borrowing:legislature",
+        "label": "Legislative borrowing consent",
+        "route": "legislature",
+        "consent_days": 14
+      },
+      {
+        "id": "borrowing:party_council",
+        "label": "Party council borrowing consent",
+        "route": "party_council",
+        "consent_days": 21
+      },
+      {
+        "id": "borrowing:royal_decree",
+        "label": "Royal borrowing decree",
+        "route": "royal_decree",
+        "consent_days": 0
+      },
+      {
+        "id": "borrowing:religious_council",
+        "label": "Religious council borrowing consent",
+        "route": "religious_council",
+        "consent_days": 30
+      },
+      {
+        "id": "borrowing:military_council",
+        "label": "Military council borrowing consent",
+        "route": "military_council",
+        "consent_days": 7
+      },
+      {
+        "id": "borrowing:executive_decree",
+        "label": "Executive borrowing decree",
+        "route": "executive_decree",
+        "consent_days": 0
+      }
+    ],
+    "emergency": {
+      "council_threshold": 65,
+      "approval_cost": 15,
+      "legislative_cost": 20,
+      "elite_cost": 10,
+      "council_cost": 20,
+      "cooldown_days": 180
+    },
+    "maturity_days": 180,
+    "interest_accrual": "actual_365_carry"
+  },
+  "constitutions": {
+    "templates": [
+      {
+        "regime": "parliamentary",
+        "title": "parliamentary cabinet",
+        "government": {
+          "route": "legislature",
+          "threshold": 51,
+          "council_threshold": 0,
+          "consent_days": 14,
+          "leadership_review_days": null
+        }
+      },
+      {
+        "regime": "presidential",
+        "title": "presidential cabinet",
+        "government": {
+          "route": "legislature",
+          "threshold": 51,
+          "council_threshold": 0,
+          "consent_days": 21,
+          "leadership_review_days": null
+        }
+      },
+      {
+        "regime": "semi_presidential",
+        "title": "semi-presidential cabinet",
+        "government": {
+          "route": "legislature",
+          "threshold": 51,
+          "council_threshold": 0,
+          "consent_days": 21,
+          "leadership_review_days": null
+        }
+      },
+      {
+        "regime": "single_party",
+        "title": "party council",
+        "government": {
+          "route": "party_council",
+          "threshold": 55,
+          "council_threshold": 50,
+          "consent_days": 21,
+          "leadership_review_days": 180
+        }
+      },
+      {
+        "regime": "absolute_monarchy",
+        "title": "royal court",
+        "government": {
+          "route": "royal_decree",
+          "threshold": 50,
+          "council_threshold": 45,
+          "consent_days": 0,
+          "leadership_review_days": 90
+        }
+      },
+      {
+        "regime": "theocracy",
+        "title": "religious council",
+        "government": {
+          "route": "religious_council",
+          "threshold": 55,
+          "council_threshold": 55,
+          "consent_days": 30,
+          "leadership_review_days": 180
+        }
+      },
+      {
+        "regime": "personalist",
+        "title": "executive council",
+        "government": {
+          "route": "executive_decree",
+          "threshold": 50,
+          "council_threshold": 45,
+          "consent_days": 0,
+          "leadership_review_days": 90
+        }
+      },
+      {
+        "regime": "military",
+        "title": "military council",
+        "government": {
+          "route": "military_council",
+          "threshold": 55,
+          "council_threshold": 55,
+          "consent_days": 7,
+          "leadership_review_days": 90
+        }
+      }
+    ],
+    "source": "synthetic-original",
+    "source_version": "authored-transitions-v1",
+    "cooldown_days": 180,
+    "ai_targets": {
+      "BOR": "parliamentary",
+      "COR": "single_party"
+    },
+    "lawful": {
+      "days": 90,
+      "cost_bps": 50,
+      "upfront_bps": 2000,
+      "legislative_threshold": 67,
+      "elite_threshold": 75,
+      "council_threshold": 65,
+      "approval_threshold": 55,
+      "approval_cost": 3,
+      "legislative_cost": 5,
+      "elite_cost": 10,
+      "council_cost": 5
+    },
+    "contested": {
+      "days": 14,
+      "cost_bps": 100,
+      "upfront_bps": 10000,
+      "legislative_threshold": 0,
+      "elite_threshold": 80,
+      "council_threshold": 80,
+      "approval_threshold": 0,
+      "approval_cost": 20,
+      "legislative_cost": 25,
+      "elite_cost": 15,
+      "council_cost": 20
+    }
+  },
+  "commitments": {
+    "amendment_fee_bps": 1000,
+    "maximum_amendments": 3,
+    "evaluation_days": 30,
+    "source": "synthetic-original",
+    "source_version": "authored-commitments-v1"
+  },
+  "cabinet": {
+    "portfolios": [
+      {
+        "id": "portfolio:AUR:finance",
+        "country": "AUR",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:AUR:supply",
+        "country": "AUR",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:AUR:administration",
+        "country": "AUR",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:BOR:finance",
+        "country": "BOR",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:BOR:supply",
+        "country": "BOR",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:BOR:administration",
+        "country": "BOR",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:COR:finance",
+        "country": "COR",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:COR:supply",
+        "country": "COR",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:COR:administration",
+        "country": "COR",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      }
+    ],
+    "candidates": [
+      {
+        "person": "generated:AUR:finance:professional",
+        "office": "portfolio:AUR:finance",
+        "name": "Generated AUR finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:AUR:finance:consensus",
+        "office": "portfolio:AUR:finance",
+        "name": "Generated AUR finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:AUR:supply:professional",
+        "office": "portfolio:AUR:supply",
+        "name": "Generated AUR supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:AUR:supply:consensus",
+        "office": "portfolio:AUR:supply",
+        "name": "Generated AUR supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:AUR:administration:professional",
+        "office": "portfolio:AUR:administration",
+        "name": "Generated AUR administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:AUR:administration:consensus",
+        "office": "portfolio:AUR:administration",
+        "name": "Generated AUR administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:BOR:finance:professional",
+        "office": "portfolio:BOR:finance",
+        "name": "Generated BOR finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:BOR:finance:consensus",
+        "office": "portfolio:BOR:finance",
+        "name": "Generated BOR finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:BOR:supply:professional",
+        "office": "portfolio:BOR:supply",
+        "name": "Generated BOR supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:BOR:supply:consensus",
+        "office": "portfolio:BOR:supply",
+        "name": "Generated BOR supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:BOR:administration:professional",
+        "office": "portfolio:BOR:administration",
+        "name": "Generated BOR administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:BOR:administration:consensus",
+        "office": "portfolio:BOR:administration",
+        "name": "Generated BOR administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:COR:finance:professional",
+        "office": "portfolio:COR:finance",
+        "name": "Generated COR finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:COR:finance:consensus",
+        "office": "portfolio:COR:finance",
+        "name": "Generated COR finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:COR:supply:professional",
+        "office": "portfolio:COR:supply",
+        "name": "Generated COR supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:COR:supply:consensus",
+        "office": "portfolio:COR:supply",
+        "name": "Generated COR supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:COR:administration:professional",
+        "office": "portfolio:COR:administration",
+        "name": "Generated COR administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:COR:administration:consensus",
+        "office": "portfolio:COR:administration",
+        "name": "Generated COR administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      }
+    ],
+    "appointment_cost_bps": 2,
+    "dismissal_cost_bps": 1,
+    "cooldown_days": 90,
+    "vacancy_preparation_days": 30,
+    "source": "synthetic-original",
+    "source_version": "authored-cabinet-v1"
+  },
+  "elections": {
+    "mandates": [
+      {
+        "authority": "authority:AUR:elections",
+        "country": "AUR",
+        "title": "AUR electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:BOR:elections",
+        "country": "BOR",
+        "title": "BOR electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:COR:elections",
+        "country": "COR",
+        "title": "COR electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      }
+    ],
+    "decision_days": 7,
+    "campaign_days": 60,
+    "minimum_interval_days": 365,
+    "regular_term_years": 4,
+    "administration_cost_bps": 5,
+    "source": "synthetic-original",
+    "source_version": "authored-electoral-mandates-v1"
+  },
+  "subnational": {
+    "charters": [
+      {
+        "country": "AUR",
+        "form": "decentralized_unitary",
+        "regions": [
+          {
+            "id": "region:AUR:province",
+            "authority": "authority:AUR:province",
+            "name": "Fictional AUR provincial authority",
+            "tier": "autonomous_jurisdiction",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1500,
+            "autonomous_services": true,
+            "service_level": 2
+          },
+          {
+            "id": "region:AUR:city",
+            "authority": "authority:AUR:city",
+            "name": "Fictional AUR municipal authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 500,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "BOR",
+        "form": "federation",
+        "regions": [
+          {
+            "id": "region:BOR:province",
+            "authority": "authority:BOR:province",
+            "name": "Fictional BOR provincial authority",
+            "tier": "autonomous_jurisdiction",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1500,
+            "autonomous_services": true,
+            "service_level": 2
+          },
+          {
+            "id": "region:BOR:city",
+            "authority": "authority:BOR:city",
+            "name": "Fictional BOR municipal authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 500,
+            "autonomous_services": true,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "COR",
+        "form": "delegated_unitary",
+        "regions": [
+          {
+            "id": "region:COR:province",
+            "authority": "authority:COR:province",
+            "name": "Fictional COR provincial authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1500,
+            "autonomous_services": false,
+            "service_level": 2
+          },
+          {
+            "id": "region:COR:city",
+            "authority": "authority:COR:city",
+            "name": "Fictional COR municipal authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 500,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      }
+    ],
+    "grant_review_days": 14,
+    "cooldown_days": 90,
+    "administration_cost_bps": 2,
+    "absorption_days": 180,
+    "source": "synthetic-original",
+    "source_version": "authored-territorial-charters-v1"
+  },
+  "territorial": {
+    "templates": [
+      {
+        "form": "federation",
+        "tax_pool_bps": 3000
+      },
+      {
+        "form": "decentralized_unitary",
+        "tax_pool_bps": 2000
+      },
+      {
+        "form": "delegated_unitary",
+        "tax_pool_bps": 1000
+      }
+    ],
+    "lawful": {
+      "days": 90,
+      "cost_bps": 50,
+      "upfront_bps": 2000,
+      "legislative_threshold": 67,
+      "elite_threshold": 75,
+      "council_threshold": 65,
+      "approval_threshold": 55,
+      "approval_cost": 3,
+      "legislative_cost": 5,
+      "elite_cost": 10,
+      "council_cost": 5
+    },
+    "contested": {
+      "days": 14,
+      "cost_bps": 100,
+      "upfront_bps": 10000,
+      "legislative_threshold": 0,
+      "elite_threshold": 80,
+      "council_threshold": 80,
+      "approval_threshold": 0,
+      "approval_cost": 20,
+      "legislative_cost": 25,
+      "elite_cost": 15,
+      "council_cost": 20
+    },
+    "cooldown_days": 180,
+    "local_consent_approval": 65,
+    "compensation_bps": 50,
+    "requisition": {
+      "administration_cost_bps": 25,
+      "elite_threshold": 80,
+      "council_threshold": 80,
+      "approval_cost": 20,
+      "legislative_cost": 20,
+      "elite_cost": 15,
+      "council_cost": 20,
+      "cooldown_days": 180
+    },
+    "ai_targets": {
+      "AUR": "federation",
+      "BOR": "decentralized_unitary",
+      "COR": "decentralized_unitary"
+    },
+    "source": "synthetic-original",
+    "source_version": "authored-territorial-reforms-v1"
+  },
+  "undertakings": {
+    "cooldown_days": 180,
+    "maximum_open": 3,
+    "source": "synthetic-original",
+    "source_version": "authored-undertakings-v1",
+    "templates": [
+      {
+        "id": "energy-pledge",
+        "name": "Public energy delivery pledge",
+        "kind": "public_pledge",
+        "policy": "energy",
+        "direction": "at_least",
+        "delta": 15,
+        "review_days": 7,
+        "deadline_days": 180,
+        "administration_cost_bps": 2,
+        "minimum_credibility": 0,
+        "elite_threshold": 0,
+        "council_threshold": 0,
+        "acceptance": {
+          "approval": 3,
+          "legislative": 0,
+          "elite": 0,
+          "council": 0
+        },
+        "breach": {
+          "approval": -8,
+          "legislative": 0,
+          "elite": 0,
+          "council": -3
+        }
+      },
+      {
+        "id": "service-agreement",
+        "name": "Governing support for a service commitment",
+        "kind": "support_agreement",
+        "policy": "services",
+        "direction": "at_least",
+        "delta": 1,
+        "review_days": 14,
+        "deadline_days": 180,
+        "administration_cost_bps": 5,
+        "minimum_credibility": 40,
+        "elite_threshold": 30,
+        "council_threshold": 30,
+        "acceptance": {
+          "approval": 0,
+          "legislative": 12,
+          "elite": 12,
+          "council": 12
+        },
+        "breach": {
+          "approval": -5,
+          "legislative": -18,
+          "elite": -18,
+          "council": -18
+        }
+      },
+      {
+        "id": "project-deadline",
+        "name": "Public deadline for an existing policy project",
+        "kind": "project_deadline",
+        "policy": null,
+        "direction": "at_least",
+        "delta": 0,
+        "review_days": 7,
+        "deadline_days": 180,
+        "administration_cost_bps": 1,
+        "minimum_credibility": 0,
+        "elite_threshold": 0,
+        "council_threshold": 0,
+        "acceptance": {
+          "approval": 0,
+          "legislative": 0,
+          "elite": 0,
+          "council": 0
+        },
+        "breach": {
+          "approval": -3,
+          "legislative": 0,
+          "elite": 0,
+          "council": 0
+        }
+      }
+    ]
+  },
+  "fiscal_plans": {
+    "review_days": 14,
+    "cooldown_days": 30,
+    "annual_window_days": 180,
+    "administration_cost_bps": 3,
+    "source": "synthetic-original",
+    "source_version": "authored-fiscal-plans-v1"
+  },
+  "income_taxes": {
+    "annualisation_days": 365,
+    "bands": [
+      {
+        "id": "exempt",
+        "lower_gdp_per_resident_bps": 0,
+        "rate_multiplier_bps": 0
+      },
+      {
+        "id": "standard",
+        "lower_gdp_per_resident_bps": 1000,
+        "rate_multiplier_bps": 10000
+      },
+      {
+        "id": "upper",
+        "lower_gdp_per_resident_bps": 7500,
+        "rate_multiplier_bps": 15000
+      },
+      {
+        "id": "top",
+        "lower_gdp_per_resident_bps": 15000,
+        "rate_multiplier_bps": 20000
+      }
+    ],
+    "source": "synthetic-original",
+    "source_version": "authored-private-income-bands-v1"
+  },
+  "cash_management": {
+    "max_target_bps": 100,
+    "max_days": 90,
+    "cooldown_days": 90,
+    "approval_cost": 3,
+    "source": "authored-temporary-cash-retention-v1",
+    "source_version": "authored-retention-v1"
+  }
+}

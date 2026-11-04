@@ -479,6 +479,17 @@ def build_cash_management():
     return pack
 
 
+
+def build_interest_accrual():
+    pack = build_cash_management()
+    pack.update(schema=17, rules=17, id="synthetic-interest-accrual-v17", name="Fictional carried debt interest")
+    source = "authored-interest-carry-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model", description="Original fixed 400-basis-point actual/365 principal-day accrual. Fractional reporting credits carry until a whole unit becomes due. No historical debt pricing, currency precision, compounding or legal settlement convention is claimed."))
+    pack["finance"].update(interest_accrual="actual_365_carry", source=source, source_version="authored-interest-carry-v1")
+    pack["description"] += " Debt interest accrues at fixed 4% actual/365 on outstanding principal after scheduled principal settlement. Fractions carry without compounding; only whole reporting units become due. Cash payments and unpaid whole-unit external arrears reconcile separately. A sub-unit remainder survives retirement of principal and is not cash or spending authority. Taxes, wages, purchases and prices still use whole million-credit units."
+    return pack
+
+
 def build_debt_starter():
     pack = build_fiscal_ai_starter()
     pack.update(schema=15, rules=15, id="initial-2000-debt-maturities-v15", name="A New Century · dated loan principal")
@@ -518,6 +529,7 @@ def main():
                            ("synthetic-national-fiscal-ai-test.json", build_fiscal_ai()),
                            ("synthetic-debt-maturities-test.json", build_debt_maturities()),
                            ("synthetic-cash-management-test.json", build_cash_management()),
+                           ("synthetic-interest-accrual-test.json", build_interest_accrual()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

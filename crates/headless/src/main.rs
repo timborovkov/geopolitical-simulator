@@ -759,7 +759,10 @@ fn play(
                     println!(
                         "Unchanged-policy funding scenario, not available money or an approval guarantee. Excludes shocks, price changes, arrears repayment and pending program delivery."
                     );
-                    println!(
+                    if let Some(interest) = &plan.interest_accrual {
+                        println!("Available cash {}m · mean balance {:+.4}m/day · interest within {horizon} days {}m without borrowing / {}m if approved, including carried fraction.",plan.available_cash.0,interest.national_daily_numerator as f64 / f64::from(INTEREST_DENOMINATOR),interest.without_loan_due.0,interest.if_approved_due.0);
+                        println!("{}",plan.covered_days.map_or_else(||format!("No projected funding gap within {horizon} days; later funding is not guaranteed."),|days|format!("First funding gap after {days} fully covered days.")));
+                    } else { println!(
                         "Available cash {}m · balance {:+}m/day · deficit runway {}",
                         plan.available_cash.0,
                         plan.daily_balance.0,
@@ -768,6 +771,7 @@ fn play(
                             |days| format!("{days} fully covered days")
                         )
                     );
+                    }
                     if world.player_country().cash_management.as_ref().is_some_and(|s|s.active().is_some()) { println!("Retained cash {}m excluded. Projection holds retention fixed; future capture and automatic release are not simulated.",world.player_country().retained_cash().0); }
                     if content.finance.as_ref().is_some_and(|rules|rules.maturity_days.is_some()) {
                         println!("Dated principal within horizon: {}m; conditional total {}m. Subtracts full due principal (existing overdue principal from tomorrow); recurring interest is held fixed after repayment, conservatively overstating it. No automatic refinancing.",plan.principal_due.0,plan.conditional_principal_due.0);
@@ -785,12 +789,8 @@ fn play(
                         );
                     }
                     if let Some(loan) = loan {
-                        println!(
-                            "Pending {}m on {} IF approved · additional interest {}m/day",
-                            loan.amount.0,
-                            date(loan.decision_day),
-                            plan.additional_daily_interest.0
-                        );
+                        let rate = plan.interest_accrual.as_ref().map_or_else(|| format!("{}m/day",plan.additional_daily_interest.0), |i| format!("{:.4}m/day mean",i.additional_daily_numerator as f64 / f64::from(INTEREST_DENOMINATOR)));
+                        println!("Pending {}m on {} IF approved · additional interest {rate}",loan.amount.0,date(loan.decision_day));
                     }
                 }
                 "cash-retention" => {
@@ -808,6 +808,10 @@ fn play(
                 "finance" => {
                     if let Some(financing) = &world.player_country().financing {
                         println!("Borrowing authority · pending funds are not treasury cash");
+                        if let Some(interest) = &financing.interest_accrual {
+                            println!("Interest: fixed 4% annual actual/365, no compounding. Whole assessed {}m; actually paid {}m; unpaid whole interest {}m; unsettled fraction {}/{} of 1m. Fraction is a creditor claim, never available cash, and survives principal retirement.",interest.whole_assessed().0,interest.paid.0,world.player_country().arrears_external.0,interest.remainder,INTEREST_DENOMINATOR);
+                            if let Some(last) = &interest.last { println!("Latest assessment {}: principal basis {}m, whole interest due {}m. Later manual finance commands affect tomorrow.",date(last.day),last.principal.0,last.amount_due.0); }
+                        }
                         if let Some(request) = &financing.pending {
                             println!(
                                 "Pending #{}: {}m via {}, decision {} · cancel-loan {}",

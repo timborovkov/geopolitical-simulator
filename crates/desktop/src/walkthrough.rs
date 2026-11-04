@@ -107,7 +107,16 @@ impl Panel {
         ui.label(format!("Energy needs met {}% · food needs met {}% · approval {}%. Last-day receipts {}m; payments and interest {}m.",country.report.energy_coverage,country.report.food_coverage,country.approval,country.report.revenue.0,country.report.spending.0+country.report.interest.0));
         ui.label(format!("Uncommitted national cash {}m · operating arrears {}m. A recurring forecast is not cash available to spend.",country.available_cash().0,country.arrears.0));
         if let Ok(outlook) = world.funding_outlook(content, 0, None) {
-            ui.label(format!("Unchanged-policy national balance {:+}m/day (forecast, after protected local claims).",outlook.daily_balance.0));
+            let balance = outlook.interest_accrual.as_ref().map_or_else(
+                || format!("{:+}", outlook.daily_balance.0),
+                |i| {
+                    format!(
+                        "{:+.4} mean",
+                        i.national_daily_numerator as f64 / f64::from(INTEREST_DENOMINATOR)
+                    )
+                },
+            );
+            ui.label(format!("Unchanged-policy national balance {balance}m/day (forecast, after protected local claims)."));
         }
         if let Some(financing) = &country.financing
             && content

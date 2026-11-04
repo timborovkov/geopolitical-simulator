@@ -1457,7 +1457,17 @@ impl GameApp {
             c.accounts.treasury.0
         ));
         let latest = c.forecast(&d, self.content.income_taxes.as_ref());
-        ui.label(format!("Current no-shock run rate: revenue {}m/day, spending {}m/day, interest {}m/day. It excludes pending programs and new financing; forecasts are not spendable money.",latest.daily_revenue.0,latest.daily_spending.0,latest.daily_interest.0));
+        let rate = latest.interest_accrual.as_ref().map_or_else(
+            || format!("{}m/day", latest.daily_interest.0),
+            |i| {
+                format!(
+                    "{:.4}m/day mean; {}m due tomorrow including carry",
+                    i.average_per_day(),
+                    latest.daily_interest.0
+                )
+            },
+        );
+        ui.label(format!("Current no-shock run rate: revenue {}m/day, spending {}m/day, interest {rate}. It excludes pending programs and new financing; forecasts are not spendable money.",latest.daily_revenue.0,latest.daily_spending.0));
         ui.small("Forecast differences reflect supply shocks, rounded tax collection, policy changes and cash-constrained private income. Arrears and capital payments are shown separately.");
         egui::CollapsingHeader::new("Closed fiscal periods").show(ui, |ui| {
             for review in c.budget_reviews.iter().rev() {
