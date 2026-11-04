@@ -58,12 +58,8 @@ impl World {
         if available < 0 {
             return Err("Invalid available treasury for funding outlook".into());
         }
-        let forecast = country.forecast(definition);
-        let balance = forecast.daily_revenue.0
-            - country.regional_tax_entitlement(forecast.daily_revenue.0)
-            - forecast.daily_spending.0
-            + country.regional_planned_spending(definition)
-            - forecast.daily_interest.0;
+        let forecast = country.forecast(definition, content.income_taxes.as_ref());
+        let balance = country.national_daily_balance(definition, &forecast).0;
         let mut additional_interest = 0;
         if let Some(assumption) = loan {
             if assumption.amount.0 <= 0
@@ -79,8 +75,11 @@ impl World {
                 .0
                 .checked_add(assumption.amount.0)
                 .ok_or("Hypothetical debt overflow")?;
-            additional_interest =
-                after_loan.forecast(definition).daily_interest.0 - forecast.daily_interest.0;
+            additional_interest = after_loan
+                .forecast(definition, content.income_taxes.as_ref())
+                .daily_interest
+                .0
+                - forecast.daily_interest.0;
         }
         let mut points = Vec::with_capacity(horizon as usize + 1);
         for offset in 0..=horizon {

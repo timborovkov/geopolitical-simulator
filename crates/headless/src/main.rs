@@ -55,8 +55,18 @@ fn status(world: &World, content: &Content) {
         c.elite_support
     );
     println!(
-        "Tax {}% | services {}% GDP | welfare {}% GDP | energy {}% | food {}% | administration {}%",
-        c.tax, c.services, c.welfare, c.energy_capacity, c.food_capacity, c.administration
+        "{} {}% | services {}% GDP | welfare {}% GDP | energy {}% | food {}% | administration {}%",
+        if content.income_taxes.is_some() {
+            "Standard private-income marginal rate"
+        } else {
+            "Tax"
+        },
+        c.tax,
+        c.services,
+        c.welfare,
+        c.energy_capacity,
+        c.food_capacity,
+        c.administration
     );
     if world.day == content.start_day().expect("validated bookmark") {
         println!("Opening state: advance one day for realized fiscal and supply flows.");
@@ -136,7 +146,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nincome-tax-bands | income-tax-report | preview-income-tax STANDARD_RATE\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if developer {
                         println!(
@@ -267,6 +277,9 @@ fn play(
                         amount: Money(number(words.get(1))?),
                     },
                 )?,
+                "income-tax-bands" => println!("{}",serde_json::to_string_pretty(content.income_taxes.as_ref().ok_or("This campaign uses the earlier flat private-income model")?).map_err(|e|e.to_string())?),
+                "income-tax-report" => println!("{}",serde_json::to_string_pretty(world.player_country().income_tax_report.as_ref().ok_or("No realized band withholding; use a band-enabled campaign and advance one day")?).map_err(|e|e.to_string())?),
+                "preview-income-tax" => println!("{:?}",world.preview_income_taxes(content,&world.player,number(words.get(1))?)?),
                 "fiscal-plans" => println!(
                     "{}",
                     serde_json::to_string_pretty(

@@ -148,6 +148,8 @@ pub struct BudgetPreview {
     pub programmes: Vec<(String, i32, u32)>,
     pub baseline_forecast: BudgetForecast,
     pub planned_forecast: BudgetForecast,
+    pub baseline_national_balance: Money,
+    pub planned_national_balance: Money,
     pub route: String,
 }
 /// Only enacted settings are published. Deliberations, cash and private project IDs stay private.
@@ -278,14 +280,20 @@ impl World {
         planned.tax = targets.income_tax;
         planned.services = targets.services;
         planned.welfare = targets.welfare;
+        let baseline_forecast = c.forecast(d, content.income_taxes.as_ref());
+        let planned_forecast = planned.forecast(d, content.income_taxes.as_ref());
+        let baseline_national_balance = c.national_daily_balance(d, &baseline_forecast);
+        let planned_national_balance = planned.national_daily_balance(d, &planned_forecast);
         Ok(BudgetPreview {
             fee,
             implementation_cost: cost,
             review_day,
             effective_day,
             programmes,
-            baseline_forecast: c.forecast(d),
-            planned_forecast: planned.forecast(d),
+            baseline_forecast,
+            planned_forecast,
+            baseline_national_balance,
+            planned_national_balance,
             route: g.label(),
         })
     }
@@ -534,7 +542,7 @@ impl World {
         }
         let c = &self.countries[id];
         let d = content.country(id).expect("country");
-        let f = c.forecast(d);
+        let f = c.forecast(d, content.income_taxes.as_ref());
         if f.daily_revenue.0 >= f.daily_spending.0 + f.daily_interest.0 {
             return;
         }

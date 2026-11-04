@@ -28,7 +28,11 @@ impl Panel {
                 .targets
                 .get_or_insert_with(|| FiscalTargets::current(c));
             ui.horizontal_wrapped(|ui| {
-                ui.label("Income tax %");
+                ui.label(if content.income_taxes.is_some() {
+                    "Standard income tax %"
+                } else {
+                    "Income tax %"
+                });
                 ui.add(egui::DragValue::new(&mut targets.income_tax).range(10..=45));
                 ui.label("Services % GDP");
                 ui.add(egui::DragValue::new(&mut targets.services).range(4..=18));
@@ -46,11 +50,10 @@ impl Panel {
             match world.preview_budget(content, &world.player, year, targets) {
                 Ok(p) => {
                     ui.label(format!("Fiscal year {year} · {} · review {} · legal start {}. Pay {}m administration now; reserve {}m implementation cash.",p.route,date(p.review_day),date(p.effective_day),p.fee.0,p.implementation_cost.0));
-                    ui.label(format!("Conditional daily forecast after all programmes operate: revenue {}m to {}m; spending {}m to {}m; interest {}m. Opening GDP, current supply/collection and funded purchasing are held fixed; future borrowing and shocks are excluded.",p.baseline_forecast.daily_revenue.0,p.planned_forecast.daily_revenue.0,p.baseline_forecast.daily_spending.0,p.planned_forecast.daily_spending.0,p.planned_forecast.daily_interest.0));
-                    if p.planned_forecast.daily_revenue.0
-                        < p.planned_forecast.daily_spending.0 + p.planned_forecast.daily_interest.0
-                    {
-                        ui.colored_label(egui::Color32::LIGHT_YELLOW,"This plan forecasts a recurring funding gap. Reserved implementation cash does not finance daily spending.");
+                    ui.label(format!("Conditional daily forecast (consolidated) after all programmes operate: revenue {}m to {}m; spending {}m to {}m; interest {}m. Opening GDP, current supply/collection and funded purchasing are held fixed; future borrowing and shocks are excluded.",p.baseline_forecast.daily_revenue.0,p.planned_forecast.daily_revenue.0,p.baseline_forecast.daily_spending.0,p.planned_forecast.daily_spending.0,p.planned_forecast.daily_interest.0));
+                    ui.label(format!("National daily balance after protected local tax shares: {:+}m to {:+}m. Consolidated flows above include local purchasing; these local funds cannot finance national obligations.",p.baseline_national_balance.0,p.planned_national_balance.0));
+                    if p.planned_national_balance.0 < 0 {
+                        ui.colored_label(egui::Color32::LIGHT_YELLOW,"This plan forecasts a recurring national funding gap. Reserved implementation cash does not finance daily spending.");
                     }
                     for (policy, value, due) in &p.programmes {
                         ui.small(format!(
@@ -75,11 +78,11 @@ impl Panel {
             if state.bills.is_empty(){ui.label("No combined fiscal plans submitted. Existing cash execution continues under operating settings.");}
             for b in state.bills.iter().rev(){ui.push_id(b.id.0,|ui|{
                 ui.strong(format!("Budget #{} · {} · {}",b.id.0,b.year,b.status.label()));
-                ui.label(format!("Targets: income tax {}%, services {}% GDP, welfare {}% GDP. Review {} · legal start {}. Administration {}m; implementation {}m.",b.targets.income_tax,b.targets.services,b.targets.welfare,date(b.review_day),date(b.effective_day),b.fee.0,b.implementation_cost.0));
+                ui.label(format!("Targets: {} {}%, services {}% GDP, welfare {}% GDP. Review {} · legal start {}. Administration {}m; implementation {}m.",if content.income_taxes.is_some(){"standard income-tax rate"}else{"income tax"},b.targets.income_tax,b.targets.services,b.targets.welfare,date(b.review_day),date(b.effective_day),b.fee.0,b.implementation_cost.0));
                 for p in &b.programmes {if let Some(r)=c.commitments.as_ref().and_then(|r|r.iter().find(|r|r.id==p.project)){ui.label(format!("{} · policy #{} · {:?} · due {}",content.policy(&p.policy).expect("policy").name,p.project.0,r.stage(),date(r.project.due_day)));}}
                 if b.status==BudgetBillStatus::Pending && ui.button(format!("Withdraw budget #{}",b.id.0)).clicked(){action=Some(Action::WithdrawBudget{request:b.id});}
             });}
-            ui.label(format!("Operating now: income tax {}%, services {}% GDP, welfare {}% GDP. The execution and year-end reports below record actual receipts, payments, capital, financing and arrears.",c.tax,c.services,c.welfare));
+            ui.label(format!("Operating now: {} {}%, services {}% GDP, welfare {}% GDP. The execution and year-end reports below record actual receipts, payments, capital, financing and arrears.",if content.income_taxes.is_some(){"standard income-tax rate"}else{"income tax"},c.tax,c.services,c.welfare));
         });
         ui.separator();
         action

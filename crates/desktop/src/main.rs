@@ -12,6 +12,7 @@ mod fiscal_plans;
 mod funding;
 mod geometry;
 mod help;
+mod income_taxes;
 mod inspector;
 mod map;
 mod markets;
@@ -28,7 +29,7 @@ use std::{
 
 const MINT: Color32 = Color32::from_rgb(104, 224, 186);
 const MUTED: Color32 = Color32::from_rgb(148, 170, 181);
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 enum Tab {
     Overview,
     Policies,
@@ -913,7 +914,7 @@ impl GameApp {
         }
         if let Some(plans) = &report.fiscal_plans {
             for p in plans {
-                ui.label(format!("Enacted fiscal plan {}: tax {}%, services {}% GDP, welfare {}% GDP; first scheduled delivery {}. Actual programme delivery remains separate.",p.year,p.targets.income_tax,p.targets.services,p.targets.welfare,date(p.first_scheduled_delivery)));
+                ui.label(format!("Enacted fiscal plan {}: {} {}%, services {}% GDP, welfare {}% GDP; first scheduled delivery {}. Actual programme delivery remains separate.",p.year,if self.content.income_taxes.is_some(){"standard income-tax rate"}else{"tax"},p.targets.income_tax,p.targets.services,p.targets.welfare,date(p.first_scheduled_delivery)));
             }
         }
         if let Some(undertakings) = &report.undertakings {
@@ -1016,7 +1017,11 @@ impl GameApp {
         if p.min != p.max {
             ui.add(egui::Slider::new(&mut self.value, p.min..=p.max).text(
                 if self.policy == "income_tax" {
-                    "% of wages"
+                    if self.content.income_taxes.is_some() {
+                        "standard marginal %"
+                    } else {
+                        "% of wages"
+                    }
                 } else {
                     "% of annual GDP"
                 },
@@ -1030,8 +1035,15 @@ impl GameApp {
         };
         let c = &w.countries[&self.selected];
         ui.label(format!(
-            "Operating levels: income tax {}% · services {}% GDP · welfare {}% GDP",
-            c.tax, c.services, c.welfare
+            "Operating levels: {} {}% · services {}% GDP · welfare {}% GDP",
+            if self.content.income_taxes.is_some() {
+                "standard income-tax rate"
+            } else {
+                "income tax"
+            },
+            c.tax,
+            c.services,
+            c.welfare
         ));
         ui.label(format!(
             "Domestic capacity: energy {}% · food {}% · administration {}%",
@@ -1041,12 +1053,15 @@ impl GameApp {
             ui.label("Foreign government: select your own country to issue commands.");
             return;
         }
+        if self.policy == "income_tax" {
+            income_taxes::show(ui, &self.content, w, Some(self.value));
+        }
         match w.preview(&self.content, &self.selected, &self.policy, self.value) {
             Ok(preview) => {
                 egui::Frame::group(ui.style()).show(ui, |ui| {
                     ui.strong("Decision preview · forecast");
                     ui.label(format!(
-                        "Cash now: {}m · delivery: {} days · annual net expenditure change: {:+}m",
+                        "Cash now: {}m · delivery: {} days · annual consolidated net expenditure change: {:+}m",
                         preview.cost.0, preview.delay, preview.annual_budget_change.0
                     ));
                     if self.policy == "coalition" {
@@ -1284,6 +1299,11 @@ impl GameApp {
                 .min;
             self.tab = Tab::Policies;
         }
+        if income_taxes::show(ui, &self.content, w, None) {
+            self.policy = "income_tax".into();
+            self.value = c.tax;
+            self.tab = Tab::Policies;
+        }
         let budget_action = self.fiscal_panel.show(ui, &self.content, w);
         let lending_action = financing::show(ui, &self.content, w, &mut self.money);
         let mut finance_action = budget_action.or(lending_action);
@@ -1364,7 +1384,7 @@ impl GameApp {
             plan.expected_cash(),
             c.accounts.treasury.0
         ));
-        let latest = c.forecast(&d);
+        let latest = c.forecast(&d, self.content.income_taxes.as_ref());
         ui.label(format!("Current no-shock run rate: revenue {}m/day, spending {}m/day, interest {}m/day. It excludes pending programs and new financing; forecasts are not spendable money.",latest.daily_revenue.0,latest.daily_spending.0,latest.daily_interest.0));
         ui.small("Forecast differences reflect supply shocks, rounded tax collection, policy changes and cash-constrained private income. Arrears and capital payments are shown separately.");
         egui::CollapsingHeader::new("Closed fiscal periods").show(ui, |ui| {
@@ -1739,7 +1759,7 @@ impl GameApp {
             }
         }
         egui::CentralPanel::default().show(ctx, |ui| {
-            let mut scroll = egui::ScrollArea::vertical().id_salt("main_scroll");
+            let mut scroll = egui::ScrollArea::vertical().id_salt(("main_scroll", self.tab));
             if opened_chronicle {
                 scroll = scroll.vertical_scroll_offset(0.0);
             }
@@ -2340,6 +2360,69 @@ mod interface_tests {
         assert_eq!(app.world.unwrap().hash(), expected);
     }
     #[test]
+    fn page_scroll_positions_are_independent_and_return_to_the_same_context() {
+        let content = Content::from_json(include_str!(
+            "../../../data/synthetic-income-bands-test.json"
+        ))
+        .unwrap();
+        let world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+        let hash = world.hash();
+        let ctx = egui::Context::default();
+        let mut app = GameApp::from_context(&ctx, content, settings::Preferences::default());
+        app.selected = world.player.clone();
+        app.world = Some(world);
+        app.tab = Tab::Treasury;
+        let render = |app: &mut GameApp, time: f64, events: Vec<egui::Event>| {
+            ctx.run(
+                egui::RawInput {
+                    focused: true,
+                    time: Some(time),
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(1440.0, 940.0),
+                    )),
+                    events,
+                    ..Default::default()
+                },
+                |ctx| app.render(ctx),
+            )
+        };
+        let visible = |output: &egui::FullOutput, label: &str| {
+            output.shapes.iter().any(|s|matches!(&s.shape,egui::Shape::Text(t) if t.galley.text()==label && s.clip_rect.contains(t.pos+t.galley.size()/2.0)))
+        };
+        render(&mut app, 0.0, vec![]);
+        let initial = render(&mut app, 0.1, vec![]);
+        assert!(visible(&initial, "Treasury & accounts"));
+        render(
+            &mut app,
+            0.2,
+            vec![
+                egui::Event::PointerMoved(egui::pos2(1100.0, 450.0)),
+                egui::Event::MouseWheel {
+                    unit: egui::MouseWheelUnit::Point,
+                    delta: egui::vec2(0.0, -600.0),
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ],
+        );
+        render(&mut app, 0.4, vec![]);
+        let scrolled = render(&mut app, 1.0, vec![]);
+        assert!(!visible(&scrolled, "Treasury & accounts"));
+        app.tab = Tab::Policies;
+        let policy = render(&mut app, 2.0, vec![]);
+        assert!(
+            visible(&policy, "Policies & implementation"),
+            "Treasury scrolling must not hide the new policy page's controls"
+        );
+        app.tab = Tab::Treasury;
+        let returned = render(&mut app, 3.0, vec![]);
+        assert!(
+            !visible(&returned, "Treasury & accounts"),
+            "Returning must preserve Treasury's own scroll position"
+        );
+        assert_eq!(app.world.unwrap().hash(), hash);
+    }
+    #[test]
     fn every_screen_renders_at_compact_and_scaled_sizes_without_mutating_campaign() {
         for (content, own, foreign) in [
             (Content::bundled().unwrap(), "GBR", "CHN"),
@@ -2374,6 +2457,14 @@ mod interface_tests {
             (
                 Content::from_json(include_str!(
                     "../../../data/synthetic-fiscal-plans-test.json"
+                ))
+                .unwrap(),
+                "AUR",
+                "BOR",
+            ),
+            (
+                Content::from_json(include_str!(
+                    "../../../data/synthetic-income-bands-test.json"
                 ))
                 .unwrap(),
                 "AUR",

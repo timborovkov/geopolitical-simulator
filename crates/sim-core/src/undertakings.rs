@@ -775,7 +775,7 @@ impl World {
                 .collect(),
         })
     }
-    fn undertaking_level_at(
+    pub(crate) fn policy_level_at(
         &self,
         content: &Content,
         id: &CountryId,
@@ -941,13 +941,7 @@ impl World {
                     )
                 || !target_in_range(content, &r.goal.policy, r.goal.target)
                 || r.baseline
-                    != self.undertaking_level_at(
-                        content,
-                        id,
-                        &r.goal.policy,
-                        command.day,
-                        command.id,
-                    )?
+                    != self.policy_level_at(content, id, &r.goal.policy, command.day, command.id)?
             {
                 return Err(
                     "Invalid undertaking origin, dates, goal baseline, fee or sponsorship".into(),

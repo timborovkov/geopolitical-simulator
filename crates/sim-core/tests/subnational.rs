@@ -235,7 +235,9 @@ fn national_spending_and_debt_repayment_cannot_consume_local_tax_entitlements() 
     }
     let outlook = w.funding_outlook(&c, 30, None).unwrap();
     assert_eq!(outlook.available_cash, Money(0));
-    let forecast = w.player_country().forecast(c.country(&w.player).unwrap());
+    let forecast = w
+        .player_country()
+        .forecast(c.country(&w.player).unwrap(), c.income_taxes.as_ref());
     assert_eq!(
         outlook.daily_balance.0,
         forecast.daily_revenue.0 - forecast.daily_revenue.0 * 20 / 100 - forecast.daily_spending.0

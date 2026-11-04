@@ -271,6 +271,22 @@ def build_fiscal_plans():
     return pack
 
 
+def build_income_bands():
+    pack = build_fiscal_plans()
+    pack.update(schema=13, rules=13, id="synthetic-income-bands-v13", name="Fictional progressive private-income bands",
+                description="Authored progressive withholding on actually received private income, using a representative resident within each cohort and 365-day annualisation relative to opening GDP per resident. The existing income-tax policy sets a standard marginal reference rate; source-defined bands scale it. Public/local wages and welfare are outside this private-income base. Collection capacity affects actual withholding; potential tax is not treasury cash or an arrears claim. No historical tax filing law, intra-cohort distribution or other tax bases are claimed.")
+    pack["income_taxes"] = dict(annualisation_days=365, bands=[
+        dict(id="exempt",lower_gdp_per_resident_bps=0,rate_multiplier_bps=0),
+        dict(id="standard",lower_gdp_per_resident_bps=1000,rate_multiplier_bps=10000),
+        dict(id="upper",lower_gdp_per_resident_bps=7500,rate_multiplier_bps=15000),
+        dict(id="top",lower_gdp_per_resident_bps=15000,rate_multiplier_bps=20000)],
+        source="synthetic-original", source_version="authored-private-income-bands-v1")
+    tax=next(p for p in pack["policies"] if p["id"]=="income_tax")
+    tax["name"]="Standard private-income marginal rate"
+    tax["description"]="Set the standard marginal reference rate for authored private-income bands. Withholding uses actual private income, representative cohort means and collection capacity; benefits and public/local wages remain outside this base. Full tax filing law and other bases are not modeled."
+    return pack
+
+
 def build_market_starter():
     pack = json.loads((ROOT / "data/initial-2000.json").read_text(encoding="utf-8"))
     pack.update(schema=3, rules=3, id="initial-2000-markets-v3",
@@ -428,6 +444,7 @@ def main():
                            ("synthetic-territorial-test.json", build_territorial()),
                            ("synthetic-undertakings-test.json", build_undertakings()),
                            ("synthetic-fiscal-plans-test.json", build_fiscal_plans()),
+                           ("synthetic-income-bands-test.json", build_income_bands()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

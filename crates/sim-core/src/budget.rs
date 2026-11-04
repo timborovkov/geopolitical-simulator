@@ -82,19 +82,58 @@ pub struct HouseholdImpact {
     pub daily_disposable_change: Money,
 }
 impl Country {
-    pub fn forecast(&self, d: &CountryDefinition) -> BudgetForecast {
+    pub(crate) fn forecast_private_income(&self, d: &CountryDefinition) -> Vec<i64> {
         let daily = d.gdp / 365;
         let output = daily * i64::from((self.energy_capacity + 25).min(100)) / 100;
-        let income = apportion(
+        apportion(
             output * 70 / 100,
             &d.households
                 .iter()
                 .map(|h| h.income_share)
                 .collect::<Vec<_>>(),
-        );
+        )
+    }
+    pub(crate) fn national_daily_balance(
+        &self,
+        d: &CountryDefinition,
+        forecast: &BudgetForecast,
+    ) -> Money {
+        Money(
+            forecast.daily_revenue.0
+                - self.regional_tax_entitlement(forecast.daily_revenue.0)
+                - forecast.daily_spending.0
+                + self.regional_planned_spending(d)
+                - forecast.daily_interest.0,
+        )
+    }
+    /// Conditional unchanged-policy forecast using this campaign's tax definition.
+    pub fn forecast(
+        &self,
+        d: &CountryDefinition,
+        taxes: Option<&IncomeTaxDefinition>,
+    ) -> BudgetForecast {
+        let daily = d.gdp / 365;
+        let income = self.forecast_private_income(d);
         let revenue = income
             .iter()
-            .map(|amount| amount * i64::from(self.tax) * i64::from(self.administration) / 10000)
+            .enumerate()
+            .map(|(index, amount)| {
+                taxes.map_or_else(
+                    || amount * i64::from(self.tax) * i64::from(self.administration) / 10000,
+                    |t| {
+                        t.assess(
+                            d,
+                            self.households[index].population,
+                            Money(*amount),
+                            self.tax,
+                            self.administration,
+                        )
+                        .expect("validated tax definition and bounded forecast")
+                        .collectible
+                        .0
+                    },
+                )
+            })
             .sum();
         let maintenance = daily
             * i64::from(
@@ -156,7 +195,7 @@ impl World {
             end_day: next_fiscal_end(self.day),
             opening_cash: c.accounts.treasury,
             opening_day_settled: content.fiscal_plans.as_ref().map(|_| true),
-            forecast: c.forecast(d),
+            forecast: c.forecast(d, content.income_taxes.as_ref()),
             revenue: Money(0),
             payments: Money(0),
             capital: Money(0),

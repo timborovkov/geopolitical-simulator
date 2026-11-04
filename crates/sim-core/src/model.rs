@@ -172,6 +172,8 @@ pub struct Country {
     pub undertakings: Option<Undertakings>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fiscal_plans: Option<FiscalPlans>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub income_tax_report: Option<IncomeTaxReport>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
@@ -424,6 +426,7 @@ impl World {
                         government_number: 1,
                         projects: Vec::new(),
                         commitments: content.commitments.as_ref().map(|_| Vec::new()),
+                        income_tax_report: None,
                         fiscal_plans: content
                             .fiscal_plans
                             .as_ref()
@@ -479,7 +482,10 @@ impl World {
             milestone_reported: false,
         };
         for (id, country) in &mut world.countries {
-            country.budget.forecast = country.forecast(content.country(id).expect("definition"));
+            country.budget.forecast = country.forecast(
+                content.country(id).expect("definition"),
+                content.income_taxes.as_ref(),
+            );
         }
         world.event(&player, true, "Welcome. Review supply gaps, fiscal balance and governing support. Five-year objective: needs ≥90%, approval ≥50%, no arrears, debt ≤100% of opening GDP. Values are authored game approximations.");
         if scenario == Scenario::FiscalSupplyCrisis {
@@ -788,6 +794,7 @@ impl World {
                 (Some(financing), Some(_)) => financing.validate(self, content, id)?,
                 _ => return Err("Country financing differs from campaign rules/content".into()),
             }
+            self.validate_income_taxes(content, id)?;
             self.validate_fiscal_plans(content, id)?;
             self.validate_commitments(content, id)?;
             self.validate_undertakings(content, id)?;

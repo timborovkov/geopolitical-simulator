@@ -170,6 +170,7 @@ impl World {
             c,
             &p.policy,
             value,
+            content.income_taxes.as_ref(),
         );
         Ok(AmendmentPreview {
             fee,

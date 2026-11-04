@@ -76,7 +76,8 @@ impl World {
             Money((cost.0 / 10).max(1))
         };
         let preparation = self.policy_preparation_days(content, country, policy);
-        let (annual, household_impacts) = policy_forecast(d, c, policy, value);
+        let (annual, household_impacts) =
+            policy_forecast(d, c, policy, value, content.income_taxes.as_ref());
         if content.commitments.is_some()
             && self
                 .day
@@ -96,8 +97,14 @@ impl World {
             upfront_payment,
             household_impacts,
             explanation: format!(
-                "{} Affects {}. Forecast assumes opening GDP, current collection, funded wages and no future shocks. Consent is rechecked before reserved capital is paid; delivery begins afterward.",
-                p.description, p.groups
+                "{} Affects {}. Forecast assumes opening GDP, {}, funded wages and no future shocks. Consent is rechecked before reserved capital is paid; delivery begins afterward.",
+                p.description,
+                p.groups,
+                if content.income_taxes.is_some() && policy == "administration" {
+                    "collection capacity after this programme operates"
+                } else {
+                    "current collection"
+                }
             ) + &if content.cabinet.is_some() {
                 format!(
                     " Portfolio preparation adds {preparation} days. An approved minister can reduce preparation for future proposals; existing deadlines are retained."
@@ -606,14 +613,42 @@ impl World {
             "Private household income",
         );
         let c = &self.countries[id];
+        let standard_rate = c.tax;
+        let administration = c.administration;
         let effective_tax = i64::from(c.tax) * i64::from(c.administration);
         let mut revenue = 0;
+        let mut withholding = Vec::new();
         for index in 0..d.households.len() {
-            let due = self.countries[id].households[index].income.0 * effective_tax / 10000;
+            let h = &self.countries[id].households[index];
+            let assessment = content.income_taxes.as_ref().map(|rules| {
+                rules
+                    .assess(d, h.population, h.income, standard_rate, administration)
+                    .expect("validated income bands and bounded private income")
+            });
+            let due = assessment
+                .as_ref()
+                .map_or(h.income.0 * effective_tax / 10000, |a| a.collectible.0);
             let paid = self.pay_group(id, index, Treasury, due, "Income tax on private income");
-            self.countries.get_mut(id).expect("country").households[index].tax = Money(paid);
+            let h = &mut self.countries.get_mut(id).expect("country").households[index];
+            h.tax = Money(paid);
+            if let Some(assessment) = assessment {
+                withholding.push(IncomeTaxWithholding {
+                    group: h.id.clone(),
+                    assessment,
+                    paid: Money(paid),
+                });
+            }
             revenue += paid;
         }
+        self.countries
+            .get_mut(id)
+            .expect("country")
+            .income_tax_report = content.income_taxes.as_ref().map(|_| IncomeTaxReport {
+            day: self.day,
+            standard_rate,
+            administration,
+            groups: withholding,
+        });
         let regional_payments = self.settle_subnational(content, id, revenue);
         let c = &self.countries[id];
         let services_due = daily * i64::from(c.services) / 100;
@@ -1109,7 +1144,49 @@ pub(crate) fn policy_forecast(
     c: &Country,
     policy: &str,
     value: i32,
+    taxes: Option<&IncomeTaxDefinition>,
 ) -> (Money, Vec<HouseholdImpact>) {
+    if matches!(policy, "income_tax" | "administration")
+        && let Some(taxes) = taxes
+    {
+        let (planned_tax, planned_administration) = if policy == "income_tax" {
+            (value, c.administration)
+        } else {
+            (c.tax, (c.administration + 8).min(100))
+        };
+        let income = c.forecast_private_income(d);
+        let impacts: Vec<_> = income
+            .iter()
+            .zip(&c.households)
+            .zip(&d.households)
+            .map(|((gross, h), definition)| {
+                let before = taxes
+                    .assess(d, h.population, Money(*gross), c.tax, c.administration)
+                    .expect("validated tax forecast");
+                let after = taxes
+                    .assess(
+                        d,
+                        h.population,
+                        Money(*gross),
+                        planned_tax,
+                        planned_administration,
+                    )
+                    .expect("validated tax forecast");
+                HouseholdImpact {
+                    group: definition.name.clone(),
+                    daily_disposable_change: Money(before.collectible.0 - after.collectible.0),
+                }
+            })
+            .collect();
+        let annual = Money(
+            impacts
+                .iter()
+                .map(|h| h.daily_disposable_change.0)
+                .sum::<i64>()
+                * i64::from(taxes.annualisation_days),
+        );
+        return (annual, impacts);
+    }
     let annual = match policy {
         "income_tax" => {
             -(d.gdp * 70 / 100 * i64::from(value - c.tax) * i64::from(c.administration) / 10000)
