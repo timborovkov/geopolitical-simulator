@@ -4,6 +4,18 @@ use sim_core::*;
 pub struct Panel {
     target: i64,
     days: u32,
+    plan: Option<Draft>,
+    reveal: bool,
+}
+struct Draft {
+    country: CountryId,
+    content_hash: u64,
+    policy: String,
+    value: i32,
+}
+pub enum Choice {
+    Command(Action),
+    Compare { policy: String, value: i32 },
 }
 
 impl Default for Panel {
@@ -11,18 +23,92 @@ impl Default for Panel {
         Self {
             target: 100,
             days: 90,
+            plan: None,
+            reveal: false,
         }
     }
 }
 impl Panel {
+    pub fn prepare(
+        &mut self,
+        content: &Content,
+        world: &World,
+        policy: &str,
+        value: i32,
+    ) -> Result<(), String> {
+        let rules = content
+            .cash_management
+            .as_ref()
+            .ok_or("This campaign has no temporary cash retention")?;
+        let plan = world.policy_funding_plan(content, policy, value)?;
+        let max = (content
+            .country(&world.player)
+            .ok_or("Missing country definition")?
+            .gdp
+            * rules.max_target_bps
+            / 10000)
+            .max(1);
+        if plan.preview.cost.0 > max {
+            return Err("This decision costs more than the temporary retention limit; review other financing".into());
+        }
+        self.target = plan.preview.cost.0;
+        self.days = rules.max_days;
+        self.reveal = true;
+        self.plan = Some(Draft {
+            country: world.player.clone(),
+            content_hash: world.content_hash,
+            policy: policy.into(),
+            value,
+        });
+        Ok(())
+    }
     /// Called only inside the controlled government's Treasury workspace.
-    pub fn show(&mut self, ui: &mut Ui, content: &Content, world: &World) -> Option<Action> {
+    pub fn show(&mut self, ui: &mut Ui, content: &Content, world: &World) -> Option<Choice> {
         let rules = content.cash_management.as_ref()?;
         let c = world.player_country();
         let state = c.cash_management.as_ref()?;
         let mut action = None;
         ui.separator();
-        ui.strong("Keep cash for an upcoming decision");
+        let heading = ui.strong("Keep cash for an upcoming decision");
+        if self.reveal {
+            heading.scroll_to_me(Some(egui::Align::Min));
+            self.reveal = false;
+        }
+        if self
+            .plan
+            .as_ref()
+            .is_some_and(|p| p.country != world.player || p.content_hash != world.content_hash)
+        {
+            self.plan = None;
+        }
+        if let Some(draft) = &self.plan {
+            let definition = content.policy(&draft.policy);
+            let name = definition.map_or(draft.policy.as_str(), |p| p.name.as_str());
+            let target = if matches!(draft.policy.as_str(), "income_tax" | "services" | "welfare") {
+                format!(" · proposed {}%", draft.value)
+            } else {
+                String::new()
+            };
+            ui.strong(format!("Planned decision: {name}{target}"));
+            match world.policy_funding_plan(content, &draft.policy, draft.value) {
+                Ok(plan) => {
+                    ui.label(format!("Implementation cost {}m · spendable cash {}m · actual retained cash {}m · spendable shortfall {}m. Retained cash must be released before it can fund this decision.",plan.preview.cost.0,plan.available_cash.0,plan.retained_cash.0,plan.shortfall.0));
+                }
+                Err(reason) => {
+                    ui.colored_label(
+                        Color32::LIGHT_YELLOW,
+                        format!("This decision now needs review: {reason}"),
+                    );
+                }
+            }
+            ui.small("After releasing enough cash, compare and approve the policy on its normal screen. Future receipts and a retention target are not spendable cash.");
+            if ui.button("Compare planned decision").clicked() {
+                action = Some(Choice::Compare {
+                    policy: draft.policy.clone(),
+                    value: draft.value,
+                });
+            }
+        }
         ui.label("Temporary retention sets aside real national cash. It can defer wages, welfare and interest into arrears, and leave matured principal overdue. Protected local funds and existing project reservations remain payable.");
         if let Some(active) = state.active() {
             ui.colored_label(
@@ -41,7 +127,7 @@ impl Panel {
                 .button(format!("Release {}m of actual cash", c.retained_cash().0))
                 .clicked()
             {
-                action = Some(Action::ReleaseCash { request: active.id });
+                action = Some(Choice::Command(Action::ReleaseCash { request: active.id }));
             }
         } else {
             let max = (content.country(&world.player)?.gdp * rules.max_target_bps / 10000).max(1);
@@ -60,10 +146,10 @@ impl Panel {
                         .button("Retain actual cash with these consequences")
                         .clicked()
                     {
-                        action = Some(Action::HoldCash {
+                        action = Some(Choice::Command(Action::HoldCash {
                             target: Money(self.target),
                             days: self.days,
-                        });
+                        }));
                     }
                 }
                 Err(reason) => {
@@ -95,6 +181,55 @@ impl Panel {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn preparing_a_different_decision_keeps_an_existing_retention_and_filters_campaign_context() {
+        let content = Content::from_json(include_str!(
+            "../../../data/synthetic-cash-management-test.json"
+        ))
+        .unwrap();
+        let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+        world
+            .issue(
+                &content,
+                Action::HoldCash {
+                    target: Money(100),
+                    days: 90,
+                },
+            )
+            .unwrap();
+        let before = world.clone();
+        let mut panel = Panel::default();
+        panel.prepare(&content, &world, "income_tax", 30).unwrap();
+        assert_eq!(panel.target, 20);
+        let ctx = egui::Context::default();
+        let output = ctx.run(egui::RawInput::default(), |ctx| {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                assert!(panel.show(ui, &content, &world).is_none());
+            });
+        });
+        let text = output
+            .shapes
+            .iter()
+            .filter_map(|s| match &s.shape {
+                egui::Shape::Text(t) => Some(t.galley.text()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(text.contains("Implementation cost 20m"));
+        assert!(text.contains("actual cash 100m / target 100m"));
+        assert_eq!(world, before);
+        let other = World::new(&content, CountryId("BOR".into()), 17).unwrap();
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                assert!(panel.show(ui, &content, &other).is_none());
+            });
+        });
+        assert!(panel.plan.is_none());
+        let old = Content::debt_bundled().unwrap();
+        let old_world = World::new(&old, CountryId("GBR".into()), 17).unwrap();
+        assert!(panel.prepare(&old, &old_world, "income_tax", 31).is_err());
+    }
     #[test]
     fn treasury_shows_actual_cash_tradeoffs_and_release_at_both_scales() {
         let content = Content::from_json(include_str!(

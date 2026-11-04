@@ -300,6 +300,7 @@ impl GameApp {
                 self.undertaking_panel = undertakings::Panel::default();
                 self.fiscal_panel = fiscal_plans::Panel::default();
                 self.walkthrough = walkthrough::Panel::default();
+                self.cash_management = cash_management::Panel::default();
                 self.status = match self.content.rules {
                     2 => "Classic fixed-price campaign loaded. Simulation paused.",
                     3 => "Relative-price campaign loaded. Simulation paused.",
@@ -408,6 +409,7 @@ impl GameApp {
         self.inspector = inspector::Inspector::default();
         self.help = help::Help::default();
         self.walkthrough = walkthrough::Panel::default();
+        self.cash_management = cash_management::Panel::default();
         self.status = archive.map_or_else(
             || "New campaign started, paused.".into(),
             |path| {
@@ -1095,6 +1097,7 @@ impl GameApp {
         if self.policy == "income_tax" {
             income_taxes::show(ui, &self.content, w, Some(self.value));
         }
+        let mut prepare_funding = false;
         match w.preview(&self.content, &self.selected, &self.policy, self.value) {
             Ok(preview) => {
                 egui::Frame::group(ui.style()).show(ui, |ui| {
@@ -1141,11 +1144,32 @@ impl GameApp {
                     self.policy = "coalition".into();
                     self.value = self.content.policy("coalition").expect("policy").min;
                 }
+                if self.content.cash_management.is_some()
+                    && w.policy_funding_plan(&self.content, &self.policy, self.value)
+                        .is_ok_and(|plan| plan.shortfall.0 > 0)
+                    && ui.button("Plan cash retention for this decision").clicked()
+                {
+                    prepare_funding = true;
+                }
                 if (definition.gdp * p.cost_bps / 10000).max(1) > c.available_cash().0
                     && ui.button("Review treasury and financing").clicked()
                 {
                     self.tab = Tab::Treasury;
                 }
+            }
+        }
+        if prepare_funding {
+            match self.cash_management.prepare(
+                &self.content,
+                self.world.as_ref().expect("world"),
+                &self.policy,
+                self.value,
+            ) {
+                Ok(()) => {
+                    self.pause();
+                    self.tab = Tab::Treasury;
+                }
+                Err(reason) => self.status = reason,
             }
         }
         ui.separator();
@@ -1343,7 +1367,15 @@ impl GameApp {
             self.value = c.tax;
             self.tab = Tab::Policies;
         }
-        let cash_action = self.cash_management.show(ui, &self.content, w);
+        let mut compare = None;
+        let cash_action = match self.cash_management.show(ui, &self.content, w) {
+            Some(cash_management::Choice::Command(action)) => Some(action),
+            Some(cash_management::Choice::Compare { policy, value }) => {
+                compare = Some((policy, value));
+                None
+            }
+            None => None,
+        };
         let budget_action = self.fiscal_panel.show(ui, &self.content, w);
         let lending_action = financing::show(ui, &self.content, w, &mut self.money);
         let mut finance_action = cash_action.or(budget_action).or(lending_action);
@@ -1485,6 +1517,12 @@ impl GameApp {
         }
         if let Some(action) = finance_action {
             self.issue(action);
+        }
+        if let Some((policy, value)) = compare {
+            self.pause();
+            self.policy = policy;
+            self.value = value;
+            self.tab = Tab::Policies;
         }
     }
     fn politics(&mut self, ui: &mut egui::Ui) {
@@ -1814,6 +1852,7 @@ impl GameApp {
                         self.undertaking_panel = undertakings::Panel::default();
                         self.fiscal_panel = fiscal_plans::Panel::default();
                         self.walkthrough = walkthrough::Panel::default();
+                        self.cash_management = cash_management::Panel::default();
                         self.recovery.clear();
                         self.status =
                             "Recovered snapshot. Original files preserved; game paused.".into();
@@ -2063,6 +2102,167 @@ mod interface_tests {
             assert_eq!(app.world.as_ref().unwrap().hash(), expected);
         }
     }
+    #[test]
+    fn blocked_policy_planning_prefills_treasury_and_returns_to_the_same_funded_comparison() {
+        fn labels(output: &egui::FullOutput) -> String {
+            output
+                .shapes
+                .iter()
+                .filter_map(|s| match &s.shape {
+                    egui::Shape::Text(t) => Some(t.galley.text()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        }
+        fn paint(
+            ctx: &egui::Context,
+            app: &mut GameApp,
+            input: &egui::RawInput,
+        ) -> egui::FullOutput {
+            ctx.run(input.clone(), |ctx| app.render(ctx))
+        }
+        fn click(ctx: &egui::Context, app: &mut GameApp, input: &egui::RawInput, label: &str) {
+            let output = paint(ctx, app, input);
+            let position = output
+                .shapes
+                .iter()
+                .find_map(|s| match &s.shape {
+                    egui::Shape::Text(t)
+                        if t.galley.text() == label
+                            && s.clip_rect.contains(t.pos + t.galley.size() / 2.0) =>
+                    {
+                        Some(t.pos + t.galley.size() / 2.0)
+                    }
+                    _ => None,
+                })
+                .unwrap_or_else(|| panic!("visible button {label} missing: {}", labels(&output)));
+            let mut pressed = input.clone();
+            pressed.events = vec![
+                egui::Event::PointerMoved(position),
+                egui::Event::PointerButton {
+                    pos: position,
+                    button: egui::PointerButton::Primary,
+                    pressed: true,
+                    modifiers: egui::Modifiers::NONE,
+                },
+                egui::Event::PointerButton {
+                    pos: position,
+                    button: egui::PointerButton::Primary,
+                    pressed: false,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ];
+            let _ = ctx.run(pressed, |ctx| app.render(ctx));
+        }
+        for scale in [1.0, 1.4] {
+            let content = Content::from_json(include_str!(
+                "../../../data/synthetic-cash-management-test.json"
+            ))
+            .unwrap();
+            let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+            world
+                .issue(
+                    &content,
+                    Action::Repay {
+                        amount: world.player_country().available_cash(),
+                    },
+                )
+                .unwrap();
+            let ctx = egui::Context::default();
+            let mut app = GameApp::from_context(&ctx, content, settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            app.world = Some(world);
+            app.tab = Tab::Policies;
+            app.policy = "income_tax".into();
+            app.value = 30;
+            let input = egui::RawInput {
+                focused: true,
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1440.0 / scale, 940.0 / scale),
+                )),
+                ..Default::default()
+            };
+            let before = app.world.clone();
+            click(
+                &ctx,
+                &mut app,
+                &input,
+                "Plan cash retention for this decision",
+            );
+            assert!(app.tab == Tab::Treasury);
+            assert_eq!(app.world, before);
+            // Allow the requested scroll into the retention workspace to settle.
+            for _ in 0..32 {
+                let _ = paint(&ctx, &mut app, &input);
+            }
+            let output = paint(&ctx, &mut app, &input);
+            let text = labels(&output);
+            assert!(text.contains("proposed 30%"));
+            assert!(text.contains("Implementation cost 20m"));
+            assert!(text.contains("remaining 20m must come from future actual cash"));
+            app.selected = CountryId("BOR".into());
+            let output = paint(&ctx, &mut app, &input);
+            assert!(!labels(&output).contains("Planned decision"));
+            assert!(!labels(&output).contains("Plan cash retention"));
+            app.selected = CountryId("AUR".into());
+            click(
+                &ctx,
+                &mut app,
+                &input,
+                "Retain actual cash with these consequences",
+            );
+            assert_eq!(
+                app.world
+                    .as_ref()
+                    .unwrap()
+                    .player_country()
+                    .cash_management
+                    .as_ref()
+                    .unwrap()
+                    .active()
+                    .unwrap()
+                    .target,
+                Money(20)
+            );
+            let content = app.content.clone();
+            app.world.as_mut().unwrap().advance(&content, 2).unwrap();
+            for _ in 0..4 {
+                let _ = paint(&ctx, &mut app, &input);
+            }
+            click(&ctx, &mut app, &input, "Release 20m of actual cash");
+            let funded = app.world.clone();
+            app.policy = "services".into();
+            app.value = 12;
+            click(&ctx, &mut app, &input, "Compare planned decision");
+            assert!(app.tab == Tab::Policies);
+            assert_eq!((&*app.policy, app.value), ("income_tax", 30));
+            assert_eq!(app.world, funded);
+            // Read the full comparison before reaching its ordinary approval,
+            // which is below the fold at the larger interface scale.
+            let mut scroll = input.clone();
+            scroll.events = vec![
+                egui::Event::PointerMoved(egui::pos2(1000.0 / scale, 700.0 / scale)),
+                egui::Event::MouseWheel {
+                    unit: egui::MouseWheelUnit::Point,
+                    delta: egui::vec2(0.0, -300.0),
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ];
+            let _ = ctx.run(scroll, |ctx| app.render(ctx));
+            for _ in 0..32 {
+                let _ = paint(&ctx, &mut app, &input);
+            }
+            click(&ctx, &mut app, &input, "Propose and reserve funds");
+            let w = app.world.as_ref().unwrap();
+            assert_eq!(w.player_country().projects[0].policy, "income_tax");
+            assert_eq!(w.player_country().projects[0].value, 30);
+            assert_eq!(w.player_country().committed_cash, Money(18));
+            assert_eq!(persistence::replay(w, &app.content).unwrap(), *w);
+        }
+    }
+
     #[test]
     fn blocked_borrowing_links_to_a_support_preview_without_issuing_an_order_or_leaking_foreign_cash()
      {

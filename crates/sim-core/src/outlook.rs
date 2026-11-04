@@ -2,6 +2,45 @@
 //! permission to overdraw an account. No proposed loan is treated as approved.
 use crate::*;
 
+/// Owner-only requirements for a future decision. This is neither an accepted
+/// proposal nor a claim on future receipts; submission still needs full cash.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PolicyFundingPlan {
+    pub policy: String,
+    pub value: i32,
+    pub preview: PolicyPreview,
+    pub available_cash: Money,
+    pub retained_cash: Money,
+    pub shortfall: Money,
+}
+impl World {
+    pub fn policy_funding_plan(
+        &self,
+        content: &Content,
+        policy: &str,
+        value: i32,
+    ) -> Result<PolicyFundingPlan, String> {
+        if self.content_hash != content.hash() || self.rules != content.rules {
+            return Err("Funding plans require the campaign's exact content".into());
+        }
+        let preview =
+            self.preview_policy_funding(content, &self.player, policy, value, false, false)?;
+        let country = self.player_country();
+        let available_cash = country.available_cash();
+        if available_cash.0 < 0 {
+            return Err("Invalid available treasury for funding plan".into());
+        }
+        Ok(PolicyFundingPlan {
+            policy: policy.into(),
+            value,
+            shortfall: Money((preview.cost.0 - available_cash.0).max(0)),
+            preview,
+            available_cash,
+            retained_cash: country.retained_cash(),
+        })
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LoanAssumption {
     pub amount: Money,
