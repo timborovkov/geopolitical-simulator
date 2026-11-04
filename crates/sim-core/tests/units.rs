@@ -52,3 +52,156 @@ fn outside_campaign_bounds_is_rejected_even_with_a_valid_quantity_type() {
     );
     persistence::replay(&world, &content).unwrap();
 }
+
+#[test]
+fn rate_conversion_and_signed_scaling_are_explicit_and_checked() {
+    assert_eq!(
+        Percent::new(4).as_basis_points(),
+        Some(BasisPoints::new(400))
+    );
+    assert_eq!(
+        BasisPoints::new(400).as_exact_percent(),
+        Some(Percent::new(4))
+    );
+    assert_eq!(BasisPoints::new(450).as_exact_percent(), None);
+    assert_eq!(Percent::new(u32::MAX).as_basis_points(), None);
+    assert_eq!(Percent::new(150).scale(Money(5)), Some(Money(7)));
+    assert_eq!(Percent::new(150).scale(Money(-5)), Some(Money(-7)));
+    assert_eq!(BasisPoints::new(50).scale(Money(5000)), Some(Money(25)));
+    for amount in [i64::MIN, i64::MAX] {
+        assert_eq!(Percent::new(100).scale(Money(amount)), Some(Money(amount)));
+        assert_eq!(
+            BasisPoints::new(10_000).scale(Money(amount)),
+            Some(Money(amount))
+        );
+        assert_eq!(
+            Percent::new(50).scale(Money(amount)),
+            Some(Money(amount / 2))
+        );
+        assert!(Percent::new(101).scale(Money(amount)).is_none());
+    }
+    assert!(
+        DaySpan::new(u32::MAX)
+            .checked_add(DaySpan::new(1))
+            .is_none()
+    );
+    assert_eq!(
+        DaySpan::new(31).checked_sub(DaySpan::new(30)),
+        Some(DaySpan::new(1))
+    );
+    assert_eq!(DaySpan::ZERO.checked_sub(DaySpan::new(1)), None);
+}
+
+#[test]
+fn simple_accrual_is_independent_of_partition_and_rejects_wrong_carry_units() {
+    let rate = BasisPoints::new(400);
+    let principal = Money(1416);
+    let year = DaySpan::new(365);
+    let whole_year = rate.accrue(principal, year, year, None).unwrap();
+    assert_eq!(whole_year.whole, Money(56));
+    assert_eq!(whole_year.remainder.numerator(), 2_336_000);
+    assert_eq!(whole_year.remainder.denominator(), 3_650_000);
+    for partition in [vec![1; 365], vec![30, 335], vec![13, 17, 66, 269]] {
+        let mut carry = None;
+        let mut paid = 0;
+        for days in partition {
+            let accrued = rate
+                .accrue(principal, DaySpan::new(days), year, carry)
+                .unwrap();
+            paid += accrued.whole.0;
+            carry = Some(accrued.remainder);
+        }
+        assert_eq!(Money(paid), whole_year.whole);
+        assert_eq!(carry, Some(whole_year.remainder));
+    }
+    let carry = Some(whole_year.remainder);
+    assert_eq!(
+        rate.accrue(Money(0), DaySpan::ZERO, year, carry)
+            .unwrap()
+            .remainder,
+        whole_year.remainder
+    );
+    assert!(
+        rate.accrue(principal, DaySpan::new(1), DaySpan::new(360), carry)
+            .is_none()
+    );
+    assert!(
+        rate.accrue(principal, DaySpan::new(1), DaySpan::ZERO, None)
+            .is_none()
+    );
+    assert!(
+        rate.accrue(Money(-1), DaySpan::new(1), year, None)
+            .is_none()
+    );
+    assert!(MoneyRemainder::new(1, 1).is_none());
+    assert!(MoneyRemainder::new(0, 0).is_none());
+    assert!(
+        BasisPoints::new(u32::MAX)
+            .accrue(
+                Money(i64::MAX),
+                DaySpan::new(u32::MAX),
+                DaySpan::new(1),
+                None
+            )
+            .is_none()
+    );
+}
+
+#[test]
+fn rate_and_duration_json_retain_scalar_units_and_reject_invalid_numbers() {
+    assert_eq!(serde_json::to_string(&Percent::new(4)).unwrap(), "4");
+    assert_eq!(
+        serde_json::to_string(&BasisPoints::new(400)).unwrap(),
+        "400"
+    );
+    assert_eq!(serde_json::to_string(&DaySpan::new(30)).unwrap(), "30");
+    assert_eq!(
+        serde_json::from_str::<BasisPoints>("400").unwrap(),
+        BasisPoints::new(400)
+    );
+    assert_eq!(
+        serde_json::from_str::<DaySpan>("30").unwrap(),
+        DaySpan::new(30)
+    );
+    for malformed in ["-1", "1.5", "4294967296", "null", "{\"units\":4}"] {
+        assert!(serde_json::from_str::<Percent>(malformed).is_err());
+        assert!(serde_json::from_str::<BasisPoints>(malformed).is_err());
+        assert!(serde_json::from_str::<DaySpan>(malformed).is_err());
+    }
+}
+
+#[test]
+fn typed_interest_intervals_retain_fractions_across_conditional_principal() {
+    let projection = InterestProjection::new(Money(1000), 0).unwrap();
+    let days = DaySpan::new(5);
+    assert_eq!(projection.due_for(days).unwrap(), Money(0));
+    // Two separate rounded dues would be zero. The combined claim is one unit.
+    assert_eq!(
+        projection
+            .due_with_addition_for(days, Money(1000), days)
+            .unwrap(),
+        Money(1)
+    );
+    for (total, extra) in [(0, 0), (5, 5), (30, 14), (365, 17), (u32::MAX, u32::MAX)] {
+        assert_eq!(
+            projection.due(total).unwrap(),
+            projection.due_for(DaySpan::new(total)).unwrap()
+        );
+        assert_eq!(
+            projection
+                .due_with_addition(total, Money(2000), extra)
+                .unwrap(),
+            projection
+                .due_with_addition_for(DaySpan::new(total), Money(2000), DaySpan::new(extra))
+                .unwrap()
+        );
+    }
+    assert!(
+        projection
+            .due_with_addition_for(DaySpan::new(1), Money(1), DaySpan::new(2))
+            .is_err()
+    );
+    let mut forged = projection.clone();
+    forged.daily_numerator += 1;
+    assert!(forged.due_for(days).is_err());
+}

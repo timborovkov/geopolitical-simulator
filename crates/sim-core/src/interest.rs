@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 pub const INTEREST_YEAR_DAYS: u32 = 365;
 pub const INTEREST_RATE_BPS: u32 = 400;
+pub const INTEREST_RATE: BasisPoints = BasisPoints::new(INTEREST_RATE_BPS);
+pub const INTEREST_YEAR: DaySpan = DaySpan::new(INTEREST_YEAR_DAYS);
 pub const INTEREST_DENOMINATOR: u32 = INTEREST_YEAR_DAYS * 10_000;
 const MAX_PRINCIPAL: i64 = 1_000_000_000_000;
 
@@ -40,7 +42,11 @@ impl InterestProjection {
     }
     /// Whole cash units becoming due over the interval, with no daily minimum.
     pub fn due(&self, days: u32) -> Result<Money, String> {
-        self.due_with_addition(days, Money(0), 0)
+        self.due_for(DaySpan::new(days))
+    }
+    /// Typed elapsed-day form of the scalar compatibility API.
+    pub fn due_for(&self, days: DaySpan) -> Result<Money, String> {
+        self.due_with_addition_for(days, Money(0), DaySpan::ZERO)
     }
     pub fn due_with_addition(
         &self,
@@ -48,17 +54,46 @@ impl InterestProjection {
         additional: Money,
         additional_days: u32,
     ) -> Result<Money, String> {
+        self.due_with_addition_for(
+            DaySpan::new(days),
+            additional,
+            DaySpan::new(additional_days),
+        )
+    }
+    pub fn due_with_addition_for(
+        &self,
+        days: DaySpan,
+        additional: Money,
+        additional_days: DaySpan,
+    ) -> Result<Money, String> {
         if !self.valid() || !(0..=MAX_PRINCIPAL).contains(&additional.0) || additional_days > days {
             return Err("Invalid interest projection or conditional loan interval".into());
         }
-        let numerator = i128::from(self.opening_remainder)
-            + i128::from(self.daily_numerator) * i128::from(days)
-            + i128::from(additional.0)
-                * i128::from(INTEREST_RATE_BPS)
-                * i128::from(additional_days);
+        let carry = MoneyRemainder::new(
+            u64::from(self.opening_remainder),
+            u64::from(INTEREST_DENOMINATOR),
+        )
+        .expect("validated interest remainder");
+        // valid() guarantees the legacy wire numerator is exactly principal × rate.
+        let principal = Money((self.daily_numerator / u64::from(INTEREST_RATE.units())) as i64);
+        let base = INTEREST_RATE
+            .accrue(principal, days, INTEREST_YEAR, Some(carry))
+            .ok_or("Interest projection overflow")?;
+        // Retain the base fraction when adding a conditional loan's principal-days.
+        // Adding two separately rounded cash amounts would lose creditor claims.
+        let addition = INTEREST_RATE
+            .accrue(
+                additional,
+                additional_days,
+                INTEREST_YEAR,
+                Some(base.remainder),
+            )
+            .ok_or("Interest projection overflow")?;
         Ok(Money(
-            i64::try_from(numerator / i128::from(INTEREST_DENOMINATOR))
-                .map_err(|_| "Interest projection overflow")?,
+            base.whole
+                .0
+                .checked_add(addition.whole.0)
+                .ok_or("Interest projection overflow")?,
         ))
     }
     /// Display only; accounting and command decisions use the integer ratio.
@@ -92,7 +127,9 @@ impl AccruedInterest {
     fn assess(&mut self, principal: Money, day: u32) -> Money {
         let projection = InterestProjection::new(principal, self.remainder)
             .expect("validated principal and interest remainder");
-        let amount_due = projection.due(1).expect("bounded daily assessment");
+        let amount_due = projection
+            .due_for(DaySpan::new(1))
+            .expect("bounded daily assessment");
         self.principal_days = self
             .principal_days
             .checked_add(principal.0 as u64)
@@ -173,7 +210,7 @@ impl AccruedInterest {
             || u64::from(last.opening_remainder)
                 != (self.principal_days - last.principal.0 as u64) * u64::from(INTEREST_RATE_BPS)
                     % u64::from(INTEREST_DENOMINATOR)
-            || projection.due(1)? != last.amount_due
+            || projection.due_for(DaySpan::new(1))? != last.amount_due
             || c.report.interest.0 > last.amount_due.0
         {
             return Err(

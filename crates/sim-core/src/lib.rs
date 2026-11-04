@@ -21,6 +21,7 @@ mod markets;
 mod model;
 mod outlook;
 pub mod persistence;
+mod rates;
 mod rules;
 mod sovereignty;
 mod subnational;
@@ -49,6 +50,7 @@ pub use living_standards::*;
 pub use markets::*;
 pub use model::*;
 pub use outlook::*;
+pub use rates::*;
 pub use sovereignty::*;
 pub use units::*;
 
