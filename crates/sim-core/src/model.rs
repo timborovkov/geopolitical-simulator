@@ -168,9 +168,18 @@ pub struct Country {
     pub subnational: Option<SubnationalState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub territorial: Option<TerritorialState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub undertakings: Option<Undertakings>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
+    DeclareUndertaking {
+        template: String,
+        project: Option<CommitmentId>,
+    },
+    WithdrawUndertaking {
+        request: UndertakingId,
+    },
     ReformTerritory {
         target: TerritorialForm,
         contested: bool,
@@ -407,6 +416,10 @@ impl World {
                             .cabinet
                             .as_ref()
                             .map(|rules| Cabinet::new(rules, &d.id, start_day)),
+                        undertakings: content
+                            .undertakings
+                            .as_ref()
+                            .map(|_| Undertakings::new(start_day)),
                         territorial: content
                             .territorial
                             .as_ref()
@@ -568,6 +581,19 @@ impl World {
         for (index, entry) in self.journal.iter().enumerate() {
             let command = &entry.command;
             let valid_action = match &command.action {
+                Action::DeclareUndertaking { template, .. } => content
+                    .undertakings
+                    .as_ref()
+                    .is_some_and(|r| r.template(template).is_some()),
+                Action::WithdrawUndertaking { request } => {
+                    content.undertakings.is_some()
+                        && request.0 > 0
+                        && request.0 < command.id
+                        && self.journal.get(request.0 as usize - 1).is_some_and(|e| {
+                            e.command.issuer == command.issuer
+                                && matches!(e.command.action, Action::DeclareUndertaking { .. })
+                        })
+                }
                 Action::ReformTerritory { .. } => content.territorial.is_some(),
                 Action::RequisitionRegionalFunds { region, amount } => {
                     content.territorial.is_some()
@@ -729,6 +755,7 @@ impl World {
                 _ => return Err("Country financing differs from campaign rules/content".into()),
             }
             self.validate_commitments(content, id)?;
+            self.validate_undertakings(content, id)?;
             self.validate_cabinet(content, id)?;
             self.validate_electoral_authority(content, id)?;
             self.validate_territorial(content, id)?;

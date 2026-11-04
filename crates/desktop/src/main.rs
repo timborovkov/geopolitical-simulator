@@ -17,6 +17,7 @@ mod markets;
 mod new_game;
 mod settings;
 mod subnational;
+mod undertakings;
 use eframe::egui::{self, Color32, RichText, Stroke, Vec2};
 use sim_core::{persistence, *};
 use std::{
@@ -59,6 +60,7 @@ struct GameApp {
     funding_chart: charts::Chart,
     constitution_panel: constitutions::Panel,
     commitment_panel: commitments::Panel,
+    undertaking_panel: undertakings::Panel,
     cabinet_panel: cabinet::Panel,
     subnational_panel: subnational::Panel,
     sort_gdp: bool,
@@ -128,6 +130,7 @@ impl GameApp {
             funding_chart: charts::Chart::default(),
             constitution_panel: constitutions::Panel::default(),
             commitment_panel: commitments::Panel::default(),
+            undertaking_panel: undertakings::Panel::default(),
             cabinet_panel: cabinet::Panel::default(),
             subnational_panel: subnational::Panel::default(),
             sort_gdp: false,
@@ -284,6 +287,7 @@ impl GameApp {
                 self.selected = w.player.clone();
                 self.target_date = date((w.day + 30).min(MAX_DAY));
                 self.world = Some(w);
+                self.undertaking_panel = undertakings::Panel::default();
                 self.status = match self.content.rules {
                     2 => "Classic fixed-price campaign loaded. Simulation paused.",
                     3 => "Relative-price campaign loaded. Simulation paused.",
@@ -385,6 +389,7 @@ impl GameApp {
         self.funding_chart = charts::Chart::default();
         self.constitution_panel = constitutions::Panel::default();
         self.commitment_panel = commitments::Panel::default();
+        self.undertaking_panel = undertakings::Panel::default();
         self.cabinet_panel = cabinet::Panel::default();
         self.cashflows = cashflows::CashFlows::default();
         self.inspector = inspector::Inspector::default();
@@ -901,6 +906,21 @@ impl GameApp {
                 ));
             }
         }
+        if let Some(undertakings) = &report.undertakings {
+            ui.label(format!(
+                "Public delivery credibility: {} / 100",
+                undertakings.credibility
+            ));
+            for r in &undertakings.records {
+                ui.label(format!(
+                    "Undertaking #{} · {} by {} · {}",
+                    r.id.0,
+                    undertakings::goal_label(&self.content, &r.goal),
+                    date(r.deadline_day),
+                    r.status.label()
+                ));
+            }
+        }
         if let Some(territory) = &report.territorial {
             ui.label(format!(
                 "Current territorial settlement: {:?}",
@@ -1065,6 +1085,11 @@ impl GameApp {
             }
         }
         ui.separator();
+        if let Some(w) = &self.world
+            && let Some(action) = self.undertaking_panel.show(ui, &self.content, w)
+        {
+            self.issue(action);
+        }
         if let Some(w) = &self.world
             && self.content.commitments.is_some()
         {
@@ -1689,6 +1714,7 @@ impl GameApp {
                         self.selected = world.player.clone();
                         self.target_date = date((world.day + 30).min(MAX_DAY));
                         self.world = Some(world);
+                        self.undertaking_panel = undertakings::Panel::default();
                         self.recovery.clear();
                         self.status =
                             "Recovered snapshot. Original files preserved; game paused.".into();
@@ -2319,6 +2345,14 @@ mod interface_tests {
             (
                 Content::from_json(include_str!(
                     "../../../data/synthetic-constitution-test.json"
+                ))
+                .unwrap(),
+                "AUR",
+                "BOR",
+            ),
+            (
+                Content::from_json(include_str!(
+                    "../../../data/synthetic-undertakings-test.json"
                 ))
                 .unwrap(),
                 "AUR",

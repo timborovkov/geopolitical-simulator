@@ -243,6 +243,25 @@ def build_territorial():
     return pack
 
 
+def build_undertakings():
+    pack = build_territorial()
+    pack.update(schema=11, rules=11, id="synthetic-undertakings-v11", name="Fictional delivery undertakings",
+                description="Authored public delivery pledges, governing support agreements and deadlines attached to actual policy projects. Declaring a promise neither orders its policy nor supplies its resources. Shared commitment milestones and policy delivery records determine fulfilment; explicit deadlines, political consequences, credibility, fees and cabinet sponsorship apply. Full election campaigns, coalition formation, commercial contracts and treaties are not claimed.")
+    zero = dict(approval=0, legislative=0, elite=0, council=0)
+    pack["undertakings"] = dict(cooldown_days=180, maximum_open=3, source="synthetic-original", source_version="authored-undertakings-v1",
+        templates=[
+            dict(id="energy-pledge", name="Public energy delivery pledge", kind="public_pledge", policy="energy", direction="at_least", delta=15,
+                 review_days=7, deadline_days=180, administration_cost_bps=2, minimum_credibility=0, elite_threshold=0, council_threshold=0,
+                 acceptance=dict(zero,approval=3), breach=dict(zero,approval=-8,council=-3)),
+            dict(id="service-agreement", name="Governing support for a service commitment", kind="support_agreement", policy="services", direction="at_least", delta=1,
+                 review_days=14, deadline_days=180, administration_cost_bps=5, minimum_credibility=40, elite_threshold=30, council_threshold=30,
+                 acceptance=dict(approval=0,legislative=12,elite=12,council=12), breach=dict(approval=-5,legislative=-18,elite=-18,council=-18)),
+            dict(id="project-deadline", name="Public deadline for an existing policy project", kind="project_deadline", policy=None, direction="at_least", delta=0,
+                 review_days=7, deadline_days=180, administration_cost_bps=1, minimum_credibility=0, elite_threshold=0, council_threshold=0,
+                 acceptance=zero.copy(), breach=dict(zero,approval=-3))])
+    return pack
+
+
 def build_market_starter():
     pack = json.loads((ROOT / "data/initial-2000.json").read_text(encoding="utf-8"))
     pack.update(schema=3, rules=3, id="initial-2000-markets-v3",
@@ -372,6 +391,7 @@ def main():
                            ("synthetic-election-test.json", build_elections()),
                            ("synthetic-subnational-test.json", build_subnational()),
                            ("synthetic-territorial-test.json", build_territorial()),
+                           ("synthetic-undertakings-test.json", build_undertakings()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

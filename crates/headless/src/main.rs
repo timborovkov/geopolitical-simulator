@@ -136,7 +136,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "status | countries | policies | preview POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if developer {
                         println!(
@@ -265,6 +265,66 @@ fn play(
                     content,
                     Action::Borrow {
                         amount: Money(number(words.get(1))?),
+                    },
+                )?,
+                "undertaking-templates" => println!(
+                    "{}",
+                    serde_json::to_string_pretty(
+                        content
+                            .undertakings
+                            .as_ref()
+                            .ok_or("No undertaking workflow")?
+                    )
+                    .map_err(|e| e.to_string())?
+                ),
+                "undertakings" => println!(
+                    "{}",
+                    serde_json::to_string_pretty(
+                        world
+                            .player_country()
+                            .undertakings
+                            .as_ref()
+                            .ok_or("No undertaking history")?
+                    )
+                    .map_err(|e| e.to_string())?
+                ),
+                "preview-undertaking" | "declare-undertaking" => {
+                    let template = words
+                        .get(1)
+                        .ok_or("Missing template; use undertaking-templates")?
+                        .to_string();
+                    let project = words
+                        .get(2)
+                        .map(|v| {
+                            v.parse::<u64>()
+                                .map(CommitmentId)
+                                .map_err(|_| "Invalid policy commitment ID")
+                        })
+                        .transpose()?;
+                    if words[0] == "preview-undertaking" {
+                        println!(
+                            "{:?}",
+                            world.preview_undertaking(
+                                content,
+                                &world.player,
+                                &template,
+                                project
+                            )?
+                        );
+                    } else {
+                        world.issue(content, Action::DeclareUndertaking { template, project })?;
+                    }
+                }
+                "withdraw-undertaking" => world.issue(
+                    content,
+                    Action::WithdrawUndertaking {
+                        request: UndertakingId(
+                            words
+                                .get(1)
+                                .ok_or("Missing undertaking ID")?
+                                .parse()
+                                .map_err(|_| "Invalid undertaking ID")?,
+                        ),
                     },
                 )?,
                 "territory" => {

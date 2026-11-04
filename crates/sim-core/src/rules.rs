@@ -125,6 +125,16 @@ impl World {
             .ok_or("Missing country content")?;
         let id = command.issuer.clone();
         match &command.action {
+            Action::DeclareUndertaking { template, project } => self.declare_undertaking(
+                content,
+                &id,
+                template,
+                *project,
+                UndertakingId(command.id),
+            )?,
+            Action::WithdrawUndertaking { request } => {
+                self.withdraw_undertaking(content, &id, *request)?
+            }
             Action::ReformTerritory { target, contested } => self.request_territorial_reform(
                 content,
                 &id,
@@ -299,6 +309,8 @@ impl World {
             self.day += 1;
             for id in &ids {
                 self.resolve_constitution(content, id);
+                self.undertaking_succession(id);
+                self.resolve_undertaking_reviews(content, id);
                 self.territorial_succession(id);
                 self.resolve_territorial_reforms(content, id);
                 self.sync_electoral_mandate(content, id);
@@ -312,6 +324,7 @@ impl World {
                 self.complete_projects(content, id);
                 self.settle(content, id);
                 self.evaluate_commitments(id);
+                self.evaluate_undertakings(content, id);
                 self.review_budget(content, id);
                 let election_due = self.countries[id].next_election == Some(self.day);
                 let previous_government = self.countries[id].government_number;
@@ -325,6 +338,7 @@ impl World {
                     }
                 }
                 self.sync_electoral_mandate(content, id);
+                self.undertaking_succession(id);
                 self.territorial_succession(id);
                 self.regional_succession(content, id);
                 self.cabinet_succession(id);
@@ -959,6 +973,7 @@ impl World {
         self.ai_election_request(content, id);
         self.ai_regional_order(content, id);
         self.ai_territorial_turn(content, id);
+        self.ai_undertaking_turn(content, id);
         let c = &self.countries[id];
         let d = content.country(id).expect("country");
         let government = self
