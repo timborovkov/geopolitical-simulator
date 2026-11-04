@@ -445,6 +445,22 @@ def build_income_starter():
     return pack
 
 
+
+def build_fiscal_ai():
+    pack = build_income_bands()
+    pack.update(schema=14, rules=14, id="synthetic-national-fiscal-ai-v14", name="Fictional national fiscal reviews")
+    pack["description"] += " Fiscal AI reviews use the national daily balance after protected local claims, while earlier rules retain their original consolidated trigger. Authority, available cash, fees, review and real programme delivery remain ordinary shared constraints. This is an authored bounded heuristic, not historical government behavior or optimal economic planning."
+    return pack
+
+
+def build_fiscal_ai_starter():
+    pack = build_income_starter()
+    pack.update(schema=14, rules=14, id="initial-2000-fiscal-ai-v14", name="A New Century · national fiscal reviews")
+    pack["description"] += " Nonplayer fiscal reviews use the national daily balance after protected local tax claims. A consolidated surplus cannot finance national obligations from protected local cash. Budget authority, submission funding, review and actual programme delivery remain ordinary shared constraints. This is an authored bounded heuristic, not historical government behavior or optimal economic planning."
+    pack["sources"].append(dict(id="authored-national-fiscal-ai-v1", quality="authored_scenario_model", description="Original national-funding review objective for the bounded fiscal AI. It respects protected local claims and shared legal/cash/implementation rules; it does not claim historical government decisions, privileged revenue or optimal planning."))
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -461,6 +477,7 @@ def main():
                            ("synthetic-undertakings-test.json", build_undertakings()),
                            ("synthetic-fiscal-plans-test.json", build_fiscal_plans()),
                            ("synthetic-income-bands-test.json", build_income_bands()),
+                           ("synthetic-national-fiscal-ai-test.json", build_fiscal_ai()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),
@@ -471,6 +488,7 @@ def main():
                            ("initial-2000-undertakings.json", build_undertaking_starter()),
                            ("initial-2000-fiscal-plans.json", build_fiscal_starter()),
                            ("initial-2000-income-bands.json", build_income_starter()),
+                           ("initial-2000-fiscal-ai.json", build_fiscal_ai_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

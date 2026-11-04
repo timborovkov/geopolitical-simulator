@@ -2,9 +2,8 @@ use sim_core::*;
 
 #[test]
 fn the_income_roster_preserves_prior_identity_and_delivers_tax_policy_under_every_government() {
-    let c = Content::bundled().unwrap();
+    let c = Content::income_bundled().unwrap();
     let old = Content::fiscal_bundled().unwrap();
-    assert_eq!(c.rules, RULES_VERSION);
     assert_eq!((c.schema, c.rules), (13, 13));
     assert_eq!(c.countries, old.countries);
     assert_eq!(c.identities, old.identities);
@@ -109,7 +108,7 @@ fn the_income_roster_preserves_prior_identity_and_delivers_tax_policy_under_ever
 
 #[test]
 fn new_pending_tax_and_preserved_fiscal_saves_recover_without_relabeling_or_losing_reports() {
-    let c = Content::bundled().unwrap();
+    let c = Content::income_bundled().unwrap();
     let old = Content::fiscal_bundled().unwrap();
     let id = CountryId("GBR".into());
     let mut prior = World::new(&old, id.clone(), 17).unwrap();

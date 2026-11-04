@@ -543,7 +543,12 @@ impl World {
         let c = &self.countries[id];
         let d = content.country(id).expect("country");
         let f = c.forecast(d, content.income_taxes.as_ref());
-        if f.daily_revenue.0 >= f.daily_spending.0 + f.daily_interest.0 {
+        let balance = if content.rules >= 14 {
+            c.national_daily_balance(d, &f).0
+        } else {
+            f.daily_revenue.0 - f.daily_spending.0 - f.daily_interest.0
+        };
+        if balance >= 0 {
             return;
         }
         let targets = FiscalTargets {
