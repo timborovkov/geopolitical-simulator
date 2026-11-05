@@ -47,7 +47,7 @@ impl Polygon {
             && !self.rings[1..].iter().any(|hole| inside_ring(hole, point))
     }
 }
-fn inside_ring(ring: &[[f32; 2]], point: [f32; 2]) -> bool {
+pub(crate) fn inside_ring(ring: &[[f32; 2]], point: [f32; 2]) -> bool {
     let [x, y] = point;
     let mut inside = false;
     for pair in ring.windows(2) {

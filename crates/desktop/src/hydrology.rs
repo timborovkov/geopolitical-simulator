@@ -297,7 +297,7 @@ impl Hydrology {
     }
 }
 // Match Latin-label accents without changing the attributed display/source names.
-fn search_key(text: &str) -> String {
+pub(crate) fn search_key(text: &str) -> String {
     text.to_lowercase()
         .chars()
         .map(|c| match c {

@@ -25,6 +25,12 @@ For a solo developer assisted by AI, a map-and-dense-interface game benefits mor
 
 Official foundation sources: [egui repository](https://github.com/emilk/egui), [egui architecture](https://github.com/emilk/egui/blob/main/ARCHITECTURE.md), [Iced](https://github.com/iced-rs/iced), [Bevy features](https://bevy.org/), [wgpu backends](https://wgpu.rs/doc/wgpu/documentation/features/index.html), [Lyon](https://github.com/nical/lyon), [resvg](https://github.com/linebender/resvg), [Vello renderer choices](https://github.com/linebender/vello/blob/main/README.md?plain=1), [rusqlite](https://github.com/rusqlite/rusqlite), [Turso](https://github.com/tursodatabase/turso).
 
+### Implemented administrative reference layer
+
+The desktop [administrative atlas](../crates/desktop/src/administrative.rs) shares an immutable `Arc` cache of 726 Natural Earth v3.3.0 reference areas across the fifteen starter countries. The [offline compiler](../scripts/import_administrative_geometry.py) verifies four pinned original-file checksums, explicit UTF-8 encoding and WGS84 coordinates, preserving source `ADM1_CODE` identities, separate polygon parts and holes. DBF row numbers remain provenance only. Eight records with no source name or type stay explicitly unnamed; the [manifest](../data/administrative-references-manifest.json) records coverage, transformations and historical limitations.
+
+Search accepts attributed names, aliases, country names and source IDs; unique confirmation focuses the selected country's division. Boundary drawing culls polygon bounds against the viewport and displays the inspected country's areas. Hit tests account for holes and both dateline parts; dateline-spanning focus uses the largest contiguous part. Country-level dated public overlays and player authority keep their existing boundaries. These display references do not create simulated regions, administrative powers, local statistics or historical sovereignty claims. Scenario jurisdictions remain separate. Priority 4 remains partial.
+
 ## Architecture boundaries
 
 Suggested workspace modules:

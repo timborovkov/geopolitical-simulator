@@ -82,9 +82,11 @@ def main():
         commands += [
             [sys.executable, "scripts/test_reference_data.py"],
             [sys.executable, "scripts/test_hydrology.py"],
+            [sys.executable, "scripts/test_administrative_geometry.py"],
             [sys.executable, "scripts/build_synthetic_world.py", "--check"],
             [sys.executable, "scripts/import_country_geometry.py", "--validate"],
             [sys.executable, "scripts/import_hydrology.py", "--validate"],
+            [sys.executable, "scripts/import_administrative_geometry.py", "--validate"],
             ["cargo", "fmt", "--all", "--", "--check"],
             ["cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"],
             ["cargo", "test", "--workspace", "--locked"],

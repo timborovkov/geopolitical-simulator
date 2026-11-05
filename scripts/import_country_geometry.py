@@ -22,7 +22,7 @@ DIGESTS = {
 }
 
 
-def records(raw):
+def records(raw, encoding="latin1"):
     count = struct.unpack_from("<I", raw, 4)[0]
     header, width = struct.unpack_from("<HH", raw, 8)
     fields = []
@@ -37,7 +37,7 @@ def records(raw):
         pos = 1
         values = {}
         for name, size in fields:
-            values[name] = record[pos:pos + size].decode("latin1").strip()
+            values[name] = record[pos:pos + size].decode(encoding).strip()
             pos += size
         result.append(values)
     return result

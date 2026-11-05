@@ -301,6 +301,10 @@ pub struct WorldMap {
     land: Vec<(Vec<[f32; 2]>, Vec<usize>)>,
     atlas: crate::geometry::Atlas,
     hydrology: crate::hydrology::Hydrology,
+    administrative: std::sync::Arc<crate::administrative::AdministrativeAtlas>,
+    divisions: bool,
+    division_query: String,
+    selected_division: Option<crate::administrative::ReferenceDivisionId>,
     lakes: bool,
     rivers: bool,
     water_query: String,
@@ -328,6 +332,10 @@ impl WorldMap {
             land,
             atlas: crate::geometry::Atlas::bundled(),
             hydrology: crate::hydrology::Hydrology::bundled(),
+            administrative: crate::administrative::AdministrativeAtlas::bundled(),
+            divisions: false,
+            division_query: String::new(),
+            selected_division: None,
             lakes: true,
             rivers: true,
             water_query: String::new(),
@@ -362,6 +370,16 @@ impl WorldMap {
                 Color32::LIGHT_RED,
                 format!("Public reports unavailable: {error}"),
             );
+        }
+        if self
+            .selected_division
+            .as_ref()
+            .and_then(|id| self.administrative.division(id))
+            .is_none_or(|division| {
+                division.country != *selected || content.country(&division.country).is_none()
+            })
+        {
+            self.selected_division = None;
         }
         let dates = ReportTime::dates(reports);
         self.report_time.normalize(&dates);
@@ -398,6 +416,27 @@ impl WorldMap {
             }
             ui.checkbox(&mut self.lakes, "Lakes");
             ui.checkbox(&mut self.rivers, "Rivers");
+            let coverage = self.administrative.coverage(selected);
+            if coverage == 0 {
+                self.divisions = false;
+            }
+            ui.add_enabled(
+                coverage > 0,
+                egui::Checkbox::new(&mut self.divisions, "Divisions"),
+            )
+            .on_hover_text("Show reference administrative boundaries for the selected country.")
+            .on_disabled_hover_text("No geographic subdivision coverage for this country.");
+            if let Some(id) = self
+                .administrative
+                .picker(ui, content, &mut self.division_query)
+                && let Some(division) = self.administrative.division(&id)
+            {
+                *selected = division.country.clone();
+                self.camera.focus_bounds(division.focus_bounds, viewport);
+                self.divisions = true;
+                self.selected_division = Some(id);
+            }
+
             if let Some(reference) = self.hydrology.picker(ui, &mut self.water_query) {
                 self.camera.focus_bounds(reference.bounds, viewport);
                 match reference.kind {
@@ -440,6 +479,22 @@ impl WorldMap {
                 .and_then(|p| self.pick(content, rect, p))
             {
                 *selected = id;
+                if self
+                    .selected_division
+                    .as_ref()
+                    .and_then(|id| self.administrative.division(id))
+                    .is_some_and(|division| division.country != *selected)
+                {
+                    self.selected_division = None;
+                }
+            }
+            if self.divisions
+                && let Some(point) = response.interact_pointer_pos()
+                && let Some(division) =
+                    self.administrative
+                        .at(content, selected, self.camera.unproject(rect, point))
+            {
+                self.selected_division = Some(division.id.clone());
             }
         }
         if response.double_clicked() {
@@ -530,6 +585,19 @@ impl WorldMap {
                 }
             }
         }
+        if self.divisions {
+            let a = self.camera.unproject(rect, rect.left_top());
+            let b = self.camera.unproject(rect, rect.right_bottom());
+            let geographic_viewport =
+                Rect::from_two_pos(Pos2::new(a[0], a[1]), Pos2::new(b[0], b[1]));
+            self.administrative.paint(
+                &painter,
+                selected,
+                self.selected_division.as_ref(),
+                geographic_viewport,
+                project,
+            );
+        }
         self.hydrology
             .paint(&painter, project, self.lakes, self.rivers);
         let hovered = response
@@ -575,6 +643,14 @@ impl WorldMap {
                 self.rivers,
             )
         });
+        let division_hover = if self.divisions {
+            response.hover_pos().and_then(|cursor| {
+                self.administrative
+                    .at(content, selected, self.camera.unproject(rect, cursor))
+            })
+        } else {
+            None
+        };
         if let Some((feature, kind)) = water {
             response
                 .clone()
@@ -620,7 +696,10 @@ impl WorldMap {
             } else {
                 format!("Current executive: {executive}")
             };
-            response.clone().on_hover_text(format!("{} · {:?}\n{executive}\n{stamp}{overlay}\nClick a country outline or its marker to inspect. Search covers islands omitted at this scale.",country.name,report.as_ref().map_or(&country.regime, |report| &report.regime)));
+            let division_label = division_hover.map_or(String::new(), |division| {
+                format!("{}\n\n", division.description(content))
+            });
+            response.clone().on_hover_text(format!("{division_label}{} · {:?}\n{executive}\n{stamp}{overlay}\nClick a country outline or its marker to inspect. Search covers islands omitted at this scale.",country.name,report.as_ref().map_or(&country.regime, |report| &report.regime)));
         }
         painter.text(
             rect.left_bottom() + Vec2::new(12.0, -12.0),
@@ -632,6 +711,36 @@ impl WorldMap {
         self.layer.details(ui, reports, selected, report_time);
         ui.small("Natural Earth reference outlines · historical border review incomplete · display shapes do not define sovereignty or simulation regions · overlays use dated reports; gray means unknown");
         self.hydrology.provenance(ui);
+        if self.divisions {
+            let count = self.administrative.coverage(selected);
+            ui.small(format!("Reference divisions: {count} source features for {}. Scenario jurisdictions and their powers appear under Institutions & parties.",selected.0));
+            if let Some(division) = self
+                .selected_division
+                .as_ref()
+                .and_then(|id| self.administrative.division(id))
+            {
+                let label = format!(
+                    "{} · {} · {}",
+                    division.display_name(),
+                    division.country.0,
+                    division.id.0
+                );
+                let bounds = division.focus_bounds;
+                let mut clear = false;
+                ui.horizontal_wrapped(|ui| {
+                    ui.strong(label)
+                        .on_hover_text(division.description(content));
+                    if ui.button("Focus division").clicked() {
+                        self.camera.focus_bounds(bounds, rect);
+                    }
+                    clear = ui.button("Clear division").clicked();
+                });
+                if clear {
+                    self.selected_division = None;
+                }
+            }
+        }
+        self.administrative.provenance(ui);
     }
 }
 #[cfg(test)]
@@ -1130,7 +1239,7 @@ mod tests {
         )
     }
     #[test]
-    fn physical_layer_mouse_controls_preserve_camera_selection_and_campaign_at_two_scales() {
+    fn reference_layer_mouse_controls_preserve_camera_selection_and_campaign_at_two_scales() {
         let content = Content::bundled().unwrap();
         let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
         world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
@@ -1169,7 +1278,7 @@ mod tests {
                     })
                     .unwrap()
             };
-            for label in ["Lakes", "Rivers"] {
+            for label in ["Lakes", "Rivers", "Divisions"] {
                 let p = label_position(&initial, label);
                 assert!(p.x < 1200.0 / scale && p.y < 900.0 / scale);
                 for pressed in [true, false] {
@@ -1192,7 +1301,7 @@ mod tests {
                     );
                 }
             }
-            assert!(!map.lakes && !map.rivers);
+            assert!(!map.lakes && !map.rivers && map.divisions);
             assert_eq!(map.camera, camera);
             assert_eq!(selected, world.player);
             assert!(map.layer == Layer::Countries);
@@ -1480,5 +1589,191 @@ mod tests {
             map.pick(&fictional, rect, point),
             Some(CountryId("AUR".into()))
         );
+    }
+    #[test]
+    fn subdivision_lookup_changes_view_context_without_changing_reports_or_campaign_at_two_scales()
+    {
+        let content = Content::bundled().unwrap();
+        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(31)).unwrap();
+        let before = sim_core::persistence::encode(&world, &content).unwrap();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let mut map = WorldMap::new();
+            map.layer = Layer::Needs;
+            map.report_time = ReportTime::Published(30);
+            let mut selected = world.player.clone();
+            let initial = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            let button = history_text_position(&initial, "Find division");
+            let _ = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                history_click(button),
+            );
+            let output = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![egui::Event::Text("Bavaria".into())],
+            );
+            assert_eq!(map.division_query, "Bavaria");
+            let row = history_text_position(&output, "Bayern · Germany · DEU-1591");
+            let _ = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                history_click(row),
+            );
+            let _ = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            assert_eq!(selected, CountryId("DEU".into()));
+            assert!(map.divisions);
+            assert_eq!(
+                map.selected_division,
+                Some(crate::administrative::ReferenceDivisionId(
+                    "DEU-1591".into()
+                ))
+            );
+            assert!(map.layer == Layer::Needs);
+            assert_eq!(map.report_time, ReportTime::Published(30));
+            let division = map
+                .administrative
+                .division(map.selected_division.as_ref().unwrap())
+                .unwrap();
+            assert_eq!(map.camera.longitude, division.focus_bounds.center().x);
+            assert_eq!(map.camera.latitude, division.focus_bounds.center().y);
+            let camera = map.camera;
+            selected = CountryId("GBR".into());
+            let _ = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            assert!(map.selected_division.is_none());
+            assert_eq!(map.camera, camera);
+            assert_eq!(
+                sim_core::persistence::encode(&world, &content).unwrap(),
+                before
+            );
+        }
+    }
+    #[test]
+    fn enabled_division_polygons_are_picked_by_map_pointer_at_two_scales() {
+        let content = Content::bundled().unwrap();
+        let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        let before = sim_core::persistence::encode(&world, &content).unwrap();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let mut map = WorldMap::new();
+            map.divisions = true;
+            map.camera = Camera {
+                longitude: 11.6,
+                latitude: 48.2,
+                zoom: 8.0,
+            };
+            let mut selected = CountryId("DEU".into());
+            // Let the new DPI factor settle before sampling pixel coordinates.
+            let _ = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            let output = frame(
+                &ctx,
+                &mut map,
+                &content,
+                &world,
+                &mut selected,
+                scale,
+                vec![],
+            );
+            let rect = output
+                .shapes
+                .iter()
+                .find_map(|shape| {
+                    if let egui::Shape::Rect(rect) = &shape.shape {
+                        (rect.fill == Color32::from_rgb(13, 28, 41)).then_some(rect.rect)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap();
+            let point = map.camera.project(rect, [11.58, 48.14]);
+            assert!(rect.contains(point));
+            assert_eq!(
+                map.pick(&content, rect, point),
+                Some(CountryId("DEU".into()))
+            );
+            assert!(
+                map.administrative
+                    .at(&content, &selected, map.camera.unproject(rect, point))
+                    .is_some()
+            );
+            for pressed in [true, false] {
+                let _ = frame(
+                    &ctx,
+                    &mut map,
+                    &content,
+                    &world,
+                    &mut selected,
+                    scale,
+                    vec![
+                        egui::Event::PointerMoved(point),
+                        egui::Event::PointerButton {
+                            pos: point,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ],
+                );
+            }
+            assert_eq!(
+                map.selected_division,
+                Some(crate::administrative::ReferenceDivisionId(
+                    "DEU-1591".into()
+                ))
+            );
+            assert_eq!(selected, CountryId("DEU".into()));
+            assert_eq!(
+                sim_core::persistence::encode(&world, &content).unwrap(),
+                before
+            );
+        }
     }
 }

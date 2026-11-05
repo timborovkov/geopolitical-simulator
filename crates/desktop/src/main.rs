@@ -1,3 +1,4 @@
+mod administrative;
 mod advance;
 mod analysis;
 mod briefing;
@@ -3254,6 +3255,93 @@ mod interface_tests {
         assert_eq!(app.save_path, path.display().to_string());
         assert_eq!(app.world.as_ref().unwrap().hash(), wanted.hash());
         std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn division_reference_confirmation_keeps_time_shortcuts_in_the_editor_at_two_scales() {
+        let content = Content::bundled().unwrap();
+        let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        let before = persistence::encode(&world, &content).unwrap();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let mut app =
+                GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+            app.selected = world.player.clone();
+            app.world = Some(world.clone());
+            let render = |app: &mut GameApp, time: f64, events: Vec<egui::Event>| {
+                ctx.run(
+                    egui::RawInput {
+                        focused: true,
+                        time: Some(time),
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(1440.0 / scale, 940.0 / scale),
+                        )),
+                        events,
+                        ..Default::default()
+                    },
+                    |ctx| app.render(ctx),
+                )
+            };
+            let output = render(&mut app, 0.0, vec![]);
+            let point = output
+                .shapes
+                .iter()
+                .find_map(|shape| {
+                    if let egui::Shape::Text(text) = &shape.shape {
+                        (text.galley.text() == "Find division")
+                            .then_some(text.pos + text.galley.size() / 2.0)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap();
+            for (time, pressed) in [(0.1, true), (0.2, false)] {
+                render(
+                    &mut app,
+                    time,
+                    vec![
+                        egui::Event::PointerMoved(point),
+                        egui::Event::PointerButton {
+                            pos: point,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ],
+                );
+            }
+            assert!(ctx.wants_keyboard_input());
+            let key = |key, pressed| egui::Event::Key {
+                key,
+                physical_key: None,
+                pressed,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            };
+            render(
+                &mut app,
+                0.3,
+                vec![
+                    key(egui::Key::N, true),
+                    egui::Event::Text("Bavaria".into()),
+                    key(egui::Key::N, false),
+                    key(egui::Key::Enter, true),
+                    key(egui::Key::Enter, false),
+                ],
+            );
+            assert!(
+                app.pending.is_none(),
+                "Reference confirmation must not advance the campaign"
+            );
+            assert_eq!(app.speed, 0);
+            assert_eq!(app.selected, CountryId("DEU".into()));
+            assert_eq!(app.world.as_ref().unwrap().player, world.player);
+            assert_eq!(
+                persistence::encode(app.world.as_ref().unwrap(), &content).unwrap(),
+                before
+            );
+        }
     }
     #[test]
     fn physical_reference_confirmation_and_clear_cannot_trigger_campaign_shortcuts() {
