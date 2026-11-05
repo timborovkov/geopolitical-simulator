@@ -2,6 +2,15 @@
 
 The goal is the full documented game. The current implementation is a playable foundation; it is **not complete**. The [requirement register](implementation-register.csv) retains all 341 original requirements and their IDs. No unimplemented system is silently excluded. There are no delivery dates or workload estimates here.
 
+Current audited register: **2 complete, 101 partial and 238 proposed**. Completion applies to the stated scope of an individual requirement; the overall kernel and full roadmap remain incomplete.
+
+## Audited complete requirements
+
+| Requirement | Verified scope | Evidence |
+|---|---|---|
+| P01-01 | Integer daily clock, Gregorian calendar, pause, 1/7/30-day automatic speeds, manual steps, advance-to-date and cancellable advance-to-next-important-event through the calendar limit. | [Calendar tests](../crates/sim-core/tests/calendar.rs), [event-boundary tests](../crates/sim-core/tests/inspection.rs), [desktop worker](../crates/desktop/src/advance.rs), [desktop shortcut regression](../crates/desktop/src/main.rs) and nine native/terminal byte comparisons described below. The reproduced 365-day cutoff was fixed before closing this requirement. |
+| P01-08 | A headless executable loads and advances a tiny world without graphics or SQL in the inner loop. | [Runner](../crates/headless/src/main.rs), [dependencies](../crates/headless/Cargo.toml), [core dependencies](../crates/sim-core/Cargo.toml), [fictional world](../data/synthetic-test.json), display-free save/load/continuation/replay audit and the complete release recovery suite. |
+
 ## Current evidence
 
 - Baseline governing campaigns were validated and pushed to `main` at `6475996`. Remote commit identity was verified. GitHub Actions could not be read through the available API/web connection; hosted results remain unverified.
@@ -282,11 +291,19 @@ The goal is the full documented game. The current implementation is a playable f
 
 - Hosted [run 41955786712](https://github.com/timborovkov/geopolitical-simulator/actions/runs/41955786712) passed the preceding seeded national-reserve checkpoint on Windows, Ubuntu and macOS. Native interaction evidence remains specific to the exercised Linux client.
 
+- An audit of the earliest requirements verified the tiny-world headless runner has only core/JSON dependencies and no graphics or SQL dependency. With display environment variables removed, advancing a fictional world, saving, loading, continuing and replaying produced the same complete snapshot bytes as direct advancement. The clock audit then reproduced a real 365-day next-event cutoff: a solvent fictional year-2000 campaign first has an important fiscal review on day 366. New core and desktop-shortcut regressions failed before the fix, then passed after removing the arbitrary search horizon. Both desktop entry points now share a cancellable search with a distinct search label and an explicit calendar-limit message. Normal step/date advances and daily simulation rules remain unchanged. The full validation and requirement audit passed; P01-01 and P01-08 are complete for their stated scope.
+
+- Native Linux/software-Vulkan clock audit used the temporary solvent fictional pack without changing repository data. Automatic 1/7/30-day speeds paused on days 4/28/120 and matched direct terminal saves. Focus loss paused on day 21 and remained unchanged while paused. Both Next-event button and keyboard shortcut stopped at the actual 2001-01-01 fiscal review on day 366 and matched terminal `next` and direct advancement byte for byte. Manual one/thirty-day steps and advance-to-2000-02-29 also matched exact terminal snapshots. All nine native comparisons passed; the eight distinct terminal snapshots independently replayed. Interface scale remained 100% and the client was closed. This native evidence concerns the exercised Linux client.
+
+- The clock/headless requirement audit passed 358 Rust checks including three compile-fail dimension checks, eight Python checks, strict lints/docs, release builds and all 600 recovery/replay campaigns. Every preceding campaign hash remains identical. The new core and desktop-shortcut regressions reproduce the leap-year cutoff before the fix and verify the actual day-366 fiscal event, exact replay, search feedback and clean calendar-limit handling afterward. Nine native clock snapshots matched terminal bytes, and eight distinct snapshots independently replayed. Display-free headless save/load continuation matched direct advancement. P01-01 and P01-08 are now complete for their exact recorded scope; the other six kernel requirements remain partial. The register retains all 341 original IDs/text across 42 systems and now records 2 complete, 101 partial and 238 proposed; the full game remains incomplete. Rules 21, snapshot format 22, all nineteen packs and their previous outcomes remain unchanged.
+
+- Hosted [run 41960072883](https://github.com/timborovkov/geopolitical-simulator/actions/runs/41960072883) passed the preceding reserve schedule/history checkpoint on Windows, macOS and Ubuntu. This verifies that published revision; native interaction evidence remains specific to the exercised Linux client.
+
 ## Complete priority inventory
 
 | Priority | System | Requirements touched / total | Status |
 |---|---|---:|---|
-| 01 | Simulation kernel and command boundary | 8 / 8 | Partial |
+| 01 | Simulation kernel and command boundary | 8 / 8 | Partial; 2 requirements complete |
 | 02 | Content schema and historical world identity | 7 / 7 | Partial |
 | 03 | Saves, replay and simulation inspection | 7 / 7 | Partial |
 | 04 | Native desktop shell, map and navigation | 7 / 7 | Partial |

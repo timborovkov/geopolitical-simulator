@@ -1,12 +1,12 @@
 requirement_id,priority,subsystem,requirement,status
-P01-01,1,Simulation kernel and command boundary,"Integer simulation clock, calendar, pause, speed levels, advance-to-date and advance-to-next-important-event.",partial
+P01-01,1,Simulation kernel and command boundary,"Integer simulation clock, calendar, pause, speed levels, advance-to-date and advance-to-next-important-event.",complete
 P01-02,1,Simulation kernel and command boundary,"Stable IDs for every actor, place, institution, agreement, asset, policy and event; no identity based on names or array positions exposed outside a store.",partial
 P01-03,1,Simulation kernel and command boundary,"Typed units for money/currency, population, energy, goods, distances, rates and time. Explicit rounding and overflow handling.",partial
 P01-04,1,Simulation kernel and command boundary,Explicit phase order; seeded random streams per subsystem; reproducible runs and canonical state hashes.,partial
 P01-05,1,Simulation kernel and command boundary,"All actions enter as validated commands. UI, AI, scripts and future remote players use the same action rules.",partial
 P01-06,1,Simulation kernel and command boundary,Domain events record accepted outcomes; rejected commands explain the failed condition.,partial
 P01-07,1,Simulation kernel and command boundary,"Separate world truth, actor knowledge and player-visible information now, before espionage and multiplayer arrive.",partial
-P01-08,1,Simulation kernel and command boundary,Headless executable that can load a tiny world and advance it without graphics or SQL in the inner loop.,partial
+P01-08,1,Simulation kernel and command boundary,Headless executable that can load a tiny world and advance it without graphics or SQL in the inner loop.,complete
 P02-01,2,Content schema and historical world identity,"Versioned definitions for countries, territories, offices, people, parties, organizations, goods, sectors, laws, technologies and scenario rules. Minimal dated technology eligibility is available immediately; the full research/adoption graph comes later.",partial
 P02-02,2,Content schema and historical world identity,"Date-effective records: founding, dissolution, terms of office, membership, currency and territorial changes.",partial
 P02-03,2,Content schema and historical world identity,"Country identity separate from government, regime, legal sovereignty, occupation, recognition and map geometry.",partial

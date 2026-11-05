@@ -73,6 +73,31 @@ fn final_snapshot_difference_names_the_country_field_and_values() {
 }
 
 #[test]
+fn next_event_reaches_a_leap_year_fiscal_boundary_after_365_quiet_days() {
+    let mut content =
+        Content::from_json(include_str!("../../../data/synthetic-test.json")).unwrap();
+    // A solvent authored fixture and seed isolate the next annual review.
+    for country in &mut content.countries {
+        country.tax = 30;
+        country.services = 6;
+        country.welfare = 4;
+    }
+    content.validate().unwrap();
+    let opening = World::new(&content, CountryId("AUR".into()), 0).unwrap();
+    let mut world = opening.clone();
+    assert_eq!(world.advance_to_event(&content).unwrap(), 366);
+    assert_eq!(date(world.day), "2001-01-01");
+    assert!(world.events.iter().any(|e| e.country == world.player
+        && e.day == 366
+        && e.important
+        && e.text.starts_with("Fiscal year closed")));
+    let mut direct = opening;
+    direct.advance(&content, 366).unwrap();
+    assert_eq!(world, direct);
+    assert_eq!(world, persistence::replay(&world, &content).unwrap());
+}
+
+#[test]
 fn next_event_stops_cleanly_at_the_campaign_limit() {
     let (content, mut world) = fixture();
     // A boundary fixture isolates clock behavior without a century-long soak.

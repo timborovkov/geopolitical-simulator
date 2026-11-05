@@ -2,7 +2,9 @@
 
 An initial playable Rust geopolitical strategy game for macOS, Linux and Windows, starting on **1 January 2000**. Govern one of 15 countries through its institutions, fund public services, expand energy and food supply, manage debt and survive political transitions. Other governments act through the same command rules.
 
-This is the first connected game slice of the research roadmap: **341 proposed requirements across 42 ordered systems**. It does not implement the full catalogue. See the [initial-game scope](docs/initial-game.md) for implemented loops, simplifications and remaining work.
+This is a connected initial game slice of the research roadmap, originally defined as **341 proposed requirements across 42 ordered systems**. It does not implement the full catalogue. See the [initial-game scope](docs/initial-game.md) for implemented loops, simplifications and remaining work.
+
+The [requirement audit](docs/development-progress.md) records **2 complete, 101 partial and 238 proposed**. Clock/time controls (P01-01) and the headless runner (P01-08) satisfy their stated scope; the simulation kernel and full game remain incomplete.
 
 ## Play
 

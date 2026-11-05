@@ -15,6 +15,7 @@ pub struct AdvanceJob {
     stop: Arc<AtomicBool>,
     pub completed: Arc<AtomicU32>,
     pub requested: u32,
+    pub seeking_event: bool,
     pub start_day: u32,
 }
 impl AdvanceJob {
@@ -70,6 +71,7 @@ impl AdvanceJob {
             stop,
             completed,
             requested: days,
+            seeking_event: false,
             start_day,
         })
     }

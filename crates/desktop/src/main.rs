@@ -167,6 +167,27 @@ impl GameApp {
     fn advance(&mut self, days: u32) {
         self.start_advance(days, self.pause_alerts);
     }
+    fn next_event(&mut self) {
+        self.speed = 0;
+        let Some(world) = self.world.as_ref() else {
+            return;
+        };
+        let remaining = MAX_DAY - world.day;
+        if remaining == 0 {
+            self.status =
+                "The campaign calendar is at its limit; there is no later event to search for."
+                    .into();
+            return;
+        }
+        let already_advancing = self.pending.is_some();
+        self.start_advance(remaining, true);
+        if !already_advancing && let Some(job) = &mut self.pending {
+            job.seeking_event = true;
+            self.status =
+                "Searching for the next important event. You can stop at the next day boundary."
+                    .into();
+        }
+    }
     fn start_advance(&mut self, days: u32, important: bool) {
         if !self.recovery.is_empty() {
             self.speed = 0;
@@ -450,6 +471,11 @@ impl GameApp {
         if let Some(job) = &self.pending {
             if job.is_stopping() {
                 "Stopping at next day boundary".into()
+            } else if job.seeking_event {
+                format!(
+                    "Searching for next event · {} days advanced",
+                    job.completed.load(std::sync::atomic::Ordering::Relaxed)
+                )
             } else {
                 format!(
                     "Advancing {} / {} days",
@@ -494,9 +520,7 @@ impl GameApp {
                         if ui.add_enabled(self.pending.is_none(), egui::Button::new(label)).clicked() { self.speed = 0; self.advance(days); }
                     }
                     if ui.add_enabled(self.pending.is_none(), egui::Button::new("Next event")).clicked() {
-                        self.speed = 0;
-                        let remaining = MAX_DAY - self.world.as_ref().expect("world").day;
-                        self.start_advance(365.min(remaining), true);
+                        self.next_event();
                     }
                     ui.add(egui::TextEdit::singleline(&mut self.target_date).desired_width(95.0).hint_text("YYYY-MM-DD"));
                     if ui.add_enabled(self.pending.is_none(), egui::Button::new("Advance to date")).clicked() {
@@ -1805,12 +1829,8 @@ impl GameApp {
             self.pause();
             self.tab = Tab::Settings;
         }
-        if settings::shortcut(ctx, self.preferences.active.next_event)
-            && let Some(world) = &self.world
-        {
-            let remaining = MAX_DAY - world.day;
-            self.speed = 0;
-            self.start_advance(remaining.min(365), true);
+        if settings::shortcut(ctx, self.preferences.active.next_event) {
+            self.next_event();
         }
         if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
             self.pause();
@@ -2374,6 +2394,68 @@ mod interface_tests {
             assert_eq!(app.world.as_ref().unwrap().hash(), expected);
         }
     }
+    #[test]
+    fn next_event_shortcut_searches_until_the_actual_event_in_a_leap_year() {
+        let mut content =
+            Content::from_json(include_str!("../../../data/synthetic-test.json")).unwrap();
+        for country in &mut content.countries {
+            country.tax = 30;
+            country.services = 6;
+            country.welfare = 4;
+        }
+        let world = World::new(&content, CountryId("AUR".into()), 0).unwrap();
+        let ctx = egui::Context::default();
+        let mut app =
+            GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+        app.world = Some(world);
+        app.speed = 30;
+        let input = egui::RawInput {
+            events: vec![egui::Event::Key {
+                key: egui::Key::N,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: Default::default(),
+            }],
+            ..Default::default()
+        };
+        let _ = ctx.run(input, |ctx| app.process_shortcuts(ctx));
+        assert_eq!(app.speed, 0);
+        assert!(app.playback_label().starts_with("Searching for next event"));
+        let job = app
+            .pending
+            .take()
+            .expect("Next-event shortcut starts a worker");
+        assert!(job.seeking_event);
+        assert_eq!(
+            job.requested, MAX_DAY,
+            "Search must not end at a fixed 365-day horizon"
+        );
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let outcome = loop {
+            if let Some(outcome) = job.poll().unwrap() {
+                break outcome;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "Next-event worker did not finish"
+            );
+            std::thread::sleep(Duration::from_millis(1));
+        };
+        assert!(outcome.error.is_none());
+        assert!(outcome.stopped_for_event);
+        assert_eq!(outcome.world.day, 366);
+        assert_eq!(
+            outcome.world,
+            persistence::replay(&outcome.world, &content).unwrap()
+        );
+        app.world.as_mut().unwrap().day = MAX_DAY;
+        app.next_event();
+        assert!(app.pending.is_none());
+        assert_eq!(app.playback_label(), "Paused");
+        assert!(app.status.contains("calendar is at its limit"));
+    }
+
     #[test]
     fn saving_before_a_new_campaign_archives_exact_active_state_outside_backup_rotation() {
         let classic = Content::classic_bundled().unwrap();

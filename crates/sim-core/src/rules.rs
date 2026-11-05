@@ -469,7 +469,7 @@ impl World {
     pub fn advance_to_event(&mut self, content: &Content) -> Result<u32, String> {
         self.advance(content, 0)?;
         let start = self.day;
-        for _ in 0..365.min(MAX_DAY.saturating_sub(self.day)) {
+        for _ in 0..MAX_DAY.saturating_sub(self.day) {
             self.advance(content, 1)?;
             if self
                 .events

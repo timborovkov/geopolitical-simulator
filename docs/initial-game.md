@@ -1,6 +1,6 @@
 # Initial playable game and governing-term milestone
 
-This is an initial game with a differentiated governing-term loop, not completion of the [341-requirement roadmap](implementation-order.md). Requirements retain their original IDs and priority order. `partial` in the CSV identifies touched requirements; it does not claim every clause is complete.
+This is an initial game with a differentiated governing-term loop, not completion of the [341-requirement roadmap](implementation-order.md). Requirements retain their original IDs and priority order. `partial` in the CSV identifies touched requirements; it does not claim every clause is complete. `complete` applies to the verified stated scope of an individual requirement. P01-01 and P01-08 are complete; the remaining kernel requirements and the overall kernel system stay partial.
 
 ## Playable result
 
@@ -158,3 +158,6 @@ The default `data/initial-2000-national-reserves.json` retains all fifteen count
 
 
 Reserve contract inspection keeps open orders visible regardless of newer closed records. Each order retains proposed/consent/earliest/final-delivery dates, administration paid, fixed price, unfilled quantity, last purchase and closure date. The remaining-delivery count excludes already settled days and remains conditional on consent, physical supply and spare import capacity. Expand the closed retained history to inspect every retained order, up to the existing 128-record limit. This owner-only interface derives from saved records without changing rules, data, campaign commands or snapshots.
+
+
+**Next event** and its rebindable shortcut search to the next important event or the campaign calendar limit, including a fiscal review 366 days away in a leap year. Desktop search stays asynchronous and stoppable at a day boundary, with a search label rather than a predicted event date. Ordinary date/step advances keep their existing behavior; completed saves and replays retain their rules. The terminal `next` uses the same event criterion.
