@@ -25,6 +25,7 @@ mod outlook;
 mod party_preferences;
 pub mod persistence;
 mod project_events;
+mod random;
 mod rates;
 mod reserves;
 mod rules;

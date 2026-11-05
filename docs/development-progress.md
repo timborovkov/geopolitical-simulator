@@ -2,13 +2,14 @@
 
 The goal is the full documented game. The current implementation is a playable foundation; it is **not complete**. The [requirement register](implementation-register.csv) retains all 341 original requirements and their IDs. No unimplemented system is silently excluded. There are no delivery dates or workload estimates here.
 
-Current audited register: **4 complete, 99 partial and 238 proposed**. Completion applies to the stated scope of an individual requirement; the overall kernel and full roadmap remain incomplete.
+Current audited register: **5 complete, 98 partial and 238 proposed**. Completion applies to the stated scope of an individual requirement; the overall kernel and full roadmap remain incomplete.
 
 ## Audited complete requirements
 
 | Requirement | Verified scope | Evidence |
 |---|---|---|
 | P01-01 | Integer daily clock, Gregorian calendar, pause, 1/7/30-day automatic speeds, manual steps, advance-to-date and cancellable advance-to-next-important-event through the calendar limit. | [Calendar tests](../crates/sim-core/tests/calendar.rs), [event-boundary tests](../crates/sim-core/tests/inspection.rs), [desktop worker](../crates/desktop/src/advance.rs), [desktop shortcut regression](../crates/desktop/src/main.rs) and nine native/terminal byte comparisons described below. The reproduced 365-day cutoff was fixed before closing this requirement. |
+| P01-04 | Fixed sequential country/tick dependency order, versioned seed/country/period supply samples, deterministic replay and canonical whole-world state hashes. | [Implemented dependency chain](technical-research.md#implemented-daily-dependency-order), [tick authority](../crates/sim-core/src/rules.rs), [fixed sample vectors](../crates/sim-core/src/random.rs), [roster and save/resume regressions](../crates/sim-core/tests/random_streams.rs), [January phase-order tests](../crates/sim-core/tests/fiscal_plans.rs) and the release replay/recovery suite. Supply is the only current stochastic subsystem; future domains require separately versioned streams. Per-subsystem first-divergence diagnosis remains P03-04. |
 | P01-08 | A headless executable loads and advances a tiny world without graphics or SQL in the inner loop. | [Runner](../crates/headless/src/main.rs), [dependencies](../crates/headless/Cargo.toml), [core dependencies](../crates/sim-core/Cargo.toml), [fictional world](../data/synthetic-test.json), display-free save/load/continuation/replay audit and the complete release recovery suite. |
 | P03-03 | Documented save-conversion policy preserves original bytes and distinguishes snapshot compatibility from deterministic replay. | [Persistence](../crates/sim-core/src/persistence.rs), [conversion tests](../crates/sim-core/tests/developer.rs), [recovery tests](../crates/sim-core/tests/recovery.rs) and a fresh terminal audit of format-2 conversion, exact archives/backups, restored replay and unsupported-version rejection. |
 | P03-07 | Developer sandbox commands have a separate origin and persistent modification label; inspection ships with the base clients. | [Host boundary](../crates/sim-core/src/developer.rs), [safeguard tests](../crates/sim-core/tests/developer.rs), [native inspector](../crates/desktop/src/inspector.rs) and a fresh terminal audit of normal-mode rejection, read-only inspection, mixed origins, unchanged cash and normal reopening/replay. |
@@ -360,11 +361,21 @@ Current audited register: **4 complete, 99 partial and 238 proposed**. Completio
 
 - Native Linux checks inspected all four cohort labels and reconciled balances, conditional and realized withholding plus marginal slices at 100%/140%, and the unchanged GBP reference label. Four snapshot comparisons match published pre-typing bytes; two distinct states independently replay. A preserved rules-22 pending save re-saves exactly. Scale was restored and the native app closed. These observations concern the exercised Linux client.
 
+- Hosted [run 42019390966](https://github.com/timborovkov/geopolitical-simulator/actions/runs/42019390966) passed population/currency identity typing on macOS, Ubuntu and Windows. The deterministic stream/tick audit requires its own subsequent platform run.
+
+- The P01-04 audit documents the actual sequential tick dependency chain, including fiscal-plan year close before January decisions and monthly AI after all country settlements. Supply is the only implemented stochastic subsystem. Its named `supply-v2` seed/country/period mapping is now isolated in [one core module](../crates/sim-core/src/random.rs), with the exact published FNV-1a-64 key encoding and sampling distribution preserved. Snapshot seed/day reconstruct the period; there is no shared random cursor. No rules, content or snapshot format changes are needed.
+
+- Three added checks pin four sample vectors, compare 200-day supply histories across full/reversed/isolated fictional rosters under three seeds, and prove exact snapshot/replay/chunked continuation at days 89/90/91/110/111 in the current default. Release terminal play independently replayed six saves: seed-0 GBR disruption begins on day 91, reduces capacity eleven points through day 110 and ends on day 111; resumed and continuous final snapshots match byte-for-byte. Existing January fiscal-close/delivery tests cover the audited phase dependency. P01-04 is complete for its stated scope in the current kernel; P03-04 retains deeper subsystem divergence localization and the other five kernel requirements remain partial. The register keeps every requirement ID/text and records 5 complete, 98 partial and 238 proposed.
+
+- Full validation passed 397 Rust checks including eleven compile-fail contracts, eight Python checks, strict lints/Rust docs, release builds and all 672 recovery/replay campaigns. All 672 preceding campaign hashes remain identical. Rules 23, snapshot 24, all 21 bundled packs and their published representations remain unchanged.
+
+- Native Linux play loaded day 89, advanced through days 90/91, inspected the dated eleven-point disruption in Chronicle, then loaded day 110 and advanced through its end. Three native saves match the corresponding terminal snapshots byte-for-byte and replay independently. The household report still reconciles group population and cash at day 111. The app was closed at its original 100% scale. These observations cover the exercised Linux client.
+
 ## Complete priority inventory
 
 | Priority | System | Requirements touched / total | Status |
 |---|---|---:|---|
-| 01 | Simulation kernel and command boundary | 8 / 8 | Partial; 2 requirements complete |
+| 01 | Simulation kernel and command boundary | 8 / 8 | Partial; 3 requirements complete |
 | 02 | Content schema and historical world identity | 7 / 7 | Partial |
 | 03 | Saves, replay and simulation inspection | 7 / 7 | Partial; 2 requirements complete |
 | 04 | Native desktop shell, map and navigation | 7 / 7 | Partial |

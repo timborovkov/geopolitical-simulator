@@ -2,7 +2,7 @@ requirement_id,priority,subsystem,requirement,status
 P01-01,1,Simulation kernel and command boundary,"Integer simulation clock, calendar, pause, speed levels, advance-to-date and advance-to-next-important-event.",complete
 P01-02,1,Simulation kernel and command boundary,"Stable IDs for every actor, place, institution, agreement, asset, policy and event; no identity based on names or array positions exposed outside a store.",partial
 P01-03,1,Simulation kernel and command boundary,"Typed units for money/currency, population, energy, goods, distances, rates and time. Explicit rounding and overflow handling.",partial
-P01-04,1,Simulation kernel and command boundary,Explicit phase order; seeded random streams per subsystem; reproducible runs and canonical state hashes.,partial
+P01-04,1,Simulation kernel and command boundary,Explicit phase order; seeded random streams per subsystem; reproducible runs and canonical state hashes.,complete
 P01-05,1,Simulation kernel and command boundary,"All actions enter as validated commands. UI, AI, scripts and future remote players use the same action rules.",partial
 P01-06,1,Simulation kernel and command boundary,Domain events record accepted outcomes; rejected commands explain the failed condition.,partial
 P01-07,1,Simulation kernel and command boundary,"Separate world truth, actor knowledge and player-visible information now, before espionage and multiplayer arrive.",partial

@@ -382,7 +382,10 @@ impl World {
         self.next_command = next_command;
         Ok(())
     }
-    /// Consent → delivery → production/households → fiscal close → politics → AI.
+    /// Advance complete daily ticks in stable country-ID order.
+    /// Fiscal-plan year close precedes decisions; consent and delivery precede
+    /// settlement, evaluation and politics. Monthly AI follows all countries.
+    /// See the implemented tick dependency order in the technical overview.
     pub fn advance(&mut self, content: &Content, days: u32) -> Result<(), String> {
         if self.rules < 22 {
             return self.advance_inner(content, days);
@@ -571,8 +574,7 @@ impl World {
         }
         self.begin_reserve_day(id);
         let quarter = (self.day - 1) / 90;
-        let sample =
-            crate::stable_hash(format!("{}:{}:{quarter}:supply-v2", self.seed, id.0).as_bytes());
+        let sample = crate::random::supply_sample_v2(self.seed, id, quarter);
         let shock = if (self.day - 1) % 90 < 20 && sample.is_multiple_of(3) {
             10 + (sample % 16) as i32
         } else {

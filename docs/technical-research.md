@@ -65,6 +65,19 @@ Determinism requirements:
 
 Bevy's [FixedUpdate](https://docs.rs/bevy/latest/bevy/app/struct.FixedUpdate.html) separates fixed logic from rendering, while its [system documentation](https://docs.rs/bevy/latest/bevy/ecs/system/index.html) explicitly describes default execution as parallel and nondeterministic. FixedUpdate alone is therefore insufficient. [rand_chacha](https://docs.rs/rand_chacha/latest/rand_chacha/) documents deterministic portable generators; pin the generator and its surrounding sampling algorithms rather than assuming every dependency update preserves all samples.
 
+### Implemented daily dependency order
+
+The current authority runs one complete country pass in ascending `CountryId` order, then a monthly AI pass over that same order. This is an explicit sequential dependency chain, not a parallel system scheduler:
+
+1. Increment the absolute daily clock. For fiscal-plan content, close the previous fiscal year before January decisions or payments.
+2. Notice technology dates; resolve cash holds and constitutional decisions; reconcile undertakings and territorial succession/reviews.
+3. Synchronize electoral mandates, resolve election requests, regional orders, cabinet appointments and budget bills, then policy consent and borrowing.
+4. Complete due projects, review reserves, settle production/households/fiscal flows, then evaluate commitments and undertakings. Legacy content without fiscal plans closes its budget after settlement.
+5. Resolve due political/electoral/leadership reviews and reconcile the resulting mandates, succession and cash holds.
+6. After every country has settled, run monthly foreign-government AI in stable country order. Retain the ledger window and perform the one-time campaign review afterward.
+
+The only implemented stochastic subsystem is supply disruption. Its `supply-v2` stream uses FNV-1a-64 on the exact UTF-8 key with decimal seed/period fields `{seed}:{country_id}:{period}:supply-v2`; `period = (absolute_day - 1) / 90` for settlement days starting at one. A sample divisible by three causes a `10 + sample % 16` capacity reduction on the first twenty days of that period. Seed and absolute day are saved, so the period index is reconstructed without a mutable cursor. Adding another country or rendering a frame consumes no supply samples. This hash-derived sampler is not a general-purpose statistical PRNG; future stochastic domains must define separately versioned stream keys and sampling rules. Changes to either mapping or distribution require an explicit rules-version compatibility decision. [Pinned vectors and roster/resume tests](../crates/sim-core/tests/random_streams.rs) protect the current contract; [sampling implementation](../crates/sim-core/src/random.rs) contains additional fixed vectors.
+
 ## Persistence: SQL is storage, not the inner game loop
 
 Load normalized scenario data into typed in-memory state. Avoid querying SQL separately for every country, market, household or military unit on every tick. Tables are useful for the content compiler, scenario editor, debugging queries, historical series and durable save metadata. Dense arrays and indexed stores are generally a better starting point for hot simulation loops.
