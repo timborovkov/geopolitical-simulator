@@ -781,7 +781,7 @@ impl World {
         id: &CountryId,
         policy: &PolicyId,
         day: u32,
-        before_command: u64,
+        before_command: CommandId,
     ) -> Result<i32, String> {
         let d = content.country(id).ok_or("Unknown country")?;
         let mut level = match policy.as_str() {
@@ -831,7 +831,7 @@ impl World {
                 && (edit.field.name() == field
                     || policy == "income_tax" && edit.field == DeveloperField::Tax)
             {
-                changes.push((entry.command.day, 1_u8, entry.command.id, edit.value));
+                changes.push((entry.command.day, 1_u8, entry.command.id.0, edit.value));
             }
         }
         changes.sort_by_key(|(day, phase, id, _)| (*day, *phase, *id));
@@ -844,7 +844,7 @@ impl World {
         &self,
         id: &CountryId,
         record: &CommitmentRecord,
-        before_command: u64,
+        before_command: CommandId,
     ) -> Result<i32, String> {
         let mut value = None;
         for entry in self
@@ -925,7 +925,7 @@ impl World {
                 .template(&r.template)
                 .ok_or("Unknown undertaking template in history")?;
             if !matches!(&command.action,Action::DeclareUndertaking{template,project} if template==&r.template&&project==&r.linked_project)
-                || r.id.0 != command.id
+                || r.id.0 != command.id.0
                 || r.kind != t.kind
                 || r.declared_day != command.day
                 || command.day.checked_add(t.review_days) != Some(r.review_day)

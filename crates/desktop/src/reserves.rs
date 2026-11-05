@@ -154,7 +154,7 @@ mod tests {
             .unwrap();
         let mut closed = Vec::new();
         for _ in 0..9 {
-            let request = ReserveOrderId(world.next_command);
+            let request = ReserveOrderId(world.next_command.0);
             world
                 .issue(
                     &content,

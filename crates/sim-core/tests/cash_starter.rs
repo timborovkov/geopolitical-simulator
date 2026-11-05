@@ -86,7 +86,7 @@ fn seeded_cash_recovery_respects_actual_receipts_and_keeps_zero_receipt_targets_
             w.preview(&content, &w.player, &policy.into(), value)
                 .is_err()
         );
-        let request = CashHoldId(w.next_command);
+        let request = CashHoldId(w.next_command.0);
         let cash = w.player_country().accounts.treasury;
         let debt = w.player_country().debt;
         w.issue(

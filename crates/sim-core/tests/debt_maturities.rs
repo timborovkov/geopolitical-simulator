@@ -18,7 +18,7 @@ fn fixture(funded: bool) -> Content {
     Content::from_json(&json.to_string()).unwrap()
 }
 fn loan(world: &mut World, content: &Content, amount: i64) -> LoanId {
-    let id = LoanId(world.next_command);
+    let id = LoanId(world.next_command.0);
     world
         .issue(
             content,

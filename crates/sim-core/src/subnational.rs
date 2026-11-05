@@ -966,7 +966,7 @@ impl World {
                         .consent_days
                 }
             };
-            if order.id.0 != command.id
+            if order.id.0 != command.id.0
                 || order.proposed_day != command.day
                 || order.charter_revision != self.territorial_revision(content, id, command.day)
                 || command.day.checked_add(delay) != Some(order.decision_day)

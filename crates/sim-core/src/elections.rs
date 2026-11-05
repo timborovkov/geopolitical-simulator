@@ -528,7 +528,7 @@ impl World {
                 .map_or(&content.country(id).expect("country").regime, |change| {
                     &change.to
                 });
-            if case.id.0 != command.id
+            if case.id.0 != command.id.0
                 || case.proposed_day != command.day
                 || case.form != *form
                 || !mandate.snap_forms.contains(form)

@@ -1073,7 +1073,7 @@ impl World {
             let reservation =
                 Money(cost.0 - upfront.0 + compensations.iter().map(|p| p.amount.0).sum::<i64>());
             if !matches
-                || record.id.0 != command.id
+                || record.id.0 != command.id.0
                 || record.proposed_day != command.day
                 || command.day.checked_add(route.days) != Some(record.decision_day)
                 || record.decision_day > MAX_DAY
@@ -1210,7 +1210,7 @@ impl World {
             let command = &origin.command;
             let matches = matches!(&command.action,Action::RequisitionRegionalFunds{region,amount} if region==&claim.region&&amount==&claim.amount);
             if !matches
-                || claim.id.0 != command.id
+                || claim.id.0 != command.id.0
                 || claim.day != command.day
                 || claim.sponsor == 0
                 || claim.sponsor > c.government_number

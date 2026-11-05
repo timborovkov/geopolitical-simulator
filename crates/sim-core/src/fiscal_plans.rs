@@ -91,7 +91,7 @@ impl BudgetBillStatus {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BudgetProgramme {
     pub policy: PolicyId,
-    pub command: u64,
+    pub command: CommandId,
     pub project: CommitmentId,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -695,7 +695,7 @@ impl World {
                 .map_or(opening, |t| &t.government);
             let expected_review = b.proposed_day + rules.review_days.max(government.consent_days);
             let changed = b.targets.changed(&b.baseline);
-            if b.id.0 != e.command.id
+            if b.id.0 != e.command.id.0
                 || b.proposed_day != e.command.day
                 || b.year != *fiscal_year
                 || b.targets != *targets
@@ -771,8 +771,7 @@ impl World {
                     }
                     for (p, (policy, value)) in b.programmes.iter().zip(&changed) {
                         let entry = self
-                            .journal
-                            .get(p.command.saturating_sub(1) as usize)
+                            .journal_entry(&p.command)
                             .ok_or("Missing budget programme journal")?;
                         let record = c
                             .commitments
@@ -791,7 +790,7 @@ impl World {
                             || record.proposal_command != p.command
                             || record.project.value != *value
                             || record.amendments != 0
-                            || p.command <= b.id.0
+                            || p.command.0 <= b.id.0
                             || record.project.consent_day != resolved
                             || record.project.due_day < b.effective_day
                             || !record

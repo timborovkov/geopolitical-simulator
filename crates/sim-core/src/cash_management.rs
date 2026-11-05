@@ -31,7 +31,7 @@ impl CashManagementDefinition {
 pub struct CashHoldId(pub u64);
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum CashHoldEnd {
-    Released { command: u64 },
+    Released { command: CommandId },
     Expired,
     GovernmentChanged,
 }
@@ -172,7 +172,7 @@ impl World {
         &mut self,
         id: &CountryId,
         request: CashHoldId,
-        command: u64,
+        command: CommandId,
     ) -> Result<(), String> {
         let c = self.countries.get(id).ok_or("Unknown country")?;
         let active = c
@@ -411,7 +411,7 @@ impl World {
             };
             let max_target =
                 (content.country(id).expect("country").gdp * rules.max_target_bps / 10000).max(1);
-            if record.id.0 != entry.command.id
+            if record.id.0 != entry.command.id.0
                 || record.target != target
                 || !(1..=max_target).contains(&target.0)
                 || !(1..=rules.max_days).contains(&days)

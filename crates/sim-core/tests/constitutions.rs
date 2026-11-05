@@ -25,7 +25,7 @@ fn support(world: &mut World, content: &Content) {
     world.advance(content, delay).unwrap();
 }
 fn propose(world: &mut World, content: &Content, target: Regime, contested: bool) -> TransitionId {
-    let id = TransitionId(world.next_command);
+    let id = TransitionId(world.next_command.0);
     world
         .issue(content, Action::Reconstitute { target, contested })
         .unwrap();

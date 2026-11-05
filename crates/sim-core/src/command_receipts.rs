@@ -9,7 +9,7 @@ use serde::Serialize;
 /// remain subject to the campaign, owner and Chronicle retention boundaries.
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct CommandReceipt {
-    pub command: u64,
+    pub command: CommandId,
     pub outcomes: Vec<EventId>,
 }
 

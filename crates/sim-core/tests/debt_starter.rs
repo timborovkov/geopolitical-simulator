@@ -84,7 +84,7 @@ fn each_seeded_government_can_issue_a_dated_loan_through_its_ordinary_authority_
         let preview = world
             .preview_borrowing(&content, &world.player, amount)
             .unwrap();
-        let id = LoanId(world.next_command);
+        let id = LoanId(world.next_command.0);
         world.issue(&content, Action::Borrow { amount }).unwrap();
         world.advance(&content, preview.consent_days).unwrap();
         let loan = world

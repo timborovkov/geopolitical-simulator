@@ -14,7 +14,7 @@ fn declare(
     template: &str,
     project: Option<CommitmentId>,
 ) -> UndertakingId {
-    let id = UndertakingId(w.next_command);
+    let id = UndertakingId(w.next_command.0);
     w.issue(
         c,
         Action::DeclareUndertaking {

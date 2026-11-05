@@ -13,7 +13,7 @@ fn candidate(id: &str, portfolio: &str, kind: &str) -> PersonId {
 }
 fn appoint(w: &mut World, c: &Content, portfolio: &str, kind: &str) -> AppointmentId {
     let id = w.player.0.clone();
-    let request = AppointmentId(w.next_command);
+    let request = AppointmentId(w.next_command.0);
     w.issue(
         c,
         Action::Appoint {

@@ -42,7 +42,7 @@ fn planning_quotes_full_requirements_without_treating_a_target_or_retained_cash_
         .is_err()
     );
     assert_eq!(w, before);
-    let request = CashHoldId(w.next_command);
+    let request = CashHoldId(w.next_command.0);
     w.issue(
         &c,
         Action::HoldCash {

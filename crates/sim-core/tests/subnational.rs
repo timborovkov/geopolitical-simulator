@@ -271,7 +271,7 @@ fn accepted_local_funding_survives_a_costed_constitutional_successor_and_cannot_
         },
     )
     .unwrap();
-    let request = RegionalOrderId(w.next_command - 1);
+    let request = RegionalOrderId(w.next_command.0 - 1);
     w.advance(&c, 14).unwrap();
     let before = w.hash();
     assert!(

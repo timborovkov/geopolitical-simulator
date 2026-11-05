@@ -293,7 +293,7 @@ fn expired_event_links_do_not_expire_programme_history_or_reuse_event_ids() {
         .clone()
         .unwrap();
     for _ in 0..205 {
-        let request = ReserveOrderId(w.next_command);
+        let request = ReserveOrderId(w.next_command.0);
         w.issue(
             &c,
             Action::ProcureReserve {

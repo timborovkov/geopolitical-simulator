@@ -26,7 +26,7 @@ fn exhausted() -> (Content, World) {
     (c, w)
 }
 fn hold(w: &mut World, c: &Content, amount: i64, days: u32) -> CashHoldId {
-    let id = CashHoldId(w.next_command);
+    let id = CashHoldId(w.next_command.0);
     w.issue(
         c,
         Action::HoldCash {

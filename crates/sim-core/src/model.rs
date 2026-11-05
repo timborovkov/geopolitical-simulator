@@ -295,7 +295,7 @@ pub enum Action {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Command {
-    pub id: u64,
+    pub id: CommandId,
     pub day: u32,
     pub issuer: CountryId,
     pub action: Action,
@@ -347,7 +347,7 @@ pub struct World {
     pub day: u32,
     pub player: CountryId,
     pub countries: BTreeMap<CountryId, Country>,
-    pub next_command: u64,
+    pub next_command: CommandId,
     pub next_project: u64,
     pub journal: Vec<JournalEntry>,
     pub events: Vec<Event>,
@@ -539,7 +539,7 @@ impl World {
                     .collect()
             }),
             event_error: None,
-            next_command: 1,
+            next_command: CommandId(1),
             next_project: 1,
             journal: Vec::new(),
             events: Vec::new(),
@@ -667,6 +667,14 @@ impl World {
         }
         paid
     }
+    /// Resolve a command reference in the host journal. Player-facing knowledge
+    /// remains subject to the normal projection boundary.
+    pub fn journal_entry(&self, command: &CommandId) -> Option<&JournalEntry> {
+        let index = usize::try_from(command.0.checked_sub(1)?).ok()?;
+        self.journal
+            .get(index)
+            .filter(|entry| entry.command.id == *command)
+    }
     /// Validate snapshot invariants before accepting a loaded campaign.
     pub fn validate(&self, content: &Content) -> Result<(), String> {
         content.validate()?;
@@ -678,7 +686,7 @@ impl World {
             || self.day > MAX_DAY
             || !self.countries.contains_key(&self.player)
             || self.countries.len() != content.countries.len()
-            || self.next_command != self.journal.len() as u64 + 1
+            || self.next_command.0 != self.journal.len() as u64 + 1
         {
             return Err("Invalid world clock, player, roster or command sequence".into());
         }
@@ -694,7 +702,7 @@ impl World {
                 Action::CancelReserve { request } => {
                     content.reserves.is_some()
                         && request.0 > 0
-                        && request.0 < command.id
+                        && request.0 < command.id.0
                         && self.journal.get(request.0 as usize - 1).is_some_and(|e| {
                             e.command.issuer == command.issuer
                                 && matches!(e.command.action, Action::ProcureReserve { .. })
@@ -705,7 +713,7 @@ impl World {
                     .as_ref()
                     .is_some_and(|r| target.0 > 0 && (1..=r.max_days).contains(days)),
                 Action::ReleaseCash { request } => {
-                    content.cash_management.is_some() && request.0 > 0 && request.0 < command.id
+                    content.cash_management.is_some() && request.0 > 0 && request.0 < command.id.0
                 }
                 Action::ProposeBudget { year, targets } => {
                     content.fiscal_plans.is_some()
@@ -715,7 +723,7 @@ impl World {
                 Action::WithdrawBudget { request } => {
                     content.fiscal_plans.is_some()
                         && request.0 > 0
-                        && request.0 < command.id
+                        && request.0 < command.id.0
                         && self.journal.get(request.0 as usize - 1).is_some_and(|e| {
                             e.command.issuer == command.issuer
                                 && matches!(e.command.action, Action::ProposeBudget { .. })
@@ -728,7 +736,7 @@ impl World {
                 Action::WithdrawUndertaking { request } => {
                     content.undertakings.is_some()
                         && request.0 > 0
-                        && request.0 < command.id
+                        && request.0 < command.id.0
                         && self.journal.get(request.0 as usize - 1).is_some_and(|e| {
                             e.command.issuer == command.issuer
                                 && matches!(e.command.action, Action::DeclareUndertaking { .. })
@@ -747,7 +755,7 @@ impl World {
                 Action::WithdrawTerritorialReform { request } => {
                     content.territorial.is_some()
                         && request.0 > 0
-                        && request.0 < command.id
+                        && request.0 < command.id.0
                         && self.journal.get(request.0 as usize - 1).is_some_and(|e| {
                             e.command.issuer == command.issuer
                                 && matches!(e.command.action, Action::ReformTerritory { .. })
@@ -760,7 +768,7 @@ impl World {
                 Action::CancelRegionalOrder { order } => {
                     content.subnational.is_some()
                         && order.0 > 0
-                        && order.0 < command.id
+                        && order.0 < command.id.0
                         && self.journal.get(order.0 as usize - 1).is_some_and(|entry| {
                             entry.command.issuer == command.issuer
                                 && matches!(entry.command.action, Action::RegionalOrder { .. })
@@ -770,7 +778,7 @@ impl World {
                 Action::WithdrawElectionRequest { request } => {
                     content.elections.is_some()
                         && request.0 > 0
-                        && request.0 < command.id
+                        && request.0 < command.id.0
                         && self.journal.get(request.0 as usize - 1).is_some_and(|e| {
                             e.command.issuer == command.issuer
                                 && matches!(e.command.action, Action::RequestElection)
@@ -794,7 +802,7 @@ impl World {
                 Action::CancelAppointment { request } => {
                     content.cabinet.is_some()
                         && request.0 > 0
-                        && request.0 < command.id
+                        && request.0 < command.id.0
                         && self
                             .journal
                             .get(request.0 as usize - 1)
@@ -829,7 +837,7 @@ impl World {
                 Action::CancelConstitution { request } => {
                     content.constitutions.is_some()
                         && request.0 > 0
-                        && request.0 < command.id
+                        && request.0 < command.id.0
                         && self
                             .journal
                             .get(request.0 as usize - 1)
@@ -849,7 +857,7 @@ impl World {
                 Action::CancelBorrow { request } => {
                     content.finance.is_some()
                         && request.0 > 0
-                        && request.0 < command.id
+                        && request.0 < command.id.0
                         && self
                             .journal
                             .get(request.0 as usize - 1)
@@ -862,7 +870,7 @@ impl World {
                     self.countries.contains_key(target) && edit.validate().is_ok()
                 }
             };
-            if command.id != index as u64 + 1
+            if command.id.0 != index as u64 + 1
                 || command.day < previous_day
                 || command.day > self.day
                 || !self.countries.contains_key(&command.issuer)

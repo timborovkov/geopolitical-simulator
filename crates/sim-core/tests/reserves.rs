@@ -21,7 +21,7 @@ fn world(c: &Content) -> World {
     World::new(c, id(), seed()).unwrap()
 }
 fn issue(w: &mut World, c: &Content, g: GoodKind, days: u32) -> ReserveOrderId {
-    let request = ReserveOrderId(w.next_command);
+    let request = ReserveOrderId(w.next_command.0);
     w.issue(c, Action::ProcureReserve { good: g, days })
         .unwrap();
     request

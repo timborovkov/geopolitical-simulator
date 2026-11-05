@@ -18,7 +18,7 @@ fn reference(country: &str, sequence: u64) -> EventId {
 fn with_pruned_history(c: &Content) -> World {
     let mut w = world(c);
     for _ in 0..205 {
-        let request = ReserveOrderId(w.next_command);
+        let request = ReserveOrderId(w.next_command.0);
         w.issue(
             c,
             Action::ProcureReserve {

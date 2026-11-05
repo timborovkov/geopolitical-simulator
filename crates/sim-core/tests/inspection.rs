@@ -16,7 +16,7 @@ fn malformed_journals_are_rejected_before_encoding_or_replay() {
     for variant in 0..6 {
         let mut bad = world.clone();
         match variant {
-            0 => bad.journal[0].command.id = 99,
+            0 => bad.journal[0].command.id = CommandId(99),
             1 => bad.journal[0].command.day = world.day + 1,
             2 => bad.journal[0].command.issuer = CountryId("absent".into()),
             3 => bad.journal[0].ai = true,

@@ -51,7 +51,7 @@ fn the_seeded_fiscal_roster_preserves_all_prior_data_and_each_country_can_delive
         }
         let preview = w.preview_budget(&c, &w.player, 2000, &t).unwrap();
         let before = w.player_country().accounts.treasury;
-        let id = BudgetBillId(w.next_command);
+        let id = BudgetBillId(w.next_command.0);
         w.issue(
             &c,
             Action::ProposeBudget {

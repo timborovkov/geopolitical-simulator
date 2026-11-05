@@ -370,7 +370,7 @@ impl Financing {
             .collect();
         if emergencies
             .iter()
-            .any(|entry| !ids.contains(&LoanId(entry.command.id)))
+            .any(|entry| !ids.contains(&LoanId(entry.command.id.0)))
         {
             return Err("Accepted emergency borrowing has no debt instrument".into());
         }

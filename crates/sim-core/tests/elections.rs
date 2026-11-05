@@ -6,7 +6,7 @@ fn start(c: &Content, id: &str) -> World {
     World::new(c, CountryId(id.into()), 17).unwrap()
 }
 fn request(w: &mut World, c: &Content) -> ElectionRequestId {
-    let id = ElectionRequestId(w.next_command);
+    let id = ElectionRequestId(w.next_command.0);
     w.issue(c, Action::RequestElection).unwrap();
     id
 }

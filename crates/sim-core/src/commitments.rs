@@ -84,7 +84,7 @@ pub struct CommitmentEvaluation {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CommitmentRecord {
     pub id: CommitmentId,
-    pub proposal_command: u64,
+    pub proposal_command: CommandId,
     pub project: PolicyInstance,
     pub paid: Money,
     pub amendments: u32,
@@ -293,7 +293,7 @@ impl World {
         self.event_for_commitment(id, request, CommitmentStage::Withdrawn, format!("Commitment #{} withdrawn. Released {}m reserved cash; {}m already paid remains spent. No operating effect was delivered.", request.0,preview.released.0,preview.sunk.0));
         Ok(())
     }
-    pub(crate) fn record_proposal(&mut self, id: &CountryId, command: u64) {
+    pub(crate) fn record_proposal(&mut self, id: &CountryId, command: CommandId) {
         let c = self.countries.get_mut(id).expect("country");
         let Some(records) = &mut c.commitments else {
             return;

@@ -124,7 +124,7 @@ fn mixed_formats_18_and_17_keep_the_previous_cash_recovery_golden_and_exact_orig
     let mut prior = World::new(&old, CountryId("GBR".into()), 17).unwrap();
     let amount = prior.player_country().available_cash();
     prior.issue(&old, Action::Repay { amount }).unwrap();
-    let request = CashHoldId(prior.next_command);
+    let request = CashHoldId(prior.next_command.0);
     prior
         .issue(
             &old,

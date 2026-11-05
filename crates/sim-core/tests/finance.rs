@@ -7,7 +7,7 @@ fn world(content: &Content, id: &str) -> World {
     World::new(content, CountryId(id.into()), 17).unwrap()
 }
 fn borrow(world: &mut World, content: &Content, amount: i64) -> LoanId {
-    let id = LoanId(world.next_command);
+    let id = LoanId(world.next_command.0);
     world
         .issue(
             content,
@@ -390,7 +390,7 @@ fn a_cash_constrained_ai_borrows_through_authority_and_waits_for_cash() {
     let instrument = state
         .instruments
         .iter()
-        .find(|i| i.id.0 == request.command.id)
+        .find(|i| i.id.0 == request.command.id.0)
         .unwrap();
     assert_eq!(instrument.issued_day, decision);
     assert!(matches!(

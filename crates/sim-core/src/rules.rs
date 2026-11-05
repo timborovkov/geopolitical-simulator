@@ -205,15 +205,15 @@ impl World {
             .copied();
         match &command.action {
             Action::ProcureReserve { good, days } => {
-                self.procure_reserve(content, &id, ReserveOrderId(command.id), *good, *days)?
+                self.procure_reserve(content, &id, ReserveOrderId(command.id.0), *good, *days)?
             }
             Action::CancelReserve { request } => self.cancel_reserve(content, &id, *request)?,
             Action::HoldCash { target, days } => {
-                self.hold_cash(content, &id, CashHoldId(command.id), *target, *days)?
+                self.hold_cash(content, &id, CashHoldId(command.id.0), *target, *days)?
             }
             Action::ReleaseCash { request } => self.release_cash(&id, *request, command.id)?,
             Action::ProposeBudget { year, targets } => {
-                self.propose_budget(content, &id, BudgetBillId(command.id), *year, targets)?
+                self.propose_budget(content, &id, BudgetBillId(command.id.0), *year, targets)?
             }
             Action::WithdrawBudget { request } => self.withdraw_budget(&id, *request)?,
             Action::DeclareUndertaking { template, project } => self.declare_undertaking(
@@ -221,7 +221,7 @@ impl World {
                 &id,
                 template,
                 *project,
-                UndertakingId(command.id),
+                UndertakingId(command.id.0),
             )?,
             Action::WithdrawUndertaking { request } => {
                 self.withdraw_undertaking(content, &id, *request)?
@@ -231,7 +231,7 @@ impl World {
                 &id,
                 target,
                 *contested,
-                TerritorialOrderId(command.id),
+                TerritorialOrderId(command.id.0),
             )?,
             Action::WithdrawTerritorialReform { request } => {
                 self.withdraw_territorial_reform(&id, *request)?
@@ -242,22 +242,22 @@ impl World {
                     &id,
                     region,
                     *amount,
-                    TerritorialOrderId(command.id),
+                    TerritorialOrderId(command.id.0),
                 )?,
             Action::RegionalOrder { region, kind } => self.request_regional_order(
                 content,
                 &id,
                 region,
                 kind,
-                RegionalOrderId(command.id),
+                RegionalOrderId(command.id.0),
             )?,
             Action::CancelRegionalOrder { order } => self.cancel_regional_order(&id, *order)?,
             Action::RequestElection => {
-                self.request_election(content, &id, ElectionRequestId(command.id))?
+                self.request_election(content, &id, ElectionRequestId(command.id.0))?
             }
             Action::WithdrawElectionRequest { request } => self.withdraw_election(&id, *request)?,
             Action::Appoint { office, person } => {
-                self.request_appointment(content, &id, AppointmentId(command.id), office, person)?
+                self.request_appointment(content, &id, AppointmentId(command.id.0), office, person)?
             }
             Action::DismissMinister { office } => self.dismiss_minister(content, &id, office)?,
             Action::CancelAppointment { request } => self.cancel_appointment(&id, *request)?,
@@ -310,7 +310,7 @@ impl World {
             }
             Action::Borrow { amount } => {
                 if content.finance.is_some() {
-                    self.request_borrowing(content, &id, LoanId(command.id), *amount)?;
+                    self.request_borrowing(content, &id, LoanId(command.id.0), *amount)?;
                 } else {
                     if amount.0 <= 0 || amount.0 > d.gdp / 10 {
                         return Err(
@@ -340,13 +340,13 @@ impl World {
             Action::Reconstitute { target, contested } => self.request_constitution(
                 content,
                 &id,
-                TransitionId(command.id),
+                TransitionId(command.id.0),
                 target,
                 *contested,
             )?,
             Action::CancelConstitution { request } => self.cancel_constitution(&id, *request)?,
             Action::EmergencyBorrow { amount } => {
-                self.emergency_borrowing(content, &id, LoanId(command.id), *amount)?
+                self.emergency_borrowing(content, &id, LoanId(command.id.0), *amount)?
             }
             Action::CancelBorrow { request } => self.cancel_borrowing(&id, *request)?,
             Action::Repay { amount } => {

@@ -98,8 +98,7 @@ impl Panel {
             .flatten()
             .filter(|record| {
                 world
-                    .journal
-                    .get(record.proposal_command.saturating_sub(1) as usize)
+                    .journal_entry(&record.proposal_command)
                     .is_some_and(|entry| {
                         !entry.ai && !entry.developer && entry.command.issuer == world.player
                     })

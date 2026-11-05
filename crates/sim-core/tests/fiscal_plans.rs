@@ -15,7 +15,7 @@ fn target() -> FiscalTargets {
     }
 }
 fn propose(c: &Content, w: &mut World, year: u32, t: FiscalTargets) -> BudgetBillId {
-    let id = BudgetBillId(w.next_command);
+    let id = BudgetBillId(w.next_command.0);
     w.issue(c, Action::ProposeBudget { year, targets: t })
         .unwrap();
     id

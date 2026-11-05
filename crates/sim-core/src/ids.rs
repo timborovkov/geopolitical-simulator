@@ -119,3 +119,46 @@ impl std::fmt::Debug for CurrencyId {
         std::fmt::Debug::fmt(&self.0, formatter)
     }
 }
+
+/// A campaign-global command reference, distinct from projects and request IDs.
+/// The transparent number preserves every published save and envelope encoding.
+///
+/// ```compile_fail
+/// use sim_core::{Command, LoanId};
+/// fn wrong_family(command: &mut Command) {
+///     command.id = LoanId(1);
+/// }
+/// ```
+///
+/// ```compile_fail
+/// use sim_core::{CommandReceipt, CommitmentId};
+/// fn wrong_family(receipt: &mut CommandReceipt) {
+///     receipt.command = CommitmentId(1);
+/// }
+/// ```
+///
+/// ```compile_fail
+/// use sim_core::{World, CommitmentId};
+/// fn wrong_family(world: &World) {
+///     world.journal_entry(&CommitmentId(1));
+/// }
+/// ```
+#[derive(Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(transparent)]
+pub struct CommandId(pub u64);
+
+impl CommandId {
+    pub fn checked_add(self, count: u64) -> Option<Self> {
+        self.0.checked_add(count).map(Self)
+    }
+}
+impl std::fmt::Display for CommandId {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, formatter)
+    }
+}
+impl std::fmt::Debug for CommandId {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self.0, formatter)
+    }
+}

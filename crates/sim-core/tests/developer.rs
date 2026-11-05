@@ -170,7 +170,7 @@ fn successful_developer_campaign_never_receives_normal_mandate_certification() {
 #[test]
 fn exhausted_ids_fail_before_payment_or_mutation() {
     let (content, mut world) = fixture();
-    world.next_command = u64::MAX;
+    world.next_command = CommandId(u64::MAX);
     let original = world.hash();
     assert!(
         world
@@ -182,7 +182,7 @@ fn exhausted_ids_fail_before_payment_or_mutation() {
             .is_err()
     );
     assert_eq!(world.hash(), original);
-    world.next_command = 1;
+    world.next_command = CommandId(1);
     world.next_project = u64::MAX;
     let original = world.hash();
     assert!(

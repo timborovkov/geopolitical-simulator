@@ -45,6 +45,10 @@ The UI reads immutable, purpose-built views. A click creates a command; a comman
 
 Keep normal build/test iteration small: domain crates should compile and test without the GPU stack. Avoid splitting every small concept into a crate; the list describes boundaries, and related domains can initially share a crate. Do not build microservices for a desktop game.
 
+### Command identity in the implemented authority
+
+`CommandId` is a distinct campaign-global reference in envelopes, the allocator, receipts, programme proposal history, fiscal programme dispatch and cash-release records. It remains a transparent JSON number in every supported rules/save version; request and project IDs retain their own types. Store boundaries explicitly derive a request's numeric key from its issuing command. Sequence advancement stays checked, and existing authority rejects zero, stale, duplicate or out-of-order incoming IDs. A zero query boundary means before any commands; it is not an issued identity. A typed `journal_entry` lookup resolves host journal records, rejects absent/zero references and verifies stored identity; walkthrough and fiscal dispatch callers use that store method. Public display and diagnostic formatting retain the original numbers. [Identity contracts](../crates/sim-core/src/ids.rs) reject cross-family assignments at compile time; [campaign checks](../crates/sim-core/tests/command_identities.rs) protect pre-change hashes and links through cash release and reviewed budget dispatch.
+
 ## Simulation cadence and determinism
 
 Use an integer simulation clock. A proposed baseline is an hourly command/event boundary, daily operational and market settlement, weekly strategic AI reviews, and monthly demographic, fiscal reporting and structural updates. These are design starting points; calibration must determine whether batching creates implausible jumps. A long construction project should track continuous progress rather than suddenly existing on a month boundary.
