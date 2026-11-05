@@ -4,7 +4,7 @@ An initial playable Rust geopolitical strategy game for macOS, Linux and Windows
 
 This is a connected initial game slice of the research roadmap, originally defined as **341 proposed requirements across 42 ordered systems**. It does not implement the full catalogue. See the [initial-game scope](docs/initial-game.md) for implemented loops, simplifications and remaining work.
 
-The [requirement audit](docs/development-progress.md) records **2 complete, 101 partial and 238 proposed**. Clock/time controls (P01-01) and the headless runner (P01-08) satisfy their stated scope; the simulation kernel and full game remain incomplete.
+The [requirement audit](docs/development-progress.md) records **4 complete, 99 partial and 238 proposed**. Completed requirements cover clock/time controls (P01-01), the headless runner (P01-08), save-conversion policy (P03-03) and separately flagged developer commands with base-game inspection (P03-07). The overall systems and full game remain incomplete.
 
 ## Play
 

@@ -2,7 +2,7 @@
 
 The goal is the full documented game. The current implementation is a playable foundation; it is **not complete**. The [requirement register](implementation-register.csv) retains all 341 original requirements and their IDs. No unimplemented system is silently excluded. There are no delivery dates or workload estimates here.
 
-Current audited register: **2 complete, 101 partial and 238 proposed**. Completion applies to the stated scope of an individual requirement; the overall kernel and full roadmap remain incomplete.
+Current audited register: **4 complete, 99 partial and 238 proposed**. Completion applies to the stated scope of an individual requirement; the overall kernel and full roadmap remain incomplete.
 
 ## Audited complete requirements
 
@@ -10,6 +10,8 @@ Current audited register: **2 complete, 101 partial and 238 proposed**. Completi
 |---|---|---|
 | P01-01 | Integer daily clock, Gregorian calendar, pause, 1/7/30-day automatic speeds, manual steps, advance-to-date and cancellable advance-to-next-important-event through the calendar limit. | [Calendar tests](../crates/sim-core/tests/calendar.rs), [event-boundary tests](../crates/sim-core/tests/inspection.rs), [desktop worker](../crates/desktop/src/advance.rs), [desktop shortcut regression](../crates/desktop/src/main.rs) and nine native/terminal byte comparisons described below. The reproduced 365-day cutoff was fixed before closing this requirement. |
 | P01-08 | A headless executable loads and advances a tiny world without graphics or SQL in the inner loop. | [Runner](../crates/headless/src/main.rs), [dependencies](../crates/headless/Cargo.toml), [core dependencies](../crates/sim-core/Cargo.toml), [fictional world](../data/synthetic-test.json), display-free save/load/continuation/replay audit and the complete release recovery suite. |
+| P03-03 | Documented save-conversion policy preserves original bytes and distinguishes snapshot compatibility from deterministic replay. | [Persistence](../crates/sim-core/src/persistence.rs), [conversion tests](../crates/sim-core/tests/developer.rs), [recovery tests](../crates/sim-core/tests/recovery.rs) and a fresh terminal audit of format-2 conversion, exact archives/backups, restored replay and unsupported-version rejection. |
+| P03-07 | Developer sandbox commands have a separate origin and persistent modification label; inspection ships with the base clients. | [Host boundary](../crates/sim-core/src/developer.rs), [safeguard tests](../crates/sim-core/tests/developer.rs), [native inspector](../crates/desktop/src/inspector.rs) and a fresh terminal audit of normal-mode rejection, read-only inspection, mixed origins, unchanged cash and normal reopening/replay. |
 
 ## Current evidence
 
@@ -299,13 +301,15 @@ Current audited register: **2 complete, 101 partial and 238 proposed**. Completi
 
 - Hosted [run 41960072883](https://github.com/timborovkov/geopolitical-simulator/actions/runs/41960072883) passed the preceding reserve schedule/history checkpoint on Windows, macOS and Ubuntu. This verifies that published revision; native interaction evidence remains specific to the exercised Linux client.
 
+- A persistence/developer audit closes P03-03 and P03-07 for their stated scope. The standard release runner rejected normal-mode developer edits without changing complete save bytes; developer inspection alone also preserved bytes. A host edit following ordinary AI decisions received its separate journal origin, changed no sector cash and remained permanently labelled when reopened without developer mode; further edits/private inspection were blocked, and the mixed history replayed. A fresh compatible format-2 conversion preserved exact original archive and backup bytes, wrote format 3, matched direct day-one advancement and restored/replayed the backup without changing it. Unsupported format 99 was rejected without rewriting its file. Existing conversion/recovery, malformed-origin, privacy and mandate-certification tests passed in the preceding full 358-check/600-campaign validation; this audit changes documentation/statuses only. The explicit policy now distinguishes load validation from replay verification. P03-04 remains partial because isolated final-state differences do not localize an earlier state-divergence tick. The register retains all 341 IDs/text and now records 4 complete, 99 partial and 238 proposed; the full game remains incomplete.
+
 ## Complete priority inventory
 
 | Priority | System | Requirements touched / total | Status |
 |---|---|---:|---|
 | 01 | Simulation kernel and command boundary | 8 / 8 | Partial; 2 requirements complete |
 | 02 | Content schema and historical world identity | 7 / 7 | Partial |
-| 03 | Saves, replay and simulation inspection | 7 / 7 | Partial |
+| 03 | Saves, replay and simulation inspection | 7 / 7 | Partial; 2 requirements complete |
 | 04 | Native desktop shell, map and navigation | 7 / 7 | Partial |
 | 05 | Accounts, units and causal reporting | 7 / 7 | Partial |
 | 06 | Population, households and social groups | 4 / 7 | Partial |
