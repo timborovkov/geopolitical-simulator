@@ -315,7 +315,7 @@ fn format_20_continues_exactly_and_old_envelopes_cannot_hide_new_reference_conte
         Content::bundled_for_hash(c.hash()).is_err(),
         "optional catalogue requires the original exact pack"
     );
-    let old = Content::bundled().unwrap();
+    let old = Content::technology_bundled().unwrap();
     let old_world = World::new(&old, id("GBR"), 17).unwrap();
     assert_eq!(old_world.hash(), 0xd5f9f1f64662dcd3);
     assert_eq!(persistence::snapshot_schema(&old_world), 19);

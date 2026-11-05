@@ -586,6 +586,61 @@ def build_technology_starter():
     return pack
 
 
+def build_party_starter():
+    pack = build_technology_starter()
+    pack.update(schema=20, rules=20, id="initial-2000-party-preferences-v20", name="A New Century · party policy preferences")
+    source = "authored-starter-party-preferences-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model", description="Original party-specific fiscal ranges, relative importance and bounded monthly backing pressure for gameplay. These are not sourced historical platforms or positions inferred from ideology labels. Unknown positions remain explicit; royal, religious, personalist and military routes retain independent backing. Other preference dimensions and dated platform changes remain unknown."))
+    # Explicit stable party IDs, never an ideology-to-bonus lookup. Each axis is
+    # (preferred minimum, preferred maximum, relative importance), or unknown.
+    positions = {
+        "GBR:labour": [(24, 34, 3), (7, 12, 3), (3, 7, 2)],
+        "GBR:conservative": [(14, 25, 4), (5, 9, 2), (0, 4, 2)],
+        "GBR:libdem": [(22, 34, 2), (8, 13, 4), (2, 7, 2)],
+        "USA:democratic": [(22, 32, 3), (6, 10, 3), (2, 5, 2)],
+        "USA:republican": [(10, 24, 4), (4, 8, 2), (0, 3, 2)],
+        "FRA:ps": [(26, 36, 3), (8, 14, 3), (4, 8, 3)],
+        "FRA:rpr": [(18, 30, 3), (6, 11, 3), (1, 5, 2)],
+        "FRA:udf": [(18, 28, 4), (6, 11, 2), (2, 6, 2)],
+        "DEU:spd": [(26, 36, 3), (8, 13, 3), (4, 8, 3)],
+        "DEU:greens": [(28, 38, 2), (9, 15, 4), (4, 9, 3)],
+        "DEU:cdu": [(18, 30, 3), (6, 11, 3), (2, 6, 2)],
+        "DEU:fdp": [(10, 24, 5), (4, 9, 2), (0, 4, 1)],
+        "RUS:unity": [(18, 28, 3), (6, 10, 3), (2, 5, 2)],
+        "RUS:cprf": [(28, 40, 2), (9, 16, 3), (5, 10, 4)],
+        "RUS:fatherland": [(20, 32, 2), (7, 12, 3), (3, 7, 3)],
+        "CHN:cpc": [(20, 32, 3), (6, 11, 4), (2, 6, 2)],
+        "IND:bjp": [(20, 30, 3), (6, 10, 3), (2, 5, 2)],
+        "IND:inc": [(24, 34, 2), (7, 12, 3), (3, 7, 4)],
+        "IND:cpi": [(30, 42, 2), (10, 16, 3), (6, 11, 4)],
+        "JPN:ldp": [(24, 34, 3), (7, 12, 4), (3, 6, 2)],
+        "JPN:dpj": [(22, 34, 3), (8, 13, 3), (3, 7, 3)],
+        "JPN:jcp": [(30, 42, 2), (10, 16, 3), (6, 11, 4)],
+        "BRA:psdb": [(22, 32, 3), (7, 11, 3), (2, 6, 3)],
+        "BRA:pt": [(28, 40, 2), (9, 15, 3), (5, 10, 4)],
+        "BRA:pmdb": [(20, 32, 3), (6, 11, 3), (2, 6, 2)],
+        "ZAF:anc": [(23, 35, 3), (7, 12, 3), (3, 8, 4)],
+        "ZAF:dp": [(14, 26, 4), (5, 10, 3), (1, 5, 2)],
+        "ZAF:ifp": [(18, 30, 3), (6, 11, 3), (2, 6, 3)],
+        "SAU:royal": [None, None, None],
+        "IRN:clerical": [None, None, None],
+        "IRN:reform": [(18, 28, 3), (6, 10, 3), (2, 6, 2)],
+        "CUB:pcc": [(26, 38, 2), (9, 15, 4), (4, 9, 4)],
+        "PRK:wpk": [None, None, None],
+        "MMR:spdc": [None, None, None],
+    }
+    profiles = []
+    for country in pack["countries"]:
+        for party in country["parties"]:
+            axes = positions[party["id"]]
+            profiles.append(dict(country=country["id"], party=party["id"], positions=[dict(policy=policy, importance=axis[2] if axis else 1, preferred=dict(min=axis[0], max=axis[1]) if axis else None) for policy, axis in zip(["income_tax", "services", "welfare"], axes)], source=source, source_version="starter-fiscal-positions-v1", quality="authored" if any(axes) else "unknown"))
+    assert set(positions) == {p["id"] for c in pack["countries"] for p in c["parties"]}
+    limits = {"GBR": (20, 0), "USA": (20, 0), "FRA": (20, 0), "DEU": (20, 0), "RUS": (20, 0), "CHN": (0, 15), "IND": (20, 0), "JPN": (20, 0), "BRA": (20, 0), "ZAF": (20, 0), "SAU": (0, 0), "IRN": (0, 0), "CUB": (0, 15), "PRK": (0, 0), "MMR": (0, 0)}
+    pack["party_preferences"] = dict(profiles=profiles, influences=[dict(country=c["id"], legislative_max_penalty=limits[c["id"]][0], party_leadership_max_penalty=limits[c["id"]][1]) for c in pack["countries"]], source=source, source_version="starter-party-influence-v1")
+    pack["description"] += " Independently authored party fiscal ranges add delayed political tradeoffs for operating income-tax, service and welfare policies. Legislative coalitions use live seat weights; party leadership uses its ruling party. Unknown positions remain explicit, and other governing routes retain independent backing. No positions are inferred from ideology labels or claimed as sourced historical platforms. Preferences grant no resources, consent exemptions or free support. Social, institutional, regional and foreign-policy positions and dated platform evolution remain unfinished. Reference sovereignty geography remains unknown."
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -624,6 +679,7 @@ def main():
                            ("initial-2000-cash-management.json", build_cash_starter()),
                            ("initial-2000-interest-accrual.json", build_interest_starter()),
                            ("initial-2000-technology-eligibility.json", build_technology_starter()),
+                           ("initial-2000-party-preferences.json", build_party_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

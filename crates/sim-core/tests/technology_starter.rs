@@ -1,10 +1,10 @@
 use sim_core::*;
 
 #[test]
-fn default_technology_preserves_the_complete_roster_and_resolves_all_seventeen_packs() {
-    let current = Content::bundled().unwrap();
+fn preserved_technology_preserves_the_complete_roster_and_resolves_all_seventeen_packs() {
+    let current = Content::technology_bundled().unwrap();
     let old = Content::interest_bundled().unwrap();
-    assert_eq!((current.schema, current.rules), (18, RULES_VERSION));
+    assert_eq!((current.schema, current.rules), (18, 18));
     assert_eq!(current.countries.len(), 15);
     assert_eq!(current.sources.len(), old.sources.len() + 1);
     assert_eq!(
@@ -67,7 +67,7 @@ fn default_technology_preserves_the_complete_roster_and_resolves_all_seventeen_p
 
 #[test]
 fn starting_eligibility_grants_no_resources_or_free_delivery_across_all_fifteen_governments() {
-    let content = Content::bundled().unwrap();
+    let content = Content::technology_bundled().unwrap();
     let old = Content::interest_bundled().unwrap();
     for d in &content.countries {
         let mut current = World::new(&content, d.id.clone(), 17).unwrap();
@@ -190,7 +190,7 @@ fn mixed_formats_19_and_18_preserve_the_previous_interest_golden_and_exact_recov
         .unwrap();
     prior.advance(&old, 379).unwrap();
     assert_eq!(prior.hash(), 0x1d07acd01d53d45f);
-    let content = Content::bundled().unwrap();
+    let content = Content::technology_bundled().unwrap();
     let mut current = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     current
         .issue(

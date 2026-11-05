@@ -425,7 +425,7 @@ fn snapshot_21_preserves_pending_policy_and_exact_continuation() {
     restored.advance(&content, 120).unwrap();
     assert_eq!(restored, world);
     replay(&world, &content);
-    assert_eq!(Content::bundled().unwrap().rules, 18);
+    assert_eq!(Content::technology_bundled().unwrap().rules, 18);
     assert!(Content::bundled_for_hash(content.hash()).is_err());
 }
 
