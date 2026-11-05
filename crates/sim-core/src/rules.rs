@@ -1121,23 +1121,35 @@ impl World {
         let mut transition = None;
         if c.next_election.is_some_and(|day| day <= self.day) {
             let current = c.ruling_party.clone();
-            let opposition: Vec<_> = d.parties.iter().filter(|p| p.id != current).collect();
+            let outgoing = if self.rules >= 24 {
+                "governing party"
+            } else {
+                "bloc"
+            };
+            let opposition = crate::elections::ordered_opposition(self.rules, &d.parties, &current);
             if !opposition.is_empty() {
                 let votes = c.approval.clamp(15, 80) as u16;
                 c.seats.insert(current.clone(), votes);
                 let rest = 100 - votes;
-                let opposition_count = opposition.len() as u16;
+                let opposition_count = opposition.len();
                 for (i, p) in opposition.iter().enumerate() {
-                    c.seats.insert(
-                        p.id.clone(),
-                        rest / opposition_count + u16::from(i < (rest % opposition_count) as usize),
-                    );
+                    let seats = if self.rules >= 24 {
+                        let remaining = usize::from(rest);
+                        u16::try_from(
+                            remaining / opposition_count
+                                + usize::from(i < remaining % opposition_count),
+                        )
+                        .expect("a remainder allocation cannot exceed 100 seats")
+                    } else {
+                        let count = opposition_count as u16;
+                        rest / count + u16::from(i < (rest % count) as usize)
+                    };
+                    c.seats.insert(p.id.clone(), seats);
                 }
                 if votes < 50 {
-                    let successor = opposition
-                        .iter()
-                        .max_by_key(|p| c.seats[&p.id])
-                        .expect("opposition");
+                    let successor =
+                        crate::elections::opposition_leader(self.rules, &opposition, &c.seats)
+                            .expect("opposition");
                     c.ruling_party = successor.id.clone();
                     c.coalition = opposition.iter().map(|p| p.id.clone()).collect();
                     c.executive = format!("{} cabinet {}", successor.name, c.government_number + 1);
@@ -1149,7 +1161,7 @@ impl World {
                     }
                     c.government_number += 1;
                     transition = Some(format!(
-                        "Election: {votes}% for the outgoing bloc. {} forms a generated successor cabinet. Country play continues under its mandate.",
+                        "Election: {votes}% for the outgoing {outgoing}. {} forms a generated successor cabinet. Country play continues under its mandate.",
                         successor.name
                     ));
                 } else {

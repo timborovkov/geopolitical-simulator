@@ -11,9 +11,9 @@ fn without_context(mut world: World, prior: &World) -> World {
 
 #[test]
 fn linked_starter_preserves_definitions_resources_and_all_twenty_previous_pack_hashes() {
-    let content = Content::bundled().unwrap();
+    let content = Content::programme_events_bundled().unwrap();
     let old = Content::event_reference_bundled().unwrap();
-    assert_eq!((content.schema, content.rules), (23, RULES_VERSION));
+    assert_eq!((content.schema, content.rules), (23, 23));
     assert_eq!(content.countries.len(), 15);
     assert_eq!(old.hash(), 0xcf3ddf9118d0c3c5);
     assert_eq!(content.hash(), 0x2ece4c40d10ad679);
@@ -73,7 +73,7 @@ fn linked_starter_preserves_definitions_resources_and_all_twenty_previous_pack_h
 
 #[test]
 fn every_seeded_government_has_linked_outcomes_with_identical_policy_ai_and_private_resources() {
-    let c = Content::bundled().unwrap();
+    let c = Content::programme_events_bundled().unwrap();
     let old = Content::event_reference_bundled().unwrap();
     for country in &c.countries {
         let mut w = World::new(&c, country.id.clone(), 17).unwrap();
@@ -124,7 +124,7 @@ fn every_seeded_government_has_linked_outcomes_with_identical_policy_ai_and_priv
 
 #[test]
 fn formats24_and23_recover_without_losing_originals_and_pending_links_resume_exactly() {
-    let c = Content::bundled().unwrap();
+    let c = Content::programme_events_bundled().unwrap();
     let old = Content::event_reference_bundled().unwrap();
     let mut w = World::new(&c, CountryId("GBR".into()), 17).unwrap();
     w.issue(

@@ -2,7 +2,7 @@ use sim_core::*;
 
 #[test]
 fn receipts_identify_owned_outcomes_without_changing_published_state() {
-    let content = Content::bundled().unwrap();
+    let content = Content::programme_events_bundled().unwrap();
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     let mut ordinary = world.clone();
     let action = Action::Enact {

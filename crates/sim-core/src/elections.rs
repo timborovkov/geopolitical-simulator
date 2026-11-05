@@ -2,6 +2,43 @@
 use crate::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
+
+/// Definition rows are not political priority in rules 24 and later.
+pub(crate) fn ordered_opposition<'a>(
+    rules: u32,
+    parties: &'a [PartyDefinition],
+    incumbent: &PartyId,
+) -> Vec<&'a PartyDefinition> {
+    let mut opposition: Vec<_> = parties
+        .iter()
+        .filter(|party| &party.id != incumbent)
+        .collect();
+    if rules >= 24 {
+        opposition.sort_by(|a, b| a.id.cmp(&b.id));
+    }
+    opposition
+}
+
+pub(crate) fn opposition_leader<'a>(
+    rules: u32,
+    opposition: &[&'a PartyDefinition],
+    seats: &BTreeMap<PartyId, u16>,
+) -> Option<&'a PartyDefinition> {
+    if rules >= 24 {
+        opposition.iter().copied().max_by(|a, b| {
+            seats[&a.id]
+                .cmp(&seats[&b.id])
+                .then_with(|| b.id.cmp(&a.id))
+        })
+    } else {
+        // Preserve the published last-encountered winner for equal seat totals.
+        opposition
+            .iter()
+            .copied()
+            .max_by_key(|party| seats[&party.id])
+    }
+}
+
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ElectionRequestId(pub u64);
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -627,5 +664,78 @@ impl World {
                 contested: p.contested,
             }),
         })
+    }
+}
+
+#[cfg(test)]
+mod party_order_tests {
+    use super::*;
+
+    fn parties() -> Vec<PartyDefinition> {
+        [
+            ("AUR-1", "Incumbent", 60),
+            ("AUR-2", "Zeta", 20),
+            ("AUR-3", "Alpha", 20),
+        ]
+        .into_iter()
+        .map(|(id, name, seats)| PartyDefinition {
+            id: id.into(),
+            name: name.into(),
+            leader: format!("Leader {id}"),
+            ideology: "Authored fixture".into(),
+            seats,
+        })
+        .collect()
+    }
+
+    #[test]
+    fn current_opposition_order_uses_ids_instead_of_rows_or_names() {
+        let original = parties();
+        let mut reversed = original.clone();
+        reversed.reverse();
+        for rows in [&original, &reversed] {
+            let opposition = ordered_opposition(24, rows, &"AUR-1".into());
+            assert_eq!(
+                opposition
+                    .iter()
+                    .map(|party| party.id.0.as_str())
+                    .collect::<Vec<_>>(),
+                ["AUR-2", "AUR-3"]
+            );
+        }
+    }
+
+    #[test]
+    fn current_successor_prefers_more_seats_then_the_lowest_party_id() {
+        let rows = parties();
+        let opposition = ordered_opposition(24, &rows, &"AUR-1".into());
+        let mut seats = BTreeMap::from([("AUR-2".into(), 30), ("AUR-3".into(), 30)]);
+        assert_eq!(
+            opposition_leader(24, &opposition, &seats).unwrap().id,
+            PartyId::from("AUR-2")
+        );
+        seats.insert("AUR-3".into(), 31);
+        assert_eq!(
+            opposition_leader(24, &opposition, &seats).unwrap().id,
+            PartyId::from("AUR-3")
+        );
+        assert!(opposition_leader(24, &[], &seats).is_none());
+    }
+
+    #[test]
+    fn legacy_rows_and_last_equal_seat_winners_remain_unchanged() {
+        let original = parties();
+        let mut reversed = original.clone();
+        reversed.reverse();
+        let seats = BTreeMap::from([("AUR-2".into(), 30), ("AUR-3".into(), 30)]);
+        for rules in [2, 23] {
+            for (rows, expected) in [(&original, "AUR-3"), (&reversed, "AUR-2")] {
+                let opposition = ordered_opposition(rules, rows, &"AUR-1".into());
+                assert_eq!(
+                    opposition_leader(rules, &opposition, &seats).unwrap().id,
+                    PartyId::from(expected)
+                );
+            }
+        }
     }
 }

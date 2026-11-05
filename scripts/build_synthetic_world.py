@@ -575,6 +575,36 @@ def build_reserve_starter():
 
 
 
+def build_stable_elections(synthetic=False):
+    pack = build_project_events() if synthetic else build_project_event_starter()
+    pack.update(schema=24, rules=24,
+                id="synthetic-stable-elections-v24" if synthetic else "initial-2000-stable-elections-v24",
+                name="Fictional stable political selection" if synthetic else "A New Century · stable political selection")
+    pack["sources"].append(dict(id="authored-stable-party-order-v1",
+                                quality="authored_synthetic_fixture" if synthetic else "authored_scenario_model",
+                                description='Original deterministic party-ID ordering for the simplified 100-seat election model, covering remainder seats, equal-seat successor leadership and coalition membership order. This does not represent historical electoral law.'))
+    if synthetic:
+        pack["description"] = pack["description"].replace(
+            "The default starter and all earlier packs retain their exact definitions and rules.",
+            "Every earlier rules pack is preserved with its original definitions and behavior.")
+        aurora = next(country for country in pack["countries"] if country["id"] == "AUR")
+        aurora["parties"][0]["seats"] = 60
+        aurora["parties"][1]["seats"] = 20
+        third = deepcopy(aurora["parties"][1])
+        third.update(id="AUR-3", name="Aurora alternative three", leader="Fictional delegate three")
+        aurora["parties"].append(third)
+        profile = deepcopy(next(profile for profile in pack["party_preferences"]["profiles"]
+                                if profile["country"] == "AUR" and profile["party"] == "AUR-2"))
+        profile["party"] = "AUR-3"
+        for position in profile["positions"]:
+            position["preferred"] = None
+        pack["party_preferences"]["profiles"].append(profile)
+    pack["description"] += ' The authored 100-seat election rule allocates remaining seats across opposition parties in ascending stable party-ID order. The largest opposition party leads a successor coalition; equal seat totals choose the lowest stable party ID. Display names and input row order do not settle these choices. Older rules retain their original ordering. This is a reproducible game abstraction, not a claim about national electoral laws.'
+    if synthetic:
+        pack["description"] += " Aurora has three authored parties with opening seats 60/20/20; the third party has explicitly unknown fiscal positions."
+    return pack
+
+
 def build_project_event_starter():
     pack = build_event_reference_starter()
     pack.update(schema=23, rules=23, id="initial-2000-project-events-v23", name="A New Century · linked programme outcomes")
@@ -720,6 +750,7 @@ def main():
                            ("synthetic-national-reserves-test.json", build_reserves()),
                            ("synthetic-event-references-test.json", build_event_references()),
                            ("synthetic-project-events-test.json", build_project_events()),
+                           ("synthetic-stable-elections-test.json", build_stable_elections(synthetic=True)),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),
@@ -739,6 +770,7 @@ def main():
                            ("initial-2000-national-reserves.json", build_reserve_starter()),
                            ("initial-2000-event-references.json", build_event_reference_starter()),
                            ("initial-2000-project-events.json", build_project_event_starter()),
+                           ("initial-2000-stable-elections.json", build_stable_elections()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

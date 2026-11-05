@@ -9,7 +9,7 @@ fn check(world: &World, content: &Content) {
 
 #[test]
 fn typed_group_and_currency_references_keep_published_strings_and_campaign_bytes() {
-    let content = Content::bundled().unwrap();
+    let content = Content::programme_events_bundled().unwrap();
     assert_eq!(content.hash(), 0x2ece4c40d10ad679);
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     assert_eq!(world.hash(), 0xb74fd50f30b753b9);
