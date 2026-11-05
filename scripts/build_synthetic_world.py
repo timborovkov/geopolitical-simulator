@@ -724,6 +724,50 @@ def build_party_starter():
     return pack
 
 
+def build_bookmark_identity_starter():
+    """Opening-only crosswalk of existing labels; no independently researched tenure dates."""
+    pack = build_stable_elections()
+    pack.update(id="initial-2000-bookmark-identities-v24", name="A New Century · dated opening references")
+    source = "authored-starter-bookmark-crosswalk-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model", description="Authored stable person/office crosswalk and one-day opening coverage derived solely from existing starter labels. No independently verified tenure, office creation, party membership, collective membership or currency chronology is asserted. Labels retain the identity-notes source limitations."))
+    period = dict(valid_from="2000-01-01", valid_to="2000-01-02")
+    provenance = dict(source=source, source_version="opening-label-crosswalk-v1", quality="authored")
+    # Explicit crosswalk, independent of display-name matching during import or runtime.
+    shared = {"GBR":"GBR:labour", "USA":"USA:democratic", "DEU":"DEU:spd", "CHN":"CHN:cpc", "JPN":"JPN:ldp", "ZAF":"ZAF:anc", "SAU":"SAU:royal", "IRN":"IRN:clerical", "CUB":"CUB:pcc", "PRK":"PRK:wpk", "MMR":"MMR:spdc"}
+    roles = {"GBR":"head_of_government", "USA":"head_of_state", "FRA":"head_of_government", "DEU":"head_of_government", "RUS":"head_of_state", "CHN":"party_body", "IND":"head_of_government", "JPN":"head_of_government", "BRA":"head_of_state", "ZAF":"head_of_state", "SAU":"head_of_state", "IRN":"other", "CUB":"head_of_state", "PRK":"party_body", "MMR":"council"}
+    people, offices, terms, currencies = [], [], [], []
+    def office(country, key, title, role, holder):
+        offices.append(dict(id=key, country=country, title=title, role=role, required=True, validity=deepcopy(period), **provenance))
+        terms.append(dict(id=f"{key}:opening-term", office=key, holder=holder, validity=deepcopy(period), **provenance))
+    for country in pack["countries"]:
+        code = country["id"]
+        for party in country["parties"]:
+            key = f"{party['id']}:opening-person"
+            if party["id"] == "DEU:greens":
+                if party["leader"] != "Collective leadership":
+                    raise ValueError("Review the explicit collective-leadership crosswalk")
+                holder = dict(kind="collective", name=party["leader"], members=[])
+            else:
+                people.append(dict(id=key, name=party["leader"], **provenance))
+                holder = dict(kind="person", person=key)
+            office(code, f"{party['id']}:leadership", f"{party['name']} leadership", "party_body", holder)
+        if code in shared:
+            party = next(p for p in country["parties"] if p["id"] == shared[code])
+            if party["leader"] != country["executive"]:
+                raise ValueError("Review the explicit shared-person crosswalk")
+            person = f"{party['id']}:opening-person"
+        else:
+            person = f"{code}:executive:opening-person"
+            people.append(dict(id=person, name=country["executive"], **provenance))
+        key = f"{code}:governing-office"
+        country["governing_office"] = key
+        office(code, key, country["office"], roles[code], dict(kind="person", person=person))
+        currencies.append(dict(id=f"{code}:opening-currency", country=code, code=country["currency"], validity=deepcopy(period), **provenance))
+    pack["identities"] = dict(people=people, offices=offices, terms=terms, currencies=currencies)
+    pack["description"] += " Optional stable person/office/currency references cover only the existing opening labels on 2000-01-01 (exclusive end 2000-01-02). The IDs, roles and one-day coverage are authored metadata, not verified historical term dates. Separate executive and party leaders remain separate; an explicitly collective party leadership has no invented named members. Missing other offices remain unknown. Later bookmark coverage is absent; these references never schedule campaign handovers or add authority, resources or policy effects. The default starter and every previous pack remain unchanged."
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -771,6 +815,7 @@ def main():
                            ("initial-2000-event-references.json", build_event_reference_starter()),
                            ("initial-2000-project-events.json", build_project_event_starter()),
                            ("initial-2000-stable-elections.json", build_stable_elections()),
+                           ("initial-2000-bookmark-identities.json", build_bookmark_identity_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

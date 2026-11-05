@@ -3,7 +3,9 @@ use sim_core::*;
 
 /// Keep the expanded roster's manual files separate from the preserved rules-8 baseline.
 pub fn default_save_path(content: &Content) -> String {
-    let suffix = if content.id == "initial-2000-observed-v8" {
+    let suffix = if content.id == "initial-2000-bookmark-identities-v24" {
+        "-bookmark-identities"
+    } else if content.id == "initial-2000-observed-v8" {
         "-observed"
     } else {
         ""
@@ -14,9 +16,27 @@ pub fn default_save_path(content: &Content) -> String {
     )
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn optional_identity_pack_prepares_without_reusing_the_default_manual_save_path() {
+        let current = Content::bundled().unwrap();
+        let pack = Content::bookmark_identities_bundled().unwrap();
+        let setup = Setup::new(&pack, &CountryId("GBR".into()), 17, false).unwrap();
+        assert_ne!(setup.save_path, default_save_path(&current));
+        let world = setup.prepare().unwrap();
+        assert_eq!(world.content_hash, pack.hash());
+        assert_eq!(world.player.0, "GBR");
+        assert_eq!(world.player_country().executive, "Tony Blair");
+        assert_eq!(persistence::snapshot_schema(&world), 25);
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 enum Pack {
     Current,
+    BookmarkIdentities,
     ProgrammeEvents,
     EventReferences,
     Reserve,
@@ -121,9 +141,10 @@ impl Setup {
                 if active { ui.label(format!("Save active campaign to: {current_save_path}. A separate archived snapshot will also be retained.")); }
                 if self.bundled_catalog {
                     let previous = self.pack;
-                    let pack_label = match self.pack { Pack::Current => "Default · stable political selection", Pack::ProgrammeEvents => "Earlier · linked programme outcomes", Pack::EventReferences => "Earlier · stable chronicle references", Pack::Reserve => "Earlier · national commodity reserves", Pack::Party => "Earlier · party policy preferences", Pack::Technology => "Earlier · technology prerequisites", Pack::Interest => "Earlier · carried debt interest", Pack::Cash => "Earlier · temporary cash retention", Pack::DatedDebt => "Earlier · dated loan principal", Pack::NationalFiscal => "Earlier · national fiscal reviews", Pack::Income => "Earlier · progressive private-income bands", Pack::Fiscal => "Earlier · annual and supplementary budgets", Pack::Undertaking => "Earlier · delivery undertakings", Pack::Territorial => "Earlier · territorial government", Pack::Observed => "Earlier · expanded observations", Pack::Electoral => "Earlier · electoral mandates", Pack::Cabinet => "Earlier · ministries and policies", Pack::Commitment => "Earlier · policy commitments", Pack::Constitution => "Earlier · political transitions", Pack::Finance => "Earlier · borrowing and prices", Pack::Market => "Earlier · prices only", _ => "Classic · fixed prices" };
+                    let pack_label = match self.pack { Pack::Current => "Default · stable political selection", Pack::BookmarkIdentities => "Optional · dated opening references", Pack::ProgrammeEvents => "Earlier · linked programme outcomes", Pack::EventReferences => "Earlier · stable chronicle references", Pack::Reserve => "Earlier · national commodity reserves", Pack::Party => "Earlier · party policy preferences", Pack::Technology => "Earlier · technology prerequisites", Pack::Interest => "Earlier · carried debt interest", Pack::Cash => "Earlier · temporary cash retention", Pack::DatedDebt => "Earlier · dated loan principal", Pack::NationalFiscal => "Earlier · national fiscal reviews", Pack::Income => "Earlier · progressive private-income bands", Pack::Fiscal => "Earlier · annual and supplementary budgets", Pack::Undertaking => "Earlier · delivery undertakings", Pack::Territorial => "Earlier · territorial government", Pack::Observed => "Earlier · expanded observations", Pack::Electoral => "Earlier · electoral mandates", Pack::Cabinet => "Earlier · ministries and policies", Pack::Commitment => "Earlier · policy commitments", Pack::Constitution => "Earlier · political transitions", Pack::Finance => "Earlier · borrowing and prices", Pack::Market => "Earlier · prices only", _ => "Classic · fixed prices" };
                     egui::ComboBox::from_label("World pack").height(320.0).selected_text(pack_label).show_ui(ui, |ui| {
                         ui.selectable_value(&mut self.pack, Pack::Current, "Default · stable political selection");
+                        ui.selectable_value(&mut self.pack, Pack::BookmarkIdentities, "Optional · dated opening references");
                         ui.selectable_value(&mut self.pack, Pack::ProgrammeEvents, "Earlier · linked programme outcomes");
                         ui.selectable_value(&mut self.pack, Pack::EventReferences, "Earlier · stable chronicle references");
                         ui.selectable_value(&mut self.pack, Pack::Reserve, "Earlier · national commodity reserves");
@@ -148,7 +169,7 @@ impl Setup {
                     });
                     if self.pack != previous {
                         let old_default = default_save_path(&self.content);
-                        match match self.pack { Pack::ProgrammeEvents => Content::programme_events_bundled(), Pack::EventReferences => Content::event_reference_bundled(), Pack::Reserve => Content::reserve_bundled(), Pack::Party => Content::party_bundled(), Pack::Technology => Content::technology_bundled(), Pack::Interest => Content::interest_bundled(), Pack::Cash => Content::cash_bundled(), Pack::DatedDebt => Content::debt_bundled(), Pack::NationalFiscal => Content::national_fiscal_bundled(), Pack::Income => Content::income_bundled(), Pack::Fiscal => Content::fiscal_bundled(), Pack::Undertaking => Content::undertaking_bundled(), Pack::Territorial => Content::territorial_bundled(), Pack::Observed => Content::observed_bundled(), Pack::Electoral => Content::electoral_bundled(), Pack::Cabinet => Content::cabinet_bundled(), Pack::Classic => Content::classic_bundled(), Pack::Commitment => Content::commitment_bundled(), Pack::Constitution => Content::constitution_bundled(), Pack::Finance => Content::finance_bundled(), Pack::Market => Content::market_bundled(), _ => Content::bundled() } {
+                        match match self.pack { Pack::BookmarkIdentities => Content::bookmark_identities_bundled(), Pack::ProgrammeEvents => Content::programme_events_bundled(), Pack::EventReferences => Content::event_reference_bundled(), Pack::Reserve => Content::reserve_bundled(), Pack::Party => Content::party_bundled(), Pack::Technology => Content::technology_bundled(), Pack::Interest => Content::interest_bundled(), Pack::Cash => Content::cash_bundled(), Pack::DatedDebt => Content::debt_bundled(), Pack::NationalFiscal => Content::national_fiscal_bundled(), Pack::Income => Content::income_bundled(), Pack::Fiscal => Content::fiscal_bundled(), Pack::Undertaking => Content::undertaking_bundled(), Pack::Territorial => Content::territorial_bundled(), Pack::Observed => Content::observed_bundled(), Pack::Electoral => Content::electoral_bundled(), Pack::Cabinet => Content::cabinet_bundled(), Pack::Classic => Content::classic_bundled(), Pack::Commitment => Content::commitment_bundled(), Pack::Constitution => Content::constitution_bundled(), Pack::Finance => Content::finance_bundled(), Pack::Market => Content::market_bundled(), _ => Content::bundled() } {
                             Ok(content) => {
                                 if content.country(&self.player).is_none() { self.player = content.countries[0].id.clone(); }
                                 if self.save_path == old_default { self.save_path = default_save_path(&content); }

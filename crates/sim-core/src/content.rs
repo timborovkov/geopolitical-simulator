@@ -177,6 +177,12 @@ impl Content {
             "../../../data/initial-2000-stable-elections.json"
         ))
     }
+    /// Optional opening-only identity crosswalk; historical tenure coverage is incomplete.
+    pub fn bookmark_identities_bundled() -> Result<Self, String> {
+        Self::from_json(include_str!(
+            "../../../data/initial-2000-bookmark-identities.json"
+        ))
+    }
     /// Preserved rules-23 roster before party-ID election ordering.
     pub fn programme_events_bundled() -> Result<Self, String> {
         Self::from_json(include_str!(
@@ -282,6 +288,7 @@ impl Content {
     pub fn bundled_for_hash(hash: u64) -> Result<Self, String> {
         for pack in [
             Self::bundled()?,
+            Self::bookmark_identities_bundled()?,
             Self::programme_events_bundled()?,
             Self::event_reference_bundled()?,
             Self::reserve_bundled()?,

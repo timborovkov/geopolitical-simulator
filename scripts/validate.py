@@ -95,6 +95,8 @@ def main():
             ["cargo", "run", "-p", "headless", "--release", "--locked", "--", "--verify"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--contested-transition"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-bookmark-identities.json"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-bookmark-identities.json", "--contested-transition"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-project-events.json"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-project-events.json", "--contested-transition"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-event-references.json"],
