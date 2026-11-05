@@ -3,7 +3,7 @@ use sim_core::*;
 use std::collections::BTreeMap;
 #[derive(Default)]
 pub struct Panel {
-    levels: BTreeMap<u64, i32>,
+    levels: BTreeMap<CommitmentId, i32>,
 }
 impl Panel {
     /// Owner workspace only; read-only rendering returns an explicit command.
@@ -22,22 +22,22 @@ impl Panel {
                     let value=self.levels.entry(p.id).or_insert(p.value);
                     let definition=content.policy(&p.policy).expect("policy");
                     ui.add(egui::Slider::new(value,definition.min..=definition.max).text("Amended level (%)"));
-                    match world.preview_amendment(content,&world.player,CommitmentId(p.id),*value) {
+                    match world.preview_amendment(content,&world.player,p.id,*value) {
                         Ok(preview)=>{
                             ui.label(format!("Pay {}m administration now; consent restarts to {}, delivery {}. {}",preview.fee.0,date(preview.consent_day),date(preview.due_day),preview.route));
                             if preview.preparation_days > 0 { ui.label(format!("Portfolio preparation adds {} days to the restarted delivery process.",preview.preparation_days)); }
                             ui.label(format!("After delivery versus current operating levels: annual consolidated net expenditure change {:+}m (forecast).",preview.annual_budget_change.0));
                             for impact in &preview.household_impacts {ui.label(format!("{}: {:+}m/day disposable income",impact.group,impact.daily_disposable_change.0));}
                             ui.small("Forecast holds opening GDP, collection and funded wages constant; shocks, prices and other pending changes can alter outcomes.");
-                            if ui.button("Submit paid amendment").clicked() {action=Some(Action::AmendCommitment{request:CommitmentId(p.id),value:*value});}
+                            if ui.button("Submit paid amendment").clicked() {action=Some(Action::AmendCommitment{request:p.id,value:*value});}
                         }
                         Err(reason)=>{ui.small(format!("Amendment: {reason}"));}
                     }
                 }
-                match world.preview_cancellation(content,&world.player,CommitmentId(p.id)) {
+                match world.preview_cancellation(content,&world.player,p.id) {
                     Ok(preview)=>{
                         ui.label(format!("Withdrawal releases {}m reserved cash; {}m already paid stays spent. No refund or completed capacity is granted.",preview.released.0,preview.sunk.0));
-                        if ui.button("Withdraw this pending commitment").clicked() {action=Some(Action::CancelCommitment{request:CommitmentId(p.id)});}
+                        if ui.button("Withdraw this pending commitment").clicked() {action=Some(Action::CancelCommitment{request:p.id});}
                     }
                     Err(reason)=>{ui.small(format!("Cannot withdraw: {reason}"));}
                 }

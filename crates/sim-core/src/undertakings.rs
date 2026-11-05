@@ -412,7 +412,7 @@ impl World {
         let (expected_delivery, bottleneck) = if let Some(p) = c
             .projects
             .iter()
-            .find(|p| project.map_or(p.policy == goal.policy, |r| r.0 == p.id))
+            .find(|p| project.map_or(p.policy == goal.policy, |r| r == p.id))
         {
             (Some(p.due_day),Some("Existing project date is conditional on consent, funding, amendments and withdrawal; the undertaking cannot implement it".into()))
         } else {
@@ -708,7 +708,7 @@ impl World {
                     .projects
                     .iter()
                     .find(|p| policy_field(&p.policy).is_some())
-                    .map(|p| CommitmentId(p.id))
+                    .map(|p| p.id)
             } else {
                 None
             };

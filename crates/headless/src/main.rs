@@ -93,7 +93,7 @@ fn status(world: &World, content: &Content) {
         let paid = c
             .commitments
             .as_ref()
-            .and_then(|records| records.iter().find(|r| r.id.0 == p.id))
+            .and_then(|records| records.iter().find(|r| r.id == p.id))
             .map_or(p.cost.0 - p.reserved.0, |r| r.paid.0);
         println!(
             "Pending #{} · {} = {} · {} · paid {}m · reserved {}m · due {}",

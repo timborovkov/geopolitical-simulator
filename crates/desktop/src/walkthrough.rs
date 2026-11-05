@@ -247,11 +247,7 @@ impl Panel {
                 CommitmentStage::Withdrawn | CommitmentStage::Refused
             ) {
                 ui.label("This programme did not reach operation. Inspect the decision history and compare another intervention; approval or a matching current setting is not delivery evidence.");
-            } else if let Some(project) = country
-                .projects
-                .iter()
-                .find(|project| project.id == record.id.0)
-            {
+            } else if let Some(project) = country.project(&record.id) {
                 let next = if project.stage == PolicyStage::AwaitingConsent {
                     project.consent_day
                 } else {
@@ -517,7 +513,7 @@ mod tests {
                 },
             )
             .unwrap();
-        let id = CommitmentId(world.player_country().projects[0].id);
+        let id = world.player_country().projects[0].id;
         world
             .issue(&content, Action::CancelCommitment { request: id })
             .unwrap();
@@ -534,7 +530,7 @@ mod tests {
                 },
             )
             .unwrap();
-        let replacement = CommitmentId(world.player_country().projects.last().unwrap().id);
+        let replacement = world.player_country().projects.last().unwrap().id;
         let replacement_text = render(&mut panel, &world, &content, true, 1.0);
         assert_eq!(panel.selected, Some(replacement));
         assert!(!replacement_text.contains("did not reach operation"));

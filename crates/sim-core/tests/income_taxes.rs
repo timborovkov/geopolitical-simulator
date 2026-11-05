@@ -313,7 +313,7 @@ fn a_budget_delivers_its_tax_rate_and_fulfils_a_nominal_standard_rate_undertakin
         .player_country()
         .projects
         .iter()
-        .find(|p| p.id == source.0)
+        .find(|p| p.id == source)
         .unwrap()
         .due_day;
     w.advance(&c, due - w.day).unwrap();

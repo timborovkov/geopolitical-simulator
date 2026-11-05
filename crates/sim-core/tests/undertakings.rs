@@ -316,7 +316,7 @@ fn successor_cabinets_close_pending_and_active_undertakings_while_policy_project
             .credibility,
         57
     );
-    assert!(w.player_country().projects.iter().any(|p| p.id == source.0));
+    assert!(w.player_country().projects.iter().any(|p| p.id == source));
     check(&w, &c);
 }
 #[test]

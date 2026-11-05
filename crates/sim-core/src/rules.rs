@@ -279,7 +279,7 @@ impl World {
                 c.committed_cash.0 += reserved.0;
                 c.budget.capital.0 += preview.upfront_payment.0;
                 c.projects.push(PolicyInstance {
-                    id: self.next_project,
+                    id: CommitmentId(self.next_project),
                     policy: policy.clone(),
                     value: *value,
                     start_day: self.day + preview.consent_delay,

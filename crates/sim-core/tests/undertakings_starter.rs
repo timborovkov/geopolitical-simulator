@@ -50,12 +50,7 @@ fn the_undertaking_starter_preserves_all_country_observations_and_territorial_ri
         .unwrap();
         let project = &w.player_country().projects[0];
         let p = w
-            .preview_undertaking(
-                &c,
-                &w.player,
-                "project-deadline",
-                Some(CommitmentId(project.id)),
-            )
+            .preview_undertaking(&c, &w.player, "project-deadline", Some(project.id))
             .unwrap();
         assert!(
             p.expected_delivery.unwrap() <= p.deadline_day,
@@ -100,7 +95,7 @@ fn compatible_undertakings_share_one_real_delivery_and_the_previous_roster_recov
         },
     )
     .unwrap();
-    let source = CommitmentId(w.player_country().projects[0].id);
+    let source = w.player_country().projects[0].id;
     let due = w.player_country().projects[0].due_day;
     let initial = w.player_country().energy_capacity;
     w.issue(

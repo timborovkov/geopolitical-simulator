@@ -40,7 +40,7 @@ impl Panel {
                 if template.kind==UndertakingKind::ProjectDeadline {
                     egui::ComboBox::from_id_salt(("deadline-project",&template.id)).selected_text(project.map_or("Choose an existing policy project".into(),|id|format!("Policy commitment #{}",id.0))).show_ui(ui,|ui| {
                         ui.selectable_value(project,None,"Choose an existing policy project");
-                        for p in &world.player_country().projects {if p.policy!="coalition" {ui.selectable_value(project,Some(CommitmentId(p.id)),format!("#{} · {} · operating due {}",p.id,content.policy(&p.policy).expect("policy").name,date(p.due_day)));}}
+                        for p in &world.player_country().projects {if p.policy!="coalition" {ui.selectable_value(project,Some(p.id),format!("#{} · {} · operating due {}",p.id,content.policy(&p.policy).expect("policy").name,date(p.due_day)));}}
                     });
                 }
                 match world.preview_undertaking(content,&world.player,&template.id,*project) {

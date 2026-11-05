@@ -2,8 +2,29 @@
 use crate::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+/// Stable identity shared by an active project and its commitment history.
+/// The serialized identity remains a numeric value in every campaign version.
+///
+/// ```compile_fail
+/// use sim_core::{Country, LoanId};
+/// fn wrong_family(country: &Country, loan: LoanId) {
+///     country.project(&loan);
+/// }
+/// ```
+///
+/// ```compile_fail
+/// use sim_core::PolicyInstance;
+/// fn raw_number(project: &mut PolicyInstance) {
+///     project.id = 1_u64;
+/// }
+/// ```
+#[derive(Clone, Copy, Debug, Hash, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CommitmentId(pub u64);
+impl std::fmt::Display for CommitmentId {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CommitmentDefinition {
     pub amendment_fee_bps: i64,
@@ -128,9 +149,7 @@ impl World {
             .and_then(|records| records.iter().find(|r| r.id == request))
             .ok_or("Unknown commitment for this government")?;
         let p = c
-            .projects
-            .iter()
-            .find(|p| p.id == request.0)
+            .project(&request)
             .ok_or("Only a pending commitment can be amended")?;
         if p.stage != PolicyStage::AwaitingConsent {
             return Err(
@@ -199,9 +218,7 @@ impl World {
             .and_then(|records| records.iter().find(|r| r.id == request))
             .ok_or("Unknown commitment for this government")?;
         let p = c
-            .projects
-            .iter()
-            .find(|p| p.id == request.0)
+            .project(&request)
             .ok_or("Only a pending commitment can be withdrawn")?;
         if p.stage == PolicyStage::Implementing {
             self.governing_rules(content, id)?
@@ -232,7 +249,7 @@ impl World {
         let p = c
             .projects
             .iter_mut()
-            .find(|p| p.id == request.0)
+            .find(|p| p.id == request)
             .expect("project");
         p.value = value;
         p.start_day = preview.consent_day;
@@ -263,7 +280,7 @@ impl World {
         let preview = self.preview_cancellation(content, id, request)?;
         let c = self.countries.get_mut(id).expect("country");
         c.committed_cash.0 -= preview.released.0;
-        c.projects.retain(|p| p.id != request.0);
+        c.projects.retain(|p| p.id != request);
         let r = c
             .commitments
             .as_mut()
@@ -283,7 +300,7 @@ impl World {
         };
         let p = c.projects.last().expect("new project").clone();
         let mut r = CommitmentRecord {
-            id: CommitmentId(p.id),
+            id: p.id,
             proposal_command: command,
             paid: Money(p.cost.0 - p.reserved.0),
             project: p,
@@ -319,7 +336,7 @@ impl World {
         };
         let r = records
             .iter_mut()
-            .find(|r| r.id.0 == project.id)
+            .find(|r| r.id == project.id)
             .expect("record");
         r.project.reserved = Money(0);
         if approved {
@@ -382,7 +399,7 @@ impl World {
         }
         let r = records
             .iter_mut()
-            .find(|r| r.id.0 == project.id)
+            .find(|r| r.id == project.id)
             .expect("record");
         r.project = project.clone();
         r.direct_effects = effects
@@ -469,7 +486,7 @@ impl World {
             .collect();
         if c.projects
             .iter()
-            .any(|p| !records.iter().any(|r| r.id.0 == p.id && r.project == *p))
+            .any(|p| !records.iter().any(|r| r.id == p.id && r.project == *p))
             || proposals.len() != records.len()
             || self.next_project
                 != self
@@ -491,7 +508,7 @@ impl World {
             );
             if r.milestones.is_empty()
                 || r.id.0 != ordinal as u64 + 1
-                || r.project.id != r.id.0
+                || r.project.id != r.id
                 || r.proposal_command != entry.command.id
                 || r.project.policy != *policy
                 || r.project.cost != cost
@@ -614,7 +631,7 @@ impl World {
                     | CommitmentStage::Amended
                     | CommitmentStage::Implementing
             );
-            if pending != c.projects.iter().any(|p| p.id == r.id.0)
+            if pending != c.projects.iter().any(|p| p.id == r.id)
                 || (pending && !c.projects.iter().any(|p| p == &r.project))
                 || (!pending && r.project.reserved.0 != 0)
                 || r.paid.0

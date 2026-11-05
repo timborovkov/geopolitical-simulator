@@ -72,7 +72,7 @@ pub struct LedgerEntry {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PolicyInstance {
-    pub id: u64,
+    pub id: CommitmentId,
     pub policy: PolicyId,
     pub value: i32,
     pub start_day: u32,
@@ -178,6 +178,12 @@ pub struct Country {
     pub fiscal_plans: Option<FiscalPlans>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub income_tax_report: Option<IncomeTaxReport>,
+}
+impl Country {
+    /// Resolve a pending project owned by this country. Completed projects remain in history.
+    pub fn project(&self, id: &CommitmentId) -> Option<&PolicyInstance> {
+        self.projects.iter().find(|project| &project.id == id)
+    }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
@@ -1084,7 +1090,7 @@ impl World {
                     .policy(&project.policy)
                     .ok_or("Missing pending policy definition")?;
                 if !pending.insert(&project.policy)
-                    || project.id >= self.next_project
+                    || project.id.0 >= self.next_project
                     || project.reserved.0 < 0
                     || (project.stage == PolicyStage::AwaitingConsent
                         && project.consent_day <= self.day)

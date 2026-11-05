@@ -262,7 +262,7 @@ fn successor_cabinet_closes_terms_cancels_requests_and_retains_commissioned_prog
             .minister(&office("AUR", "finance"))
             .is_some()
     );
-    let amended = CommitmentId(w.player_country().projects[1].id);
+    let amended = w.player_country().projects[1].id;
     let preview = w.preview_amendment(&c, &w.player, amended, 32).unwrap();
     assert_eq!(preview.preparation_days, 4);
     assert_eq!(preview.consent_day, 15);

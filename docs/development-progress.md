@@ -327,6 +327,16 @@ Current audited register: **4 complete, 99 partial and 238 proposed**. Completio
 
 - Native Linux play loaded and re-saved a pre-typing campaign exactly, refused an overlapping reform, resumed its real operation/review, approved a subsequent 31% proposal through the policy picker, resolved owner/foreign party names and seats, and opened the correct policy from help search. Six native snapshot comparisons matched terminal bytes; four distinct states independently replayed. The final route adapter preserved all five prior native states exactly, and a fresh native build repeated ordinary approval with identical pending bytes. Preserved rules-21 and optional rules-22 saves also re-saved byte-identically. The native app was closed after checks; these observations concern the exercised Linux client.
 
+- Hosted [run 41988949601](https://github.com/timborovkov/geopolitical-simulator/actions/runs/41988949601) passed the published policy/party identity boundary on Windows, macOS and Ubuntu. Active-project identities require their own subsequent platform run.
+
+- Active policy projects now share the existing `CommitmentId` with their historical records, fiscal/undertaking links and amendment/withdrawal commands. The allocator remains a checked numeric counter; project lookups are scoped to a country, and desktop draft keys use the same typed identity. Numeric JSON encoding, rules 22, snapshot 23 and all twenty bundled packs remain unchanged. P01-02 remains partial; this closes the active-project identity gap only.
+
+- Three [project identity cases](../crates/sim-core/tests/project_identities.rs) preserve numeric active/history IDs and the published day-60 reform hash, verify exact saves/replays, exercise scoped missing/foreign lookup plus amendment/withdrawal without reusing an ID, and continue classic campaigns without lifecycle records. Two additional [compile-fail contracts](../crates/sim-core/src/commitments.rs) reject a loan reference at project lookup and a raw number assigned to a project identity. Existing test changes only remove numeric wrappers/field extraction needed by the typed field; their assertions remain intact.
+
+- The active-project identity checkpoint passed full validation: 379 Rust checks including eight compile-fail checks, eight Python checks, strict lints/docs, release builds and all 636 recovery/replay campaigns. Every preceding campaign hash remains identical. The five edited existing core test files preserve their assertions and exact string fixtures.
+
+- Native Linux play loaded the published pending project #58, submitted a paid amendment to level 32, and independently withdrew the original proposal through its visible controls. All three snapshots match the previous published build byte-for-byte and independently replay. These observations concern the exercised Linux client.
+
 ## Complete priority inventory
 
 | Priority | System | Requirements touched / total | Status |

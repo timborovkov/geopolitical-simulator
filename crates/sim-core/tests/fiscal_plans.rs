@@ -412,7 +412,7 @@ fn budget_delivery_can_fulfil_support_without_fabricating_an_extra_programme() {
         .player_country()
         .projects
         .iter()
-        .find(|p| p.id == service.0)
+        .find(|p| p.id == service)
         .unwrap()
         .due_day;
     w.advance(&c, due - w.day).unwrap();
