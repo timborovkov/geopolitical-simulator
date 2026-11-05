@@ -136,6 +136,27 @@ pub struct ReservePreview {
     pub expiry_day: u32,
     pub route: String,
 }
+/// Observed procurement constraints, never a promise about a future settlement.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReserveSupply {
+    pub day: u32,
+    pub physical_need: i64,
+    pub civilian_supply: i64,
+    pub civilian_imports: i64,
+    pub import_capacity: i64,
+    pub spare_import_capacity: i64,
+}
+impl ReserveSupply {
+    pub fn explanation(&self) -> &'static str {
+        if self.civilian_supply < self.physical_need {
+            "Procurement could not fill: civilian physical needs were not covered. Improve supply first."
+        } else if self.spare_import_capacity == 0 {
+            "Procurement could not fill: civilian imports used the full import capacity. Improve domestic supply to free capacity."
+        } else {
+            "Spare import capacity was available after civilian physical needs. An accepted funded contract could fill within its remaining quantity."
+        }
+    }
+}
 fn ceiling_ratio(n: i128, d: i128) -> i64 {
     i64::try_from((n + d - 1) / d).expect("bounded reserve price")
 }
@@ -152,6 +173,57 @@ fn paid_for(order: &ReserveOrder, filled: i64) -> Money {
     ))
 }
 impl World {
+    pub fn reserve_supply(
+        &self,
+        content: &Content,
+        id: &CountryId,
+        good: GoodKind,
+    ) -> Result<Option<ReserveSupply>, String> {
+        if self.content_hash != content.hash() || self.rules != content.rules {
+            return Err("Reserve supply inspection requires the campaign's exact content".into());
+        }
+        content
+            .reserves
+            .as_ref()
+            .ok_or("This pack has no national reserve procedure")?;
+        let c = self.countries.get(id).ok_or("Unknown country")?;
+        let markets = c.markets.as_ref().ok_or("Missing commodity markets")?;
+        let observed = match good {
+            GoodKind::Energy => markets.energy.last.as_ref().map(|m| {
+                (
+                    m.day,
+                    m.physical_need.units(),
+                    m.supply.units(),
+                    m.imports.units(),
+                )
+            }),
+            GoodKind::Food => markets.food.last.as_ref().map(|m| {
+                (
+                    m.day,
+                    m.physical_need.units(),
+                    m.supply.units(),
+                    m.imports.units(),
+                )
+            }),
+        };
+        let Some((day, physical_need, civilian_supply, civilian_imports)) = observed else {
+            return Ok(None);
+        };
+        let rule = content
+            .markets
+            .as_ref()
+            .ok_or("Missing commodity market rules")?
+            .good(good);
+        let import_capacity = physical_need * i64::from(rule.import_limit_bps) / 10000;
+        Ok(Some(ReserveSupply {
+            day,
+            physical_need,
+            civilian_supply,
+            civilian_imports,
+            import_capacity,
+            spare_import_capacity: (import_capacity - civilian_imports).max(0),
+        }))
+    }
     pub fn preview_reserve(
         &self,
         content: &Content,

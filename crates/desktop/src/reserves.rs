@@ -11,6 +11,15 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Actio
         ui.small(format!("Storage capacity: {} days of baseline need per commodity · contract duration {} days after consent · {}@{}",rules.capacity_days,rules.order_days,rules.source,rules.source_version));
         for good in [GoodKind::Energy,GoodKind::Food] {
             ui.strong(format!("{good:?} · national inventory {} units",state.stored(good)));
+            match world.reserve_supply(content,&world.player,good) {
+                Ok(Some(s))=>{
+                    ui.label(format!("Observed {}: civilian physical supply {} / need {}; civilian imports {} / capacity {}; spare capacity {} units/day.",date(s.day),s.civilian_supply,s.physical_need,s.civilian_imports,s.import_capacity,s.spare_import_capacity));
+                    ui.label(s.explanation());
+                    ui.small("This is the last settlement, not a forecast or guaranteed delivery. Future supply, imports and contract consent can change.");
+                },
+                Ok(None)=>{ui.small("No settled supply observation yet. Advance one day to inspect civilian needs and spare import capacity; procurement cannot deliver on proposal.");},
+                Err(reason)=>{ui.small(reason);},
+            }
             match good {
                 GoodKind::Energy=>{if let Some(f)=&state.energy.last {ui.label(format!("{}: opening {} · purchased {} · released {} · loss {} · closing {}",date(f.day),f.opening,f.purchased,f.released,f.loss,f.closing));}},
                 GoodKind::Food=>{if let Some(f)=&state.food.last {ui.label(format!("{}: opening {} · purchased {} · released {} · loss {} · closing {}",date(f.day),f.opening,f.purchased,f.released,f.loss,f.closing));}},
@@ -107,6 +116,7 @@ mod tests {
             assert!(text.contains("national inventory 0 units"));
             assert!(text.contains("administration now; reserve"));
             assert!(text.contains("earliest delivery"));
+            assert!(text.contains("No settled supply observation yet"));
         }
         assert_eq!(world.hash(), before);
         assert!(

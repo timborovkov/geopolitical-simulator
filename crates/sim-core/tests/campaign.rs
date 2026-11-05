@@ -183,6 +183,15 @@ fn sector_cash_and_physical_goods_reconcile_every_day() {
                     .checked_add(r.energy_produced)
                     .unwrap()
                     .checked_add(r.energy_imported)
+                    .unwrap()
+                    .checked_add(
+                        c.reserves.as_ref().map_or(Energy::ZERO, |s| s
+                            .energy
+                            .last
+                            .as_ref()
+                            .unwrap()
+                            .released)
+                    )
                     .unwrap(),
                 r.energy_used.checked_add(c.energy_stock).unwrap()
             );
@@ -192,6 +201,15 @@ fn sector_cash_and_physical_goods_reconcile_every_day() {
                     .checked_add(r.food_produced)
                     .unwrap()
                     .checked_add(r.food_imported)
+                    .unwrap()
+                    .checked_add(
+                        c.reserves.as_ref().map_or(Food::ZERO, |s| s
+                            .food
+                            .last
+                            .as_ref()
+                            .unwrap()
+                            .released)
+                    )
                     .unwrap(),
                 r.food_consumed
                     .checked_add(r.food_lost)

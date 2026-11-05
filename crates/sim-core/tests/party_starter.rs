@@ -2,9 +2,9 @@ use sim_core::*;
 
 #[test]
 fn starter_preserves_the_roster_and_seeds_explicit_attributed_positions_without_free_resources() {
-    let content = Content::bundled().unwrap();
+    let content = Content::party_bundled().unwrap();
     let old = Content::technology_bundled().unwrap();
-    assert_eq!((content.schema, content.rules), (20, RULES_VERSION));
+    assert_eq!((content.schema, content.rules), (20, 20));
     assert_eq!(content.countries.len(), 15);
     assert_eq!(content.countries, old.countries);
     let rules = content.party_preferences.as_ref().unwrap();
@@ -110,7 +110,7 @@ fn starter_preserves_the_roster_and_seeds_explicit_attributed_positions_without_
 
 #[test]
 fn coalition_and_party_leadership_keep_distinct_seeded_tradeoffs_and_advisory_unknowns() {
-    let content = Content::bundled().unwrap();
+    let content = Content::party_bundled().unwrap();
     let world = World::new(&content, CountryId("DEU".into()), 17).unwrap();
     let before = world.hash();
     let targets = FiscalTargets {
@@ -177,7 +177,7 @@ fn mixed_formats_21_and_19_retain_exact_old_campaigns_and_pending_new_policy_con
     let old = Content::technology_bundled().unwrap();
     let prior = World::new(&old, CountryId("GBR".into()), 17).unwrap();
     assert_eq!(prior.hash(), 0xd5f9f1f64662dcd3);
-    let content = Content::bundled().unwrap();
+    let content = Content::party_bundled().unwrap();
     let mut current = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     current
         .issue(

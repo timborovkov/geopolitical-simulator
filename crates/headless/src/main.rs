@@ -1108,6 +1108,12 @@ fn play(
                     }
                 }
                 "reserves" => {
+                    for good in [GoodKind::Energy,GoodKind::Food] {
+                        match world.reserve_supply(content,&world.player,good)? {
+                            Some(s)=>println!("{good:?} observed {}: civilian supply {}/{}; imports {}/{}; spare {} units/day. {} Last settlement only; future deliveries are conditional.",date(s.day),s.civilian_supply,s.physical_need,s.civilian_imports,s.import_capacity,s.spare_import_capacity,s.explanation()),
+                            None=>println!("{good:?}: no settled supply observation yet; advance one day."),
+                        }
+                    }
                     println!("{}",serde_json::to_string_pretty(&world.player_country().reserves).map_err(|e|e.to_string())?);
                     println!("National buffers are separate from firms' working stocks. Procurement uses spare import capacity after civilian physical needs. Releases cover post-import physical shortfalls; household affordability still applies.");
                 }

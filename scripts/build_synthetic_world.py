@@ -564,6 +564,16 @@ def build_party_preferences():
     return pack
 
 
+def build_reserve_starter():
+    pack = build_party_starter()
+    pack.update(schema=21, rules=21, id="initial-2000-national-reserves-v21", name="A New Century · national commodity reserves")
+    source = "authored-starter-national-reserves-v1"
+    pack["sources"].append(dict(id=source, quality="authored_scenario_model", description="Original costed fixed-price commodity import contracts, spare civilian import capacity, national buffers and automatic shortage releases. National stocks start empty; normalized capacities and contracts are gameplay conventions, not observed warehouses, historical reserves, fuel deposits or electricity-storage technologies."))
+    pack["reserves"] = dict(capacity_days=3, order_days=90, fee_bps=1, ai_target_days=1, source=source, source_version="starter-reserve-contracts-v1")
+    pack["description"] += " National food and energy reserves start empty. Ordinary consent and paid administration authorize finite import contracts at fixed quoted prices, with full purchase cash reserved. Deliveries require spare import capacity after civilian physical needs; proposal and consent create no goods. Stored goods automatically cover post-import physical shortfalls. Food spoilage and household affordability remain binding; cancellation or expiry releases only unspent purchase reservations. These are generic model equivalents, not historical national stockpiles or storage technologies."
+    return pack
+
+
 def build_reserves():
     pack = build_party_preferences()
     pack.update(schema=21, rules=21, id="synthetic-national-reserves-v21", name="Fictional national commodity reserves")
@@ -691,6 +701,7 @@ def main():
                            ("initial-2000-interest-accrual.json", build_interest_starter()),
                            ("initial-2000-technology-eligibility.json", build_technology_starter()),
                            ("initial-2000-party-preferences.json", build_party_starter()),
+                           ("initial-2000-national-reserves.json", build_reserve_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

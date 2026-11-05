@@ -399,7 +399,7 @@ fn save_22_continues_pending_and_partial_orders_and_rejects_forged_stock_and_fun
         .paid
         .0 += 1;
     assert!(bad.validate(&c).is_err());
-    assert_eq!(Content::bundled().unwrap().rules, 20);
+    assert_eq!(Content::party_bundled().unwrap().rules, 20);
     assert!(Content::bundled_for_hash(c.hash()).is_err());
 }
 #[test]

@@ -93,6 +93,8 @@ def main():
             ["cargo", "run", "-p", "headless", "--release", "--locked", "--", "--verify"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--contested-transition"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-party-preferences.json"],
+            ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-party-preferences.json", "--contested-transition"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-technology-eligibility.json"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-technology-eligibility.json", "--contested-transition"],
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/initial-2000-interest-accrual.json"],
