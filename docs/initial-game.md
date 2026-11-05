@@ -155,3 +155,6 @@ Optional `data/synthetic-national-reserves-test.json` adds paid, reviewed, finit
 
 
 The default `data/initial-2000-national-reserves.json` retains all fifteen countries and thirty-four party profiles from rules 20. National stocks start empty; separately attributed paid, reviewed procurement contracts use only spare import capacity after civilian physical needs. Treasury shows the dated physical supply, civilian imports and spare capacity, explaining observed physical shortages or a fully used import quota. These observations are not promises of future delivery. New games use snapshot 22 and `campaign-v22.json`; nineteen bundled packs resolve by exact saved hash. All previous packs remain unchanged. P07/P14 remain partial.
+
+
+Reserve contract inspection keeps open orders visible regardless of newer closed records. Each order retains proposed/consent/earliest/final-delivery dates, administration paid, fixed price, unfilled quantity, last purchase and closure date. The remaining-delivery count excludes already settled days and remains conditional on consent, physical supply and spare import capacity. Expand the closed retained history to inspect every retained order, up to the existing 128-record limit. This owner-only interface derives from saved records without changing rules, data, campaign commands or snapshots.
