@@ -297,6 +297,17 @@ fn nearest_marker(
         .min_by(|a, b| a.0.total_cmp(&b.0).then_with(|| a.1.cmp(&b.1)))
         .map(|(_, id)| id)
 }
+/// Small presentation snapshot; geometry and campaign data are never copied into history.
+#[derive(Clone, PartialEq)]
+pub struct View {
+    camera: Camera,
+    layer: Layer,
+    report_time: ReportTime,
+    divisions: bool,
+    selected_division: Option<crate::administrative::ReferenceDivisionId>,
+    lakes: bool,
+    rivers: bool,
+}
 pub struct WorldMap {
     land: Vec<(Vec<[f32; 2]>, Vec<usize>)>,
     atlas: crate::geometry::Atlas,
@@ -313,6 +324,26 @@ pub struct WorldMap {
     layer: Layer,
 }
 impl WorldMap {
+    pub fn view(&self) -> View {
+        View {
+            camera: self.camera,
+            layer: self.layer,
+            report_time: self.report_time,
+            divisions: self.divisions,
+            selected_division: self.selected_division.clone(),
+            lakes: self.lakes,
+            rivers: self.rivers,
+        }
+    }
+    pub fn restore_view(&mut self, view: View) {
+        self.camera = view.camera;
+        self.layer = view.layer;
+        self.report_time = view.report_time;
+        self.divisions = view.divisions;
+        self.selected_division = view.selected_division;
+        self.lakes = view.lakes;
+        self.rivers = view.rivers;
+    }
     pub fn new() -> Self {
         let polygons: Vec<Vec<[f32; 2]>> =
             serde_json::from_str(include_str!("../../../data/land-110m.json"))
@@ -746,6 +777,33 @@ impl WorldMap {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn inspection_view_restores_all_map_controls_without_copying_geometry() {
+        let mut map = WorldMap::new();
+        map.camera = Camera {
+            longitude: 11.6,
+            latitude: 48.2,
+            zoom: 8.0,
+        };
+        map.layer = Layer::Needs;
+        map.report_time = ReportTime::Published(30);
+        map.divisions = true;
+        map.selected_division = Some(crate::administrative::ReferenceDivisionId(
+            "DEU-1591".into(),
+        ));
+        map.lakes = false;
+        map.rivers = false;
+        let saved = map.view();
+        map.camera = Camera::default();
+        map.layer = Layer::Debt;
+        map.report_time = ReportTime::Latest;
+        map.divisions = false;
+        map.selected_division = None;
+        map.lakes = true;
+        map.rivers = true;
+        map.restore_view(saved.clone());
+        assert!(map.view() == saved);
+    }
     #[test]
     fn overlays_share_published_values_and_withhold_mismatched_campaign_reports() {
         let content = Content::bundled().unwrap();

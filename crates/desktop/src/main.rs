@@ -20,6 +20,7 @@ mod income_taxes;
 mod inspector;
 mod map;
 mod markets;
+mod navigation;
 mod new_game;
 mod party_preferences;
 mod reserves;
@@ -57,6 +58,7 @@ struct GameApp {
     selected: CountryId,
     tab: Tab,
     map: map::WorldMap,
+    navigation: navigation::History,
     search: String,
     seed: u64,
     scenario: Scenario,
@@ -131,6 +133,7 @@ impl GameApp {
             selected,
             tab: Tab::Overview,
             map: map::WorldMap::new(),
+            navigation: navigation::History::default(),
             search: String::new(),
             seed: 2000,
             scenario: Scenario::Sandbox,
@@ -337,6 +340,7 @@ impl GameApp {
                 self.selected = w.player.clone();
                 self.target_date = date((w.day + 30).min(MAX_DAY));
                 self.world = Some(w);
+                self.navigation = navigation::History::default();
                 self.undertaking_panel = undertakings::Panel::default();
                 self.fiscal_panel = fiscal_plans::Panel::default();
                 self.walkthrough = walkthrough::Panel::default();
@@ -422,6 +426,7 @@ impl GameApp {
         self.target_date = date((world.day + 30).min(MAX_DAY));
         self.content = setup.content.clone();
         self.world = Some(world);
+        self.navigation = navigation::History::default();
         self.save_path = setup.save_path.clone();
         self.tab = Tab::Overview;
         self.speed = 0;
@@ -483,6 +488,30 @@ impl GameApp {
             }
         }
     }
+    fn inspection(&self) -> navigation::View {
+        navigation::View {
+            tab: self.tab,
+            country: self.selected.clone(),
+            policy: self.policy.clone(),
+            value: self.value,
+            reference: self.help.reference,
+            map: self.map.view(),
+        }
+    }
+    fn navigate_history(&mut self, forward: bool) {
+        let current = self.inspection();
+        if let Some(view) = self.navigation.travel(current, forward) {
+            self.tab = view.tab;
+            self.selected = view.country;
+            self.policy = view.policy;
+            self.value = view.value;
+            self.help.reference = view.reference;
+            self.map.restore_view(view.map);
+            if self.tab == Tab::Settings || self.tab == Tab::Inspector {
+                self.pause();
+            }
+        }
+    }
     fn playback_label(&self) -> String {
         if let Some(job) = &self.pending {
             if job.is_stopping() {
@@ -520,6 +549,8 @@ impl GameApp {
                 } else { ui.label(format!("{} · Offline single player", self.content.start)); }
                 if self.developer_mode { ui.colored_label(Color32::LIGHT_YELLOW, "Developer mode"); }
                 if self.world.as_ref().is_some_and(World::is_developer_modified) { ui.colored_label(Color32::LIGHT_YELLOW, "DEVELOPER-MODIFIED"); }
+                if ui.add_enabled(self.navigation.can_back() && self.new_setup.is_none() && self.recovery.is_empty(),egui::Button::new("Back")).on_hover_text("Previous inspection view [Alt+Left]. Restores the screen, country, policy draft and map view; issues no order.").clicked() { self.navigate_history(false); }
+                if ui.add_enabled(self.navigation.can_forward() && self.new_setup.is_none() && self.recovery.is_empty(),egui::Button::new("Forward")).on_hover_text("Next inspection view [Alt+Right].").clicked() { self.navigate_history(true); }
                 if ui.button("Settings [F1]").clicked() { self.pause(); self.tab = Tab::Settings; }
                 if self.world.is_some() && ui.add_enabled(self.recovery.is_empty(), egui::Button::new("New campaign")).clicked() { self.open_new_campaign(); }
                 if self.world.is_some() && ui.button("First session").clicked() {
@@ -1828,6 +1859,17 @@ impl GameApp {
 }
 impl GameApp {
     fn process_shortcuts(&mut self, ctx: &egui::Context) {
+        if !ctx.wants_keyboard_input() && !egui::Popup::is_any_open(ctx) && self.recovery.is_empty()
+        {
+            if ctx.input_mut(|input| input.consume_key(egui::Modifiers::ALT, egui::Key::ArrowLeft))
+            {
+                self.navigate_history(false);
+            }
+            if ctx.input_mut(|input| input.consume_key(egui::Modifiers::ALT, egui::Key::ArrowRight))
+            {
+                self.navigate_history(true);
+            }
+        }
         if settings::shortcut(ctx, self.preferences.active.pause) && self.world.is_some() {
             if self.speed > 0 || self.pending.is_some() {
                 self.pause();
@@ -1859,6 +1901,7 @@ impl GameApp {
         }
     }
     fn render(&mut self, ctx: &egui::Context) {
+        self.navigation.observe(self.inspection());
         self.poll_advance();
         if self.preferences.active.pause_on_focus_loss
             && !ctx.input(|i| i.focused)
@@ -1911,6 +1954,7 @@ impl GameApp {
                         self.selected = world.player.clone();
                         self.target_date = date((world.day + 30).min(MAX_DAY));
                         self.world = Some(world);
+                        self.navigation = navigation::History::default();
                         self.undertaking_panel = undertakings::Panel::default();
                         self.fiscal_panel = fiscal_plans::Panel::default();
                         self.walkthrough = walkthrough::Panel::default();
@@ -1956,6 +2000,7 @@ impl GameApp {
         if !setup_open {
             self.process_shortcuts(ctx);
         }
+        self.navigation.observe(self.inspection());
         if self.speed > 0 || self.pending.is_some() {
             ctx.request_repaint_after(Duration::from_millis(50));
         }
@@ -2823,6 +2868,11 @@ mod interface_tests {
             ctx.set_zoom_factor(scale);
             app.world = Some(world);
             app.tab = Tab::Treasury;
+            let mut earlier = app.inspection();
+            earlier.tab = Tab::Overview;
+            app.navigation.observe(earlier);
+            app.navigation.observe(app.inspection());
+            assert!(app.navigation.can_back());
             app.open_new_campaign();
             let input = egui::RawInput {
                 focused: true,
@@ -2861,6 +2911,22 @@ mod interface_tests {
             assert!(app.new_setup.is_some());
             assert!(app.pending.is_none());
             assert_eq!(app.speed, 0);
+            let _ = ctx.run(
+                egui::RawInput {
+                    events: vec![egui::Event::Key {
+                        key: egui::Key::ArrowLeft,
+                        physical_key: None,
+                        pressed: true,
+                        repeat: false,
+                        modifiers: egui::Modifiers::ALT,
+                    }],
+                    ..input.clone()
+                },
+                |ctx| app.render(ctx),
+            );
+            assert!(
+                app.tab == Tab::Treasury && app.new_setup.is_some() && app.navigation.can_back()
+            );
             let _ = ctx.run(
                 egui::RawInput {
                     events: vec![key(egui::Key::Escape)],
@@ -3254,6 +3320,142 @@ mod interface_tests {
         let _ = ctx.run(input, |ctx| app.render(ctx));
         assert_eq!(app.save_path, path.display().to_string());
         assert_eq!(app.world.as_ref().unwrap().hash(), wanted.hash());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn inspection_history_buttons_keys_branches_and_load_preserve_campaign_at_two_scales() {
+        let content = Content::bundled().unwrap();
+        let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        let before = persistence::encode(&world, &content).unwrap();
+        let dir = std::env::temp_dir().join(format!("geosim-navigation-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("unchanged.json");
+        std::fs::write(&path, &before).unwrap();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            let mut app =
+                GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            app.world = Some(world.clone());
+            app.selected = world.player.clone();
+            app.map.camera = map::Camera {
+                longitude: 20.,
+                latitude: 10.,
+                zoom: 2.0,
+            };
+            let first_map = app.map.view();
+            let render = |app: &mut GameApp, events: Vec<egui::Event>| {
+                ctx.run(
+                    egui::RawInput {
+                        focused: true,
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(1440. / scale, 940. / scale),
+                        )),
+                        events,
+                        ..Default::default()
+                    },
+                    |ctx| app.render(ctx),
+                )
+            };
+            let click = |app: &mut GameApp, label: &str| {
+                let output = render(app, vec![]);
+                let point = output
+                    .shapes
+                    .iter()
+                    .find_map(|shape| match &shape.shape {
+                        egui::Shape::Text(text) if text.galley.text() == label => {
+                            let point = text.pos + text.galley.size() / 2.;
+                            shape.clip_rect.contains(point).then_some(point)
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| panic!("visible {label} missing at {scale}"));
+                for pressed in [true, false] {
+                    render(
+                        app,
+                        vec![
+                            egui::Event::PointerMoved(point),
+                            egui::Event::PointerButton {
+                                pos: point,
+                                button: egui::PointerButton::Primary,
+                                pressed,
+                                modifiers: egui::Modifiers::NONE,
+                            },
+                        ],
+                    );
+                }
+            };
+            render(&mut app, vec![]);
+            render(&mut app, vec![]);
+            assert!(!app.navigation.can_back());
+            click(&mut app, "Find division");
+            let key = |key, modifiers| egui::Event::Key {
+                key,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers,
+            };
+            render(
+                &mut app,
+                vec![
+                    egui::Event::Text("Bavaria".into()),
+                    key(egui::Key::Enter, egui::Modifiers::NONE),
+                ],
+            );
+            render(&mut app, vec![]);
+            assert_eq!(app.selected.0, "DEU");
+            let division_map = app.map.view();
+            click(&mut app, "02  Policies & delivery");
+            let save_path = app.save_path.clone();
+            click(&mut app, &save_path);
+            render(
+                &mut app,
+                vec![key(egui::Key::ArrowLeft, egui::Modifiers::ALT)],
+            );
+            assert!(
+                app.tab == Tab::Policies,
+                "History shortcuts must leave focused text editors alone"
+            );
+            assert_eq!(app.selected.0, "DEU");
+            click(&mut app, "Return to my country");
+            assert_eq!(app.selected.0, "GBR");
+            click(&mut app, "Back");
+            assert_eq!(app.selected.0, "DEU");
+            assert!(app.tab == Tab::Policies);
+            click(&mut app, "Back");
+            assert_eq!(app.selected.0, "DEU");
+            assert!(app.tab == Tab::Overview);
+            assert!(app.map.view() == division_map);
+            click(&mut app, "Back");
+            assert_eq!(app.selected.0, "GBR");
+            assert!(app.map.view() == first_map);
+            click(&mut app, "Forward");
+            assert_eq!(app.selected.0, "DEU");
+            assert!(app.map.view() == division_map);
+            render(
+                &mut app,
+                vec![key(egui::Key::ArrowLeft, egui::Modifiers::ALT)],
+            );
+            assert_eq!(app.selected.0, "GBR");
+            assert!(app.navigation.can_forward());
+            click(&mut app, "04  Treasury & accounts");
+            assert!(!app.navigation.can_forward());
+            assert_eq!(
+                persistence::encode(app.world.as_ref().unwrap(), &content).unwrap(),
+                before
+            );
+            // Successful campaign replacement cannot expose a prior campaign's inspection route.
+            app.save_path = path.to_string_lossy().into_owned();
+            app.load();
+            render(&mut app, vec![]);
+            assert!(!app.navigation.can_back() && !app.navigation.can_forward());
+            assert_eq!(
+                persistence::encode(app.world.as_ref().unwrap(), &content).unwrap(),
+                before
+            );
+        }
         std::fs::remove_dir_all(dir).unwrap();
     }
     #[test]

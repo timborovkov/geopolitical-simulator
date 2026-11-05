@@ -31,6 +31,10 @@ The desktop [administrative atlas](../crates/desktop/src/administrative.rs) shar
 
 Search accepts attributed names, aliases, country names and source IDs; unique confirmation focuses the selected country's division. Boundary drawing culls polygon bounds against the viewport and displays the inspected country's areas. Hit tests account for holes and both dateline parts; dateline-spanning focus uses the largest contiguous part. Country-level dated public overlays and player authority keep their existing boundaries. These display references do not create simulated regions, administrative powers, local statistics or historical sovereignty claims. Scenario jurisdictions remain separate. Priority 4 remains partial.
 
+### Implemented inspection navigation
+
+The native [history](../crates/desktop/src/navigation.rs) retains at most 64 presentation visits, using typed country/policy identities and a lightweight [map view](../crates/desktop/src/map.rs). It stores no `World`, private projection, geometry cache or accepted command. Screen/country/policy/reference-mode changes create visits; camera/layer changes and draft edits update the current visit. Back/Forward restores presentation state only. Loading, recovery and new campaigns discard history; invalid replacements retain it. Text editors, open popups and campaign/recovery dialogs retain keyboard ownership. Existing per-screen/country scroll IDs continue to retain scroll context independently. Individual panel queries and programme focus are not versioned by this history.
+
 ## Architecture boundaries
 
 Suggested workspace modules:

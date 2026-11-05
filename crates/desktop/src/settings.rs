@@ -140,7 +140,7 @@ impl Preferences {
     }
     pub fn show(&mut self, ui: &mut egui::Ui) {
         ui.heading("Controls & accessibility");
-        ui.label("F1 always opens settings. Escape pauses and returns to the map. Navigation keys remain available to widgets, the map and chart inspection.");
+        ui.label("F1 always opens settings. Escape pauses and returns to the map. Back/Forward and Alt+Left/Right retrace inspection views; text editors and open popups keep keyboard ownership. Navigation keys remain available to widgets, the map and chart inspection.");
         for (label, key) in [
             ("Pause / play", &mut self.draft.pause),
             ("Save", &mut self.draft.save),
