@@ -178,7 +178,7 @@ fn format_23_resumes_pending_programmes_and_keeps_all_earlier_rules_and_hashes()
     resumed.advance(&c, 90).unwrap();
     assert_eq!(w, resumed);
     assert_eq!(w, persistence::replay(&w, &c).unwrap());
-    let old = Content::bundled().unwrap();
+    let old = Content::reserve_bundled().unwrap();
     let old_world = World::new(&old, CountryId("GBR".into()), 17).unwrap();
     assert_eq!(old.rules, 21);
     assert_eq!(old_world.hash(), 0x343d72b6cdfb6c83);
@@ -272,7 +272,7 @@ fn malformed_or_legacy_reference_metadata_is_rejected_before_encoding() {
             "Malformed event metadata variant {variant}"
         );
     }
-    let old = Content::bundled().unwrap();
+    let old = Content::reserve_bundled().unwrap();
     let mut old_world = World::new(&old, CountryId("GBR".into()), 17).unwrap();
     old_world.events[0].id = Some(reference("GBR", 1));
     assert!(persistence::encode(&old_world, &old).is_err());

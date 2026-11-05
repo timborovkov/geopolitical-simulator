@@ -553,8 +553,10 @@ impl GameApp {
             .default_width(230.0)
             .width_range(190.0..=320.0)
             .show(ctx, |ui| {
-                let panel_height=ui.available_height();
-                egui::ScrollArea::vertical().id_salt("sidebar_scroll").show(ui,|ui| {
+                egui::TopBottomPanel::bottom("campaign_file_controls").show_inside(ui, |ui| {
+                    self.campaign_file_controls(ui);
+                });
+                egui::ScrollArea::vertical().id_salt("sidebar_scroll").auto_shrink([false,false]).show(ui,|ui| {
                 ui.add_space(10.0);
                 ui.label(RichText::new("GOVERNMENT DESK").color(MUTED).small());
                 for (tab, label) in [
@@ -577,7 +579,7 @@ impl GameApp {
                 ui.checkbox(&mut self.sort_gdp, "Sort by opening GDP");
                 egui::ScrollArea::vertical()
                     .id_salt("country_list")
-                    .max_height((panel_height-650.0).clamp(80.0,200.0))
+                    .max_height((ui.clip_rect().bottom()-ui.cursor().top()-16.0).clamp(80.0,200.0))
                     .show(ui, |ui| {
                         let mut countries: Vec<_> = self.content.countries.iter().collect();
                         if self.sort_gdp {
@@ -598,33 +600,41 @@ impl GameApp {
                             );
                         }
                     });
-                ui.separator();
-                if let Some(world) = &self.world {
-                    if ui.button("Return to my country").clicked() {
-                        self.selected = world.player.clone();
-                    }
-                    ui.checkbox(&mut self.pause_alerts, "Pause on important events");
-                }
-                ui.label("Save file / recovery .bak path");
-                ui.add(egui::TextEdit::singleline(&mut self.save_path).id(egui::Id::new("campaign_save_path")));
-                ui.horizontal(|ui| {
-                    if ui
-                        .add_enabled(self.world.is_some(), egui::Button::new("Save"))
-                        .clicked()
-                    {
-                        self.save();
-                    }
-                    if ui.button("Load").clicked() {
-                        self.load();
-                    }
-                });
-                if ui.button("Inspect recovery snapshots").clicked(){self.inspect_recovery();}
-                ui.small(format!("{} save · {} load · {} next event · Tab to navigate",self.preferences.active.save.name(),self.preferences.active.load.name(),self.preferences.active.next_event.name()));
-                ui.small(
-                    "Sourced reference GDP/population are identified in the overview; remaining values are authored.",
-                );
+                ui.small("Sourced reference GDP/population are identified in the overview; remaining values are authored.");
                 });
             });
+    }
+    fn campaign_file_controls(&mut self, ui: &mut egui::Ui) {
+        if let Some(world) = &self.world {
+            if ui.button("Return to my country").clicked() {
+                self.selected = world.player.clone();
+            }
+            ui.checkbox(&mut self.pause_alerts, "Pause on important events");
+        }
+        ui.label("Save file / recovery .bak path");
+        ui.add(
+            egui::TextEdit::singleline(&mut self.save_path).id(egui::Id::new("campaign_save_path")),
+        );
+        ui.horizontal(|ui| {
+            if ui
+                .add_enabled(self.world.is_some(), egui::Button::new("Save"))
+                .clicked()
+            {
+                self.save();
+            }
+            if ui.button("Load").clicked() {
+                self.load();
+            }
+        });
+        if ui.button("Inspect recovery snapshots").clicked() {
+            self.inspect_recovery();
+        }
+        ui.small(format!(
+            "{} save · {} load · {} next event · Tab to navigate",
+            self.preferences.active.save.name(),
+            self.preferences.active.load.name(),
+            self.preferences.active.next_event.name()
+        ));
     }
     fn developer_inspector(&mut self, ui: &mut egui::Ui) {
         if !self.developer_mode {
@@ -2529,6 +2539,98 @@ mod interface_tests {
         assert_eq!(std::fs::read(&path).unwrap(), original);
         std::fs::remove_dir_all(dir).unwrap();
     }
+    #[test]
+    fn campaign_file_controls_stay_visible_and_work_at_compact_and_large_interface_scales() {
+        let directory = std::env::temp_dir().join(format!(
+            "geosim-visible-file-controls-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        for (width, height) in [(1280.0, 800.0), (1440.0, 940.0)] {
+            for scale in [1.0, 1.4] {
+                let content = Content::bundled().unwrap();
+                let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+                let expected = world.clone();
+                let ctx = egui::Context::default();
+                let mut app =
+                    GameApp::from_context(&ctx, content, settings::Preferences::default());
+                ctx.set_zoom_factor(scale);
+                app.world = Some(world);
+                app.tab = Tab::Chronicle;
+                app.save_path = directory
+                    .join(format!("campaign-{width}-{scale}.json"))
+                    .display()
+                    .to_string();
+                let input = egui::RawInput {
+                    focused: true,
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(width / scale, height / scale),
+                    )),
+                    ..Default::default()
+                };
+                let paint = |app: &mut GameApp| ctx.run(input.clone(), |ctx| app.render(ctx));
+                let _ = paint(&mut app);
+                let output = paint(&mut app);
+                for label in [
+                    "Save",
+                    "Load",
+                    "Inspect recovery snapshots",
+                    "Return to my country",
+                    "Save file / recovery .bak path",
+                ] {
+                    let shape = output.shapes.iter().find(|shape| matches!(&shape.shape, egui::Shape::Text(text) if text.galley.text() == label)).unwrap_or_else(|| panic!("Missing {label} at {width} and scale {scale}"));
+                    if let egui::Shape::Text(text) = &shape.shape {
+                        assert!(
+                            shape
+                                .clip_rect
+                                .contains_rect(text.galley.rect.translate(text.pos.to_vec2())),
+                            "{label} is clipped at {width} and scale {scale}"
+                        );
+                    }
+                }
+                let click = |app: &mut GameApp, output: &egui::FullOutput, label: &str| {
+                    let position = output
+                        .shapes
+                        .iter()
+                        .find_map(|shape| match &shape.shape {
+                            egui::Shape::Text(text) if text.galley.text() == label => {
+                                Some(text.pos + egui::vec2(4.0, 4.0))
+                            }
+                            _ => None,
+                        })
+                        .unwrap();
+                    let mut hover = input.clone();
+                    hover.events = vec![egui::Event::PointerMoved(position)];
+                    let _ = ctx.run(hover, |ctx| app.render(ctx));
+                    for pressed in [true, false] {
+                        let mut clicked = input.clone();
+                        clicked.events = vec![egui::Event::PointerButton {
+                            pos: position,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: Default::default(),
+                        }];
+                        let _ = ctx.run(clicked, |ctx| app.render(ctx));
+                    }
+                };
+                click(&mut app, &output, "Save");
+                assert_eq!(
+                    persistence::load_bundled(std::path::Path::new(&app.save_path))
+                        .unwrap_or_else(|reason| panic!("{reason}; UI status: {}", app.status))
+                        .1,
+                    expected
+                );
+                app.selected = CountryId("USA".into());
+                let output = paint(&mut app);
+                click(&mut app, &output, "Load");
+                assert_eq!(app.selected, expected.player);
+                assert_eq!(app.world.as_ref(), Some(&expected));
+            }
+        }
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
     #[test]
     fn new_campaign_modal_blocks_time_shortcuts_and_escape_cancels_without_losing_context() {
         for scale in [1.0, 1.4] {

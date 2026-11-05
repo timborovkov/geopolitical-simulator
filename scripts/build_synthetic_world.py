@@ -574,6 +574,14 @@ def build_reserve_starter():
     return pack
 
 
+def build_event_reference_starter():
+    pack = build_reserve_starter()
+    pack.update(schema=22, rules=22, id="initial-2000-event-references-v22", name="A New Century · stable chronicle references")
+    pack["sources"].append(dict(id="authored-starter-event-references-v1", quality="authored_scenario_model", description="Original software identity convention for country-scoped event references, retained private chronicle lookup and transactional sequence exhaustion. It asserts no historical observations, resources or political privileges."))
+    pack["description"] += " Events carry stable country-scoped software references across filtering, retained history and save/load. References reveal only retained owner events, are never reused after expiry and grant no resources or legal powers. Failed reference allocation rolls back the command or incomplete daily step. Earlier packs retain their exact definitions and behavior."
+    return pack
+
+
 def build_event_references():
     pack = build_reserves()
     pack.update(schema=22, rules=22, id="synthetic-event-references-v22", name="Fictional stable event references")
@@ -711,6 +719,7 @@ def main():
                            ("initial-2000-technology-eligibility.json", build_technology_starter()),
                            ("initial-2000-party-preferences.json", build_party_starter()),
                            ("initial-2000-national-reserves.json", build_reserve_starter()),
+                           ("initial-2000-event-references.json", build_event_reference_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

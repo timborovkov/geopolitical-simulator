@@ -163,6 +163,12 @@ pub struct Content {
 impl Content {
     pub fn bundled() -> Result<Self, String> {
         Self::from_json(include_str!(
+            "../../../data/initial-2000-event-references.json"
+        ))
+    }
+    /// Preserved rules-21 roster before stable event references.
+    pub fn reserve_bundled() -> Result<Self, String> {
+        Self::from_json(include_str!(
             "../../../data/initial-2000-national-reserves.json"
         ))
     }
@@ -253,6 +259,7 @@ impl Content {
     pub fn bundled_for_hash(hash: u64) -> Result<Self, String> {
         for pack in [
             Self::bundled()?,
+            Self::reserve_bundled()?,
             Self::party_bundled()?,
             Self::technology_bundled()?,
             Self::interest_bundled()?,

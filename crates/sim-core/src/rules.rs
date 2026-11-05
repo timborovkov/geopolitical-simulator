@@ -386,15 +386,18 @@ impl World {
         if self.rules < 22 {
             return self.advance_inner(content, days);
         }
-        if self.content_hash != content.hash() {
+        let content_hash = content.hash();
+        if self.content_hash != content_hash {
             return Err("Campaign content differs from loaded pack".into());
         }
         if days > 3660 || self.day.saturating_add(days) > MAX_DAY {
             return Err("Advance 0..3660 days within the 100-year campaign limit".into());
         }
-        self.validate_event_references(content)?;
+        self.validate_event_references_for_content(content, content_hash)?;
         for _ in 0..days {
-            self.event_transaction(content, |world| world.advance_inner(content, 1))?;
+            self.event_transaction_for_content(content, content_hash, |world| {
+                world.advance_days(content, 1)
+            })?;
         }
         Ok(())
     }
@@ -405,6 +408,10 @@ impl World {
         if days > 3660 || self.day.saturating_add(days) > MAX_DAY {
             return Err("Advance 0..3660 days within the 100-year campaign limit".into());
         }
+        self.advance_days(content, days)
+    }
+    // Content identity and calendar bounds are checked by the public boundary.
+    fn advance_days(&mut self, content: &Content, days: u32) -> Result<(), String> {
         let review_day = content.review_day()?;
         let ids: Vec<_> = self.countries.keys().cloned().collect();
         for _ in 0..days {

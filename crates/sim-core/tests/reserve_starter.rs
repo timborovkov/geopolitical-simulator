@@ -2,9 +2,9 @@ use sim_core::*;
 
 #[test]
 fn seeded_reserves_preserve_all_prior_definitions_and_grant_no_opening_resources() {
-    let content = Content::bundled().unwrap();
+    let content = Content::reserve_bundled().unwrap();
     let old = Content::party_bundled().unwrap();
-    assert_eq!((content.schema, content.rules), (21, RULES_VERSION));
+    assert_eq!((content.schema, content.rules), (21, 21));
     assert_eq!(content.countries.len(), 15);
     assert_eq!(
         content.party_preferences.as_ref().unwrap().profiles.len(),
@@ -72,7 +72,7 @@ fn seeded_reserves_preserve_all_prior_definitions_and_grant_no_opening_resources
 
 #[test]
 fn dated_supply_feedback_explains_both_physical_shortfalls_and_quota_bottlenecks_read_only() {
-    let mut content = Content::bundled().unwrap();
+    let mut content = Content::reserve_bundled().unwrap();
     for c in &mut content.countries {
         c.energy = 40;
         c.food = 40;
@@ -158,7 +158,7 @@ fn dated_supply_feedback_explains_both_physical_shortfalls_and_quota_bottlenecks
 
 #[test]
 fn new_reserve_contract_and_preserved_party_save_recover_together_without_rewriting_originals() {
-    let content = Content::bundled().unwrap();
+    let content = Content::reserve_bundled().unwrap();
     let old = Content::party_bundled().unwrap();
     let prior = World::new(&old, CountryId("GBR".into()), 17).unwrap();
     assert_eq!(prior.hash(), 0xc29f309743ff5b94);

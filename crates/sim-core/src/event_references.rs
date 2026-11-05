@@ -64,6 +64,14 @@ impl World {
     }
 
     pub(crate) fn validate_event_references(&self, content: &Content) -> Result<(), String> {
+        self.validate_event_references_for_content(content, content.hash())
+    }
+
+    pub(crate) fn validate_event_references_for_content(
+        &self,
+        content: &Content,
+        content_hash: u64,
+    ) -> Result<(), String> {
         if let Some(reason) = &self.event_error {
             return Err(reason.clone());
         }
@@ -74,7 +82,7 @@ impl World {
                 Err("Stable event references require rules 22".into())
             };
         }
-        if self.rules != content.rules || self.content_hash != content.hash() {
+        if self.rules != content.rules || self.content_hash != content_hash {
             return Err("Event references require the campaign's exact content".into());
         }
         let sequences = self
@@ -134,10 +142,20 @@ impl World {
         content: &Content,
         operation: impl FnOnce(&mut Self) -> Result<T, String>,
     ) -> Result<T, String> {
-        self.validate_event_references(content)?;
+        self.event_transaction_for_content(content, content.hash(), operation)
+    }
+
+    /// Reuse the hash of an immutable content pack already checked at the boundary.
+    pub(crate) fn event_transaction_for_content<T>(
+        &mut self,
+        content: &Content,
+        content_hash: u64,
+        operation: impl FnOnce(&mut Self) -> Result<T, String>,
+    ) -> Result<T, String> {
+        self.validate_event_references_for_content(content, content_hash)?;
         let before = self.clone();
         let result = operation(self).and_then(|value| {
-            self.validate_event_references(content)?;
+            self.validate_event_references_for_content(content, content_hash)?;
             Ok(value)
         });
         if result.is_err() {
