@@ -51,6 +51,8 @@ pub struct PublicCountryReport {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PlayerView {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub own_events: Option<Vec<Event>>,
     pub day: u32,
     pub rules: u32,
     pub content_hash: u64,
@@ -134,11 +136,25 @@ impl World {
                     .clone(),
             ),
         };
+        let own_events = self
+            .event_sequences
+            .as_ref()
+            .filter(|_| self.rules >= 22)
+            .and_then(|_| {
+                own.as_ref().map(|country| {
+                    self.events
+                        .iter()
+                        .filter(|e| e.country == country.id)
+                        .cloned()
+                        .collect()
+                })
+            });
         let mut reports = BTreeMap::new();
         for id in self.countries.keys() {
             reports.insert(id.clone(), self.public_report_validated(content, id)?);
         }
         Ok(PlayerView {
+            own_events,
             day: self.day,
             rules: self.rules,
             content_hash: self.content_hash,

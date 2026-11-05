@@ -146,6 +146,18 @@ impl World {
         command: Command,
         origin: CommandOrigin,
     ) -> Result<(), String> {
+        if self.rules >= 22 {
+            return self
+                .event_transaction(content, |world| world.apply_inner(content, command, origin));
+        }
+        self.apply_inner(content, command, origin)
+    }
+    fn apply_inner(
+        &mut self,
+        content: &Content,
+        command: Command,
+        origin: CommandOrigin,
+    ) -> Result<(), String> {
         if self.content_hash != content.hash() {
             return Err("Command content pack differs from campaign".into());
         }
@@ -371,6 +383,22 @@ impl World {
     }
     /// Consent → delivery → production/households → fiscal close → politics → AI.
     pub fn advance(&mut self, content: &Content, days: u32) -> Result<(), String> {
+        if self.rules < 22 {
+            return self.advance_inner(content, days);
+        }
+        if self.content_hash != content.hash() {
+            return Err("Campaign content differs from loaded pack".into());
+        }
+        if days > 3660 || self.day.saturating_add(days) > MAX_DAY {
+            return Err("Advance 0..3660 days within the 100-year campaign limit".into());
+        }
+        self.validate_event_references(content)?;
+        for _ in 0..days {
+            self.event_transaction(content, |world| world.advance_inner(content, 1))?;
+        }
+        Ok(())
+    }
+    fn advance_inner(&mut self, content: &Content, days: u32) -> Result<(), String> {
         if self.content_hash != content.hash() {
             return Err("Campaign content differs from loaded pack".into());
         }

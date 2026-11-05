@@ -574,6 +574,14 @@ def build_reserve_starter():
     return pack
 
 
+def build_event_references():
+    pack = build_reserves()
+    pack.update(schema=22, rules=22, id="synthetic-event-references-v22", name="Fictional stable event references")
+    pack["sources"].append(dict(id="authored-event-reference-contract-v1", quality="authored_synthetic_fixture", description="Original technical fixture for country-scoped monotonically assigned event references, bounded retained history, private lookup and transactional ID exhaustion. References are software identities, not historical facts or new resources."))
+    pack["description"] += " Events have stable country-scoped references across filtering, retention and save/load. Only a government's own retained events are available through reference lookup. An expired reference is not reused. Event reference exhaustion rejects a command or rolls back the incomplete daily step; previously completed days remain. The default starter and all earlier packs retain their exact definitions and rules."
+    return pack
+
+
 def build_reserves():
     pack = build_party_preferences()
     pack.update(schema=21, rules=21, id="synthetic-national-reserves-v21", name="Fictional national commodity reserves")
@@ -685,6 +693,7 @@ def main():
                            ("synthetic-sovereignty-test.json", build_sovereignty()),
                            ("synthetic-party-preferences-test.json", build_party_preferences()),
                            ("synthetic-national-reserves-test.json", build_reserves()),
+                           ("synthetic-event-references-test.json", build_event_references()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

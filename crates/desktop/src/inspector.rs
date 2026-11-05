@@ -135,7 +135,11 @@ impl Inspector {
                 .filter(|entry| &entry.country == target)
                 .take(20)
             {
-                ui.label(format!("{} · {}", date(entry.day), entry.text));
+                if let Some(id) = &entry.id {
+                    ui.label(format!("{id} · {} · {}", date(entry.day), entry.text));
+                } else {
+                    ui.label(format!("{} · {}", date(entry.day), entry.text));
+                }
             }
         });
         chosen

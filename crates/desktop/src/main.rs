@@ -5,6 +5,7 @@ mod cabinet;
 mod cash_management;
 mod cashflows;
 mod charts;
+mod chronicle;
 mod commitments;
 mod constitutions;
 mod elections;
@@ -83,6 +84,7 @@ struct GameApp {
     preferences: settings::Preferences,
     developer_mode: bool,
     inspector: inspector::Inspector,
+    event_browser: chronicle::Panel,
     help: help::Help,
     cashflows: cashflows::CashFlows,
     bundled_catalog: bool,
@@ -156,6 +158,7 @@ impl GameApp {
             preferences,
             developer_mode: false,
             inspector: inspector::Inspector::default(),
+            event_browser: chronicle::Panel::default(),
             help: help::Help::default(),
             cashflows: cashflows::CashFlows::default(),
             bundled_catalog: false,
@@ -327,6 +330,7 @@ impl GameApp {
                 self.fiscal_panel = fiscal_plans::Panel::default();
                 self.walkthrough = walkthrough::Panel::default();
                 self.cash_management = cash_management::Panel::default();
+                self.event_browser = chronicle::Panel::default();
                 self.status = match self.content.rules {
                     2 => "Classic fixed-price campaign loaded. Simulation paused.",
                     3 => "Relative-price campaign loaded. Simulation paused.",
@@ -436,6 +440,7 @@ impl GameApp {
         self.help = help::Help::default();
         self.walkthrough = walkthrough::Panel::default();
         self.cash_management = cash_management::Panel::default();
+        self.event_browser = chronicle::Panel::default();
         self.status = archive.map_or_else(
             || "New campaign started, paused.".into(),
             |path| {
@@ -1679,34 +1684,12 @@ impl GameApp {
             self.issue(action);
         }
     }
-    fn chronicle(&self, ui: &mut egui::Ui) {
+    fn chronicle(&mut self, ui: &mut egui::Ui) {
         if self.foreign_report(ui) {
             return;
         }
-
-        ui.heading("Chronicle & decisions");
-        ui.label("Accepted outcomes, delivery dates and AI explanations. Most recent first; filtered to the selected country.");
-        let Some(w) = &self.world else {
-            ui.label("Your chronicle begins with a mandate.");
-            return;
-        };
-        for e in w.events.iter().rev().filter(|e| e.country == self.selected) {
-            egui::Frame::group(ui.style()).show(ui, |ui| {
-                ui.colored_label(
-                    if e.important { MINT } else { MUTED },
-                    format!(
-                        "{} · {}",
-                        date(e.day),
-                        if e.important {
-                            "DECISION / ALERT"
-                        } else {
-                            "REPORT"
-                        }
-                    ),
-                );
-                ui.label(&e.text);
-            });
-        }
+        self.event_browser
+            .show(ui, &self.content, self.world.as_ref());
     }
     fn guide(&mut self, ui: &mut egui::Ui) {
         ui.horizontal_wrapped(|ui| {
@@ -1898,6 +1881,7 @@ impl GameApp {
                         self.fiscal_panel = fiscal_plans::Panel::default();
                         self.walkthrough = walkthrough::Panel::default();
                         self.cash_management = cash_management::Panel::default();
+                        self.event_browser = chronicle::Panel::default();
                         self.recovery.clear();
                         self.status =
                             "Recovered snapshot. Original files preserved; game paused.".into();
@@ -2044,12 +2028,14 @@ mod interface_tests {
                     .unwrap();
             let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
             world.events.push(Event {
+                id: None,
                 day: 0,
                 country: world.player.clone(),
                 important: true,
                 text: "OWN IMPORTANT DECISION".into(),
             });
             world.events.push(Event {
+                id: None,
                 day: 0,
                 country: CountryId("BOR".into()),
                 important: true,
@@ -2121,6 +2107,7 @@ mod interface_tests {
             assert_eq!(app.world.as_ref().unwrap().hash(), original);
             // A foreign notice cannot reopen an acknowledged owner brief.
             app.world.as_mut().unwrap().events.push(Event {
+                id: None,
                 day: 0,
                 country: CountryId("BOR".into()),
                 important: true,
@@ -2129,6 +2116,7 @@ mod interface_tests {
             let output = ctx.run(input.clone(), |ctx| app.render(ctx));
             assert!(!text(&output).contains("OWN IMPORTANT DECISION"));
             app.world.as_mut().unwrap().events.push(Event {
+                id: None,
                 day: 0,
                 country: CountryId("AUR".into()),
                 important: true,

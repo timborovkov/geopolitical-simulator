@@ -285,6 +285,8 @@ pub struct Command {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Event {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<EventId>,
     pub day: u32,
     pub country: CountryId,
     pub important: bool,
@@ -315,6 +317,10 @@ impl Scenario {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct World {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub event_sequences: Option<BTreeMap<CountryId, u64>>,
+    #[serde(skip)]
+    pub(crate) event_error: Option<String>,
     pub rules: u32,
     pub content_hash: u64,
     pub seed: u64,
@@ -506,6 +512,14 @@ impl World {
             day: start_day,
             player: player.clone(),
             countries,
+            event_sequences: (content.rules >= 22).then(|| {
+                content
+                    .countries
+                    .iter()
+                    .map(|d| (d.id.clone(), 1))
+                    .collect()
+            }),
+            event_error: None,
             next_command: 1,
             next_project: 1,
             journal: Vec::new(),
@@ -550,7 +564,15 @@ impl World {
         )
     }
     pub(crate) fn event(&mut self, country: &CountryId, important: bool, text: impl Into<String>) {
+        let id = match self.allocate_event_reference(country) {
+            Ok(id) => id,
+            Err(reason) => {
+                self.event_error.get_or_insert(reason);
+                return;
+            }
+        };
         self.events.push(Event {
+            id,
             day: self.day,
             country: country.clone(),
             important,
@@ -631,6 +653,7 @@ impl World {
         {
             return Err("Invalid world clock, player, roster or command sequence".into());
         }
+        self.validate_event_references(content)?;
         let mut previous_day = start_day;
         for (index, entry) in self.journal.iter().enumerate() {
             let command = &entry.command;
