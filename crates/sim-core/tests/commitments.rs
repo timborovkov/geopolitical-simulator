@@ -31,7 +31,7 @@ fn check(w: &World, c: &Content) {
 fn amendment_pays_restarts_consent_and_preserves_direct_and_observed_history() {
     let c = fixture();
     let mut w = start(&c, "AUR");
-    let forecast = w.preview(&c, &w.player, "income_tax", 32).unwrap();
+    let forecast = w.preview(&c, &w.player, &"income_tax".into(), 32).unwrap();
     let id = enact(&mut w, &c, "income_tax", 30);
     w.advance(&c, 3).unwrap();
     let p = w.preview_amendment(&c, &w.player, id, 32).unwrap();

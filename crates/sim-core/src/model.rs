@@ -73,7 +73,7 @@ pub struct LedgerEntry {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PolicyInstance {
     pub id: u64,
-    pub policy: String,
+    pub policy: PolicyId,
     pub value: i32,
     pub start_day: u32,
     pub due_day: u32,
@@ -145,10 +145,10 @@ pub struct Country {
     pub approval: i32,
     pub elite_support: i32,
     pub legislative_support: i32,
-    pub ruling_party: String,
-    pub coalition: Vec<String>,
+    pub ruling_party: PartyId,
+    pub coalition: Vec<PartyId>,
     pub executive: String,
-    pub seats: BTreeMap<String, u16>,
+    pub seats: BTreeMap<PartyId, u16>,
     pub next_election: Option<u32>,
     pub government_number: u32,
     pub projects: Vec<PolicyInstance>,
@@ -249,7 +249,7 @@ pub enum Action {
         request: CommitmentId,
     },
     Enact {
-        policy: String,
+        policy: PolicyId,
         value: i32,
     },
     Borrow {

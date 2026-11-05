@@ -38,8 +38,11 @@ fn check(w: &World, c: &Content) {
 fn appointment_reduces_only_future_preparation_without_moving_funded_deadlines_or_capacity() {
     let c = content();
     let mut w = start(&c, "AUR");
-    assert_eq!(w.policy_preparation_days(&c, &w.player, "energy"), 30);
-    let original = w.preview(&c, &w.player, "energy", 1).unwrap();
+    assert_eq!(
+        w.policy_preparation_days(&c, &w.player, &"energy".into()),
+        30
+    );
+    let original = w.preview(&c, &w.player, &"energy".into(), 1).unwrap();
     assert_eq!(original.delay, 149);
     w.issue(
         &c,
@@ -57,12 +60,17 @@ fn appointment_reduces_only_future_preparation_without_moving_funded_deadlines_o
     );
     check(&w, &c);
     w.advance(&c, 14).unwrap();
-    assert_eq!(w.policy_preparation_days(&c, &w.player, "energy"), 4);
+    assert_eq!(
+        w.policy_preparation_days(&c, &w.player, &"energy".into()),
+        4
+    );
     assert_eq!(w.player_country().projects[0].due_day, 149);
     assert_eq!(w.player_country().energy_capacity, 80);
     assert_eq!(w.player_country().administration, 70);
     assert_eq!(
-        w.preview(&c, &w.player, "agriculture", 1).unwrap().delay,
+        w.preview(&c, &w.player, &"agriculture".into(), 1)
+            .unwrap()
+            .delay,
         153
     );
     check(&w, &c);
@@ -80,11 +88,11 @@ fn professional_and_consensus_candidates_have_a_visible_political_and_timing_tra
     professional.advance(&c, 14).unwrap();
     consensus.advance(&c, 14).unwrap();
     assert_eq!(
-        professional.policy_preparation_days(&c, &professional.player, "income_tax"),
+        professional.policy_preparation_days(&c, &professional.player, &"income_tax".into()),
         4
     );
     assert_eq!(
-        consensus.policy_preparation_days(&c, &consensus.player, "income_tax"),
+        consensus.policy_preparation_days(&c, &consensus.player, &"income_tax".into()),
         13
     );
     assert_eq!(professional.player_country().elite_support, 59);
@@ -241,7 +249,10 @@ fn successor_cabinet_closes_terms_cancels_requests_and_retains_commissioned_prog
     assert_eq!(state.terms[0].until, Some(15));
     assert!(state.pending.is_empty());
     assert_eq!(w.player_country().projects[0].due_day, due);
-    assert_eq!(w.policy_preparation_days(&c, &w.player, "energy"), 30);
+    assert_eq!(
+        w.policy_preparation_days(&c, &w.player, &"energy".into()),
+        30
+    );
     appoint(&mut w, &c, "finance", "professional");
     assert!(
         w.player_country()
@@ -308,7 +319,10 @@ fn dismissal_requires_current_power_costs_cash_and_restores_civil_service_prepar
     let before = w.player_country().accounts.treasury;
     w.issue(&c, action).unwrap();
     assert_eq!(w.player_country().accounts.treasury.0, before.0 - 10);
-    assert_eq!(w.policy_preparation_days(&c, &w.player, "income_tax"), 30);
+    assert_eq!(
+        w.policy_preparation_days(&c, &w.player, &"income_tax".into()),
+        30
+    );
     check(&w, &c);
 }
 #[test]

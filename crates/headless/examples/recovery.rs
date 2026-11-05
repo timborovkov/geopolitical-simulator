@@ -2,7 +2,10 @@
 //! This is a worked strategy, not a simulation bypass or a universal optimal AI.
 use sim_core::*;
 fn propose(world: &mut World, content: &Content, policy: &str, value: i32) {
-    if world.preview(content, &world.player, policy, value).is_ok() {
+    if world
+        .preview(content, &world.player, &policy.into(), value)
+        .is_ok()
+    {
         world
             .issue(
                 content,
@@ -45,7 +48,7 @@ fn play(
                 loans += 1;
             }
             if world
-                .preview(content, &world.player, "coalition", 1)
+                .preview(content, &world.player, &"coalition".into(), 1)
                 .is_err()
                 && let Some(pending) = world
                     .player_country()
@@ -55,7 +58,7 @@ fn play(
             {
                 world.advance(content, pending.decision_day - world.day)?;
             }
-            let preview = world.preview(content, &world.player, "coalition", 1)?;
+            let preview = world.preview(content, &world.player, &"coalition".into(), 1)?;
             world.issue(
                 content,
                 Action::Enact {

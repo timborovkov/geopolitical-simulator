@@ -252,7 +252,7 @@ fn accepted_local_funding_survives_a_costed_constitutional_successor_and_cannot_
     let mut w = start(&c, "AUR");
     // Build effective backing through ordinary agreements, without developer edits.
     for _ in 0..3 {
-        let preview = w.preview(&c, &w.player, "coalition", 1).unwrap();
+        let preview = w.preview(&c, &w.player, &"coalition".into(), 1).unwrap();
         w.issue(
             &c,
             Action::Enact {
@@ -309,7 +309,7 @@ fn pending_local_offers_lose_their_sponsor_without_cancelling_other_local_mandat
     c.validate().unwrap();
     let mut w = start(&c, "AUR");
     for _ in 0..3 {
-        let preview = w.preview(&c, &w.player, "coalition", 1).unwrap();
+        let preview = w.preview(&c, &w.player, &"coalition".into(), 1).unwrap();
         w.issue(
             &c,
             Action::Enact {

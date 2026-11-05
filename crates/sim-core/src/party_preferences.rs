@@ -3,9 +3,6 @@ use crate::*;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-#[serde(transparent)]
-pub struct PartyId(pub String);
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PreferredPolicyRange {
     pub min: i32,
@@ -13,7 +10,7 @@ pub struct PreferredPolicyRange {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PartyPolicyPosition {
-    pub policy: String,
+    pub policy: PolicyId,
     pub importance: u16,
     /// None is explicitly unknown; it does not mean a preferred level of zero.
     #[serde(deserialize_with = "required_preference")]
@@ -104,7 +101,7 @@ impl PartyPreferenceDefinition {
                 .ok_or("Party profile references absent country")?;
             if profile.party.0.trim().is_empty()
                 || profile.party.0.len() > 64
-                || !country.parties.iter().any(|p| p.id == profile.party.0)
+                || country.party(&profile.party).is_none()
                 || !profiles.insert((profile.country.clone(), profile.party.clone()))
                 || !attributed(&profile.source, &profile.source_version)
                 || profile.positions.len() != 3
@@ -145,11 +142,7 @@ impl PartyPreferenceDefinition {
         let expected: BTreeSet<_> = content
             .countries
             .iter()
-            .flat_map(|c| {
-                c.parties
-                    .iter()
-                    .map(|p| (c.id.clone(), PartyId(p.id.clone())))
-            })
+            .flat_map(|c| c.parties.iter().map(|p| (c.id.clone(), p.id.clone())))
             .collect();
         if profiles != expected {
             return Err(
@@ -212,7 +205,7 @@ impl PartyPreferenceDefinition {
             let profile = self
                 .profiles
                 .iter()
-                .find(|p| p.country == country.id && p.party.0 == party.id)
+                .find(|p| p.country == country.id && p.party == party.id)
                 .ok_or("Missing party position profile")?;
             let weight = match metric {
                 Some(PartyBackingMetric::Legislative) if country.coalition.contains(&party.id) => {
@@ -253,7 +246,7 @@ impl PartyPreferenceDefinition {
             weighted_known += u64::from(weight) * u64::from(known) * 10_000 / u64::from(importance);
             if details {
                 parties.push(PartyAlignmentContribution {
-                    party: PartyId(party.id.clone()),
+                    party: party.id.clone(),
                     weight,
                     known_importance: known,
                     total_importance: importance,

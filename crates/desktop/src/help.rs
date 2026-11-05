@@ -1,7 +1,7 @@
 //! Searchable rules/content reference. This view has no access to private World state.
 use crate::Tab;
 use eframe::egui;
-use sim_core::{Content, CountryId};
+use sim_core::{Content, CountryId, PolicyId};
 
 #[derive(Default)]
 pub struct Help {
@@ -11,7 +11,7 @@ pub struct Help {
 pub struct Destination {
     pub tab: Tab,
     pub country: Option<CountryId>,
-    pub policy: Option<String>,
+    pub policy: Option<PolicyId>,
 }
 struct Entry {
     title: String,
@@ -176,7 +176,9 @@ mod tests {
         assert!(entries.iter().any(|entry| matches(entry, "food imports")));
         let policy = entries
             .iter()
-            .find(|entry| entry.destination.policy.as_deref() == Some("agriculture"))
+            .find(|entry| {
+                entry.destination.policy.as_ref().map(PolicyId::as_str) == Some("agriculture")
+            })
             .unwrap();
         assert!(policy.destination.tab == Tab::Policies);
         assert!(policy.destination.country.is_none());

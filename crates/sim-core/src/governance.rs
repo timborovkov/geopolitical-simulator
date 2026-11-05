@@ -34,8 +34,9 @@ impl GovernmentDefinition {
             self.threshold, self.council_threshold, self.consent_days
         )
     }
-    pub fn check(&self, c: &Country, policy: &str, value: i32) -> Result<(), String> {
-        if policy == "coalition" {
+    /// Route categories also cover non-policy decisions; this does not look up a policy.
+    pub fn check(&self, c: &Country, decision: &str, value: i32) -> Result<(), String> {
+        if decision == "coalition" {
             return Ok(());
         }
         let support = if self.route == DecisionRoute::Legislature {
@@ -51,9 +52,9 @@ impl GovernmentDefinition {
                 c.council_support
             ));
         }
-        if self.route == DecisionRoute::RoyalDecree && matches!(policy, "services" | "welfare") {
+        if self.route == DecisionRoute::RoyalDecree && matches!(decision, "services" | "welfare") {
             let increase = value
-                - if policy == "services" {
+                - if decision == "services" {
                     c.services
                 } else {
                     c.welfare
@@ -91,7 +92,8 @@ impl World {
             .cloned()
             .collect();
         for project in due {
-            let result = government.check(&self.countries[id], &project.policy, project.value);
+            let result =
+                government.check(&self.countries[id], project.policy.as_str(), project.value);
             self.countries
                 .get_mut(id)
                 .expect("country")

@@ -22,7 +22,7 @@ fn propose(c: &Content, w: &mut World, year: u32, t: FiscalTargets) -> BudgetBil
 }
 fn backing(c: &Content, w: &mut World) {
     for _ in 0..2 {
-        let p = w.preview(c, &w.player, "coalition", 1).unwrap();
+        let p = w.preview(c, &w.player, &"coalition".into(), 1).unwrap();
         w.issue(
             c,
             Action::Enact {
@@ -68,7 +68,7 @@ fn a_supplementary_budget_reserves_then_funds_actual_programmes_and_replays_disp
     assert!(w.player_country().projects.is_empty());
     check(&c, &w);
     assert!(
-        w.preview(&c, &player, "income_tax", 30)
+        w.preview(&c, &player, &"income_tax".into(), 30)
             .unwrap_err()
             .contains("pending budget")
     );

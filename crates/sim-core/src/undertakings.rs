@@ -47,7 +47,7 @@ pub struct UndertakingTemplate {
     pub id: String,
     pub name: String,
     pub kind: UndertakingKind,
-    pub policy: Option<String>,
+    pub policy: Option<PolicyId>,
     pub direction: GoalDirection,
     pub delta: i32,
     pub review_days: u32,
@@ -67,8 +67,8 @@ pub struct UndertakingDefinition {
     pub source: String,
     pub source_version: String,
 }
-fn policy_field(policy: &str) -> Option<&'static str> {
-    match policy {
+fn policy_field(policy: &PolicyId) -> Option<&'static str> {
+    match policy.as_str() {
         "income_tax" => Some("income_tax"),
         "services" => Some("services"),
         "welfare" => Some("welfare"),
@@ -78,8 +78,8 @@ fn policy_field(policy: &str) -> Option<&'static str> {
         _ => None,
     }
 }
-fn policy_level(c: &Country, policy: &str) -> Option<i32> {
-    match policy {
+fn policy_level(c: &Country, policy: &PolicyId) -> Option<i32> {
+    match policy.as_str() {
         "income_tax" => Some(c.tax),
         "services" => Some(c.services),
         "welfare" => Some(c.welfare),
@@ -89,8 +89,8 @@ fn policy_level(c: &Country, policy: &str) -> Option<i32> {
         _ => None,
     }
 }
-fn target_in_range(content: &Content, policy: &str, value: i32) -> bool {
-    match policy {
+fn target_in_range(content: &Content, policy: &PolicyId, value: i32) -> bool {
+    match policy.as_str() {
         "energy" | "agriculture" => (0..=200).contains(&value),
         "administration" => (0..=100).contains(&value),
         _ => content
@@ -151,7 +151,7 @@ impl UndertakingDefinition {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PolicyDeliveryGoal {
-    pub policy: String,
+    pub policy: PolicyId,
     pub direction: GoalDirection,
     pub target: i32,
 }
@@ -779,12 +779,12 @@ impl World {
         &self,
         content: &Content,
         id: &CountryId,
-        policy: &str,
+        policy: &PolicyId,
         day: u32,
         before_command: u64,
     ) -> Result<i32, String> {
         let d = content.country(id).ok_or("Unknown country")?;
-        let mut level = match policy {
+        let mut level = match policy.as_str() {
             "income_tax" => d.tax,
             "services" => d.services,
             "welfare" => d.welfare,
@@ -794,7 +794,7 @@ impl World {
             _ => return Err("Unknown undertaking policy".into()),
         };
         if self.scenario == Scenario::FiscalSupplyCrisis && id == &self.player {
-            level = match policy {
+            level = match policy.as_str() {
                 "income_tax" => 10,
                 "services" => 18,
                 "welfare" => 12,

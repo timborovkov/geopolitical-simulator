@@ -144,7 +144,7 @@ fn coalition_and_party_leadership_keep_distinct_seeded_tradeoffs_and_advisory_un
     );
     assert!(
         world
-            .preview(&content, &world.player, "income_tax", 45)
+            .preview(&content, &world.player, &"income_tax".into(), 45)
             .unwrap()
             .explanation
             .contains("monthly political reviews")

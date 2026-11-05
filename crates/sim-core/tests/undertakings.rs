@@ -405,7 +405,7 @@ fn a_morning_constitutional_successor_closes_a_pledge_before_a_funded_project_de
     let mut c = content();
     let mut w = start(&c, "AUR");
     // Use source-defined timing so the two real processes meet on one day.
-    let due = w.preview(&c, &w.player, "energy", 1).unwrap().delay;
+    let due = w.preview(&c, &w.player, &"energy".into(), 1).unwrap().delay;
     let route = c
         .constitutions
         .as_mut()

@@ -1,4 +1,5 @@
 //! Versioned, validated content, separate from authoritative formulas.
+use crate::{PartyId, PolicyId};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -41,7 +42,7 @@ impl Regime {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PartyDefinition {
-    pub id: String,
+    pub id: PartyId,
     pub name: String,
     pub leader: String,
     pub ideology: String,
@@ -69,8 +70,8 @@ pub struct CountryDefinition {
     pub approval: i32,
     pub longitude: i32,
     pub latitude: i32,
-    pub ruling_party: String,
-    pub coalition: Vec<String>,
+    pub ruling_party: PartyId,
+    pub coalition: Vec<PartyId>,
     pub parties: Vec<PartyDefinition>,
     pub households: Vec<crate::HouseholdDefinition>,
     pub government: crate::GovernmentDefinition,
@@ -78,9 +79,15 @@ pub struct CountryDefinition {
     pub identity_source: String,
     pub economic_source: String,
 }
+impl CountryDefinition {
+    /// Resolve a stable party reference within this country's public roster.
+    pub fn party(&self, id: &PartyId) -> Option<&PartyDefinition> {
+        self.parties.iter().find(|party| &party.id == id)
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PolicyDefinition {
-    pub id: String,
+    pub id: PolicyId,
     pub name: String,
     pub min: i32,
     pub max: i32,
@@ -302,8 +309,8 @@ impl Content {
     pub fn country(&self, id: &CountryId) -> Option<&CountryDefinition> {
         self.countries.iter().find(|c| &c.id == id)
     }
-    pub fn policy(&self, id: &str) -> Option<&PolicyDefinition> {
-        self.policies.iter().find(|p| p.id == id)
+    pub fn policy(&self, id: &PolicyId) -> Option<&PolicyDefinition> {
+        self.policies.iter().find(|p| &p.id == id)
     }
     pub fn hash(&self) -> u64 {
         crate::stable_hash(&serde_json::to_vec(self).expect("content serialization"))

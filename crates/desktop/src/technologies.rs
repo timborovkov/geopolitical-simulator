@@ -2,7 +2,7 @@ use eframe::egui::{Color32, Ui};
 use sim_core::*;
 
 /// The policy workspace has already enforced its controlled-government view.
-pub fn show(ui: &mut Ui, content: &Content, world: &World, policy: &str) {
+pub fn show(ui: &mut Ui, content: &Content, world: &World, policy: &PolicyId) {
     if content.technologies.is_none() {
         return;
     }
@@ -68,7 +68,7 @@ mod tests {
                     },
                     |ctx| {
                         egui::CentralPanel::default()
-                            .show(ctx, |ui| show(ui, &content, &world, "energy"));
+                            .show(ctx, |ui| show(ui, &content, &world, &"energy".into()));
                     },
                 );
                 let labels = output

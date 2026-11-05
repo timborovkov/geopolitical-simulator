@@ -199,7 +199,7 @@ fn public_reports_freeze_bookmark_references_without_private_state_or_future_tra
             break;
         }
         let delay = changed
-            .preview(&c, &changed.player, "coalition", 1)
+            .preview(&c, &changed.player, &"coalition".into(), 1)
             .unwrap()
             .delay;
         changed

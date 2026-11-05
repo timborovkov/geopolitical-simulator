@@ -87,7 +87,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, amount: i64, chart: &
     if world
         .governing_rules(content, &world.player)
         .is_ok_and(|government| government.check(country, "borrow", 0).is_err())
-        && content.policy("coalition").is_some()
+        && content.policy(&"coalition".into()).is_some()
     {
         ui.colored_label(
             Color32::LIGHT_YELLOW,

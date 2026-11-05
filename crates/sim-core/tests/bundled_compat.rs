@@ -419,7 +419,7 @@ fn earlier_pending_minister_recovers_without_electoral_rules_or_changed_consent(
     restored.advance(&resolved, 14).unwrap();
     assert_eq!(restored.hash(), 0x8061566401cf6588);
     assert_eq!(
-        restored.policy_preparation_days(&resolved, &restored.player, "energy"),
+        restored.policy_preparation_days(&resolved, &restored.player, &"energy".into()),
         4
     );
     assert_eq!(std::fs::read(&backup).unwrap(), earlier_bytes);
@@ -476,7 +476,7 @@ fn default_early_poll_preserves_a_retained_cabinet_and_its_commissioned_programm
         1
     );
     assert_eq!(
-        world.policy_preparation_days(&content, &world.player, "energy"),
+        world.policy_preparation_days(&content, &world.player, &"energy".into()),
         4
     );
     assert_eq!(

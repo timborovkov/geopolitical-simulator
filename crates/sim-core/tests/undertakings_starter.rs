@@ -27,9 +27,9 @@ fn the_undertaking_starter_preserves_all_country_observations_and_territorial_ri
     assert!(c.description.contains("not historical campaign promises"));
     for country in &c.countries {
         let mut w = World::new(&c, country.id.clone(), 17).unwrap();
-        if let Err(reason) = w.preview(&c, &w.player, "administration", 1) {
+        if let Err(reason) = w.preview(&c, &w.player, &"administration".into(), 1) {
             assert!(reason.contains("Negotiate"), "{}: {reason}", country.id.0);
-            let support = w.preview(&c, &w.player, "coalition", 1).unwrap();
+            let support = w.preview(&c, &w.player, &"coalition".into(), 1).unwrap();
             w.issue(
                 &c,
                 Action::Enact {

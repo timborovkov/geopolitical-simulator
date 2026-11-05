@@ -68,7 +68,7 @@ fn each_seeded_government_can_issue_a_dated_loan_through_its_ordinary_authority_
                 break;
             }
             let support = world
-                .preview(&content, &world.player, "coalition", 1)
+                .preview(&content, &world.player, &"coalition".into(), 1)
                 .unwrap();
             world
                 .issue(

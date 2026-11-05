@@ -9,7 +9,7 @@ pub struct PortfolioDefinition {
     pub id: OfficeId,
     pub country: CountryId,
     pub title: String,
-    pub policies: Vec<String>,
+    pub policies: Vec<PolicyId>,
     pub minimum_skill: i32,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -191,7 +191,12 @@ pub struct AppointmentPreview {
     pub route: String,
 }
 impl World {
-    pub fn policy_preparation_days(&self, content: &Content, id: &CountryId, policy: &str) -> u32 {
+    pub fn policy_preparation_days(
+        &self,
+        content: &Content,
+        id: &CountryId,
+        policy: &PolicyId,
+    ) -> u32 {
         let Some(rules) = &content.cabinet else {
             return 0;
         };

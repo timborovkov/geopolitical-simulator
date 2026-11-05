@@ -206,15 +206,15 @@ fn play(
                     }
                 }
                 "plan-policy" => {
-                    let policy=*words.get(1).ok_or("Missing policy ID")?;
+                    let policy:PolicyId=(*words.get(1).ok_or("Missing policy ID")?).into();
                     let value=number(words.get(2))?;
-                    let plan=world.policy_funding_plan(content,policy,value)?;
-                    println!("Funding comparison for {} at proposed value {value}: implementation cost {}m; spendable cash {}m; actual retained cash {}m; spendable shortfall {}m.",content.policy(policy).expect("validated policy").name,plan.preview.cost.0,plan.available_cash.0,plan.retained_cash.0,plan.shortfall.0);
+                    let plan=world.policy_funding_plan(content,&policy,value)?;
+                    println!("Funding comparison for {} at proposed value {value}: implementation cost {}m; spendable cash {}m; actual retained cash {}m; spendable shortfall {}m.",content.policy(&policy).expect("validated policy").name,plan.preview.cost.0,plan.available_cash.0,plan.retained_cash.0,plan.shortfall.0);
                     println!("Authority: {}. Conditional consent {} days; delivery lag {} days; upfront {}m and remaining reservation {}m.",plan.preview.route,plan.preview.consent_delay,plan.preview.delay,plan.preview.upfront_payment.0,plan.preview.cost.0-plan.preview.upfront_payment.0);
                     println!("This comparison approves no order or funding. Future receipts and retention targets are not cash. Release retained cash before proposing; actual funding and authority are rechecked.");
                 }
                 "preview" | "enact" => {
-                    let policy = words.get(1).ok_or("Missing policy ID")?.to_string();
+                    let policy: PolicyId = (*words.get(1).ok_or("Missing policy ID")?).into();
                     let value = number(words.get(2))?;
                     if words[0] == "preview" {
                         let mut preview = world.preview(content, &world.player, &policy, value)?;
@@ -821,11 +821,11 @@ fn play(
                     } else {println!("This pack has no sovereignty/recognition reference catalogue; absence is unknown.");}
                 }
                 "technologies" => {
-                    let selected=words.get(1).copied();
-                    if let Some(policy)=selected { content.policy(policy).ok_or("Unknown policy")?; }
+                    let selected=words.get(1).map(|id|PolicyId::from(*id));
+                    if let Some(policy)=&selected { content.policy(policy).ok_or("Unknown policy")?; }
                     if content.technologies.is_none() { println!("This campaign has no technology prerequisites."); }
                     else {
-                        for policy in content.policies.iter().filter(|p|selected.is_none_or(|id|id==p.id)) {
+                        for policy in content.policies.iter().filter(|p|selected.as_ref().is_none_or(|id|id==&p.id)) {
                             println!("{}:",policy.name);
                             let requirements=world.policy_technology_eligibility(content,&world.player,&policy.id)?;
                             if requirements.is_empty() {println!("  No technology prerequisite in this scenario.");}
@@ -1137,7 +1137,7 @@ fn play(
                     if let Some(rules) = &content.party_preferences {
                         println!("Party preference model {}@{}; authored/reference positions, independent of ideology labels.", rules.source, rules.source_version);
                         for profile in rules.profiles.iter().filter(|p| p.country == country) {
-                            let party = definition.parties.iter().find(|p| p.id == profile.party.0).ok_or("Missing party")?;
+                            let party = definition.party(&profile.party).ok_or("Missing party")?;
                             println!("{} [{}] · {:?} · {}@{}", party.name, party.id, profile.quality, profile.source, profile.source_version);
                             for position in &profile.positions { println!("{} · preferred {} · relative importance {}", position.policy, position.preferred.as_ref().map_or_else(|| "Unknown".into(), |range| format!("{}..{}", range.min, range.max)), position.importance); }
                         }

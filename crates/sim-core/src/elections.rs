@@ -102,8 +102,8 @@ pub struct ElectoralPoll {
     pub request: Option<ElectionRequestId>,
     pub government_before: u32,
     pub government_after: u32,
-    pub governing_party: String,
-    pub seats: BTreeMap<String, u16>,
+    pub governing_party: PartyId,
+    pub seats: BTreeMap<PartyId, u16>,
     pub contested: bool,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -596,8 +596,8 @@ impl World {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PublishedPoll {
     pub day: u32,
-    pub governing_party: String,
-    pub seats: BTreeMap<String, u16>,
+    pub governing_party: PartyId,
+    pub seats: BTreeMap<PartyId, u16>,
     pub contested: bool,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

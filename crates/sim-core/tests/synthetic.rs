@@ -16,7 +16,7 @@ fn synthetic_world_is_independent_of_historical_identities_and_runs_every_govern
         assert_eq!(d.population, 1_000_000);
         assert_eq!(d.gdp, 100_000);
         let mut world = World::new(&content, d.id.clone(), 17).unwrap();
-        let preview = world.preview(&content, &d.id, "energy", 1).unwrap();
+        let preview = world.preview(&content, &d.id, &"energy".into(), 1).unwrap();
         assert_eq!(preview.consent_delay, d.government.consent_days);
         routes.push(d.government.route.clone());
         world

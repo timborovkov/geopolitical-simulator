@@ -10,12 +10,12 @@ pub struct Panel {
 struct Draft {
     country: CountryId,
     content_hash: u64,
-    policy: String,
+    policy: PolicyId,
     value: i32,
 }
 pub enum Choice {
     Command(Action),
-    Compare { policy: String, value: i32 },
+    Compare { policy: PolicyId, value: i32 },
 }
 
 impl Default for Panel {
@@ -33,7 +33,7 @@ impl Panel {
         &mut self,
         content: &Content,
         world: &World,
-        policy: &str,
+        policy: &PolicyId,
         value: i32,
     ) -> Result<(), String> {
         let rules = content
@@ -57,7 +57,7 @@ impl Panel {
         self.plan = Some(Draft {
             country: world.player.clone(),
             content_hash: world.content_hash,
-            policy: policy.into(),
+            policy: policy.clone(),
             value,
         });
         Ok(())
@@ -199,7 +199,9 @@ mod tests {
             .unwrap();
         let before = world.clone();
         let mut panel = Panel::default();
-        panel.prepare(&content, &world, "income_tax", 30).unwrap();
+        panel
+            .prepare(&content, &world, &"income_tax".into(), 30)
+            .unwrap();
         assert_eq!(panel.target, 20);
         let ctx = egui::Context::default();
         let output = ctx.run(egui::RawInput::default(), |ctx| {
@@ -228,7 +230,11 @@ mod tests {
         assert!(panel.plan.is_none());
         let old = Content::debt_bundled().unwrap();
         let old_world = World::new(&old, CountryId("GBR".into()), 17).unwrap();
-        assert!(panel.prepare(&old, &old_world, "income_tax", 31).is_err());
+        assert!(
+            panel
+                .prepare(&old, &old_world, &"income_tax".into(), 31)
+                .is_err()
+        );
     }
     #[test]
     fn treasury_shows_actual_cash_tradeoffs_and_release_at_both_scales() {

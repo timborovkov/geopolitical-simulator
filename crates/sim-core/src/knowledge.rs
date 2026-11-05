@@ -46,8 +46,8 @@ pub struct PublicCountryReport {
     /// None means no statistical release yet; absence is not a zero observation.
     pub latest: Option<PublishedObservation>,
     pub history: Vec<PublishedObservation>,
-    pub seats: BTreeMap<String, u16>,
-    pub governing_parties: Vec<String>,
+    pub seats: BTreeMap<PartyId, u16>,
+    pub governing_parties: Vec<PartyId>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PlayerView {

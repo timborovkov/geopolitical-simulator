@@ -6,7 +6,7 @@ use sim_core::*;
 
 pub enum Navigation {
     Open(Tab),
-    Draft { policy: String, value: i32 },
+    Draft { policy: PolicyId, value: i32 },
     Advance(u32),
 }
 #[derive(Default)]
@@ -14,7 +14,7 @@ pub struct Panel {
     selected: Option<CommitmentId>,
     latest_seen: Option<CommitmentId>,
 }
-fn suggestion(content: &Content, world: &World) -> Option<(&'static str, i32, String)> {
+fn suggestion(content: &Content, world: &World) -> Option<(PolicyId, i32, String)> {
     let c = world.player_country();
     let balance = world
         .funding_outlook(content, 0, None)
@@ -59,7 +59,9 @@ fn suggestion(content: &Content, world: &World) -> Option<(&'static str, i32, St
     } else {
         return None;
     };
-    content.policy(candidate.0).map(|_| candidate)
+    let (policy, value, reason) = candidate;
+    let policy = PolicyId::from(policy);
+    content.policy(&policy).map(|_| (policy, value, reason))
 }
 impl Panel {
     pub fn show(
@@ -147,9 +149,9 @@ impl Panel {
             ui.strong("2 · Compare a decision before approving it");
             if let Some((policy, value, reason)) = suggestion(content, world) {
                 ui.label(reason);
-                match world.preview(content, &world.player, policy, value) {
+                match world.preview(content, &world.player, &policy, value) {
                     Ok(preview) => {
-                        ui.label(format!("One option to compare: {} · {}m implementation cost · {} days to scheduled operation. A proposal would pay {}m upfront; remaining funding and authority still matter.",content.policy(policy).unwrap().name,preview.cost.0,preview.delay,preview.upfront_payment.0));
+                        ui.label(format!("One option to compare: {} · {}m implementation cost · {} days to scheduled operation. A proposal would pay {}m upfront; remaining funding and authority still matter.",content.policy(&policy).unwrap().name,preview.cost.0,preview.delay,preview.upfront_payment.0));
                     }
                     Err(reason) => {
                         ui.label(format!("This option is currently blocked: {reason}. Inspect the standard decision screen to see its requirements."));
@@ -165,11 +167,11 @@ impl Panel {
                     }
                 }
                 if ui
-                    .button(format!("Compare {}", content.policy(policy).unwrap().name))
+                    .button(format!("Compare {}", content.policy(&policy).unwrap().name))
                     .clicked()
                 {
                     navigation = Some(Navigation::Draft {
-                        policy: policy.into(),
+                        policy: policy.clone(),
                         value,
                     });
                 }

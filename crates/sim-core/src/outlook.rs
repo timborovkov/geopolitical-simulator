@@ -6,7 +6,7 @@ use crate::*;
 /// proposal nor a claim on future receipts; submission still needs full cash.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PolicyFundingPlan {
-    pub policy: String,
+    pub policy: PolicyId,
     pub value: i32,
     pub preview: PolicyPreview,
     pub available_cash: Money,
@@ -17,7 +17,7 @@ impl World {
     pub fn policy_funding_plan(
         &self,
         content: &Content,
-        policy: &str,
+        policy: &PolicyId,
         value: i32,
     ) -> Result<PolicyFundingPlan, String> {
         if self.content_hash != content.hash() || self.rules != content.rules {
@@ -31,7 +31,7 @@ impl World {
             return Err("Invalid available treasury for funding plan".into());
         }
         Ok(PolicyFundingPlan {
-            policy: policy.into(),
+            policy: policy.clone(),
             value,
             shortfall: Money((preview.cost.0 - available_cash.0).max(0)),
             preview,

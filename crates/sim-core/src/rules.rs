@@ -6,7 +6,7 @@ impl World {
         &self,
         content: &Content,
         country: &CountryId,
-        policy: &str,
+        policy: &PolicyId,
         value: i32,
     ) -> Result<PolicyPreview, String> {
         self.preview_policy(content, country, policy, value, false)
@@ -15,7 +15,7 @@ impl World {
         &self,
         content: &Content,
         country: &CountryId,
-        policy: &str,
+        policy: &PolicyId,
         value: i32,
         consent_satisfied: bool,
     ) -> Result<PolicyPreview, String> {
@@ -26,7 +26,7 @@ impl World {
         &self,
         content: &Content,
         country: &CountryId,
-        policy: &str,
+        policy: &PolicyId,
         value: i32,
         consent_satisfied: bool,
         require_cash: bool,
@@ -40,7 +40,7 @@ impl World {
         if !(p.min..=p.max).contains(&value) {
             return Err(format!("Value must be {}..{}", p.min, p.max));
         }
-        if c.projects.iter().any(|p| p.policy == policy) {
+        if c.projects.iter().any(|p| &p.policy == policy) {
             return Err("This policy already has a pending commitment".into());
         }
         if FiscalTargets::is_fiscal(policy)
@@ -48,7 +48,7 @@ impl World {
         {
             return Err("A pending budget reserves the fiscal policies; withdraw it before proposing a separate change".into());
         }
-        government.check(c, policy, value)?;
+        government.check(c, policy.as_str(), value)?;
         self.check_policy_technologies(content, country, policy)?;
         if policy == "energy" && c.energy_capacity >= 200
             || policy == "agriculture" && c.food_capacity >= 200
@@ -61,7 +61,7 @@ impl World {
         {
             return Err("Already at the program's capacity ceiling".into());
         }
-        let current = match policy {
+        let current = match policy.as_str() {
             "income_tax" => c.tax,
             "services" => c.services,
             "welfare" => c.welfare,
@@ -103,7 +103,7 @@ impl World {
         }
         let party_feedback = if FiscalTargets::is_fiscal(policy) {
             let mut targets = FiscalTargets::current(c);
-            match policy {
+            match policy.as_str() {
                 "income_tax" => targets.income_tax = value,
                 "services" => targets.services = value,
                 "welfare" => targets.welfare = value,
@@ -1286,11 +1286,11 @@ impl World {
 pub(crate) fn policy_forecast(
     d: &CountryDefinition,
     c: &Country,
-    policy: &str,
+    policy: &PolicyId,
     value: i32,
     taxes: Option<&IncomeTaxDefinition>,
 ) -> (Money, Vec<HouseholdImpact>) {
-    if matches!(policy, "income_tax" | "administration")
+    if matches!(policy.as_str(), "income_tax" | "administration")
         && let Some(taxes) = taxes
     {
         let (planned_tax, planned_administration) = if policy == "income_tax" {
@@ -1331,7 +1331,7 @@ pub(crate) fn policy_forecast(
         );
         return (annual, impacts);
     }
-    let annual = match policy {
+    let annual = match policy.as_str() {
         "income_tax" => {
             -(d.gdp * 70 / 100 * i64::from(value - c.tax) * i64::from(c.administration) / 10000)
         }
@@ -1345,7 +1345,7 @@ pub(crate) fn policy_forecast(
         .households
         .iter()
         .map(|h| {
-            let change = match policy {
+            let change = match policy.as_str() {
                 "income_tax" => {
                     -(daily * 70 / 100
                         * h.income_share

@@ -20,7 +20,7 @@ pub struct TechnologyDefinition {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PolicyTechnologyRequirement {
-    pub policy: String,
+    pub policy: PolicyId,
     pub technologies: Vec<TechnologyId>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -84,14 +84,17 @@ impl TechnologyRules {
     fn eligibility(
         &self,
         country: &CountryId,
-        policy: &str,
+        policy: &PolicyId,
         day: u32,
     ) -> Result<Vec<TechnologyEligibility>, String> {
         if day > MAX_DAY {
             return Err("Technology eligibility date exceeds the campaign calendar".into());
         }
         let today: CivilDate = date(day).parse()?;
-        let requirement = self.policy_requirements.iter().find(|r| r.policy == policy);
+        let requirement = self
+            .policy_requirements
+            .iter()
+            .find(|r| &r.policy == policy);
         requirement
             .into_iter()
             .flat_map(|r| &r.technologies)
@@ -112,7 +115,7 @@ impl TechnologyRules {
     pub(crate) fn check_at(
         &self,
         country: &CountryId,
-        policy: &str,
+        policy: &PolicyId,
         day: u32,
     ) -> Result<(), String> {
         self.eligibility(country, policy, day)?
@@ -155,7 +158,7 @@ impl World {
         &self,
         content: &Content,
         country: &CountryId,
-        policy: &str,
+        policy: &PolicyId,
     ) -> Result<Vec<TechnologyEligibility>, String> {
         if self.content_hash != content.hash() || self.rules != content.rules {
             return Err("Technology eligibility requires the campaign's exact content".into());
@@ -175,7 +178,7 @@ impl World {
         &self,
         content: &Content,
         country: &CountryId,
-        policy: &str,
+        policy: &PolicyId,
     ) -> Result<(), String> {
         if content.technologies.is_none() {
             return Ok(());

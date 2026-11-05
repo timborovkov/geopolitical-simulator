@@ -20,6 +20,8 @@ The preserved `initial-2000-debt-maturities.json` uses **content schema 15 / rul
 
 The preserved `initial-2000-fiscal-ai.json` uses content/rules 14 and retains perpetual new loans with national-funding fiscal AI. The income-band (13), fiscal (12), undertaking (11), territorial (10), expanded-observation/electoral (8), cabinet (7), commitment (6), constitutional (5), financing (4), market (3) and classic (2) packs also remain available. All twenty retain the 15-country political roster, 34 parties/governing bodies, eight opening regime configurations, four household groups per country and seven policies. Territorial models retain thirty authored budget authorities without historical regional geography claims. Both clients embed all twenty. Saves resolve by exact content hash; `--content FILE` pins a local pack and unknown hashes require their original file.
 
+Policy and party references use distinct Rust types while retaining their existing JSON strings, including party IDs used as seat-map keys. Definition lookup and policy commands target these IDs through renames and roster reordering. No pack definitions or snapshot versions change for this typing boundary.
+
 Rules 2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19/20/21/22 write snapshot formats 3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19/20/21/22/23 respectively; rules 9 is available in the fictional subnational fixture. Classic rules 2 also accept compatible format-2 snapshots. Loading retains the original rules. Version-1 packs/saves remain unsupported.
 
 ## Coverage and identity

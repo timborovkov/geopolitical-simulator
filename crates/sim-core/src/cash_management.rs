@@ -285,7 +285,8 @@ impl World {
             vec![]
         };
         for (policy, value) in candidates {
-            let Ok(preview) = self.preview_policy_funding(content, id, policy, value, false, false)
+            let Ok(preview) =
+                self.preview_policy_funding(content, id, &policy.into(), value, false, false)
             else {
                 continue;
             };

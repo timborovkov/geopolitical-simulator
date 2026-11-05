@@ -26,7 +26,7 @@ fn reference_body(ui: &mut egui::Ui, content: &Content, country: &CountryId) {
         rules.source, rules.source_version
     ));
     for profile in rules.profiles.iter().filter(|p| &p.country == country) {
-        let Some(party) = definition.parties.iter().find(|p| p.id == profile.party.0) else {
+        let Some(party) = definition.party(&profile.party) else {
             continue;
         };
         ui.strong(format!("{} [{}]", party.name, profile.party.0));
@@ -91,7 +91,7 @@ fn alignment_body(ui: &mut egui::Ui, content: &Content, report: &PartyAlignmentR
         for row in &report.parties {
             let name = content
                 .country(&report.country)
-                .and_then(|c| c.parties.iter().find(|p| p.id == row.party.0))
+                .and_then(|c| c.party(&row.party))
                 .map_or(row.party.0.as_str(), |p| p.name.as_str());
             ui.label(format!(
                 "{name}: sponsor weight {} · {}",

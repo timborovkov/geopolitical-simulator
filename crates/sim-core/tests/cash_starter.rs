@@ -66,17 +66,26 @@ fn seeded_cash_recovery_respects_actual_receipts_and_keeps_zero_receipt_targets_
     for d in &content.countries {
         let mut w = World::new(&content, d.id.clone(), 17).unwrap();
         let rate = (w.player_country().tax + 1).min(45);
-        let (policy, value) = if w.preview(&content, &w.player, "income_tax", rate).is_ok() {
+        let (policy, value) = if w
+            .preview(&content, &w.player, &"income_tax".into(), rate)
+            .is_ok()
+        {
             ("income_tax", rate)
         } else {
             ("coalition", 1)
         };
-        let cost = w.preview(&content, &w.player, policy, value).unwrap().cost;
+        let cost = w
+            .preview(&content, &w.player, &policy.into(), value)
+            .unwrap()
+            .cost;
         let available = w.player_country().available_cash();
         w.issue(&content, Action::Repay { amount: available })
             .unwrap();
         assert_eq!(w.player_country().available_cash(), Money(0));
-        assert!(w.preview(&content, &w.player, policy, value).is_err());
+        assert!(
+            w.preview(&content, &w.player, &policy.into(), value)
+                .is_err()
+        );
         let request = CashHoldId(w.next_command);
         let cash = w.player_country().accounts.treasury;
         let debt = w.player_country().debt;
@@ -102,7 +111,10 @@ fn seeded_cash_recovery_respects_actual_receipts_and_keeps_zero_receipt_targets_
             no_receipts += 1;
             assert_eq!(w.player_country().retained_cash(), Money(0));
             assert_eq!(w.player_country().available_cash(), Money(0));
-            assert!(w.preview(&content, &w.player, policy, value).is_err());
+            assert!(
+                w.preview(&content, &w.player, &policy.into(), value)
+                    .is_err()
+            );
             assert!(
                 w.player_country().cash_management.as_ref().unwrap().records[0]
                     .funded_notice_day
@@ -137,7 +149,9 @@ fn seeded_cash_recovery_respects_actual_receipts_and_keeps_zero_receipt_targets_
             Money(available.0 + cost.0)
         );
         assert_eq!(w.player_country().arrears, arrears);
-        let preview = w.preview(&content, &w.player, policy, value).unwrap();
+        let preview = w
+            .preview(&content, &w.player, &policy.into(), value)
+            .unwrap();
         w.issue(
             &content,
             Action::Enact {

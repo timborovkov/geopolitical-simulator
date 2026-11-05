@@ -147,7 +147,7 @@ fn actual_private_income_withholding_reconciles_and_public_payments_are_outside_
 #[test]
 fn policy_delivery_changes_the_standard_rate_and_forecasts_share_the_collection_model() {
     let (c, mut w) = setup();
-    let p = w.preview(&c, &w.player, "income_tax", 30).unwrap();
+    let p = w.preview(&c, &w.player, &"income_tax".into(), 30).unwrap();
     let base = w
         .player_country()
         .forecast(c.country(&w.player).unwrap(), c.income_taxes.as_ref());
@@ -223,7 +223,9 @@ fn same_day_developer_edits_do_not_rewrite_the_settled_rate_or_collection_capaci
 #[test]
 fn funded_collection_capacity_improves_withholding_only_when_it_operates() {
     let (c, mut w) = setup();
-    let p = w.preview(&c, &w.player, "administration", 1).unwrap();
+    let p = w
+        .preview(&c, &w.player, &"administration".into(), 1)
+        .unwrap();
     let d = c.country(&w.player).unwrap();
     let before = w.player_country().forecast(d, c.income_taxes.as_ref());
     let mut planned = w.player_country().clone();

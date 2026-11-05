@@ -212,7 +212,7 @@ fn a_costed_contested_constitutional_change_can_supersede_the_electoral_mandate(
     c.elections.as_mut().unwrap().minimum_interval_days = 1;
     let mut w = start(&c, "AUR");
     for _ in 0..3 {
-        let p = w.preview(&c, &w.player, "coalition", 1).unwrap();
+        let p = w.preview(&c, &w.player, &"coalition".into(), 1).unwrap();
         w.issue(
             &c,
             Action::Enact {
@@ -380,7 +380,8 @@ fn an_announced_poll_on_a_confidence_review_day_actually_counts_the_seats() {
     assert_eq!(state.polls.len(), 1);
     assert_eq!(state.polls[0].day, 180);
     assert_ne!(
-        state.polls[0].seats["AUR-1"], 40,
+        state.polls[0].seats[&"AUR-1".into()],
+        40,
         "A recorded poll must run the allocation, not retain the opening seats after a confidence deferral"
     );
     w.advance(&c, 1).unwrap();

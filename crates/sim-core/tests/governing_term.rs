@@ -23,7 +23,7 @@ fn source_observations_and_household_definitions_are_validated() {
 #[test]
 fn proposal_reserves_cash_consent_pays_capital_and_rechecks_authority() {
     let (c, mut w) = setup("GBR");
-    let preview = w.preview(&c, &w.player, "energy", 1).unwrap();
+    let preview = w.preview(&c, &w.player, &"energy".into(), 1).unwrap();
     let before = w.player_country().accounts.treasury.0;
     w.issue(
         &c,
@@ -83,20 +83,23 @@ fn royal_party_and_parliamentary_approval_differ() {
     let (c, mut uk) = setup("GBR");
     let id = uk.player.clone();
     uk.countries.get_mut(&id).unwrap().legislative_support = 50;
-    assert!(uk.preview(&c, &id, "energy", 1).is_err());
+    assert!(uk.preview(&c, &id, &"energy".into(), 1).is_err());
     let (c, mut china) = setup("CHN");
     let id = china.player.clone();
     china.countries.get_mut(&id).unwrap().council_support = 49;
-    assert!(china.preview(&c, &id, "energy", 1).is_err());
+    assert!(china.preview(&c, &id, &"energy".into(), 1).is_err());
     let (c, mut saudi) = setup("SAU");
     let id = saudi.player.clone();
     saudi.countries.get_mut(&id).unwrap().council_support = 60;
-    assert!(saudi.preview(&c, &id, "welfare", 9).is_err());
+    assert!(saudi.preview(&c, &id, &"welfare".into(), 9).is_err());
     assert_eq!(
-        saudi.preview(&c, &id, "welfare", 7).unwrap().consent_delay,
+        saudi
+            .preview(&c, &id, &"welfare".into(), 7)
+            .unwrap()
+            .consent_delay,
         0
     );
-    assert!(saudi.preview(&c, &id, "coalition", 1).is_ok());
+    assert!(saudi.preview(&c, &id, &"coalition".into(), 1).is_ok());
 }
 #[test]
 fn welfare_reaches_target_groups_and_taxes_change_disposable_income() {

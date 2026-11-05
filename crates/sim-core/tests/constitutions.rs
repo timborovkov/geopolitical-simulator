@@ -10,7 +10,7 @@ fn setup() -> (Content, World) {
 }
 fn support(world: &mut World, content: &Content) {
     let delay = world
-        .preview(content, &world.player, "coalition", 1)
+        .preview(content, &world.player, &"coalition".into(), 1)
         .unwrap()
         .delay;
     world
@@ -522,7 +522,9 @@ fn every_configured_form_applies_its_policy_consent_borrowing_and_review_clocks(
                 .leadership_review_days
                 .map(|days| world.day + days)
         );
-        let preview = world.preview(&content, &world.player, "energy", 1).unwrap();
+        let preview = world
+            .preview(&content, &world.player, &"energy".into(), 1)
+            .unwrap();
         assert_eq!(preview.consent_delay, template.government.consent_days);
         world
             .issue(

@@ -19,18 +19,18 @@ fn date_restriction_rejects_without_payment_then_commissions_through_normal_fund
     let mut w = World::new(&c, CountryId("AUR".into()), 17).unwrap();
     let hash = w.hash();
     let rows = w
-        .policy_technology_eligibility(&c, &w.player, "energy")
+        .policy_technology_eligibility(&c, &w.player, &"energy".into())
         .unwrap();
     assert_eq!(rows.len(), 1);
     assert!(rows[0].country_eligible);
     assert!(!rows[0].date_eligible);
     assert!(!rows[0].available());
     assert!(
-        w.preview(&c, &w.player, "energy", 1)
+        w.preview(&c, &w.player, &"energy".into(), 1)
             .unwrap_err()
             .contains("2000-01-31")
     );
-    assert!(w.policy_funding_plan(&c, "energy", 1).is_err());
+    assert!(w.policy_funding_plan(&c, &"energy".into(), 1).is_err());
     assert!(
         w.issue(
             &c,
@@ -48,12 +48,12 @@ fn date_restriction_rejects_without_payment_then_commissions_through_normal_fund
         "query and rejected order must not pay fees or reserve cash"
     );
     w.advance(&c, 29).unwrap();
-    assert!(w.preview(&c, &w.player, "energy", 1).is_err());
+    assert!(w.preview(&c, &w.player, &"energy".into(), 1).is_err());
     let capacity = w.player_country().energy_capacity;
     assert_eq!(w.advance_to_event(&c).unwrap(), 1);
     assert_eq!(w.day, 30);
     assert_eq!(w.player_country().energy_capacity, capacity);
-    let p = w.preview(&c, &w.player, "energy", 1).unwrap();
+    let p = w.preview(&c, &w.player, &"energy".into(), 1).unwrap();
     let treasury = w.player_country().accounts.treasury;
     w.issue(
         &c,
@@ -99,30 +99,30 @@ fn all_prerequisites_and_country_eligibility_apply_and_queries_use_exact_public_
     w.advance(&c, 30).unwrap();
     let hash = w.hash();
     let rows = w
-        .policy_technology_eligibility(&c, &w.player, "energy")
+        .policy_technology_eligibility(&c, &w.player, &"energy".into())
         .unwrap();
     assert!(!rows[0].country_eligible);
     assert!(rows[0].date_eligible);
     assert!(rows[1].available());
     assert!(
-        w.preview(&c, &w.player, "energy", 1)
+        w.preview(&c, &w.player, &"energy".into(), 1)
             .unwrap_err()
             .contains("not eligible for this country")
     );
     assert!(
-        w.policy_technology_eligibility(&c, &CountryId("BOR".into()), "energy")
+        w.policy_technology_eligibility(&c, &CountryId("BOR".into()), &"energy".into())
             .unwrap()
             .iter()
             .all(TechnologyEligibility::available)
     );
     assert!(
-        w.policy_technology_eligibility(&c, &CountryId("MISSING".into()), "energy")
+        w.policy_technology_eligibility(&c, &CountryId("MISSING".into()), &"energy".into())
             .is_err()
     );
     let mut wrong = c.clone();
     wrong.name.push('!');
     assert!(
-        w.policy_technology_eligibility(&wrong, &w.player, "energy")
+        w.policy_technology_eligibility(&wrong, &w.player, &"energy".into())
             .is_err()
     );
     assert_eq!(w.hash(), hash);
@@ -133,12 +133,12 @@ fn all_prerequisites_and_country_eligibility_apply_and_queries_use_exact_public_
     let mut w = World::new(&c, CountryId("AUR".into()), 17).unwrap();
     w.advance(&c, 30).unwrap();
     assert!(
-        w.preview(&c, &w.player, "energy", 1)
+        w.preview(&c, &w.player, &"energy".into(), 1)
             .unwrap_err()
             .contains("Agronomic planning")
     );
     w.advance(&c, 30).unwrap();
-    assert!(w.preview(&c, &w.player, "energy", 1).is_ok());
+    assert!(w.preview(&c, &w.player, &"energy".into(), 1).is_ok());
     replay(&w, &c);
 }
 #[test]
@@ -177,7 +177,7 @@ fn malformed_definitions_references_dates_and_unversioned_gates_are_rejected() {
     let c = Content::interest_bundled().unwrap();
     let w = World::new(&c, CountryId("GBR".into()), 17).unwrap();
     assert!(
-        w.policy_technology_eligibility(&c, &w.player, "energy")
+        w.policy_technology_eligibility(&c, &w.player, &"energy".into())
             .unwrap()
             .is_empty()
     );
@@ -215,12 +215,12 @@ fn snapshot_19_replays_one_date_notice_and_later_bookmarks_initialize_eligibilit
     let later_world = World::new(&later, CountryId("AUR".into()), 17).unwrap();
     assert!(
         later_world
-            .policy_technology_eligibility(&later, &later_world.player, "energy")
+            .policy_technology_eligibility(&later, &later_world.player, &"energy".into())
             .unwrap()[0]
             .available()
     );
     assert!(
-        w.policy_technology_eligibility(&c, &w.player, "agriculture")
+        w.policy_technology_eligibility(&c, &w.player, &"agriculture".into())
             .unwrap()[0]
             .available()
     );

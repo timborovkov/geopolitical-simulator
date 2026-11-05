@@ -59,7 +59,7 @@ struct GameApp {
     search: String,
     seed: u64,
     scenario: Scenario,
-    policy: String,
+    policy: PolicyId,
     value: i32,
     status: String,
     speed: u32,
@@ -1182,13 +1182,17 @@ impl GameApp {
                 let definition = self.content.country(&self.selected).expect("country");
                 if w.governing_rules(&self.content, &self.selected)
                     .expect("government")
-                    .check(c, &self.policy, self.value)
+                    .check(c, self.policy.as_str(), self.value)
                     .is_err()
-                    && self.content.policy("coalition").is_some()
+                    && self.content.policy(&"coalition".into()).is_some()
                     && ui.button("Review governing-support agreement").clicked()
                 {
                     self.policy = "coalition".into();
-                    self.value = self.content.policy("coalition").expect("policy").min;
+                    self.value = self
+                        .content
+                        .policy(&"coalition".into())
+                        .expect("policy")
+                        .min;
                 }
                 if self.content.cash_management.is_some()
                     && w.policy_funding_plan(&self.content, &self.policy, self.value)
@@ -1403,7 +1407,7 @@ impl GameApp {
             self.policy = "coalition".into();
             self.value = self
                 .content
-                .policy("coalition")
+                .policy(&"coalition".into())
                 .expect("coalition policy")
                 .min;
             self.tab = Tab::Policies;
@@ -1663,11 +1667,15 @@ impl GameApp {
             party_preferences::show_owned(ui, &self.content, world);
         }
         if c.is_some()
-            && self.content.policy("coalition").is_some()
+            && self.content.policy(&"coalition".into()).is_some()
             && ui.button("Review governing-support agreement").clicked()
         {
             self.policy = "coalition".into();
-            self.value = self.content.policy("coalition").expect("policy").min;
+            self.value = self
+                .content
+                .policy(&"coalition".into())
+                .expect("policy")
+                .min;
             self.tab = Tab::Policies;
         }
         ui.separator();
@@ -2280,7 +2288,7 @@ mod interface_tests {
             app.value = 12;
             click(&ctx, &mut app, &input, "Compare planned decision");
             assert!(app.tab == Tab::Policies);
-            assert_eq!((&*app.policy, app.value), ("income_tax", 30));
+            assert_eq!((app.policy.as_str(), app.value), ("income_tax", 30));
             assert_eq!(app.world, funded);
             // Read the full comparison before reaching its ordinary approval,
             // which is below the fold at the larger interface scale.

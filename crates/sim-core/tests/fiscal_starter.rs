@@ -38,7 +38,7 @@ fn the_seeded_fiscal_roster_preserves_all_prior_data_and_each_country_can_delive
         let t = targets(w.player_country());
         if let Err(reason) = w.preview_budget(&c, &w.player, 2000, &t) {
             assert!(reason.contains("Negotiate"), "{}: {reason}", country.id.0);
-            let support = w.preview(&c, &w.player, "coalition", 1).unwrap();
+            let support = w.preview(&c, &w.player, &"coalition".into(), 1).unwrap();
             w.issue(
                 &c,
                 Action::Enact {

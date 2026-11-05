@@ -43,15 +43,15 @@ impl FiscalTargets {
             welfare: c.welfare,
         }
     }
-    pub fn entries(&self) -> [(&'static str, i32); 3] {
+    pub fn entries(&self) -> [(PolicyId, i32); 3] {
         [
-            ("income_tax", self.income_tax),
-            ("services", self.services),
-            ("welfare", self.welfare),
+            ("income_tax".into(), self.income_tax),
+            ("services".into(), self.services),
+            ("welfare".into(), self.welfare),
         ]
     }
-    pub fn is_fiscal(policy: &str) -> bool {
-        matches!(policy, "income_tax" | "services" | "welfare")
+    pub fn is_fiscal(policy: &PolicyId) -> bool {
+        matches!(policy.as_str(), "income_tax" | "services" | "welfare")
     }
     pub fn valid(&self, content: &Content) -> bool {
         self.entries().iter().all(|(p, v)| {
@@ -60,12 +60,12 @@ impl FiscalTargets {
                 .is_some_and(|d| (d.min..=d.max).contains(v))
         })
     }
-    fn changed(&self, baseline: &Self) -> Vec<(String, i32)> {
+    fn changed(&self, baseline: &Self) -> Vec<(PolicyId, i32)> {
         self.entries()
             .into_iter()
             .zip(baseline.entries())
             .filter(|((_, v), (_, b))| v != b)
-            .map(|((p, v), _)| (p.into(), v))
+            .map(|((p, v), _)| (p, v))
             .collect()
     }
 }
@@ -90,7 +90,7 @@ impl BudgetBillStatus {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BudgetProgramme {
-    pub policy: String,
+    pub policy: PolicyId,
     pub command: u64,
     pub project: CommitmentId,
 }
@@ -145,7 +145,7 @@ pub struct BudgetPreview {
     pub implementation_cost: Money,
     pub review_day: u32,
     pub effective_day: u32,
-    pub programmes: Vec<(String, i32, u32)>,
+    pub programmes: Vec<(PolicyId, i32, u32)>,
     pub baseline_forecast: BudgetForecast,
     pub planned_forecast: BudgetForecast,
     pub baseline_national_balance: Money,
@@ -161,7 +161,7 @@ pub struct PublishedFiscalOperation {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PublishedFiscalDelivery {
-    pub policy: String,
+    pub policy: PolicyId,
     pub target: i32,
     pub scheduled_day: u32,
     pub operation: Option<PublishedFiscalOperation>,
@@ -495,7 +495,7 @@ impl World {
         content: &Content,
         id: &CountryId,
         bill: BudgetBillId,
-        policy: &str,
+        policy: &PolicyId,
         value: i32,
     ) -> Result<PolicyPreview, String> {
         let b = self.countries[id]
@@ -508,8 +508,8 @@ impl World {
             || !b
                 .targets
                 .changed(&b.baseline)
-                .contains(&(policy.into(), value))
-            || b.programmes.iter().any(|p| p.policy == policy)
+                .contains(&(policy.clone(), value))
+            || b.programmes.iter().any(|p| &p.policy == policy)
         {
             return Err("Programme is not authorized by this enacted budget".into());
         }
@@ -546,7 +546,7 @@ impl World {
                                 .targets
                                 .entries()
                                 .into_iter()
-                                .find(|(policy, _)| *policy == p.policy.as_str())?
+                                .find(|(policy, _)| *policy == p.policy)?
                                 .1;
                             let operation = record
                                 .milestones
@@ -556,7 +556,7 @@ impl World {
                                     record
                                         .direct_effects
                                         .iter()
-                                        .find(|e| e.field == p.policy)
+                                        .find(|e| e.field == p.policy.as_str())
                                         .map(|effect| PublishedFiscalOperation {
                                             day: milestone.day,
                                             value: effect.after,

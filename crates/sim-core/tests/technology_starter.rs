@@ -75,18 +75,22 @@ fn starting_eligibility_grants_no_resources_or_free_delivery_across_all_fifteen_
         for policy in ["energy", "agriculture"] {
             assert!(
                 current
-                    .policy_technology_eligibility(&content, &current.player, policy)
+                    .policy_technology_eligibility(&content, &current.player, &policy.into())
                     .unwrap()
                     .iter()
                     .all(TechnologyEligibility::available)
             );
         }
-        if let Err(reason) = current.preview(&content, &current.player, "energy", 1) {
+        if let Err(reason) = current.preview(&content, &current.player, &"energy".into(), 1) {
             assert_eq!(
-                prior.preview(&old, &prior.player, "energy", 1).unwrap_err(),
+                prior
+                    .preview(&old, &prior.player, &"energy".into(), 1)
+                    .unwrap_err(),
                 reason
             );
-            let support = prior.preview(&old, &prior.player, "coalition", 1).unwrap();
+            let support = prior
+                .preview(&old, &prior.player, &"coalition".into(), 1)
+                .unwrap();
             current
                 .issue(
                     &content,
@@ -109,9 +113,11 @@ fn starting_eligibility_grants_no_resources_or_free_delivery_across_all_fifteen_
             prior.advance(&old, support.delay).unwrap();
         }
         let preview = current
-            .preview(&content, &current.player, "energy", 1)
+            .preview(&content, &current.player, &"energy".into(), 1)
             .unwrap();
-        let baseline = prior.preview(&old, &prior.player, "energy", 1).unwrap();
+        let baseline = prior
+            .preview(&old, &prior.player, &"energy".into(), 1)
+            .unwrap();
         assert_eq!(
             (preview.cost, preview.delay, preview.upfront_payment),
             (baseline.cost, baseline.delay, baseline.upfront_payment)
@@ -157,11 +163,15 @@ fn starting_eligibility_grants_no_resources_or_free_delivery_across_all_fifteen_
     let hash = world.hash();
     assert!(
         world
-            .preview(&restricted, &world.player, "energy", 1)
+            .preview(&restricted, &world.player, &"energy".into(), 1)
             .unwrap_err()
             .contains("not eligible")
     );
-    assert!(world.policy_funding_plan(&restricted, "energy", 1).is_err());
+    assert!(
+        world
+            .policy_funding_plan(&restricted, &"energy".into(), 1)
+            .is_err()
+    );
     assert!(
         world
             .issue(

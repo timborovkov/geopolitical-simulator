@@ -65,7 +65,7 @@ impl IncomeTaxDefinition {
             || self.source_version.is_empty()
             || !content.sources.iter().any(|s| s.id == self.source)
             || content
-                .policy("income_tax")
+                .policy(&"income_tax".into())
                 .is_none_or(|p| p.min < 10 || p.max > 45)
         {
             return Err("Income bands require policy delivery, supported standard rates and attributed provenance".into());
@@ -245,9 +245,9 @@ impl World {
             || report.groups.len() != d.households.len()
             || c.households.len() != d.households.len()
             || report.standard_rate
-                != self.policy_level_at(content, id, "income_tax", self.day, 0)?
+                != self.policy_level_at(content, id, &"income_tax".into(), self.day, 0)?
             || report.administration
-                != self.policy_level_at(content, id, "administration", self.day, 0)?
+                != self.policy_level_at(content, id, &"administration".into(), self.day, 0)?
         {
             return Err(
                 "Invalid income-tax report date, cohort partition or settled policy settings"

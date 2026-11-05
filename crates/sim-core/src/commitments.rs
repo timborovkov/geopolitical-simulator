@@ -101,8 +101,8 @@ pub struct CancellationPreview {
     pub released: Money,
     pub sunk: Money,
 }
-fn level(c: &Country, policy: &str) -> i32 {
-    match policy {
+fn level(c: &Country, policy: &PolicyId) -> i32 {
+    match policy.as_str() {
         "income_tax" => c.tax,
         "services" => c.services,
         "welfare" => c.welfare,
@@ -151,7 +151,7 @@ impl World {
             return Err("This proposal has reached its amendment limit".into());
         }
         let government = self.governing_rules(content, id)?;
-        government.check(c, &p.policy, value)?;
+        government.check(c, p.policy.as_str(), value)?;
         let fee = Money((p.cost.0 * rules.amendment_fee_bps / 10000).max(1));
         if fee.0 > c.available_cash().0 {
             return Err("Amendment administration requires uncommitted treasury cash".into());
@@ -205,7 +205,7 @@ impl World {
             .ok_or("Only a pending commitment can be withdrawn")?;
         if p.stage == PolicyStage::Implementing {
             self.governing_rules(content, id)?
-                .check(c, &p.policy, p.value)?;
+                .check(c, p.policy.as_str(), p.value)?;
         }
         Ok(CancellationPreview {
             released: p.reserved,

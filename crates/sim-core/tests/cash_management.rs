@@ -47,7 +47,7 @@ fn replay(w: &World, c: &Content) {
 fn real_receipts_can_fund_a_recovery_decision_without_credit_or_forgiving_arrears() {
     let (c, mut w) = exhausted();
     assert!(w.preview_borrowing(&c, &w.player, Money(1000)).is_err());
-    assert!(w.preview(&c, &w.player, "services", 6).is_err());
+    assert!(w.preview(&c, &w.player, &"services".into(), 6).is_err());
     let debt = w.player_country().debt;
     let approval = w.player_country().approval;
     let cash = w.player_country().accounts.treasury;
@@ -59,7 +59,7 @@ fn real_receipts_can_fund_a_recovery_decision_without_credit_or_forgiving_arrear
     assert!(w.player_country().retained_cash().0 > 0);
     assert!(w.player_country().retained_cash().0 < 80);
     assert!(
-        w.preview(&c, &w.player, "services", 6).is_err(),
+        w.preview(&c, &w.player, &"services".into(), 6).is_err(),
         "a partial target cannot fund the full programme"
     );
     let partially_funded = persistence::encode(&w, &c).unwrap();
@@ -86,7 +86,9 @@ fn real_receipts_can_fund_a_recovery_decision_without_credit_or_forgiving_arrear
     assert_eq!(w.player_country().arrears, arrears);
     assert_eq!(w.player_country().available_cash(), Money(80));
     assert_eq!(
-        w.preview(&c, &w.player, "services", 6).unwrap().cost,
+        w.preview(&c, &w.player, &"services".into(), 6)
+            .unwrap()
+            .cost,
         Money(80)
     );
     w.issue(

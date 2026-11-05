@@ -94,8 +94,8 @@ impl Panel {
         action
     }
 }
-fn published_value(policy: &str, value: i32) -> String {
-    match policy {
+fn published_value(policy: &PolicyId, value: i32) -> String {
+    match policy.as_str() {
         "income_tax" => format!("{value}%"),
         "services" | "welfare" => format!("{value}% GDP"),
         _ => value.to_string(),

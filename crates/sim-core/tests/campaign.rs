@@ -77,8 +77,11 @@ fn legal_routes_apply_to_all_regimes_and_support_can_be_negotiated() {
         let c = w.countries.get_mut(&d.id).unwrap();
         c.legislative_support = 20;
         c.elite_support = 20;
-        assert!(w.preview(&content, &d.id, "energy", 1).is_err());
-        let delivery_day = w.preview(&content, &d.id, "coalition", 1).unwrap().delay;
+        assert!(w.preview(&content, &d.id, &"energy".into(), 1).is_err());
+        let delivery_day = w
+            .preview(&content, &d.id, &"coalition".into(), 1)
+            .unwrap()
+            .delay;
         w.issue(
             &content,
             Action::Enact {
@@ -121,7 +124,7 @@ fn legal_routes_apply_to_all_regimes_and_support_can_be_negotiated() {
 fn policy_has_cost_delay_no_duplicate_and_save_resumes_exactly() {
     let (content, mut w) = setup("GBR");
     let before = w.player_country().accounts.treasury.0;
-    let preview = w.preview(&content, &w.player, "energy", 1).unwrap();
+    let preview = w.preview(&content, &w.player, &"energy".into(), 1).unwrap();
     w.issue(
         &content,
         Action::Enact {

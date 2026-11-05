@@ -20,7 +20,7 @@ fn the_income_roster_preserves_prior_identity_and_delivers_tax_policy_under_ever
     assert_eq!(c.fiscal_plans, old.fiscal_plans);
     let mut policies = c.policies.clone();
     let tax = policies.iter_mut().find(|p| p.id == "income_tax").unwrap();
-    let prior_tax = old.policy("income_tax").unwrap();
+    let prior_tax = old.policy(&"income_tax".into()).unwrap();
     tax.name = prior_tax.name.clone();
     tax.description = prior_tax.description.clone();
     assert_eq!(policies, old.policies);
@@ -41,9 +41,9 @@ fn the_income_roster_preserves_prior_identity_and_delivers_tax_policy_under_ever
         } else {
             44
         };
-        if let Err(reason) = w.preview(&c, &w.player, "income_tax", rate) {
+        if let Err(reason) = w.preview(&c, &w.player, &"income_tax".into(), rate) {
             assert!(reason.contains("Negotiate"), "{}: {reason}", country.id.0);
-            let support = w.preview(&c, &w.player, "coalition", 1).unwrap();
+            let support = w.preview(&c, &w.player, &"coalition".into(), 1).unwrap();
             w.issue(
                 &c,
                 Action::Enact {
@@ -54,7 +54,9 @@ fn the_income_roster_preserves_prior_identity_and_delivers_tax_policy_under_ever
             .unwrap();
             w.advance(&c, support.delay).unwrap();
         }
-        let preview = w.preview(&c, &w.player, "income_tax", rate).unwrap();
+        let preview = w
+            .preview(&c, &w.player, &"income_tax".into(), rate)
+            .unwrap();
         let settled = w.player_country().income_tax_report.clone();
         w.issue(
             &c,

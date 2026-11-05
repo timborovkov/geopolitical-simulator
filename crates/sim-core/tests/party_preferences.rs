@@ -236,7 +236,7 @@ fn policy_feedback_and_legislative_pressure_follow_operation_not_declaration() {
     let mut second = World::new(&neutral, player(), 17).unwrap();
     let before = first.hash();
     let preview = first
-        .preview(&content, &player(), "income_tax", 45)
+        .preview(&content, &player(), &"income_tax".into(), 45)
         .unwrap();
     assert!(preview.explanation.contains("Party alignment"));
     assert_eq!(first.hash(), before);
@@ -488,7 +488,11 @@ fn misalignment_can_block_authority_and_costed_support_restores_it_without_free_
     }
     assert!(world.player_country().legislative_support < 51);
     let before = world.hash();
-    assert!(world.preview(&content, &player(), "energy", 1).is_err());
+    assert!(
+        world
+            .preview(&content, &player(), &"energy".into(), 1)
+            .is_err()
+    );
     assert_eq!(world.hash(), before);
     let cash = world.player_country().accounts.treasury;
     let support = world.player_country().legislative_support;
@@ -512,7 +516,11 @@ fn misalignment_can_block_authority_and_costed_support_restores_it_without_free_
         .due_day;
     world.advance(&content, due - world.day).unwrap();
     assert!(world.player_country().legislative_support >= 51);
-    assert!(world.preview(&content, &player(), "energy", 1).is_ok());
+    assert!(
+        world
+            .preview(&content, &player(), &"energy".into(), 1)
+            .is_ok()
+    );
     assert!(!world.is_developer_modified());
     replay(&world, &content);
 }
