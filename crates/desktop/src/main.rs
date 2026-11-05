@@ -277,8 +277,17 @@ impl GameApp {
         }
         self.speed = 0;
         if let Some(w) = &mut self.world {
-            self.status = match w.issue(&self.content, action) {
-                Ok(()) => "Command accepted. Inspect the Chronicle and pending commitments.".into(),
+            self.status = match w.issue_with_receipt(&self.content, action) {
+                Ok(receipt) => match receipt.outcomes.first() {
+                    Some(event) => format!(
+                        "Command #{} accepted · outcome {event} · inspect Chronicle.",
+                        receipt.command
+                    ),
+                    None => format!(
+                        "Command #{} accepted. Inspect the Chronicle and pending commitments.",
+                        receipt.command
+                    ),
+                },
                 Err(e) => format!("Rejected: {e}"),
             };
         }

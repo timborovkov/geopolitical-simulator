@@ -193,6 +193,16 @@ impl World {
             .country(&command.issuer)
             .ok_or("Missing country content")?;
         let id = command.issuer.clone();
+        let outcome_country = match &command.action {
+            Action::Developer { target, .. } => target,
+            _ => &id,
+        }
+        .clone();
+        let outcome_sequence = self
+            .event_sequences
+            .as_ref()
+            .and_then(|sequences| sequences.get(&outcome_country))
+            .copied();
         match &command.action {
             Action::ProcureReserve { good, days } => {
                 self.procure_reserve(content, &id, ReserveOrderId(command.id), *good, *days)?
@@ -372,6 +382,18 @@ impl World {
                 edit.apply(country);
                 self.event(target, true, format!("DEVELOPER EDIT: {} changed from {before} to {}. Policy costs and delays were bypassed; this campaign is marked developer-modified.", edit.field.name(), edit.value));
             }
+        }
+        if let Some(reason) = &self.event_error {
+            return Err(reason.clone());
+        }
+        if let Some(before) = outcome_sequence
+            && self
+                .event_sequences
+                .as_ref()
+                .and_then(|sequences| sequences.get(&outcome_country))
+                .is_none_or(|after| *after <= before)
+        {
+            return Err("Command did not record an outcome event".into());
         }
         self.journal.push(JournalEntry {
             command,

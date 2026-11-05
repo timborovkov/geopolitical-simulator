@@ -4,6 +4,15 @@ use std::{
     path::Path,
 };
 
+fn issue(world: &mut World, content: &Content, action: Action) -> Result<(), String> {
+    let receipt = world.issue_with_receipt(content, action)?;
+    println!("Command #{} accepted.", receipt.command);
+    for event in receipt.outcomes {
+        println!("Outcome {event} · inspect: event {event}");
+    }
+    Ok(())
+}
+
 fn print_event(event: &Event) {
     if let Some(id) = &event.id {
         println!("{id} · {} · {}", date(event.day), event.text);
@@ -159,7 +168,7 @@ fn play(
                     println!(
                         "reserves | preview-reserve energy|food DAYS | procure-reserve energy|food DAYS | cancel-reserve ID\nstatus | countries | policies | party-preferences [COUNTRY] | party-alignment | sovereignty [COUNTRY] | technologies [POLICY] | preview POLICY VALUE | plan-policy POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nincome-tax-bands | income-tax-report | preview-income-tax STANDARD_RATE\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitment ID | commitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\ncash-retention | preview-retention MILLIONS DAYS | retain-cash MILLIONS DAYS | release-cash ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | public-report COUNTRY | events [COUNTRY] | event COUNTRY#NUMBER | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
-                    if world.event_sequences.is_some() {println!("event COUNTRY#NUMBER · inspect one of your government's retained entries; references belong to this campaign.");}
+                    if world.event_sequences.is_some() {println!("event COUNTRY#NUMBER · inspect one of your government's retained entries; references belong to this campaign. Accepted command replies identify their immediate outcome entries.");}
                     if content.finance.as_ref().is_some_and(|rules|rules.maturity_days.is_some()) {
                         println!("The five-year objective also requires zero overdue loan principal; inspect finance for contractual dates.");
                     }
@@ -236,7 +245,7 @@ fn play(
                         }
                         println!("{preview:?}");
                     } else {
-                        world.issue(content, Action::Enact { policy, value })?;
+                        issue(world, content, Action::Enact { policy, value })?;
                         println!("Commitment accepted.");
                     }
                 }
@@ -271,7 +280,7 @@ fn play(
                     if words[0] == "preview-amend" {
                         println!("{preview:?}");
                     } else {
-                        world.issue(content, Action::AmendCommitment { request, value })?;
+                        issue(world, content, Action::AmendCommitment { request, value })?;
                     }
                 }
                 "withdraw" | "preview-withdraw" => {
@@ -280,7 +289,7 @@ fn play(
                     if words[0] == "preview-withdraw" {
                         println!("{preview:?}");
                     } else {
-                        world.issue(content, Action::CancelCommitment { request })?;
+                        issue(world, content, Action::CancelCommitment { request })?;
                     }
                 }
                 "advance" => {
@@ -301,8 +310,7 @@ fn play(
                     println!("Advanced {} days", world.advance_to_event(content)?);
                     status(world, content);
                 }
-                "borrow" => world.issue(
-                    content,
+                "borrow" => issue(world, content,
                     Action::Borrow {
                         amount: Money(number(words.get(1))?),
                     },
@@ -334,11 +342,10 @@ fn play(
                             world.preview_budget(content, &world.player, year, &targets)?
                         );
                     } else {
-                        world.issue(content, Action::ProposeBudget { year, targets })?;
+                        issue(world, content, Action::ProposeBudget { year, targets })?;
                     }
                 }
-                "withdraw-budget" => world.issue(
-                    content,
+                "withdraw-budget" => issue(world, content,
                     Action::WithdrawBudget {
                         request: BudgetBillId(number(words.get(1))?),
                     },
@@ -388,11 +395,10 @@ fn play(
                             )?
                         );
                     } else {
-                        world.issue(content, Action::DeclareUndertaking { template, project })?;
+                        issue(world, content, Action::DeclareUndertaking { template, project })?;
                     }
                 }
-                "withdraw-undertaking" => world.issue(
-                    content,
+                "withdraw-undertaking" => issue(world, content,
                     Action::WithdrawUndertaking {
                         request: UndertakingId(
                             words
@@ -445,11 +451,10 @@ fn play(
                             )?
                         );
                     } else {
-                        world.issue(content, Action::ReformTerritory { target, contested })?;
+                        issue(world, content, Action::ReformTerritory { target, contested })?;
                     }
                 }
-                "withdraw-territory" => world.issue(
-                    content,
+                "withdraw-territory" => issue(world, content,
                     Action::WithdrawTerritorialReform {
                         request: TerritorialOrderId(
                             words
@@ -480,8 +485,7 @@ fn play(
                             )?
                         );
                     } else {
-                        world
-                            .issue(content, Action::RequisitionRegionalFunds { region, amount })?;
+                        issue(world, content, Action::RequisitionRegionalFunds { region, amount })?;
                     }
                 }
                 "regions" => {
@@ -539,7 +543,7 @@ fn play(
                             world.preview_regional_order(content, &world.player, &region, &kind)?
                         );
                     } else {
-                        world.issue(content, Action::RegionalOrder { region, kind })?;
+                        issue(world, content, Action::RegionalOrder { region, kind })?;
                     }
                 }
                 "preview-region-services" | "region-services" => {
@@ -553,11 +557,10 @@ fn play(
                             world.preview_regional_order(content, &world.player, &region, &kind)?
                         );
                     } else {
-                        world.issue(content, Action::RegionalOrder { region, kind })?;
+                        issue(world, content, Action::RegionalOrder { region, kind })?;
                     }
                 }
-                "cancel-region" => world.issue(
-                    content,
+                "cancel-region" => issue(world, content,
                     Action::CancelRegionalOrder {
                         order: RegionalOrderId(number(words.get(1))?),
                     },
@@ -592,9 +595,8 @@ fn play(
                 "preview-election" => {
                     println!("{:?}", world.preview_election(content, &world.player)?)
                 }
-                "request-election" => world.issue(content, Action::RequestElection)?,
-                "withdraw-election" => world.issue(
-                    content,
+                "request-election" => issue(world, content, Action::RequestElection)?,
+                "withdraw-election" => issue(world, content,
                     Action::WithdrawElectionRequest {
                         request: ElectionRequestId(number(words.get(1))?),
                     },
@@ -644,7 +646,7 @@ fn play(
                     let preview =
                         world.preview_appointment(content, &world.player, &office, &person)?;
                     if words[0] == "appoint" {
-                        world.issue(content, Action::Appoint { office, person })?;
+                        issue(world, content, Action::Appoint { office, person })?;
                     } else {
                         println!("{preview:?}");
                     }
@@ -653,7 +655,7 @@ fn play(
                     let office = OfficeId(words.get(1).ok_or("Missing portfolio ID")?.to_string());
                     let fee = world.preview_dismissal(content, &world.player, &office)?;
                     if words[0] == "dismiss" {
-                        world.issue(content, Action::DismissMinister { office })?;
+                        issue(world, content, Action::DismissMinister { office })?;
                     } else {
                         println!(
                             "Dismissal administration {}m; civil-service preparation and a new appointment cooldown apply.",
@@ -661,8 +663,7 @@ fn play(
                         );
                     }
                 }
-                "cancel-appointment" => world.issue(
-                    content,
+                "cancel-appointment" => issue(world, content,
                     Action::CancelAppointment {
                         request: AppointmentId(number(words.get(1))?),
                     },
@@ -750,11 +751,10 @@ fn play(
                             preview.political_costs.council_cost
                         );
                     } else {
-                        world.issue(content, Action::Reconstitute { target, contested })?;
+                        issue(world, content, Action::Reconstitute { target, contested })?;
                     }
                 }
-                "withdraw-constitution" => world.issue(
-                    content,
+                "withdraw-constitution" => issue(world, content,
                     Action::CancelConstitution {
                         request: TransitionId(number(words.get(1))?),
                     },
@@ -822,8 +822,8 @@ fn play(
                     let preview = world.preview_cash_hold(content, &world.player, Money(number(words.get(1))?), number(words.get(2))?)?;
                     println!("Target {}m; actual protected now {}m; approval -{}; expiry {}; reuse {}. Unfilled target is not cash. Wages, welfare and interest may become arrears; matured principal may remain unpaid. Local claims and project reservations remain protected.", preview.target.0, preview.retained_now.0, preview.approval_cost, date(preview.expiry_day), date(preview.next_allowed_day));
                 }
-                "retain-cash" => world.issue(content, Action::HoldCash { target: Money(number(words.get(1))?), days: number(words.get(2))? })?,
-                "release-cash" => world.issue(content, Action::ReleaseCash { request: CashHoldId(number(words.get(1))?) })?,
+                "retain-cash" => issue(world, content, Action::HoldCash { target: Money(number(words.get(1))?), days: number(words.get(2))? })?,
+                "release-cash" => issue(world, content, Action::ReleaseCash { request: CashHoldId(number(words.get(1))?) })?,
                 "sovereignty" => {
                     let country=words.get(1).map_or_else(||world.player.clone(),|id|CountryId((*id).into()));
                     if let Some(report)=content.bookmark_sovereignty(&country)? {
@@ -923,14 +923,12 @@ fn play(
                         Err(reason) => println!("Emergency route unavailable: {reason}"),
                     }
                 }
-                "emergency-borrow" => world.issue(
-                    content,
+                "emergency-borrow" => issue(world, content,
                     Action::EmergencyBorrow {
                         amount: Money(number(words.get(1))?),
                     },
                 )?,
-                "cancel-loan" => world.issue(
-                    content,
+                "cancel-loan" => issue(world, content,
                     Action::CancelBorrow {
                         request: LoanId(
                             number::<i64>(words.get(1))?
@@ -939,8 +937,7 @@ fn play(
                         ),
                     },
                 )?,
-                "repay" => world.issue(
-                    content,
+                "repay" => issue(world, content,
                     Action::Repay {
                         amount: Money(number(words.get(1))?),
                     },
@@ -1146,9 +1143,9 @@ fn play(
                 "preview-reserve" | "procure-reserve" => {
                     let good=match words.get(1).copied() { Some("energy")=>GoodKind::Energy,Some("food")=>GoodKind::Food,_=>return Err("Choose energy or food".into()) };
                     let days=number(words.get(2))?;
-                    if words[0]=="preview-reserve" {println!("{:?}",world.preview_reserve(content,&world.player,good,days)?);} else {world.issue(content,Action::ProcureReserve{good,days})?;}
+                    if words[0]=="preview-reserve" {println!("{:?}",world.preview_reserve(content,&world.player,good,days)?);} else {issue(world, content,Action::ProcureReserve{good,days})?;}
                 }
-                "cancel-reserve" => { world.issue(content,Action::CancelReserve{request:ReserveOrderId(number(words.get(1))?)})?; }
+                "cancel-reserve" => { issue(world, content,Action::CancelReserve{request:ReserveOrderId(number(words.get(1))?)})?; }
                 "party-preferences" => {
                     let country = CountryId(words.get(1).map_or(world.player.0.as_str(), |value| *value).to_string());
                     let definition = content.country(&country).ok_or("Unknown country")?;
