@@ -41,7 +41,7 @@ fn typed_group_and_currency_references_keep_published_strings_and_campaign_bytes
             },
         )
         .unwrap();
-    world.advance(&content, 60).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(60)).unwrap();
     assert_eq!(world.hash(), 0x8bf8784e005cff53);
     let state = serde_json::to_value(world.player_country()).unwrap();
     for group in &content.country(&world.player).unwrap().households {
@@ -104,7 +104,7 @@ fn renamed_and_reordered_group_definitions_still_resolve_tax_records_by_identity
         assert!(world.player_country().household(group).is_some());
     }
     assert_eq!(world, before);
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     for line in &world
         .player_country()
         .income_tax_report

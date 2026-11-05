@@ -509,7 +509,7 @@ pub fn replay(original: &World, content: &Content) -> Result<World, String> {
         .filter(|e| !e.ai && e.budget_bill.is_none())
     {
         while world.day < entry.command.day {
-            world.advance(content, 1)?;
+            world.advance(content, crate::DaySpan::new(1))?;
             verify_journal(original, &world, &mut verified)?;
         }
         world
@@ -532,7 +532,7 @@ pub fn replay(original: &World, content: &Content) -> Result<World, String> {
         verify_journal(original, &world, &mut verified)?;
     }
     while world.day < original.day {
-        world.advance(content, 1)?;
+        world.advance(content, crate::DaySpan::new(1))?;
         verify_journal(original, &world, &mut verified)?;
     }
     if verified != original.journal.len() {

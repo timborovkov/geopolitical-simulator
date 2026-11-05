@@ -44,7 +44,7 @@ fn receipts_identify_owned_outcomes_without_changing_published_state() {
         );
     }
     assert_eq!(persistence::encode(&world, &content).unwrap(), bytes);
-    world.advance(&content, 60).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(60)).unwrap();
     assert_eq!(world.hash(), 0x8bf8784e005cff53);
     assert_eq!(world, persistence::replay(&world, &content).unwrap());
 }

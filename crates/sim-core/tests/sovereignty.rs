@@ -211,7 +211,7 @@ fn public_reports_freeze_bookmark_references_without_private_state_or_future_tra
                 },
             )
             .unwrap();
-        changed.advance(&c, delay).unwrap();
+        changed.advance(&c, sim_core::DaySpan::new(delay)).unwrap();
     }
     let preview = changed
         .preview_constitution(&c, &changed.player, &Regime::SingleParty, false)
@@ -226,7 +226,10 @@ fn public_reports_freeze_bookmark_references_without_private_state_or_future_tra
         )
         .unwrap();
     changed
-        .advance(&c, preview.decision_day - changed.day)
+        .advance(
+            &c,
+            sim_core::DaySpan::new(preview.decision_day - changed.day),
+        )
         .unwrap();
     assert_eq!(
         changed.governing_regime(&c, &id("AUR")).unwrap(),
@@ -241,7 +244,7 @@ fn public_reports_freeze_bookmark_references_without_private_state_or_future_tra
     );
     assert_eq!(changed.player, id("AUR"));
     assert_eq!(persistence::replay(&changed, &c).unwrap(), changed);
-    w.advance(&c, 367).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(367)).unwrap();
     assert_eq!(
         w.public_report(&c, &id("BOR"))
             .unwrap()
@@ -260,8 +263,8 @@ fn reference_metadata_grants_no_cash_capacity_or_forced_political_change() {
     for country in ["AUR", "BOR", "COR"] {
         let mut w = World::new(&c, id(country), 17).unwrap();
         let mut prior = World::new(&old, id(country), 17).unwrap();
-        w.advance(&c, 30).unwrap();
-        prior.advance(&old, 30).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(30)).unwrap();
+        prior.advance(&old, sim_core::DaySpan::new(30)).unwrap();
         for (world, pack) in [(&mut w, &c), (&mut prior, &old)] {
             world
                 .issue(
@@ -272,7 +275,7 @@ fn reference_metadata_grants_no_cash_capacity_or_forced_political_change() {
                     },
                 )
                 .unwrap();
-            world.advance(pack, 370).unwrap();
+            world.advance(pack, sim_core::DaySpan::new(370)).unwrap();
         }
         let mut normalized = w.clone();
         normalized.rules = prior.rules;
@@ -288,7 +291,7 @@ fn reference_metadata_grants_no_cash_capacity_or_forced_political_change() {
 fn format_20_continues_exactly_and_old_envelopes_cannot_hide_new_reference_content() {
     let c = fixture();
     let mut w = World::new(&c, id("AUR"), 17).unwrap();
-    w.advance(&c, 30).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(30)).unwrap();
     w.issue(
         &c,
         Action::Enact {
@@ -301,8 +304,8 @@ fn format_20_continues_exactly_and_old_envelopes_cannot_hide_new_reference_conte
     let mut header: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(header["schema"], 20);
     let mut restored = persistence::decode(&bytes, &c).unwrap();
-    w.advance(&c, 400).unwrap();
-    restored.advance(&c, 400).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(400)).unwrap();
+    restored.advance(&c, sim_core::DaySpan::new(400)).unwrap();
     assert_eq!(w, restored);
     assert_eq!(persistence::replay(&w, &c).unwrap(), w);
     header["schema"] = 19.into();

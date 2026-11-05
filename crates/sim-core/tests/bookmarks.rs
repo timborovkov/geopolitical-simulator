@@ -52,12 +52,16 @@ fn a_midyear_bookmark_initializes_clocks_fiscal_periods_and_pending_saves() {
             },
         )
         .unwrap();
-    world.advance(&content, 7).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(7)).unwrap();
     let mut restored =
         persistence::decode(&persistence::encode(&world, &content).unwrap(), &content).unwrap();
     let remaining = parse_date("2002-01-01").unwrap() - world.day;
-    restored.advance(&content, remaining).unwrap();
-    world.advance(&content, remaining).unwrap();
+    restored
+        .advance(&content, sim_core::DaySpan::new(remaining))
+        .unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(remaining))
+        .unwrap();
     world.validate(&content).unwrap();
     assert_eq!(restored.hash(), world.hash());
     assert_eq!(
@@ -81,10 +85,13 @@ fn a_later_bookmark_receives_five_calendar_years_before_its_review() {
     );
     let mut world = World::new(&content, CountryId("AUR".into()), 9).unwrap();
     world
-        .advance(&content, content.review_day().unwrap() - world.day - 1)
+        .advance(
+            &content,
+            sim_core::DaySpan::new(content.review_day().unwrap() - world.day - 1),
+        )
         .unwrap();
     assert!(!world.milestone_reported);
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     assert!(world.milestone_reported);
     assert!(
         world

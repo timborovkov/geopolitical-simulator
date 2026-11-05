@@ -46,12 +46,12 @@ fn small_principal_follows_nominal_rate_and_carry_survives_principal_retirement(
     let mut w = World::new(&c, CountryId("COR".into()), 17).unwrap();
     w.issue(&c, Action::Repay { amount: Money(250) }).unwrap();
     assert_eq!(w.player_country().debt, Money(1416));
-    w.advance(&c, 365).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(365)).unwrap();
     assert_eq!(state(&w).principal_days, 1416 * 365);
     assert_eq!(state(&w).whole_assessed(), Money(56));
     assert_eq!(state(&w).paid, Money(56));
     assert_eq!(state(&w).remainder, 2_336_000); // 0.64m
-    w.advance(&c, 1200).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1200)).unwrap();
     let paid = state(&w).paid;
     w.issue(
         &c,
@@ -61,7 +61,7 @@ fn small_principal_follows_nominal_rate_and_carry_survives_principal_retirement(
     )
     .unwrap();
     let retained = state(&w).remainder;
-    w.advance(&c, 4).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(4)).unwrap();
     assert_eq!(state(&w).remainder, retained);
     assert_eq!(state(&w).last.as_ref().unwrap().amount_due, Money(0));
     assert_eq!(state(&w).paid, paid);
@@ -98,7 +98,7 @@ fn manual_and_delayed_loans_use_actual_assessment_timing_and_shared_fraction() {
         .unwrap();
         let mut actually_due = 0;
         for day in 1_u32..=20 {
-            w.advance(&c, 1).unwrap();
+            w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
             actually_due += state(&w).last.as_ref().unwrap().amount_due.0;
             let expected_days = if due == 0 {
                 day
@@ -138,7 +138,7 @@ fn fractional_interest_does_not_become_cash_and_unpaid_whole_units_reconcile() {
         },
     )
     .unwrap();
-    w.advance(&c, 5).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(5)).unwrap();
     assert!(w.player_country().retained_cash().0 > 0);
     assert!(w.player_country().arrears_external.0 > 0);
     assert_eq!(state(&w).paid, Money(0));
@@ -155,7 +155,7 @@ fn fractional_interest_does_not_become_cash_and_unpaid_whole_units_reconcile() {
         .unwrap()
         .id;
     w.issue(&c, Action::ReleaseCash { request: hold }).unwrap();
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert!(state(&w).paid.0 > 0);
     assert_eq!(
         state(&w).whole_assessed().0,
@@ -171,13 +171,13 @@ fn fractional_interest_does_not_become_cash_and_unpaid_whole_units_reconcile() {
 fn snapshot_18_resumes_carry_and_rejects_forged_interest_or_forecast() {
     let c = fixture(false, true);
     let mut w = World::new(&c, CountryId("COR".into()), 17).unwrap();
-    w.advance(&c, 23).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(23)).unwrap();
     let bytes = persistence::encode(&w, &c).unwrap();
     let mut json: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(json["schema"], 18);
     let mut resumed = persistence::decode(&bytes, &c).unwrap();
-    w.advance(&c, 44).unwrap();
-    resumed.advance(&c, 44).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(44)).unwrap();
+    resumed.advance(&c, sim_core::DaySpan::new(44)).unwrap();
     assert_eq!(w, resumed);
     json["schema"] = 17.into();
     assert!(
@@ -268,7 +268,7 @@ fn outlook_shares_existing_fraction_with_a_new_loan_and_times_the_first_cash_gap
     let cash = w.player_country().available_cash();
     w.issue(&c, Action::Repay { amount: cash }).unwrap();
     assert_eq!(w.player_country().debt, Money(1416));
-    w.advance(&c, 3).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(3)).unwrap();
     assert_eq!(state(&w).remainder, 1_699_200);
     let forecast = w
         .funding_outlook(
@@ -284,7 +284,7 @@ fn outlook_shares_existing_fraction_with_a_new_loan_and_times_the_first_cash_gap
     assert_eq!(forecast.points[3].without_loan, Money(0));
     assert_eq!(forecast.points[3].if_approved, Money(299));
     w.issue(&c, Action::Borrow { amount: Money(300) }).unwrap();
-    w.advance(&c, 3).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(3)).unwrap();
     assert_eq!(state(&w).whole_assessed(), Money(1));
     assert_eq!(
         forecast.points[3].if_approved,

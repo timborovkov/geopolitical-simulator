@@ -57,7 +57,7 @@ fn lawful_devolution_changes_real_powers_and_tax_rights_without_changing_the_cab
     assert_eq!(w.hash(), hash);
     reform(&mut w, &c, TerritorialForm::Federation, false);
     check(&w, &c);
-    w.advance(&c, 90).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(90)).unwrap();
     assert_eq!(
         w.territorial_form_at(&c, &w.player, w.day).unwrap(),
         TerritorialForm::Federation
@@ -106,7 +106,7 @@ fn lawful_removal_requires_local_consent_and_reserves_compensation() {
     reform(&mut w, &c, TerritorialForm::DelegatedUnitary, false);
     assert_eq!(w.player_country().committed_cash, Money(1400));
     check(&w, &c);
-    w.advance(&c, 90).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(90)).unwrap();
     assert_eq!(
         w.player_country()
             .territorial
@@ -151,7 +151,7 @@ fn withdrawal_and_review_refusal_keep_sunk_administration_and_interval() {
     let mut c = ready();
     c.territorial.as_mut().unwrap().lawful.days = 1;
     let mut w = start(&c, "AUR");
-    w.advance(&c, 20).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(20)).unwrap();
     reform(&mut w, &c, TerritorialForm::Federation, false);
     w.issue(
         &c,
@@ -161,7 +161,7 @@ fn withdrawal_and_review_refusal_keep_sunk_administration_and_interval() {
         },
     )
     .unwrap();
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert!(matches!(
         w.player_country().territorial.as_ref().unwrap().reforms[0].status,
         TerritorialReformStatus::Refused { .. }
@@ -196,7 +196,7 @@ fn contested_change_has_explicit_power_gate_and_accepted_grants_survive_new_char
     .unwrap();
     reform(&mut w, &c, TerritorialForm::DelegatedUnitary, true);
     check(&w, &c);
-    w.advance(&c, 20).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(20)).unwrap();
     let s = w.player_country().subnational.as_ref().unwrap();
     assert_eq!(s.orders[0].status, RegionalOrderStatus::Implementing);
     assert_eq!(s.orders[0].spent, Money(7));
@@ -205,7 +205,7 @@ fn contested_change_has_explicit_power_gate_and_accepted_grants_survive_new_char
         TerritorialForm::DelegatedUnitary
     );
     check(&w, &c);
-    w.advance(&c, 23).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(23)).unwrap();
     assert_eq!(
         w.player_country().subnational.as_ref().unwrap().orders[0].status,
         RegionalOrderStatus::Completed
@@ -226,7 +226,7 @@ fn new_charter_releases_pending_regional_escrow_but_keeps_fees_and_history() {
     )
     .unwrap();
     reform(&mut w, &c, TerritorialForm::Federation, false);
-    w.advance(&c, 7).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(7)).unwrap();
     let o = &w.player_country().subnational.as_ref().unwrap().orders[0];
     assert_eq!(o.status, RegionalOrderStatus::Superseded);
     assert_eq!(o.escrow, Money(0));
@@ -245,7 +245,7 @@ fn contested_requisition_changes_discretion_keeps_settled_report_and_cannot_take
         },
     )
     .unwrap();
-    w.advance(&c, 20).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(20)).unwrap();
     let before = w.player_country().clone();
     let local = &before.subnational.as_ref().unwrap().regions[0];
     let amount = local.cash;
@@ -285,7 +285,7 @@ fn contested_requisition_changes_discretion_keeps_settled_report_and_cannot_take
     );
     assert!(!w.is_developer_modified());
     check(&w, &c);
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     check(&w, &c);
 }
 #[test]
@@ -295,7 +295,7 @@ fn published_charter_history_excludes_private_reservations_and_pending_reviews()
     let before = w.public_report(&c, &w.player).unwrap();
     reform(&mut w, &c, TerritorialForm::Federation, false);
     assert_eq!(w.public_report(&c, &w.player).unwrap(), before);
-    w.advance(&c, 90).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(90)).unwrap();
     let view = w.project(&c, Viewer::Observer).unwrap();
     assert!(view.own.is_none());
     let t = view.reports[&w.player].territorial.as_ref().unwrap();
@@ -350,7 +350,7 @@ fn national_succession_releases_pending_territorial_reservations() {
         },
     )
     .unwrap();
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(
         w.player_country().territorial.as_ref().unwrap().reforms[0].status,
         TerritorialReformStatus::Superseded
@@ -366,7 +366,7 @@ fn national_succession_releases_pending_territorial_reservations() {
 fn a_delivered_historical_directive_remains_valid_after_the_authority_becomes_autonomous() {
     let c = ready();
     let mut w = start(&c, "COR");
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     w.issue(
         &c,
         Action::RegionalOrder {
@@ -376,7 +376,7 @@ fn a_delivered_historical_directive_remains_valid_after_the_authority_becomes_au
     )
     .unwrap();
     reform(&mut w, &c, TerritorialForm::Federation, false);
-    w.advance(&c, 90).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(90)).unwrap();
     assert!(
         w.regional_mandate_at(&c, &w.player, &region("COR", "city"), w.day)
             .unwrap()
@@ -392,7 +392,7 @@ fn a_delivered_historical_directive_remains_valid_after_the_authority_becomes_au
 fn autonomous_ai_uses_the_same_paid_territorial_commands_and_replays() {
     let c = ready();
     let mut w = start(&c, "COR");
-    w.advance(&c, 270).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(270)).unwrap();
     assert!(w.journal.iter().any(|entry| entry.ai
         && matches!(
             entry.command.action,
@@ -414,7 +414,7 @@ fn malformed_rights_funds_and_history_are_rejected_without_arithmetic_panics() {
     let c = ready();
     let mut w = start(&c, "COR");
     reform(&mut w, &c, TerritorialForm::Federation, false);
-    w.advance(&c, 90).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(90)).unwrap();
     check(&w, &c);
     for kind in 0..5 {
         let mut bad = w.clone();

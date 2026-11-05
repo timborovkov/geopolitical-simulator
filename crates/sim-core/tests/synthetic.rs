@@ -28,12 +28,14 @@ fn synthetic_world_is_independent_of_historical_identities_and_runs_every_govern
                 },
             )
             .unwrap();
-        world.advance(&content, 7).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(7)).unwrap();
         let snapshot = persistence::encode(&world, &content).unwrap();
         let mut restored = persistence::decode(&snapshot, &content).unwrap();
         for _ in 0..24 {
-            restored.advance(&content, 30).unwrap();
-            world.advance(&content, 30).unwrap();
+            restored
+                .advance(&content, sim_core::DaySpan::new(30))
+                .unwrap();
+            world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
             restored.validate(&content).unwrap();
             assert_eq!(restored.hash(), world.hash());
         }
@@ -51,7 +53,9 @@ fn a_one_country_pack_needs_no_hidden_reference_to_the_historical_roster() {
     content.countries.truncate(1);
     content.countries[0].id = CountryId("TEST-STATE".into());
     let mut world = World::new(&content, content.countries[0].id.clone(), 0).unwrap();
-    world.advance(&content, 366).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(366))
+        .unwrap();
     world.validate(&content).unwrap();
     assert_eq!(world.countries.len(), 1);
     assert!(world.journal.iter().all(|entry| !entry.ai));

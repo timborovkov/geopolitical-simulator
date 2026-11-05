@@ -87,7 +87,7 @@ fn dated_supply_feedback_explains_both_physical_shortfalls_and_quota_bottlenecks
             },
         )
         .unwrap();
-    world.advance(&content, 15).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(15)).unwrap();
     let before = world.clone();
     for good in [GoodKind::Energy, GoodKind::Food] {
         let s = world
@@ -126,7 +126,9 @@ fn dated_supply_feedback_explains_both_physical_shortfalls_and_quota_bottlenecks
         .find(|seed| !stable_hash(format!("{seed}:AUR:0:supply-v2").as_bytes()).is_multiple_of(3))
         .unwrap();
     let mut quota_world = World::new(&quota_content, CountryId("AUR".into()), seed).unwrap();
-    quota_world.advance(&quota_content, 1).unwrap();
+    quota_world
+        .advance(&quota_content, sim_core::DaySpan::new(1))
+        .unwrap();
     for good in [GoodKind::Energy, GoodKind::Food] {
         let s = quota_world
             .reserve_supply(&quota_content, &quota_world.player, good)
@@ -143,7 +145,9 @@ fn dated_supply_feedback_explains_both_physical_shortfalls_and_quota_bottlenecks
         c.food = 90;
     }
     let mut spare_world = World::new(&spare_content, CountryId("AUR".into()), seed).unwrap();
-    spare_world.advance(&spare_content, 1).unwrap();
+    spare_world
+        .advance(&spare_content, sim_core::DaySpan::new(1))
+        .unwrap();
     let s = spare_world
         .reserve_supply(&spare_content, &spare_world.player, GoodKind::Energy)
         .unwrap()
@@ -172,7 +176,7 @@ fn new_reserve_contract_and_preserved_party_save_recover_together_without_rewrit
             },
         )
         .unwrap();
-    world.advance(&content, 7).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(7)).unwrap();
     let directory =
         std::env::temp_dir().join(format!("geosim-reserve-starter-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
@@ -194,8 +198,10 @@ fn new_reserve_contract_and_preserved_party_save_recover_together_without_rewrit
         primary
     );
     let mut resumed = persistence::decode(&primary, &content).unwrap();
-    world.advance(&content, 90).unwrap();
-    resumed.advance(&content, 90).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(90)).unwrap();
+    resumed
+        .advance(&content, sim_core::DaySpan::new(90))
+        .unwrap();
     assert_eq!(world, resumed);
     assert!(
         world

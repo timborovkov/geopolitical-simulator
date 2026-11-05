@@ -29,8 +29,12 @@ fn conditional_loan_delta_matches_actual_disbursement_and_interest_without_mutat
         )
         .unwrap();
     for offset in 1..=15 {
-        borrowed.advance(&content, 1).unwrap();
-        baseline.advance(&content, 1).unwrap();
+        borrowed
+            .advance(&content, sim_core::DaySpan::new(1))
+            .unwrap();
+        baseline
+            .advance(&content, sim_core::DaySpan::new(1))
+            .unwrap();
         let actual_delta = borrowed.player_country().accounts.treasury.0
             - baseline.player_country().accounts.treasury.0;
         let point = &plan.points[offset];

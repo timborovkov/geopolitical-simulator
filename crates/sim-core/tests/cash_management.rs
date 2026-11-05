@@ -20,7 +20,7 @@ fn exhausted() -> (Content, World) {
         if w.player_country().available_cash().0 == 0 {
             break;
         }
-        w.advance(&c, 1).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     }
     assert_eq!(w.player_country().available_cash(), Money(0));
     (c, w)
@@ -55,7 +55,7 @@ fn real_receipts_can_fund_a_recovery_decision_without_credit_or_forgiving_arrear
     assert_eq!(w.player_country().accounts.treasury, cash);
     assert_eq!(w.player_country().retained_cash(), Money(0));
     assert_eq!(w.player_country().approval, (approval - 3).max(0));
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert!(w.player_country().retained_cash().0 > 0);
     assert!(w.player_country().retained_cash().0 < 80);
     assert!(
@@ -68,8 +68,8 @@ fn real_receipts_can_fund_a_recovery_decision_without_credit_or_forgiving_arrear
         if w.player_country().retained_cash() == Money(80) {
             break;
         }
-        w.advance(&c, 1).unwrap();
-        resumed.advance(&c, 1).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
+        resumed.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     }
     assert_eq!(w, resumed);
     assert_eq!(w.player_country().retained_cash(), Money(80));
@@ -123,7 +123,7 @@ fn reservations_and_local_claims_remain_payable_while_retention_is_active() {
     hold(&mut w, &c, 1000, 90);
     let held = w.player_country().retained_cash();
     assert!(held.0 > 0);
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(w.player_country().committed_cash, Money(0));
     assert_eq!(w.player_country().retained_cash(), held);
     assert_eq!(
@@ -183,8 +183,8 @@ fn expiry_cooldown_rejections_and_successor_governments_release_only_actual_cash
     baseline
         .issue(&c, Action::ReleaseCash { request: id })
         .unwrap();
-    w.advance(&c, 2).unwrap();
-    baseline.advance(&c, 2).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(2)).unwrap();
+    baseline.advance(&c, sim_core::DaySpan::new(2)).unwrap();
     assert_eq!(w.player_country().retained_cash(), Money(0));
     assert!(matches!(
         w.player_country().cash_management.as_ref().unwrap().records[0].ended,
@@ -195,7 +195,7 @@ fn expiry_cooldown_rejections_and_successor_governments_release_only_actual_cash
         baseline.player_country().accounts.treasury
     );
     assert!(w.preview_cash_hold(&c, &w.player, Money(10), 2).is_err());
-    w.advance(&c, 88).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(88)).unwrap();
     hold(&mut w, &c, 100, 90);
     replay(&w, &c);
     // A normal contested transition changes the sponsoring government and
@@ -212,7 +212,7 @@ fn expiry_cooldown_rejections_and_successor_governments_release_only_actual_cash
             )
             .unwrap();
         while !successor.player_country().projects.is_empty() {
-            successor.advance(&c, 1).unwrap();
+            successor.advance(&c, sim_core::DaySpan::new(1)).unwrap();
         }
     }
     successor
@@ -229,7 +229,7 @@ fn expiry_cooldown_rejections_and_successor_governments_release_only_actual_cash
         if successor.player_country().government_number > 1 {
             break;
         }
-        successor.advance(&c, 1).unwrap();
+        successor.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     }
     assert!(successor.player_country().government_number > 1);
     assert_eq!(successor.player_country().retained_cash(), Money(0));
@@ -308,7 +308,7 @@ fn deferred_matured_principal_stays_in_debt_and_is_not_operating_arrears() {
         },
     )
     .unwrap();
-    w.advance(&c, 193).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(193)).unwrap();
     assert_eq!(w.player_country().available_cash(), Money(0));
     let id = hold(&mut w, &c, 500, 90);
     let mut baseline = w.clone();
@@ -317,8 +317,8 @@ fn deferred_matured_principal_stays_in_debt_and_is_not_operating_arrears() {
         .unwrap();
     let debt = w.player_country().debt;
     let previous_arrears = w.player_country().arrears;
-    w.advance(&c, 1).unwrap();
-    baseline.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
+    baseline.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(w.player_country().debt, debt);
     assert_eq!(
         w.player_country()

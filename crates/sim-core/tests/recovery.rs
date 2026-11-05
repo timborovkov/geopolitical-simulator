@@ -17,10 +17,10 @@ fn damaged_primary_never_overwrites_a_good_backup() {
     let (c, mut w) = setup();
     persistence::save(&path, &w, &c).unwrap();
     let original = w.hash();
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     persistence::save(&path, &w, &c).unwrap();
     std::fs::write(&path, b"damaged primary").unwrap();
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     persistence::save(&path, &w, &c).unwrap();
     assert_eq!(
         persistence::load(&path.with_extension("json.bak"), &c)
@@ -39,7 +39,7 @@ fn interrupted_valid_write_can_be_reviewed_and_restored_without_losing_originals
     let (c, mut w) = setup();
     persistence::save(&path, &w, &c).unwrap();
     let original = w.hash();
-    w.advance(&c, 3).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(3)).unwrap();
     let pending = path.with_extension("json.tmp");
     std::fs::write(&pending, persistence::encode(&w, &c).unwrap()).unwrap();
     let candidates = persistence::recovery_candidates(&path, &c);
@@ -91,7 +91,7 @@ fn interrupted_backup_is_visible_and_can_be_archived_by_explicit_recovery() {
         b"interrupted backup",
     )
     .unwrap();
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert!(persistence::save(&path, &w, &c).is_err());
     assert!(
         persistence::recovery_candidates(&path, &c)

@@ -27,7 +27,7 @@ fn authority_announces_and_conducts_a_fixed_poll_that_government_cannot_withdraw
     let opening = w.hash();
     assert!(w.issue(&c, Action::RequestElection).is_err());
     assert_eq!(opening, w.hash());
-    w.advance(&c, 365).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(365)).unwrap();
     let p = w.preview_election(&c, &w.player).unwrap();
     assert_eq!(p.decision_day, 372);
     assert_eq!(p.vote_day, 432);
@@ -49,7 +49,7 @@ fn authority_announces_and_conducts_a_fixed_poll_that_government_cannot_withdraw
         Some(730)
     );
     check(&w, &c);
-    w.advance(&c, 7).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(7)).unwrap();
     assert_eq!(w.player_country().next_election, Some(432));
     assert_eq!(
         w.public_report(&c, &w.player)
@@ -68,7 +68,7 @@ fn authority_announces_and_conducts_a_fixed_poll_that_government_cannot_withdraw
         assert_eq!(hash, w.hash());
     }
     check(&w, &c);
-    w.advance(&c, 60).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(60)).unwrap();
     let state = w.player_country().electoral_authority.as_ref().unwrap();
     assert_eq!(state.cases[0].status, ElectionCaseStatus::Conducted);
     assert_eq!(state.polls[0].day, 432);
@@ -118,7 +118,7 @@ fn presidential_and_royal_governments_cannot_order_polls_outside_their_mandate()
 fn withdrawal_and_refusal_retain_administration_and_the_statutory_interval() {
     let c = content();
     let mut withdrawn = start(&c, "AUR");
-    withdrawn.advance(&c, 365).unwrap();
+    withdrawn.advance(&c, sim_core::DaySpan::new(365)).unwrap();
     let id = request(&mut withdrawn, &c);
     let before = withdrawn.player_country().accounts.clone();
     withdrawn
@@ -131,7 +131,7 @@ fn withdrawal_and_refusal_retain_administration_and_the_statutory_interval() {
     assert_eq!(hash, withdrawn.hash());
     check(&withdrawn, &c);
     let mut refused = start(&c, "AUR");
-    refused.advance(&c, 365).unwrap();
+    refused.advance(&c, sim_core::DaySpan::new(365)).unwrap();
     request(&mut refused, &c);
     // An ordinary contested financing action spends political backing before review.
     refused
@@ -143,7 +143,7 @@ fn withdrawal_and_refusal_retain_administration_and_the_statutory_interval() {
         )
         .unwrap();
     assert!(refused.player_country().legislative_support < 51);
-    refused.advance(&c, 7).unwrap();
+    refused.advance(&c, sim_core::DaySpan::new(7)).unwrap();
     assert!(matches!(
         refused
             .player_country()
@@ -176,12 +176,12 @@ fn an_earlier_mandatory_confidence_poll_supersedes_an_announced_poll() {
         },
     )
     .unwrap();
-    w.advance(&c, 60).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(60)).unwrap();
     request(&mut w, &c);
-    w.advance(&c, 7).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(7)).unwrap();
     assert_eq!(w.player_country().next_election, Some(247));
     check(&w, &c);
-    w.advance(&c, 113).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(113)).unwrap();
     assert_eq!(w.day, 180);
     assert_eq!(w.player_country().next_election, Some(181));
     assert_eq!(
@@ -194,7 +194,7 @@ fn an_earlier_mandatory_confidence_poll_supersedes_an_announced_poll() {
         ElectionCaseStatus::Superseded
     );
     check(&w, &c);
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let poll = &w
         .player_country()
         .electoral_authority
@@ -221,10 +221,10 @@ fn a_costed_contested_constitutional_change_can_supersede_the_electoral_mandate(
             },
         )
         .unwrap();
-        w.advance(&c, p.delay).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(p.delay)).unwrap();
     }
     let id = request(&mut w, &c);
-    w.advance(&c, 7).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(7)).unwrap();
     assert_eq!(
         w.player_country()
             .electoral_authority
@@ -243,7 +243,7 @@ fn a_costed_contested_constitutional_change_can_supersede_the_electoral_mandate(
         },
     )
     .unwrap();
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(
         w.governing_regime(&c, &w.player).unwrap(),
         &Regime::Military
@@ -268,7 +268,7 @@ fn a_costed_contested_constitutional_change_can_supersede_the_electoral_mandate(
 fn request_cash_calendar_and_existing_poll_deadlines_are_enforced() {
     let c = content();
     let mut w = start(&c, "AUR");
-    w.advance(&c, 365).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(365)).unwrap();
     w.issue(
         &c,
         Action::Enact {
@@ -290,7 +290,7 @@ fn request_cash_calendar_and_existing_poll_deadlines_are_enforced() {
     assert_eq!(w.hash(), hash);
     check(&w, &c);
     let mut near = start(&c, "AUR");
-    near.advance(&c, 700).unwrap();
+    near.advance(&c, sim_core::DaySpan::new(700)).unwrap();
     assert!(
         near.preview_election(&c, &near.player)
             .unwrap_err()
@@ -298,7 +298,8 @@ fn request_cash_calendar_and_existing_poll_deadlines_are_enforced() {
     );
     let later = c.at_bookmark("2095-01-01").unwrap();
     let mut near = start(&later, "AUR");
-    near.advance(&later, MAX_DAY - near.day - 10).unwrap();
+    near.advance(&later, sim_core::DaySpan::new(MAX_DAY - near.day - 10))
+        .unwrap();
     assert!(
         near.preview_election(&later, &near.player)
             .unwrap_err()
@@ -317,7 +318,7 @@ fn independent_mandates_private_requests_saved_state_and_ai_share_validated_rule
     bad.elections.as_mut().unwrap().campaign_days = 0;
     assert!(bad.validate().is_err());
     let mut w = start(&c, "AUR");
-    w.advance(&c, 365).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(365)).unwrap();
     request(&mut w, &c);
     let public = serde_json::to_string(&w.project(&c, Viewer::Observer).unwrap()).unwrap();
     assert!(!public.contains("proposed_day"));
@@ -345,7 +346,7 @@ fn independent_mandates_private_requests_saved_state_and_ai_share_validated_rule
     assert!(persistence::decode(&serde_json::to_vec(&saved).unwrap(), &c).is_err());
     check(&w, &c);
     let mut ai = start(&c, "BOR");
-    ai.advance(&c, 1400).unwrap();
+    ai.advance(&c, sim_core::DaySpan::new(1400)).unwrap();
     assert!(ai.journal.iter().any(|e| e.ai
         && e.command.issuer.0 == "AUR"
         && matches!(e.command.action, Action::RequestElection)));
@@ -371,11 +372,11 @@ fn an_announced_poll_on_a_confidence_review_day_actually_counts_the_seats() {
         },
     )
     .unwrap();
-    w.advance(&c, 60).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(60)).unwrap();
     request(&mut w, &c);
-    w.advance(&c, 60).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(60)).unwrap();
     assert_eq!(w.player_country().next_election, Some(180));
-    w.advance(&c, 60).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(60)).unwrap();
     let state = w.player_country().electoral_authority.as_ref().unwrap();
     assert_eq!(state.polls.len(), 1);
     assert_eq!(state.polls[0].day, 180);
@@ -384,7 +385,7 @@ fn an_announced_poll_on_a_confidence_review_day_actually_counts_the_seats() {
         40,
         "A recorded poll must run the allocation, not retain the opening seats after a confidence deferral"
     );
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(
         w.player_country()
             .electoral_authority

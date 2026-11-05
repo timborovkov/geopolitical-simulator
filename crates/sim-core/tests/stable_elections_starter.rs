@@ -74,8 +74,8 @@ fn current_receipts_and_pre_poll_resources_match_the_preserved_rules23_campaign(
         world.issue_with_receipt(&current, action.clone()).unwrap(),
         prior.issue_with_receipt(&old, action).unwrap()
     );
-    world.advance(&current, 60).unwrap();
-    prior.advance(&old, 60).unwrap();
+    world.advance(&current, sim_core::DaySpan::new(60)).unwrap();
+    prior.advance(&old, sim_core::DaySpan::new(60)).unwrap();
     assert_eq!(world.hash(), 0x5aeea655f8b8a596);
     assert_eq!(prior.hash(), 0x8bf8784e005cff53);
     assert_eq!(world, persistence::replay(&world, &current).unwrap());
@@ -131,8 +131,12 @@ fn formats25_and24_recover_exact_originals_and_reject_a_downgraded_new_header() 
         primary
     );
     let mut resumed = persistence::decode(&primary, &current).unwrap();
-    world.advance(&current, 108).unwrap();
-    resumed.advance(&current, 108).unwrap();
+    world
+        .advance(&current, sim_core::DaySpan::new(108))
+        .unwrap();
+    resumed
+        .advance(&current, sim_core::DaySpan::new(108))
+        .unwrap();
     assert_eq!(world, resumed);
     assert_eq!(world, persistence::replay(&world, &current).unwrap());
     let mut header: serde_json::Value = serde_json::from_slice(&primary).unwrap();

@@ -175,7 +175,7 @@ mod tests {
                 summary.transfers[index(Account::External)][index(Account::Treasury)],
                 1000
             );
-            world.advance(&content, 30).unwrap();
+            world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
             let summary = summarize(&world, &world.player, start + 1).unwrap();
             assert_eq!(summary.opening, after_orders);
             assert_eq!(

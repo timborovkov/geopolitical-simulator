@@ -111,7 +111,9 @@ mod tests {
                 Content::from_json(include_str!("../../../data/synthetic-election-test.json"))
                     .unwrap();
             let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
-            world.advance(&content, 365).unwrap();
+            world
+                .advance(&content, sim_core::DaySpan::new(365))
+                .unwrap();
             let expected = world.hash();
             let ctx = egui::Context::default();
             ctx.set_zoom_factor(scale);
@@ -169,7 +171,7 @@ mod tests {
             assert_eq!(action, Some(Action::RequestElection));
             assert_eq!(world.hash(), expected);
             world.issue(&content, action.take().unwrap()).unwrap();
-            world.advance(&content, 7).unwrap();
+            world.advance(&content, sim_core::DaySpan::new(7)).unwrap();
             let expected = world.hash();
             let output = ctx.run(input, |ctx| {
                 egui::CentralPanel::default().show(ctx, |ui| {

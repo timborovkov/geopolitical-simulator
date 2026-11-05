@@ -84,8 +84,8 @@ fn every_seeded_government_has_linked_outcomes_with_identical_policy_ai_and_priv
         };
         let accepted = w.issue(&c, action.clone());
         assert_eq!(accepted, prior.issue(&old, action));
-        w.advance(&c, 60).unwrap();
-        prior.advance(&old, 60).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(60)).unwrap();
+        prior.advance(&old, sim_core::DaySpan::new(60)).unwrap();
         assert_eq!(without_context(w.clone(), &prior), prior);
         w.validate(&c).unwrap();
         if accepted.is_ok() {
@@ -167,8 +167,8 @@ fn formats24_and23_recover_without_losing_originals_and_pending_links_resume_exa
             .id,
         CommitmentId(1)
     );
-    w.advance(&c, 108).unwrap();
-    resumed.advance(&c, 108).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(108)).unwrap();
+    resumed.advance(&c, sim_core::DaySpan::new(108)).unwrap();
     assert_eq!(w, resumed);
     assert_eq!(w, persistence::replay(&w, &c).unwrap());
     std::fs::remove_dir_all(directory).unwrap();

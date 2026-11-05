@@ -20,7 +20,7 @@ fn supply_history_is_independent_of_other_countries_and_definition_order() {
         let mut observed = Vec::new();
         for day in 1..=200 {
             for (world, content) in worlds.iter_mut().zip(contents) {
-                world.advance(content, 1).unwrap();
+                world.advance(content, sim_core::DaySpan::new(1)).unwrap();
             }
             let shock = worlds[0].player_country().report.shock;
             assert_eq!(
@@ -51,10 +51,14 @@ fn supply_history_is_independent_of_other_countries_and_definition_order() {
 fn quarter_boundary_samples_survive_snapshot_replay_and_chunked_advancement() {
     let content = Content::bundled().unwrap();
     let mut continuous = World::new(&content, CountryId("GBR".into()), 0).unwrap();
-    continuous.advance(&content, 111).unwrap();
+    continuous
+        .advance(&content, sim_core::DaySpan::new(111))
+        .unwrap();
     let mut resumed = World::new(&content, CountryId("GBR".into()), 0).unwrap();
     for target in [89, 90, 91, 110, 111] {
-        resumed.advance(&content, target - resumed.day).unwrap();
+        resumed
+            .advance(&content, sim_core::DaySpan::new(target - resumed.day))
+            .unwrap();
         let bytes = persistence::encode(&resumed, &content).unwrap();
         resumed = persistence::decode(&bytes, &content).unwrap();
         assert_eq!(persistence::encode(&resumed, &content).unwrap(), bytes);

@@ -95,8 +95,16 @@ fn every_seeded_government_retains_private_references_without_altering_policy_or
         let opening = world.clone();
         let mut wrong_content = content.clone();
         wrong_content.description.push_str(" different");
-        assert!(world.advance(&wrong_content, 1).is_err());
-        assert!(world.advance(&content, 3661).is_err());
+        assert!(
+            world
+                .advance(&wrong_content, sim_core::DaySpan::new(1))
+                .is_err()
+        );
+        assert!(
+            world
+                .advance(&content, sim_core::DaySpan::new(3661))
+                .is_err()
+        );
         assert_eq!(world, opening);
         let action = Action::Enact {
             policy: "income_tax".into(),
@@ -106,8 +114,8 @@ fn every_seeded_government_retains_private_references_without_altering_policy_or
             world.issue(&content, action.clone()),
             prior.issue(&old, action)
         );
-        world.advance(&content, 60).unwrap();
-        prior.advance(&old, 60).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(60)).unwrap();
+        prior.advance(&old, sim_core::DaySpan::new(60)).unwrap();
         world.validate(&content).unwrap();
         let before = world.clone();
         let view = world
@@ -184,7 +192,7 @@ fn mixed_formats_23_and_22_preserve_reference_identity_and_exact_original_recove
             },
         )
         .unwrap();
-    world.advance(&content, 7).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(7)).unwrap();
     let reference = world.events[1].id.clone().unwrap();
     let original_event = world.events[1].clone();
     let directory = std::env::temp_dir().join(format!(
@@ -220,8 +228,10 @@ fn mixed_formats_23_and_22_preserve_reference_identity_and_exact_original_recove
             .unwrap(),
         Some(&original_event)
     );
-    world.advance(&content, 90).unwrap();
-    resumed.advance(&content, 90).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(90)).unwrap();
+    resumed
+        .advance(&content, sim_core::DaySpan::new(90))
+        .unwrap();
     assert_eq!(world, resumed);
     assert!(
         world

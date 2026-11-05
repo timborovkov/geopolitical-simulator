@@ -79,14 +79,18 @@ fn each_seeded_government_can_issue_a_dated_loan_through_its_ordinary_authority_
                     },
                 )
                 .unwrap();
-            world.advance(&content, support.delay).unwrap();
+            world
+                .advance(&content, sim_core::DaySpan::new(support.delay))
+                .unwrap();
         }
         let preview = world
             .preview_borrowing(&content, &world.player, amount)
             .unwrap();
         let id = LoanId(world.next_command.0);
         world.issue(&content, Action::Borrow { amount }).unwrap();
-        world.advance(&content, preview.consent_days).unwrap();
+        world
+            .advance(&content, sim_core::DaySpan::new(preview.consent_days))
+            .unwrap();
         let loan = world
             .player_country()
             .financing
@@ -109,7 +113,9 @@ fn each_seeded_government_can_issue_a_dated_loan_through_its_ordinary_authority_
                 .maturity_day
                 .is_none()
         );
-        world.advance(&content, 364).unwrap();
+        world
+            .advance(&content, sim_core::DaySpan::new(364))
+            .unwrap();
         assert_eq!(
             world
                 .player_country()
@@ -124,7 +130,7 @@ fn each_seeded_government_can_issue_a_dated_loan_through_its_ordinary_authority_
             amount
         );
         let before = world.player_country().debt.0;
-        world.advance(&content, 1).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
         let loan = world
             .player_country()
             .financing
@@ -152,10 +158,10 @@ fn mixed_format16_and_preserved_format15_recovery_retains_original_bytes_and_exa
     let content = Content::debt_bundled().unwrap();
     let old = Content::national_fiscal_bundled().unwrap();
     let mut prior = World::new(&old, CountryId("FRA".into()), 17).unwrap();
-    prior.advance(&old, 138).unwrap();
+    prior.advance(&old, sim_core::DaySpan::new(138)).unwrap();
     assert_eq!(prior.hash(), 0x4be2fd07e49920b2);
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     world
         .issue(
             &content,
@@ -186,8 +192,12 @@ fn mixed_format16_and_preserved_format15_recovery_retains_original_bytes_and_exa
     );
     assert_eq!(persistence::replay(&restored, &resolved).unwrap(), restored);
     let mut resumed = persistence::decode(&primary, &content).unwrap();
-    world.advance(&content, 380).unwrap();
-    resumed.advance(&content, 380).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(380))
+        .unwrap();
+    resumed
+        .advance(&content, sim_core::DaySpan::new(380))
+        .unwrap();
     assert_eq!(resumed, world);
     assert_eq!(persistence::replay(&world, &content).unwrap(), world);
     let fixture = Content::from_json(include_str!(

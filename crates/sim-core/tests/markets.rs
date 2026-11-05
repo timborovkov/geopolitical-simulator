@@ -21,7 +21,7 @@ fn prices_respond_with_a_lag_and_reprice_baskets_without_creating_cash() {
             )
             .unwrap();
     }
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     let markets = world.player_country().markets.as_ref().unwrap();
     assert_eq!(markets.food.last.as_ref().unwrap().price_bps, 10000);
     let following_price = markets.food.next_price_bps;
@@ -32,7 +32,7 @@ fn prices_respond_with_a_lag_and_reprice_baskets_without_creating_cash() {
         .iter()
         .map(|h| h.basket_cost.0)
         .sum();
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(
         world
             .player_country()
@@ -46,7 +46,7 @@ fn prices_respond_with_a_lag_and_reprice_baskets_without_creating_cash() {
             .price_bps,
         following_price
     );
-    world.advance(&content, 10).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(10)).unwrap();
     let later_basket: i64 = world
         .player_country()
         .households
@@ -82,7 +82,7 @@ fn physical_need_requested_use_and_delivery_are_separate() {
     country.households[vulnerable].savings_share = 0;
     country.households[owners].savings_share += moved;
     let mut world = world(&content);
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     let food = &world.player_country().markets.as_ref().unwrap().food;
     let last = food.last.as_ref().unwrap();
     assert!(last.supply >= last.physical_need);
@@ -90,7 +90,7 @@ fn physical_need_requested_use_and_delivery_are_separate() {
     assert_eq!(last.delivered, last.requested_use);
     assert!(food.next_price_bps < last.price_bps);
     assert!(world.player_country().report.food_coverage < 100);
-    world.advance(&content, 30).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
     world.validate(&content).unwrap();
     persistence::replay(&world, &content).unwrap();
 }
@@ -152,19 +152,27 @@ fn market_content_provenance_ranges_and_rules_are_validated() {
 fn markets_resume_at_a_later_bookmark_and_do_not_depend_on_roster_order() {
     let content = fixture().at_bookmark("2001-07-15").unwrap();
     let mut original = world(&content);
-    original.advance(&content, 180).unwrap();
+    original
+        .advance(&content, sim_core::DaySpan::new(180))
+        .unwrap();
     let bytes = persistence::encode(&original, &content).unwrap();
     let header: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(header["schema"], 4);
     let mut restored = persistence::decode(&bytes, &content).unwrap();
-    original.advance(&content, 30).unwrap();
-    restored.advance(&content, 30).unwrap();
+    original
+        .advance(&content, sim_core::DaySpan::new(30))
+        .unwrap();
+    restored
+        .advance(&content, sim_core::DaySpan::new(30))
+        .unwrap();
     assert_eq!(restored.hash(), original.hash());
     persistence::replay(&original, &content).unwrap();
     let mut reordered_content = content.clone();
     reordered_content.countries.reverse();
     let mut reordered = world(&reordered_content);
-    reordered.advance(&reordered_content, 210).unwrap();
+    reordered
+        .advance(&reordered_content, sim_core::DaySpan::new(210))
+        .unwrap();
     assert_eq!(reordered.countries, original.countries);
     for schema in [2, 3] {
         let mut invalid = header.clone();
@@ -198,7 +206,9 @@ fn ordinary_rules_two_world_hash_and_format_three_writer_remain_unchanged() {
     let content = Content::classic_bundled().unwrap();
     assert_eq!(content.rules, 2);
     let mut world = World::new(&content, CountryId("GBR".into()), 2000).unwrap();
-    world.advance(&content, 360).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(360))
+        .unwrap();
     assert_eq!(world.hash(), 0xc3994a175e880d20);
     assert!(
         world

@@ -35,7 +35,7 @@ fn the_income_roster_preserves_prior_identity_and_delivers_tax_policy_under_ever
         let mut w = World::new(&c, country.id.clone(), 17).unwrap();
         assert_eq!(persistence::snapshot_schema(&w), 14);
         assert!(w.player_country().income_tax_report.is_none());
-        w.advance(&c, 1).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
         let rate = if w.player_country().tax < 45 {
             w.player_country().tax + 1
         } else {
@@ -52,7 +52,8 @@ fn the_income_roster_preserves_prior_identity_and_delivers_tax_policy_under_ever
                 },
             )
             .unwrap();
-            w.advance(&c, support.delay).unwrap();
+            w.advance(&c, sim_core::DaySpan::new(support.delay))
+                .unwrap();
         }
         let preview = w
             .preview(&c, &w.player, &"income_tax".into(), rate)
@@ -67,7 +68,8 @@ fn the_income_roster_preserves_prior_identity_and_delivers_tax_policy_under_ever
         )
         .unwrap();
         assert_eq!(w.player_country().income_tax_report, settled);
-        w.advance(&c, preview.delay).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(preview.delay))
+            .unwrap();
         let country = w.player_country();
         let report = country.income_tax_report.as_ref().unwrap();
         assert_eq!(report.standard_rate, rate);
@@ -129,7 +131,7 @@ fn new_pending_tax_and_preserved_fiscal_saves_recover_without_relabeling_or_losi
         .unwrap();
     assert_eq!(prior.hash(), 0xc49e391e8a8a2b40);
     let mut w = World::new(&c, id, 17).unwrap();
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     w.issue(
         &c,
         Action::Enact {
@@ -159,8 +161,8 @@ fn new_pending_tax_and_preserved_fiscal_saves_recover_without_relabeling_or_losi
     );
     assert_eq!(persistence::replay(&restored, &resolved).unwrap(), restored);
     let mut loaded = persistence::decode(&primary, &c).unwrap();
-    w.advance(&c, 366).unwrap();
-    loaded.advance(&c, 366).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(366)).unwrap();
+    loaded.advance(&c, sim_core::DaySpan::new(366)).unwrap();
     assert_eq!(loaded, w);
     assert_eq!(
         w.player_country()

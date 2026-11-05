@@ -135,7 +135,7 @@ mod tests {
         ))
         .unwrap();
         let mut world = World::new(&content, CountryId("COR".into()), 17).unwrap();
-        world.advance(&content, 3).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(3)).unwrap();
         let before = world.hash();
         for scale in [1.0, 1.4] {
             let ctx = egui::Context::default();

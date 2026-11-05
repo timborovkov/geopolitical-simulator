@@ -50,7 +50,7 @@ fn fiscal_ai_responds_to_national_obligations_without_spending_local_cash_or_dup
     world
         .preview_budget(&content, &foreign, 2000, &targets)
         .unwrap();
-    world.advance(&content, 30).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
     let country = &world.countries[&foreign];
     let bills = &country.fiscal_plans.as_ref().unwrap().bills;
     assert_eq!(
@@ -75,7 +75,7 @@ fn fiscal_ai_responds_to_national_obligations_without_spending_local_cash_or_dup
     assert!(world.journal.iter().any(|e| e.ai
         && e.command.issuer == foreign
         && matches!(e.command.action, Action::ProposeBudget { .. })));
-    world.advance(&content, 30).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
     let country = &world.countries[&foreign];
     assert_eq!(
         country.fiscal_plans.as_ref().unwrap().bills.len(),
@@ -138,7 +138,7 @@ fn national_fiscal_ai_cannot_bypass_legal_backing_or_implementation_cash() {
                 .preview_budget(&content, &foreign, 2000, &targets)
                 .is_err()
         );
-        world.advance(&content, 30).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
         assert!(
             world.countries[&foreign]
                 .fiscal_plans
@@ -159,7 +159,7 @@ fn preserved_delivery() -> (Content, World) {
     let content = Content::income_bundled().unwrap();
     assert_eq!(content.rules, 13);
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     world
         .issue(
             &content,
@@ -169,7 +169,7 @@ fn preserved_delivery() -> (Content, World) {
             },
         )
         .unwrap();
-    world.advance(&content, 78).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(78)).unwrap();
     assert_eq!(world.hash(), 0x3b708c82007c6193);
     (content, world)
 }
@@ -229,7 +229,7 @@ fn mixed_format15_and_preserved_format14_recovery_keeps_the_old_campaign_and_rep
     let content = Content::national_fiscal_bundled().unwrap();
     let (old, prior) = preserved_delivery();
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     world
         .issue(
             &content,
@@ -260,8 +260,12 @@ fn mixed_format15_and_preserved_format14_recovery_keeps_the_old_campaign_and_rep
     );
     assert_eq!(persistence::replay(&restored, &resolved).unwrap(), restored);
     let mut loaded = persistence::decode(&primary, &content).unwrap();
-    world.advance(&content, 366).unwrap();
-    loaded.advance(&content, 366).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(366))
+        .unwrap();
+    loaded
+        .advance(&content, sim_core::DaySpan::new(366))
+        .unwrap();
     assert_eq!(loaded, world);
     assert_eq!(
         world

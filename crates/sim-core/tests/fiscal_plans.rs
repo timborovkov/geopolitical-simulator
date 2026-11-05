@@ -31,7 +31,7 @@ fn backing(c: &Content, w: &mut World) {
             },
         )
         .unwrap();
-        w.advance(c, p.delay).unwrap();
+        w.advance(c, sim_core::DaySpan::new(p.delay)).unwrap();
     }
 }
 fn bill(w: &World) -> &BudgetBill {
@@ -72,7 +72,7 @@ fn a_supplementary_budget_reserves_then_funds_actual_programmes_and_replays_disp
             .unwrap_err()
             .contains("pending budget")
     );
-    w.advance(&c, p.review_day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(p.review_day)).unwrap();
     assert_eq!(bill(&w).status, BudgetBillStatus::Enacted);
     assert_eq!(bill(&w).programmes.len(), 3);
     assert_eq!(w.player_country().committed_cash, Money(0));
@@ -95,7 +95,7 @@ fn a_supplementary_budget_reserves_then_funds_actual_programmes_and_replays_disp
         .map(|p| p.due_day)
         .max()
         .unwrap();
-    w.advance(&c, due - w.day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due - w.day)).unwrap();
     assert_eq!(FiscalTargets::current(w.player_country()), target());
     assert!(bill(&w).programmes.iter().all(|p| {
         w.player_country()
@@ -132,7 +132,7 @@ fn failed_review_is_atomic_and_cannot_spend_protected_local_cash() {
         .unwrap()
         .legislative_support = 0;
     let due = bill(&w).review_day;
-    w.advance(&c, due).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due)).unwrap();
     assert!(matches!(bill(&w).status, BudgetBillStatus::Refused { .. }));
     assert!(w.player_country().projects.is_empty());
     assert_eq!(w.player_country().committed_cash, Money(0));
@@ -147,7 +147,7 @@ fn annual_plans_never_operate_before_january_and_preserve_year_end_execution() {
             .unwrap_err()
             .contains("window")
     );
-    w.advance(&c, 200).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(200)).unwrap();
     // Ordinary AI and settlement run before proposal; retain the current values for unchanged items.
     let mut t = FiscalTargets::current(w.player_country());
     t.income_tax = if t.income_tax == 28 { 29 } else { 28 };
@@ -155,7 +155,8 @@ fn annual_plans_never_operate_before_january_and_preserve_year_end_execution() {
     let review = bill(&w).review_day;
     let jan = parse_date("2001-01-01").unwrap();
     let original = w.player_country().tax;
-    w.advance(&c, review - w.day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(review - w.day))
+        .unwrap();
     assert_eq!(bill(&w).status, BudgetBillStatus::Enacted);
     assert_eq!(
         w.player_country()
@@ -167,10 +168,11 @@ fn annual_plans_never_operate_before_january_and_preserve_year_end_execution() {
         jan
     );
     check(&c, &w);
-    w.advance(&c, jan - 1 - w.day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(jan - 1 - w.day))
+        .unwrap();
     assert_eq!(w.player_country().tax, original);
     check(&c, &w);
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(w.player_country().tax, t.income_tax);
     assert_eq!(w.player_country().budget_reviews.len(), 1);
     assert!(w.journal.iter().any(|e| e.budget_bill == Some(id)));
@@ -189,7 +191,7 @@ fn successor_closes_pending_bills_but_keeps_enacted_funded_projects() {
         },
     )
     .unwrap();
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(bill(&w).status, BudgetBillStatus::Superseded);
     assert_eq!(w.player_country().committed_cash, Money(0));
     check(&c, &w);
@@ -197,7 +199,8 @@ fn successor_closes_pending_bills_but_keeps_enacted_funded_projects() {
     backing(&c, &mut w);
     propose(&c, &mut w, 2000, target());
     let review = bill(&w).review_day;
-    w.advance(&c, review - w.day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(review - w.day))
+        .unwrap();
     w.issue(
         &c,
         Action::Reconstitute {
@@ -206,7 +209,7 @@ fn successor_closes_pending_bills_but_keeps_enacted_funded_projects() {
         },
     )
     .unwrap();
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(bill(&w).status, BudgetBillStatus::Enacted);
     assert!(!w.player_country().projects.is_empty());
     check(&c, &w);
@@ -217,7 +220,8 @@ fn public_plans_hide_pending_deliberation_and_private_finance() {
     propose(&c, &mut w, 2000, target());
     let report = w.public_report(&c, &w.player).unwrap();
     assert_eq!(report.fiscal_plans, Some(Vec::new()));
-    w.advance(&c, bill(&w).review_day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(bill(&w).review_day))
+        .unwrap();
     let report = w.public_report(&c, &w.player).unwrap();
     let published = serde_json::to_value(report.fiscal_plans.unwrap()).unwrap();
     assert_eq!(published.as_array().unwrap().len(), 1);
@@ -243,7 +247,8 @@ fn malformed_dispatch_versions_and_reservations_are_rejected() {
         .unwrap()
         .committed_cash = Money(0);
     assert!(bad.validate(&c).is_err());
-    w.advance(&c, bill(&w).review_day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(bill(&w).review_day))
+        .unwrap();
     let mut bad = w.clone();
     bad.countries
         .get_mut(&w.player.clone())
@@ -363,7 +368,7 @@ fn combined_costs_and_local_claims_are_checked_before_any_fee_is_paid() {
     assert_eq!(w.hash(), hash);
     w.validate(&c).unwrap();
     let (c, mut w) = setup();
-    w.advance(&c, 10).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(10)).unwrap();
     let p = w.preview_budget(&c, &w.player, 2000, &target()).unwrap();
     let ctry = w.countries.get_mut(&w.player.clone()).unwrap();
     let local = ctry.accounts.treasury.0 - ctry.available_cash().0;
@@ -401,7 +406,7 @@ fn budget_delivery_can_fulfil_support_without_fabricating_an_extra_programme() {
     .unwrap();
     propose(&c, &mut w, 2000, target());
     let due = bill(&w).review_day;
-    w.advance(&c, due).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due)).unwrap();
     let service = bill(&w)
         .programmes
         .iter()
@@ -415,7 +420,7 @@ fn budget_delivery_can_fulfil_support_without_fabricating_an_extra_programme() {
         .find(|p| p.id == service)
         .unwrap()
         .due_day;
-    w.advance(&c, due - w.day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due - w.day)).unwrap();
     assert!(
         w.player_country()
             .undertakings
@@ -430,10 +435,11 @@ fn budget_delivery_can_fulfil_support_without_fabricating_an_extra_programme() {
 #[test]
 fn funded_annual_programmes_keep_their_dates_and_ordinary_withdrawal_is_sunk() {
     let (c, mut w) = setup();
-    w.advance(&c, 200).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(200)).unwrap();
     let id = propose(&c, &mut w, 2001, target());
     let review = bill(&w).review_day;
-    w.advance(&c, review - w.day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(review - w.day))
+        .unwrap();
     let p = bill(&w).programmes[0].project;
     assert!(w.preview_amendment(&c, &w.player, p, 29).is_err());
     assert!(w.issue(&c, Action::WithdrawBudget { request: id }).is_err());
@@ -447,7 +453,7 @@ fn funded_annual_programmes_keep_their_dates_and_ordinary_withdrawal_is_sunk() {
 #[test]
 fn fiscal_ai_uses_the_same_budget_commands_and_long_campaign_replay() {
     let (c, mut w) = setup();
-    w.advance(&c, 720).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(720)).unwrap();
     assert!(
         w.journal
             .iter()
@@ -478,7 +484,8 @@ fn a_later_programme_refusal_rolls_back_earlier_dispatch_and_payments() {
         .get_mut(&w.player.clone())
         .unwrap()
         .council_support = 60;
-    w.advance(&c, bill(&w).review_day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(bill(&w).review_day))
+        .unwrap();
     assert!(
         matches!(&bill(&w).status,BudgetBillStatus::Refused{reason} if reason.contains("royal spending"))
     );
@@ -535,12 +542,12 @@ fn constitutional_review_clocks_are_honored_once_and_survive_later_history() {
         },
     )
     .unwrap();
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     let p = w.preview_budget(&c, &w.player, 2000, &target()).unwrap();
     assert_eq!(p.review_day, w.day + 180);
     propose(&c, &mut w, 2000, target());
     check(&c, &w);
-    w.advance(&c, 180).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(180)).unwrap();
     assert_eq!(bill(&w).status, BudgetBillStatus::Enacted);
     let tax = w
         .player_country()
@@ -555,13 +562,14 @@ fn constitutional_review_clocks_are_honored_once_and_survive_later_history() {
 #[test]
 fn january_delivery_and_settlement_belong_to_the_new_fiscal_year() {
     let (c, mut w) = setup();
-    w.advance(&c, 200).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(200)).unwrap();
     propose(&c, &mut w, 2001, target());
     let jan = parse_date("2001-01-01").unwrap();
-    w.advance(&c, jan - 1 - w.day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(jan - 1 - w.day))
+        .unwrap();
     let previous = w.player_country().budget.clone();
     let closing_cash = w.player_country().accounts.treasury;
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let ctry = w.player_country();
     let review = ctry.budget_reviews.last().unwrap();
     assert_eq!(
@@ -581,7 +589,7 @@ fn january_delivery_and_settlement_belong_to_the_new_fiscal_year() {
 fn january_review_charges_new_year_implementation_and_late_supplementary_bills_are_rejected() {
     let (c, mut w) = setup();
     let jan = parse_date("2001-01-01").unwrap();
-    w.advance(&c, jan - 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(jan - 14)).unwrap();
     let hash = w.hash();
     assert!(
         w.issue(
@@ -598,10 +606,10 @@ fn january_review_charges_new_year_implementation_and_late_supplementary_bills_a
     propose(&c, &mut w, 2001, target());
     let cost = bill(&w).implementation_cost;
     let fee = bill(&w).fee;
-    w.advance(&c, 13).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(13)).unwrap();
     let previous = w.player_country().budget.clone();
     assert_eq!(previous.capital, fee);
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(bill(&w).status, BudgetBillStatus::Enacted);
     assert_eq!(
         w.player_country().budget_reviews.last().unwrap().period,
@@ -620,7 +628,7 @@ fn calendar_forecasts_count_only_the_periods_actual_settlement_days() {
         initial.forecast.daily_revenue.0 * 365
     );
     let jan = parse_date("2001-01-01").unwrap();
-    w.advance(&c, jan).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(jan)).unwrap();
     let next = &w.player_country().budget;
     assert_eq!(next.opening_day_settled, Some(true));
     assert_eq!(next.expected_revenue(jan), next.forecast.daily_revenue.0);

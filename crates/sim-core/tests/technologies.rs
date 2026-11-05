@@ -47,10 +47,10 @@ fn date_restriction_rejects_without_payment_then_commissions_through_normal_fund
         hash,
         "query and rejected order must not pay fees or reserve cash"
     );
-    w.advance(&c, 29).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(29)).unwrap();
     assert!(w.preview(&c, &w.player, &"energy".into(), 1).is_err());
     let capacity = w.player_country().energy_capacity;
-    assert_eq!(w.advance_to_event(&c).unwrap(), 1);
+    assert_eq!(w.advance_to_event(&c).unwrap(), DaySpan::new(1));
     assert_eq!(w.day, 30);
     assert_eq!(w.player_country().energy_capacity, capacity);
     let p = w.preview(&c, &w.player, &"energy".into(), 1).unwrap();
@@ -71,9 +71,9 @@ fn date_restriction_rejects_without_payment_then_commissions_through_normal_fund
         w.player_country().committed_cash.0,
         p.cost.0 - p.upfront_payment.0
     );
-    w.advance(&c, p.delay - 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(p.delay - 1)).unwrap();
     assert_eq!(w.player_country().energy_capacity, capacity);
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(w.player_country().energy_capacity, capacity + 15);
     replay(&w, &c);
     let mut incompatible = c.clone();
@@ -96,7 +96,7 @@ fn all_prerequisites_and_country_eligibility_apply_and_queries_use_exact_public_
         serde_json::json!(["grid_planning", "agronomy"]);
     let c = Content::from_json(&data.to_string()).unwrap();
     let mut w = World::new(&c, CountryId("AUR".into()), 17).unwrap();
-    w.advance(&c, 30).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(30)).unwrap();
     let hash = w.hash();
     let rows = w
         .policy_technology_eligibility(&c, &w.player, &"energy".into())
@@ -131,13 +131,13 @@ fn all_prerequisites_and_country_eligibility_apply_and_queries_use_exact_public_
     data["technologies"]["definitions"][1]["available_from"] = "2000-03-01".into();
     let c = Content::from_json(&data.to_string()).unwrap();
     let mut w = World::new(&c, CountryId("AUR".into()), 17).unwrap();
-    w.advance(&c, 30).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(30)).unwrap();
     assert!(
         w.preview(&c, &w.player, &"energy".into(), 1)
             .unwrap_err()
             .contains("Agronomic planning")
     );
-    w.advance(&c, 30).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(30)).unwrap();
     assert!(w.preview(&c, &w.player, &"energy".into(), 1).is_ok());
     replay(&w, &c);
 }
@@ -186,15 +186,15 @@ fn malformed_definitions_references_dates_and_unversioned_gates_are_rejected() {
 fn snapshot_19_replays_one_date_notice_and_later_bookmarks_initialize_eligibility() {
     let c = fixture();
     let mut w = World::new(&c, CountryId("AUR".into()), 17).unwrap();
-    w.advance(&c, 29).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(29)).unwrap();
     let bytes = persistence::encode(&w, &c).unwrap();
     let mut data: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(data["schema"], 19);
     let mut resumed = persistence::decode(&bytes, &c).unwrap();
-    assert_eq!(w.advance_to_event(&c).unwrap(), 1);
-    resumed.advance(&c, 1).unwrap();
+    assert_eq!(w.advance_to_event(&c).unwrap(), DaySpan::new(1));
+    resumed.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(w, resumed);
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(
         w.events
             .iter()
@@ -253,7 +253,7 @@ fn fiscal_packages_cannot_precommission_a_programme_before_its_prerequisite_is_a
         .is_err()
     );
     assert_eq!(w.hash(), hash);
-    w.advance(&c, 30).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(30)).unwrap();
     assert!(w.preview_budget(&c, &w.player, 2000, &targets).is_ok());
     w.issue(
         &c,
@@ -274,7 +274,7 @@ fn nonplayer_supply_orders_obey_the_same_date_gate_and_have_no_free_capacity() {
     }
     let c = Content::from_json(&data.to_string()).unwrap();
     let mut w = World::new(&c, CountryId("COR".into()), 17).unwrap();
-    w.advance(&c, 59).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(59)).unwrap();
     let energy_order = |entry: &JournalEntry| matches!(&entry.command.action,Action::Enact {policy,..} if policy=="energy");
     assert!(!w.journal.iter().any(energy_order));
     assert!(
@@ -282,7 +282,7 @@ fn nonplayer_supply_orders_obey_the_same_date_gate_and_have_no_free_capacity() {
             .values()
             .all(|country| country.energy_capacity == 20)
     );
-    w.advance(&c, 91).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(91)).unwrap();
     let orders: Vec<_> = w
         .journal
         .iter()

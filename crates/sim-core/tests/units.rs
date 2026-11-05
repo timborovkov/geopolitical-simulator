@@ -33,7 +33,7 @@ fn quantities_keep_legacy_json_scalars_and_reject_invalid_values() {
 fn outside_campaign_bounds_is_rejected_even_with_a_valid_quantity_type() {
     let content = Content::bundled().unwrap();
     let mut world = World::new(&content, CountryId("GBR".into()), 2000).unwrap();
-    world.advance(&content, 30).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
     let mut invalid = world.clone();
     invalid
         .countries

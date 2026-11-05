@@ -7,7 +7,7 @@ use sim_core::*;
 pub enum Navigation {
     Open(Tab),
     Draft { policy: PolicyId, value: i32 },
-    Advance(u32),
+    Advance(DaySpan),
 }
 #[derive(Default)]
 pub struct Panel {
@@ -88,7 +88,7 @@ impl Panel {
             ui.strong("1 · Get a settled report");
             ui.label("Opening figures are starting assumptions. Advance one day to see actual receipts, payments and delivered needs.");
             if ui.button("Advance one day for the first report").clicked() {
-                navigation = Some(Navigation::Advance(1));
+                navigation = Some(Navigation::Advance(DaySpan::new(1)));
             }
             return navigation;
         }
@@ -269,7 +269,9 @@ impl Panel {
                         .button(format!("Advance toward {}", date(next)))
                         .clicked()
                 {
-                    navigation = Some(Navigation::Advance((next - world.day).min(365)));
+                    navigation = Some(Navigation::Advance(DaySpan::new(
+                        (next - world.day).min(365),
+                    )));
                 }
                 ui.small("Advance up to one year at a time, stopping earlier for important events. Review the event and continue when ready.");
             }
@@ -362,7 +364,7 @@ impl Panel {
                         .button(format!("Advance toward observed review {}", date(day)))
                         .clicked()
                 {
-                    navigation = Some(Navigation::Advance(day - world.day));
+                    navigation = Some(Navigation::Advance(DaySpan::new(day - world.day)));
                 }
             }
         }
@@ -440,7 +442,7 @@ mod tests {
                     .contains("Advance one day for the first report")
             );
         }
-        world.advance(&content, 1).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
         for scale in [1.0, 1.4] {
             assert!(
                 render(&mut panel, &world, &content, true, scale)
@@ -464,7 +466,10 @@ mod tests {
             assert!(!text.contains("Operating since"));
         }
         world
-            .advance(&content, project.consent_day - world.day)
+            .advance(
+                &content,
+                sim_core::DaySpan::new(project.consent_day - world.day),
+            )
             .unwrap();
         for scale in [1.0, 1.4] {
             let text = render(&mut panel, &world, &content, true, scale);
@@ -472,7 +477,10 @@ mod tests {
             assert!(!text.contains("Review may refuse"));
         }
         world
-            .advance(&content, project.due_day - world.day)
+            .advance(
+                &content,
+                sim_core::DaySpan::new(project.due_day - world.day),
+            )
             .unwrap();
         let review = world.player_country().commitments.as_ref().unwrap()[0]
             .review_due
@@ -483,7 +491,9 @@ mod tests {
             assert!(text.contains(&format!("Advance toward observed review {}", date(review))));
             assert!(!text.contains("complete decision record"));
         }
-        world.advance(&content, review - world.day).unwrap();
+        world
+            .advance(&content, sim_core::DaySpan::new(review - world.day))
+            .unwrap();
         for scale in [1.0, 1.4] {
             let text = render(&mut panel, &world, &content, true, scale);
             for expected in [
@@ -502,7 +512,7 @@ mod tests {
     fn withdrawn_and_foreign_views_never_claim_delivery_or_leak_private_report_data() {
         let content = fixture();
         let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
-        world.advance(&content, 1).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
         world
             .issue(
                 &content,

@@ -408,7 +408,15 @@ impl World {
     /// Fiscal-plan year close precedes decisions; consent and delivery precede
     /// settlement, evaluation and politics. Monthly AI follows all countries.
     /// See the implemented tick dependency order in the technical overview.
-    pub fn advance(&mut self, content: &Content, days: u32) -> Result<(), String> {
+    /// An absolute simulation day is not an elapsed request:
+    /// ```compile_fail
+    /// use sim_core::{Content, World};
+    /// fn wrong_unit(world: &mut World, content: &Content) {
+    ///     world.advance(content, world.day);
+    /// }
+    /// ```
+    pub fn advance(&mut self, content: &Content, elapsed: DaySpan) -> Result<(), String> {
+        let days = elapsed.units();
         if self.rules < 22 {
             return self.advance_inner(content, days);
         }
@@ -527,11 +535,19 @@ impl World {
         }
         Ok(())
     }
-    pub fn advance_to_event(&mut self, content: &Content) -> Result<u32, String> {
-        self.advance(content, 0)?;
+    /// Search to the next important owner event and return elapsed time.
+    /// The result is not an absolute simulation date:
+    /// ```compile_fail
+    /// use sim_core::{Content, World};
+    /// fn wrong_unit(world: &mut World, content: &Content) {
+    ///     let destination: u32 = world.advance_to_event(content).unwrap();
+    /// }
+    /// ```
+    pub fn advance_to_event(&mut self, content: &Content) -> Result<DaySpan, String> {
+        self.advance(content, crate::DaySpan::new(0))?;
         let start = self.day;
         for _ in 0..MAX_DAY.saturating_sub(self.day) {
-            self.advance(content, 1)?;
+            self.advance(content, crate::DaySpan::new(1))?;
             if self
                 .events
                 .iter()
@@ -540,7 +556,7 @@ impl World {
                 break;
             }
         }
-        Ok(self.day - start)
+        Ok(DaySpan::new(self.day - start))
     }
     fn complete_projects(&mut self, content: &Content, id: &CountryId) {
         let c = self.countries.get_mut(id).expect("country");
@@ -1455,10 +1471,10 @@ mod maturity_ai_tests {
             world.apply(&content, command, CommandOrigin::Ai).unwrap();
         }
         assert!(world.countries[&foreign].available_cash().0 > 1000);
-        world.advance(&content, 29).unwrap();
+        world.advance(&content, crate::DaySpan::new(29)).unwrap();
         assert!(world.countries[&foreign].available_cash().0 > 1000);
         assert!(world.countries[&foreign].available_cash().0 < 10000);
-        world.advance(&content, 1).unwrap();
+        world.advance(&content, crate::DaySpan::new(1)).unwrap();
         assert!(world.journal.iter().any(|entry| entry.command.day == 30
             && entry.command.issuer == foreign
             && matches!(

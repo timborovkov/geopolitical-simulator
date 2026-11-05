@@ -63,7 +63,7 @@ fn references_are_country_scoped_private_and_read_only_through_commands_and_dail
         },
     )
     .unwrap();
-    w.advance(&c, 60).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(60)).unwrap();
     assert_eq!(
         w.event_by_reference(
             &c,
@@ -141,7 +141,9 @@ fn references_are_country_scoped_private_and_read_only_through_commands_and_dail
             },
         )
         .unwrap();
-    prior.advance(&prior_content, 60).unwrap();
+    prior
+        .advance(&prior_content, sim_core::DaySpan::new(60))
+        .unwrap();
     let mut normalized = w;
     normalized.rules = prior.rules;
     normalized.content_hash = prior.content_hash;
@@ -167,15 +169,15 @@ fn format_23_resumes_pending_programmes_and_keeps_all_earlier_rules_and_hashes()
         },
     )
     .unwrap();
-    w.advance(&c, 7).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(7)).unwrap();
     let bytes = persistence::encode(&w, &c).unwrap();
     let mut header: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(header["schema"], 23);
     header["schema"] = 22.into();
     assert!(persistence::decode(&serde_json::to_vec(&header).unwrap(), &c).is_err());
     let mut resumed = persistence::decode(&bytes, &c).unwrap();
-    w.advance(&c, 90).unwrap();
-    resumed.advance(&c, 90).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(90)).unwrap();
+    resumed.advance(&c, sim_core::DaySpan::new(90)).unwrap();
     assert_eq!(w, resumed);
     assert_eq!(w, persistence::replay(&w, &c).unwrap());
     let old = Content::reserve_bundled().unwrap();
@@ -240,7 +242,7 @@ fn retention_never_reuses_references_and_retained_entries_survive_filtering_and_
 fn malformed_or_legacy_reference_metadata_is_rejected_before_encoding() {
     let c = content();
     let mut base = world(&c);
-    base.advance(&c, 30).unwrap();
+    base.advance(&c, sim_core::DaySpan::new(30)).unwrap();
     for variant in 0..9 {
         let mut w = base.clone();
         match variant {
@@ -320,11 +322,11 @@ fn exhausted_reference_space_rolls_back_paid_commands_and_incomplete_daily_steps
     assert!(error.contains("reference space exhausted"), "{error}");
     assert_eq!(exhausted, before);
     let mut annual = ordinary;
-    annual.advance(&c, 365).unwrap();
+    annual.advance(&c, sim_core::DaySpan::new(365)).unwrap();
     exhaust_counter(&mut annual);
     annual.validate(&c).unwrap();
     let before = annual.clone();
-    let error = annual.advance(&c, 1).unwrap_err();
+    let error = annual.advance(&c, sim_core::DaySpan::new(1)).unwrap_err();
     assert!(error.contains("reference space exhausted"), "{error}");
     assert_eq!(annual, before);
 }

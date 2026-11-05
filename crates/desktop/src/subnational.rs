@@ -329,7 +329,7 @@ mod tests {
                 })
             );
             world.issue(&content, action.take().unwrap()).unwrap();
-            world.advance(&content, 14).unwrap();
+            world.advance(&content, sim_core::DaySpan::new(14)).unwrap();
             let expected = world.hash();
             let output = draw(&mut panel, &mut action, &world, input);
             assert!(action.is_none());

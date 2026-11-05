@@ -47,7 +47,8 @@ fn the_seeded_fiscal_roster_preserves_all_prior_data_and_each_country_can_delive
                 },
             )
             .unwrap();
-            w.advance(&c, support.delay).unwrap();
+            w.advance(&c, sim_core::DaySpan::new(support.delay))
+                .unwrap();
         }
         let preview = w.preview_budget(&c, &w.player, 2000, &t).unwrap();
         let before = w.player_country().accounts.treasury;
@@ -68,7 +69,8 @@ fn the_seeded_fiscal_roster_preserves_all_prior_data_and_each_country_can_delive
             w.player_country().committed_cash,
             preview.implementation_cost
         );
-        w.advance(&c, preview.review_day - w.day).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(preview.review_day - w.day))
+            .unwrap();
         let bill = w
             .player_country()
             .fiscal_plans
@@ -87,7 +89,7 @@ fn the_seeded_fiscal_roster_preserves_all_prior_data_and_each_country_can_delive
             .map(|p| p.due_day)
             .max()
             .unwrap();
-        w.advance(&c, due - w.day).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(due - w.day)).unwrap();
         assert_eq!(
             FiscalTargets::current(w.player_country()),
             t,
@@ -182,8 +184,8 @@ fn a_pending_default_budget_recovers_without_changing_the_preserved_shared_under
     );
     persistence::replay(&restored, &resolved).unwrap();
     let mut loaded = persistence::decode(&primary, &c).unwrap();
-    w.advance(&c, 366).unwrap();
-    loaded.advance(&c, 366).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(366)).unwrap();
+    loaded.advance(&c, sim_core::DaySpan::new(366)).unwrap();
     assert_eq!(loaded, w);
     assert_eq!(FiscalTargets::current(w.player_country()), t);
     assert_eq!(w.player_country().budget.opening_day_settled, Some(true));

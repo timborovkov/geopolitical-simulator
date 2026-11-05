@@ -81,7 +81,7 @@ fn default_local_grants_recover_without_migrating_a_preserved_observed_campaign(
     )
     .unwrap();
     let mut earlier = World::new(&old, CountryId("PRK".into()), 17).unwrap();
-    earlier.advance(&old, 1).unwrap();
+    earlier.advance(&old, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(earlier.hash(), 0xd0e75a0a36bdf7cf);
     let dir =
         std::env::temp_dir().join(format!("geosim-territorial-starter-{}", std::process::id()));
@@ -106,8 +106,8 @@ fn default_local_grants_recover_without_migrating_a_preserved_observed_campaign(
     persistence::replay(&restored, &resolved).unwrap();
     let bytes = persistence::encode(&w, &c).unwrap();
     let mut loaded = persistence::decode(&bytes, &c).unwrap();
-    w.advance(&c, 14).unwrap();
-    loaded.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
+    loaded.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(w, loaded);
     assert_eq!(
         w.player_country().subnational.as_ref().unwrap().orders[0].status,

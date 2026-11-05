@@ -141,7 +141,9 @@ mod tests {
         for scale in [1.0, 1.4] {
             let content = Content::bundled().unwrap();
             let mut world = World::new(&content, CountryId("FRA".into()), 17).unwrap();
-            world.advance(&content, 108).unwrap();
+            world
+                .advance(&content, sim_core::DaySpan::new(108))
+                .unwrap();
             let hash = world.hash();
             let foreign = CountryId("GBR".into());
             let report = world.public_report(&content, &foreign).unwrap();

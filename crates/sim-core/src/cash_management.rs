@@ -491,7 +491,7 @@ mod tests {
             {
                 break;
             }
-            world.advance(&content, 1).unwrap();
+            world.advance(&content, crate::DaySpan::new(1)).unwrap();
         }
         let debt = world.countries[&foreign].debt;
 
@@ -518,7 +518,7 @@ mod tests {
         );
         assert!(world.countries[&foreign].retained_cash().0 < 80);
         for _ in 0..60 {
-            world.advance(&content, 1).unwrap();
+            world.advance(&content, crate::DaySpan::new(1)).unwrap();
             if world.countries[&foreign]
                 .cash_management
                 .as_ref()

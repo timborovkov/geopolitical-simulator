@@ -58,7 +58,7 @@ fn maturity_follows_actual_approval_not_request_and_reconciles_cash_principal_an
             .len(),
         1
     );
-    w.advance(&content, 14).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(instrument(&w, id).maturity_day, Some(44));
     let outlook = w.funding_outlook(&content, 30, None).unwrap();
     assert_eq!(outlook.principal_due, Money(1000));
@@ -92,7 +92,7 @@ fn maturity_follows_actual_approval_not_request_and_reconciles_cash_principal_an
         -conditional.additional_daily_interest.0 * 31
     );
     assert_eq!(w.hash(), hash);
-    w.advance(&content, 29).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(29)).unwrap();
     assert_eq!(instrument(&w, id).outstanding, Money(1000));
     let opening = w.player_country().debt;
     let interest = w.player_country().report.interest;
@@ -102,8 +102,10 @@ fn maturity_follows_actual_approval_not_request_and_reconciles_cash_principal_an
         16
     );
     let mut resumed = persistence::decode(&bytes, &content).unwrap();
-    w.advance(&content, 1).unwrap();
-    resumed.advance(&content, 1).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
+    resumed
+        .advance(&content, sim_core::DaySpan::new(1))
+        .unwrap();
     assert_eq!(w, resumed);
     assert_eq!(instrument(&w, id).outstanding, Money(0));
     assert_eq!(instrument(&w, id).maturity_repaid, Some(Money(1000)));
@@ -140,7 +142,7 @@ fn unfunded_maturity_stays_outstanding_retries_and_does_not_create_duplicate_ope
     content.validate().unwrap();
     let mut w = World::new(&content, CountryId("AUR".into()), 17).unwrap();
     let id = loan(&mut w, &content, 10000);
-    w.advance(&content, 43).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(43)).unwrap();
     for policy in ["energy", "agriculture"] {
         w.issue(
             &content,
@@ -154,7 +156,7 @@ fn unfunded_maturity_stays_outstanding_retries_and_does_not_create_duplicate_ope
     let reserved = w.player_country().committed_cash;
     assert!(reserved.0 > 0);
     let before = w.player_country().debt.0;
-    w.advance(&content, 1).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(w.player_country().committed_cash, reserved);
     assert!(w.player_country().accounts.treasury.0 >= reserved.0);
     let row = instrument(&w, id);
@@ -175,7 +177,7 @@ fn unfunded_maturity_stays_outstanding_retries_and_does_not_create_duplicate_ope
         10000 - paid
     );
     let remaining = row.outstanding.0;
-    w.advance(&content, 1).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     assert!(instrument(&w, id).outstanding.0 < remaining);
     assert_eq!(
         w.player_country().budget.expected_cash(),
@@ -188,16 +190,16 @@ fn mixed_voluntary_and_maturity_redemption_preserves_fifo_and_rejects_forged_his
     let content = fixture(true);
     let mut w = World::new(&content, CountryId("COR".into()), 17).unwrap();
     let first = loan(&mut w, &content, 1000);
-    w.advance(&content, 10).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(10)).unwrap();
     let second = loan(&mut w, &content, 2000);
     w.issue(&content, Action::Repay { amount: Money(500) })
         .unwrap();
-    w.advance(&content, 20).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(20)).unwrap();
     assert_eq!(instrument(&w, first).outstanding, Money(0));
     assert_eq!(instrument(&w, second).outstanding, Money(2000));
     w.issue(&content, Action::Repay { amount: Money(500) })
         .unwrap();
-    w.advance(&content, 10).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(10)).unwrap();
     assert_eq!(instrument(&w, second).outstanding, Money(0));
     assert_eq!(
         w.player_country().financing.as_ref().unwrap().instruments[0].outstanding,
@@ -240,7 +242,7 @@ fn maturity_rules_are_versioned_bounded_and_leave_the_preserved_starter_unchange
     assert!(content.validate().is_err());
     let content = Content::national_fiscal_bundled().unwrap();
     let mut w = World::new(&content, CountryId("FRA".into()), 17).unwrap();
-    w.advance(&content, 138).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(138)).unwrap();
     assert_eq!(w.hash(), 0x4be2fd07e49920b2);
     assert!(
         w.countries

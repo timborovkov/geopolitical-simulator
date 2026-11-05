@@ -1,5 +1,5 @@
 //! Client scheduling only; simulation steps remain ordered and wall-clock free.
-use sim_core::{Content, MAX_DAY, World};
+use sim_core::{Content, DaySpan, MAX_DAY, World};
 use std::sync::{
     Arc,
     atomic::{AtomicBool, AtomicU32, Ordering},
@@ -14,7 +14,7 @@ pub struct AdvanceJob {
     receiver: Receiver<Outcome>,
     stop: Arc<AtomicBool>,
     pub completed: Arc<AtomicU32>,
-    pub requested: u32,
+    pub requested: DaySpan,
     pub seeking_event: bool,
     pub start_day: u32,
 }
@@ -22,9 +22,10 @@ impl AdvanceJob {
     pub fn start(
         mut world: World,
         content: Content,
-        days: u32,
+        elapsed: DaySpan,
         important: bool,
     ) -> Result<Self, String> {
+        let days = elapsed.units();
         if world.day > MAX_DAY || days > MAX_DAY.saturating_sub(world.day) {
             return Err("Requested date exceeds the 100-year campaign limit".into());
         }
@@ -45,7 +46,7 @@ impl AdvanceJob {
                 if cancel.load(Ordering::Relaxed) {
                     break;
                 }
-                if let Err(reason) = world.advance(&content, 1) {
+                if let Err(reason) = world.advance(&content, sim_core::DaySpan::new(1)) {
                     error = Some(reason);
                     break;
                 }
@@ -70,7 +71,7 @@ impl AdvanceJob {
             receiver,
             stop,
             completed,
-            requested: days,
+            requested: elapsed,
             seeking_event: false,
             start_day,
         })
@@ -112,7 +113,7 @@ mod tests {
             },
         )
         .unwrap();
-        let job = AdvanceJob::start(w, c.clone(), 365, true).unwrap();
+        let job = AdvanceJob::start(w, c.clone(), DaySpan::new(365), true).unwrap();
         let outcome = job
             .receiver
             .recv_timeout(std::time::Duration::from_secs(10))
@@ -134,13 +135,13 @@ mod tests {
     fn worker_matches_the_same_number_of_synchronous_steps() {
         let c = Content::bundled().unwrap();
         let w = World::new(&c, CountryId("GBR".into()), 6).unwrap();
-        let job = AdvanceJob::start(w.clone(), c.clone(), 70, false).unwrap();
+        let job = AdvanceJob::start(w.clone(), c.clone(), DaySpan::new(70), false).unwrap();
         let outcome = job
             .receiver
             .recv_timeout(std::time::Duration::from_secs(10))
             .unwrap();
         let mut sync = w;
-        sync.advance(&c, 70).unwrap();
+        sync.advance(&c, sim_core::DaySpan::new(70)).unwrap();
         assert_eq!(outcome.world.hash(), sync.hash());
     }
     #[test]
@@ -167,7 +168,7 @@ mod tests {
             },
         )
         .unwrap();
-        let job = AdvanceJob::start(w, c, 30, true).unwrap();
+        let job = AdvanceJob::start(w, c, DaySpan::new(30), true).unwrap();
         let result = job
             .receiver
             .recv_timeout(std::time::Duration::from_secs(10))
@@ -176,17 +177,47 @@ mod tests {
         assert!(result.stopped_for_event);
     }
     #[test]
+    fn later_bookmarks_preserve_elapsed_requests_and_worker_progress() {
+        let c =
+            Content::from_json(include_str!("../../../data/synthetic-dated-test.json")).unwrap();
+        let mut expected = World::new(&c, CountryId("AUR".into()), 17).unwrap();
+        let start = expected.day;
+        assert!(start > 0);
+        let elapsed = DaySpan::new(3);
+        let job = AdvanceJob::start(expected.clone(), c.clone(), elapsed, false).unwrap();
+        assert_eq!(job.start_day, start);
+        assert_eq!(job.requested, elapsed);
+        let outcome = job
+            .receiver
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .unwrap();
+        assert!(outcome.error.is_none());
+        assert_eq!(outcome.world.day, start + elapsed.units());
+        assert_eq!(job.completed.load(Ordering::Relaxed), elapsed.units());
+        expected.advance(&c, elapsed).unwrap();
+        assert_eq!(
+            sim_core::persistence::encode(&outcome.world, &c).unwrap(),
+            sim_core::persistence::encode(&expected, &c).unwrap()
+        );
+        assert_eq!(
+            outcome.world,
+            sim_core::persistence::replay(&outcome.world, &c).unwrap()
+        );
+    }
+    #[test]
     fn cancellation_commits_only_completed_day_boundaries() {
         let c = Content::bundled().unwrap();
         let w = World::new(&c, CountryId("GBR".into()), 6).unwrap();
-        let job = AdvanceJob::start(w.clone(), c.clone(), 1000, false).unwrap();
+        let job = AdvanceJob::start(w.clone(), c.clone(), DaySpan::new(1000), false).unwrap();
         job.stop();
         let result = job
             .receiver
             .recv_timeout(std::time::Duration::from_secs(10))
             .unwrap();
         let mut expected = w;
-        expected.advance(&c, result.world.day).unwrap();
+        expected
+            .advance(&c, DaySpan::new(result.world.day - expected.day))
+            .unwrap();
         assert!(result.world.day < 1000);
         assert_eq!(result.world.hash(), expected.hash());
     }

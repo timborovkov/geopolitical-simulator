@@ -32,7 +32,7 @@ fn project_identity_keeps_numeric_json_and_published_campaign_hash() {
     assert_eq!(json["projects"][0]["id"], 1);
     assert_eq!(json["commitments"][0]["id"], 1);
     assert_eq!(json["commitments"][0]["project"]["id"], 1);
-    world.advance(&content, 60).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(60)).unwrap();
     assert_eq!(world.hash(), 0x4d601b2b61093b11);
     assert_eq!(world.player_country().project(&id).unwrap().value, 30);
     roundtrip(&world, &content);
@@ -99,7 +99,9 @@ fn classic_pending_project_roundtrips_without_lifecycle_records() {
     assert!(world.player_country().commitments.is_none());
     assert_eq!(serde_json::to_value(&project).unwrap()["id"], id.0);
     roundtrip(&world, &content);
-    world.advance(&content, project.due_day).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(project.due_day))
+        .unwrap();
     assert!(world.player_country().project(&id).is_none());
     assert_eq!(world.player_country().tax, 30);
     roundtrip(&world, &content);

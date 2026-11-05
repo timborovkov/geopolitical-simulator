@@ -59,7 +59,7 @@ fn appointment_reduces_only_future_preparation_without_moving_funded_deadlines_o
         request
     );
     check(&w, &c);
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(
         w.policy_preparation_days(&c, &w.player, &"energy".into()),
         4
@@ -74,7 +74,7 @@ fn appointment_reduces_only_future_preparation_without_moving_funded_deadlines_o
         153
     );
     check(&w, &c);
-    w.advance(&c, 135).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(135)).unwrap();
     assert_eq!(w.player_country().energy_capacity, 95);
     check(&w, &c);
 }
@@ -85,8 +85,10 @@ fn professional_and_consensus_candidates_have_a_visible_political_and_timing_tra
     let mut consensus = professional.clone();
     appoint(&mut professional, &c, "finance", "professional");
     appoint(&mut consensus, &c, "finance", "consensus");
-    professional.advance(&c, 14).unwrap();
-    consensus.advance(&c, 14).unwrap();
+    professional
+        .advance(&c, sim_core::DaySpan::new(14))
+        .unwrap();
+    consensus.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(
         professional.policy_preparation_days(&c, &professional.player, &"income_tax".into()),
         4
@@ -123,7 +125,7 @@ fn all_three_authority_routes_apply_and_immediate_decrees_leave_no_stale_pending
             .unwrap();
         assert_eq!(w.hash(), hash);
         appoint(&mut w, &c, "finance", "professional");
-        w.advance(&c, delay).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(delay)).unwrap();
         assert!(
             w.player_country()
                 .cabinet
@@ -171,7 +173,7 @@ fn cancellation_and_refusal_keep_costs_and_cooldown_and_rejections_are_atomic() 
         assert_eq!(w.hash(), hash);
     }
     check(&w, &c);
-    w.advance(&c, 90).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(90)).unwrap();
     appoint(&mut w, &c, "finance", "consensus");
     w.issue_developer(
         &c,
@@ -182,7 +184,7 @@ fn cancellation_and_refusal_keep_costs_and_cooldown_and_rejections_are_atomic() 
         },
     )
     .unwrap();
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert!(
         w.player_country()
             .cabinet
@@ -223,7 +225,7 @@ fn successor_cabinet_closes_terms_cancels_requests_and_retains_commissioned_prog
         },
     )
     .unwrap();
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     let due = w.player_country().projects[0].due_day;
     appoint(&mut w, &c, "finance", "consensus");
     w.issue(
@@ -242,7 +244,7 @@ fn successor_cabinet_closes_terms_cancels_requests_and_retains_commissioned_prog
         },
     )
     .unwrap();
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let state = w.player_country().cabinet.as_ref().unwrap();
     assert_eq!(state.government, 2);
     assert_eq!(state.since, 15);
@@ -286,7 +288,7 @@ fn dismissal_requires_current_power_costs_cash_and_restores_civil_service_prepar
     let c = content();
     let mut w = start(&c, "AUR");
     appoint(&mut w, &c, "finance", "professional");
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     w.issue_developer(
         &c,
         w.player.clone(),
@@ -397,7 +399,7 @@ fn definitions_state_snapshot_boundaries_privacy_and_ai_appointments_are_validat
     assert!(!public.contains("PendingAppointment"));
     assert!(!public.contains("acceptability"));
     assert!(!public.contains("sponsor"));
-    w.advance(&c, 120).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(120)).unwrap();
     assert!(
         !w.countries[&CountryId("BOR".into())]
             .cabinet
@@ -462,7 +464,8 @@ fn appointment_cannot_spend_reserved_capital_or_schedule_past_the_campaign_limit
     check(&w, &c);
     let later = c.at_bookmark("2095-01-01").unwrap();
     let mut w = start(&later, "COR");
-    w.advance(&later, MAX_DAY - w.day - 10).unwrap();
+    w.advance(&later, sim_core::DaySpan::new(MAX_DAY - w.day - 10))
+        .unwrap();
     let hash = w.hash();
     assert!(
         w.issue(

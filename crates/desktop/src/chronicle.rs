@@ -150,7 +150,7 @@ mod tests {
         ))
         .unwrap();
         let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
-        world.advance(&content, 30).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
         let foreign = world
             .events
             .iter()

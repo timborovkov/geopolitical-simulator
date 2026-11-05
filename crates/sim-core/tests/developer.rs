@@ -59,7 +59,7 @@ fn mixed_command_origins_save_resume_and_replay_without_leaking_private_state() 
             },
         )
         .unwrap();
-    world.advance(&content, 31).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(31)).unwrap();
     assert!(world.journal.iter().any(|entry| entry.ai));
     let target = CountryId("BOR".into());
     let accounts = world.countries[&target].accounts.clone();
@@ -88,8 +88,10 @@ fn mixed_command_origins_save_resume_and_replay_without_leaking_private_state() 
     }
     let mut loaded =
         persistence::decode(&persistence::encode(&world, &content).unwrap(), &content).unwrap();
-    world.advance(&content, 60).unwrap();
-    loaded.advance(&content, 60).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(60)).unwrap();
+    loaded
+        .advance(&content, sim_core::DaySpan::new(60))
+        .unwrap();
     assert_eq!(loaded.hash(), world.hash());
     assert_eq!(
         persistence::replay(&world, &content).unwrap().hash(),
@@ -136,7 +138,10 @@ fn successful_developer_campaign_never_receives_normal_mandate_certification() {
             .unwrap();
     }
     world
-        .advance(&content, content.review_day().unwrap() - world.day - 1)
+        .advance(
+            &content,
+            sim_core::DaySpan::new(content.review_day().unwrap() - world.day - 1),
+        )
         .unwrap();
     world
         .issue_developer(
@@ -145,7 +150,7 @@ fn successful_developer_campaign_never_receives_normal_mandate_certification() {
             edit(DeveloperField::Approval, 100),
         )
         .unwrap();
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     let review = world
         .events
         .iter()
@@ -219,7 +224,7 @@ fn format_two_conversion_preserves_exact_original_and_can_be_recovered() {
         persistence::recovery_candidates(&path, &content)[0].schema,
         Some(2)
     );
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     persistence::save(&path, &world, &content).unwrap();
     let archive = dir.join("campaign.json.format-v2-1");
     assert_eq!(std::fs::read(&archive).unwrap(), original);

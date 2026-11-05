@@ -90,11 +90,13 @@ fn legal_routes_apply_to_all_regimes_and_support_can_be_negotiated() {
             },
         )
         .unwrap();
-        w.advance(&content, delivery_day).unwrap();
+        w.advance(&content, sim_core::DaySpan::new(delivery_day))
+            .unwrap();
         assert!(w.events.iter().any(|e| e.country == d.id
             && e.day == delivery_day
             && e.text.contains("coalition is operating")));
-        w.advance(&content, 200 - delivery_day).unwrap();
+        w.advance(&content, sim_core::DaySpan::new(200 - delivery_day))
+            .unwrap();
         // The bounded news feed may expire; accepted delivery evidence is permanent.
         let delivery = w
             .player_country()
@@ -148,16 +150,19 @@ fn policy_has_cost_delay_no_duplicate_and_save_resumes_exactly() {
         )
         .is_err()
     );
-    w.advance(&content, preview.delay - 1).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(preview.delay - 1))
+        .unwrap();
     assert_eq!(w.player_country().energy_capacity, 90);
     let bytes = persistence::encode(&w, &content).unwrap();
     let mut loaded = persistence::decode(&bytes, &content).unwrap();
-    w.advance(&content, 1).unwrap();
-    loaded.advance(&content, 1).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
+    loaded.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(w.player_country().energy_capacity, 105);
     assert_eq!(loaded.hash(), w.hash());
-    w.advance(&content, 100).unwrap();
-    loaded.advance(&content, 100).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(100)).unwrap();
+    loaded
+        .advance(&content, sim_core::DaySpan::new(100))
+        .unwrap();
     assert_eq!(loaded.hash(), w.hash());
     persistence::replay(&w, &content).unwrap();
 }
@@ -175,7 +180,7 @@ fn sector_cash_and_physical_goods_reconcile_every_day() {
         .unwrap();
     for _ in 0..400 {
         let old = w.clone();
-        w.advance(&content, 1).unwrap();
+        w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
         for (id, c) in &w.countries {
             let previous = &old.countries[id];
             let r = &c.report;
@@ -238,7 +243,7 @@ fn unfunded_services_create_liabilities_and_reduce_delivery() {
     c.budget.opening_cash = Money(0);
     c.services = 18;
     c.welfare = 12;
-    w.advance(&content, 1).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     let c = w.player_country();
     assert!(c.arrears.0 > 0);
     assert!(c.report.service_delivery < 92);
@@ -251,12 +256,12 @@ fn unfunded_services_create_liabilities_and_reduce_delivery() {
         },
     )
     .unwrap();
-    w.advance(&content, 13).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(13)).unwrap();
     assert!(
         w.player_country().report.unpaid.0 > 0,
         "Pending loan is not spendable"
     );
-    w.advance(&content, 1).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(w.player_country().report.unpaid.0, 0);
 }
 #[test]
@@ -285,7 +290,7 @@ fn save_damage_versions_content_mismatch_and_atomic_backup() {
     let path = dir.join("campaign.json");
     persistence::save(&path, &w, &content).unwrap();
     let original = w.hash();
-    w.advance(&content, 1).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     persistence::save(&path, &w, &content).unwrap();
     assert_eq!(persistence::load(&path, &content).unwrap().hash(), w.hash());
     assert_eq!(
@@ -302,13 +307,13 @@ fn save_damage_versions_content_mismatch_and_atomic_backup() {
 #[test]
 fn elections_change_government_country_continues_and_ai_is_active() {
     let (content, mut w) = setup("USA");
-    w.advance(&content, 729).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(729)).unwrap();
     let c = w.countries.get_mut(&w.player.clone()).unwrap();
     c.approval = 0;
     for h in &mut c.households {
         h.approval = 0;
     }
-    w.advance(&content, 1).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     let c = w.player_country();
     assert_eq!(c.government_number, 2);
     assert_ne!(c.ruling_party, "USA:democratic");
@@ -327,7 +332,7 @@ fn five_year_campaign_is_reproducible_with_actions_and_milestone() {
         },
     )
     .unwrap();
-    w.advance(&content, 150).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(150)).unwrap();
     w.issue(
         &content,
         Action::Enact {
@@ -336,7 +341,7 @@ fn five_year_campaign_is_reproducible_with_actions_and_milestone() {
         },
     )
     .unwrap();
-    w.advance(&content, 1677).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(1677)).unwrap();
     w.validate(&content).unwrap();
     assert!(w.milestone_reported);
     assert!(w.events.iter().any(|e| e.text.contains("Five-year review")));
@@ -349,7 +354,9 @@ fn ten_year_campaigns_across_the_roster_preserve_invariants() {
     let content = Content::bundled().unwrap();
     for d in &content.countries {
         let mut world = World::new(&content, d.id.clone(), 123).unwrap();
-        world.advance(&content, 3660).unwrap();
+        world
+            .advance(&content, sim_core::DaySpan::new(3660))
+            .unwrap();
         world.validate(&content).unwrap();
         assert!(world.countries.values().all(|c| c.history.len() <= 120));
         assert!(world.ledger.iter().all(|e| e.day + 30 >= world.day));

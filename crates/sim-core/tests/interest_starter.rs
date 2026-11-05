@@ -66,7 +66,7 @@ fn all_seeded_governments_accrue_actual_principal_days_and_resume_after_manual_r
     for d in &content.countries {
         let mut w = World::new(&content, d.id.clone(), 17).unwrap();
         let opening = w.player_country().debt;
-        w.advance(&content, 30).unwrap();
+        w.advance(&content, sim_core::DaySpan::new(30)).unwrap();
         let s = w
             .player_country()
             .financing
@@ -90,8 +90,10 @@ fn all_seeded_governments_accrue_actual_principal_days_and_resume_after_manual_r
             18
         );
         let mut resumed = persistence::decode(&bytes, &content).unwrap();
-        w.advance(&content, 1).unwrap();
-        resumed.advance(&content, 1).unwrap();
+        w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
+        resumed
+            .advance(&content, sim_core::DaySpan::new(1))
+            .unwrap();
         assert_eq!(w, resumed);
         let s = w
             .player_country()
@@ -134,7 +136,7 @@ fn mixed_formats_18_and_17_keep_the_previous_cash_recovery_golden_and_exact_orig
             },
         )
         .unwrap();
-    prior.advance(&old, 1).unwrap();
+    prior.advance(&old, sim_core::DaySpan::new(1)).unwrap();
     prior.issue(&old, Action::ReleaseCash { request }).unwrap();
     prior
         .issue(
@@ -145,11 +147,11 @@ fn mixed_formats_18_and_17_keep_the_previous_cash_recovery_golden_and_exact_orig
             },
         )
         .unwrap();
-    prior.advance(&old, 108).unwrap();
+    prior.advance(&old, sim_core::DaySpan::new(108)).unwrap();
     assert_eq!(prior.hash(), 0xbb0378bc7ed563a4);
     let content = Content::interest_bundled().unwrap();
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
-    world.advance(&content, 3).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(3)).unwrap();
     let directory =
         std::env::temp_dir().join(format!("geosim-interest-starter-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
@@ -172,8 +174,10 @@ fn mixed_formats_18_and_17_keep_the_previous_cash_recovery_golden_and_exact_orig
     );
     assert_eq!(persistence::replay(&restored, &resolved).unwrap(), restored);
     let mut resumed = persistence::decode(&primary, &content).unwrap();
-    world.advance(&content, 40).unwrap();
-    resumed.advance(&content, 40).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(40)).unwrap();
+    resumed
+        .advance(&content, sim_core::DaySpan::new(40))
+        .unwrap();
     assert_eq!(world, resumed);
     assert_eq!(persistence::replay(&world, &content).unwrap(), world);
     let fixture = Content::from_json(include_str!(

@@ -293,7 +293,7 @@ fn play(
                     }
                 }
                 "advance" => {
-                    world.advance(content, number(words.get(1))?)?;
+                    world.advance(content, sim_core::DaySpan::new(number(words.get(1))?))?;
                     status(world, content);
                 }
                 "until" => {
@@ -302,12 +302,12 @@ fn play(
                         return Err("Cannot rewind; load an earlier snapshot".into());
                     }
                     while world.day < target {
-                        world.advance(content, (target - world.day).min(3660))?;
+                        world.advance(content, sim_core::DaySpan::new((target - world.day).min(3660)))?;
                     }
                     status(world, content);
                 }
                 "next" => {
-                    println!("Advanced {} days", world.advance_to_event(content)?);
+                    println!("Advanced {} days", world.advance_to_event(content)?.units());
                     status(world, content);
                 }
                 "borrow" => issue(world, content,
@@ -1287,7 +1287,7 @@ fn run() -> Result<(), String> {
     if interactive {
         play(&mut world, &mut content, developer, bundled_catalog)?;
     } else {
-        world.advance(&content, days)?;
+        world.advance(&content, sim_core::DaySpan::new(days))?;
         status(&world, &content);
     }
     world.validate(&content)?;

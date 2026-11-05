@@ -216,7 +216,7 @@ mod tests {
         let c = Content::bundled().unwrap();
         let mut w = World::new(&c, CountryId("GBR".into()), 2).unwrap();
         let unknown = w.public_report(&c, &w.player).unwrap();
-        w.advance(&c, 30).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(30)).unwrap();
         let known = w.public_report(&c, &w.player).unwrap();
         for ascending in [true, false] {
             assert_eq!(

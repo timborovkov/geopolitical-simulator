@@ -40,7 +40,7 @@ fn all_party_row_permutations_produce_the_same_remainder_seats_and_successor() {
         pack.validate().unwrap();
         let mut world =
             World::new_scenario(&pack, id.clone(), 17, Scenario::FiscalSupplyCrisis).unwrap();
-        world.advance(&pack, 361).unwrap();
+        world.advance(&pack, sim_core::DaySpan::new(361)).unwrap();
         let country = world.player_country();
         assert_eq!(country.government_number, 2);
         assert_eq!(country.ruling_party, PartyId::from("AUR-2"));
@@ -85,7 +85,7 @@ fn an_equal_seat_poll_uses_the_lowest_id_and_keeps_developer_control_replayable(
         pack.validate().unwrap();
         let mut world =
             World::new_scenario(&pack, id.clone(), 17, Scenario::FiscalSupplyCrisis).unwrap();
-        world.advance(&pack, 360).unwrap();
+        world.advance(&pack, sim_core::DaySpan::new(360)).unwrap();
         assert_eq!(world.player_country().next_election, Some(361));
         world
             .issue_developer(
@@ -97,7 +97,7 @@ fn an_equal_seat_poll_uses_the_lowest_id_and_keeps_developer_control_replayable(
                 },
             )
             .unwrap();
-        world.advance(&pack, 1).unwrap();
+        world.advance(&pack, sim_core::DaySpan::new(1)).unwrap();
         assert!(world.is_developer_modified());
         assert_eq!(
             world.player_country().seats,
@@ -178,7 +178,9 @@ fn classic_and_rules23_counterexamples_keep_their_pre_change_audit_hashes() {
                 Scenario::FiscalSupplyCrisis,
             )
             .unwrap();
-            world.advance(&content, day).unwrap();
+            world
+                .advance(&content, sim_core::DaySpan::new(day))
+                .unwrap();
             assert_eq!(world.hash(), expected);
             assert_eq!(
                 world.player_country().ruling_party,

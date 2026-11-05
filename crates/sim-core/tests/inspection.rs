@@ -6,7 +6,7 @@ fn fixture() -> (Content, World) {
     world
         .issue(&content, Action::Borrow { amount: Money(100) })
         .unwrap();
-    world.advance(&content, 60).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(60)).unwrap();
     (content, world)
 }
 
@@ -85,14 +85,16 @@ fn next_event_reaches_a_leap_year_fiscal_boundary_after_365_quiet_days() {
     content.validate().unwrap();
     let opening = World::new(&content, CountryId("AUR".into()), 0).unwrap();
     let mut world = opening.clone();
-    assert_eq!(world.advance_to_event(&content).unwrap(), 366);
+    assert_eq!(world.advance_to_event(&content).unwrap(), DaySpan::new(366));
     assert_eq!(date(world.day), "2001-01-01");
     assert!(world.events.iter().any(|e| e.country == world.player
         && e.day == 366
         && e.important
         && e.text.starts_with("Fiscal year closed")));
     let mut direct = opening;
-    direct.advance(&content, 366).unwrap();
+    direct
+        .advance(&content, sim_core::DaySpan::new(366))
+        .unwrap();
     assert_eq!(world, direct);
     assert_eq!(world, persistence::replay(&world, &content).unwrap());
 }
@@ -102,10 +104,10 @@ fn next_event_stops_cleanly_at_the_campaign_limit() {
     let (content, mut world) = fixture();
     // A boundary fixture isolates clock behavior without a century-long soak.
     world.day = MAX_DAY - 1;
-    assert_eq!(world.advance_to_event(&content).unwrap(), 1);
+    assert_eq!(world.advance_to_event(&content).unwrap(), DaySpan::new(1));
     assert_eq!(world.day, MAX_DAY);
     let before = world.hash();
-    assert_eq!(world.advance_to_event(&content).unwrap(), 0);
+    assert_eq!(world.advance_to_event(&content).unwrap(), DaySpan::new(0));
     assert_eq!(world.hash(), before);
     world.day = MAX_DAY + 1;
     assert!(world.advance_to_event(&content).is_err());

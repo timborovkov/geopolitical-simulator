@@ -84,8 +84,12 @@ fn positions_are_explicit_attributed_and_not_ideology_label_bonuses() {
     }
     let mut first = world;
     let mut second = World::new(&renamed, player(), 17).unwrap();
-    first.advance(&content, 100).unwrap();
-    second.advance(&renamed, 100).unwrap();
+    first
+        .advance(&content, sim_core::DaySpan::new(100))
+        .unwrap();
+    second
+        .advance(&renamed, sim_core::DaySpan::new(100))
+        .unwrap();
     first.content_hash = 0;
     second.content_hash = 0;
     assert_eq!(first, second);
@@ -252,12 +256,18 @@ fn policy_feedback_and_legislative_pressure_follow_operation_not_declaration() {
             .unwrap();
     }
     let due = first.player_country().projects[0].due_day;
-    first.advance(&content, due - 1).unwrap();
-    second.advance(&neutral, due - 1).unwrap();
+    first
+        .advance(&content, sim_core::DaySpan::new(due - 1))
+        .unwrap();
+    second
+        .advance(&neutral, sim_core::DaySpan::new(due - 1))
+        .unwrap();
     assert_eq!(first.player_country(), second.player_country());
     assert_eq!(first.player_country().tax, 24);
-    first.advance(&content, 91).unwrap();
-    second.advance(&neutral, 91).unwrap();
+    first.advance(&content, sim_core::DaySpan::new(91)).unwrap();
+    second
+        .advance(&neutral, sim_core::DaySpan::new(91))
+        .unwrap();
     assert_eq!(first.player_country().tax, 45);
     assert!(
         first.player_country().legislative_support < second.player_country().legislative_support
@@ -297,8 +307,12 @@ fn party_leadership_pressure_is_separate_from_council_backing() {
             .unwrap();
     }
     let due = first.player_country().projects[0].due_day;
-    first.advance(&content, due + 720).unwrap();
-    second.advance(&neutral, due + 720).unwrap();
+    first
+        .advance(&content, sim_core::DaySpan::new(due + 720))
+        .unwrap();
+    second
+        .advance(&neutral, sim_core::DaySpan::new(due + 720))
+        .unwrap();
     assert!(first.player_country().elite_support < second.player_country().elite_support);
     assert_eq!(
         first.player_country().council_support,
@@ -333,8 +347,8 @@ fn royal_decisions_are_independent_of_party_positions_and_old_rules_remain_exact
     for id in ["AUR", "BOR", "COR"] {
         let mut first = World::new(&content, CountryId(id.into()), 17).unwrap();
         let mut second = World::new(&old, CountryId(id.into()), 17).unwrap();
-        first.advance(&content, 30).unwrap();
-        second.advance(&old, 30).unwrap();
+        first.advance(&content, sim_core::DaySpan::new(30)).unwrap();
+        second.advance(&old, sim_core::DaySpan::new(30)).unwrap();
         first
             .issue(
                 &content,
@@ -353,8 +367,10 @@ fn royal_decisions_are_independent_of_party_positions_and_old_rules_remain_exact
                 },
             )
             .unwrap();
-        first.advance(&content, 370).unwrap();
-        second.advance(&old, 370).unwrap();
+        first
+            .advance(&content, sim_core::DaySpan::new(370))
+            .unwrap();
+        second.advance(&old, sim_core::DaySpan::new(370)).unwrap();
         first.rules = 0;
         second.rules = 0;
         first.content_hash = 0;
@@ -414,15 +430,19 @@ fn snapshot_21_preserves_pending_policy_and_exact_continuation() {
             },
         )
         .unwrap();
-    world.advance(&content, 7).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(7)).unwrap();
     let bytes = persistence::encode(&world, &content).unwrap();
     let mut json: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(json["schema"], 21);
     json["schema"] = 20.into();
     assert!(persistence::decode(&serde_json::to_vec(&json).unwrap(), &content).is_err());
     let mut restored = persistence::decode(&bytes, &content).unwrap();
-    world.advance(&content, 120).unwrap();
-    restored.advance(&content, 120).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(120))
+        .unwrap();
+    restored
+        .advance(&content, sim_core::DaySpan::new(120))
+        .unwrap();
     assert_eq!(restored, world);
     replay(&world, &content);
     assert_eq!(Content::technology_bundled().unwrap().rules, 18);
@@ -484,7 +504,7 @@ fn misalignment_can_block_authority_and_costed_support_restores_it_without_free_
         20
     );
     while world.player_country().legislative_support >= 51 && world.day < 360 {
-        world.advance(&content, 30).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
     }
     assert!(world.player_country().legislative_support < 51);
     let before = world.hash();
@@ -514,7 +534,9 @@ fn misalignment_can_block_authority_and_costed_support_restores_it_without_free_
         .find(|p| p.policy == "coalition")
         .unwrap()
         .due_day;
-    world.advance(&content, due - world.day).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(due - world.day))
+        .unwrap();
     assert!(world.player_country().legislative_support >= 51);
     assert!(
         world
@@ -528,7 +550,9 @@ fn misalignment_can_block_authority_and_costed_support_restores_it_without_free_
 fn shared_ai_pays_for_governing_support_when_party_pressure_erodes_backing() {
     let content = unsupported_platform();
     let mut world = World::new(&content, CountryId("COR".into()), 17).unwrap();
-    world.advance(&content, 720).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(720))
+        .unwrap();
     assert!(world.journal.iter().any(|entry| entry.command.issuer == player() && matches!(&entry.command.action, Action::Enact { policy, .. } if policy == "coalition")));
     assert!(
         world.countries[&player()].budget.capital.0 > 0

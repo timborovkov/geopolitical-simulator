@@ -38,7 +38,8 @@ fn the_undertaking_starter_preserves_all_country_observations_and_territorial_ri
                 },
             )
             .unwrap();
-            w.advance(&c, support.delay).unwrap();
+            w.advance(&c, sim_core::DaySpan::new(support.delay))
+                .unwrap();
         }
         w.issue(
             &c,
@@ -140,8 +141,8 @@ fn compatible_undertakings_share_one_real_delivery_and_the_previous_roster_recov
     );
     persistence::replay(&restored, &resolved).unwrap();
     let mut loaded = persistence::decode(&primary, &c).unwrap();
-    w.advance(&c, due).unwrap();
-    loaded.advance(&c, due).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due)).unwrap();
+    loaded.advance(&c, sim_core::DaySpan::new(due)).unwrap();
     assert_eq!(w, loaded);
     assert_eq!(w.player_country().energy_capacity, initial + 15);
     let state = w.player_country().undertakings.as_ref().unwrap();

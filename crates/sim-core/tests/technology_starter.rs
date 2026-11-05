@@ -109,8 +109,12 @@ fn starting_eligibility_grants_no_resources_or_free_delivery_across_all_fifteen_
                     },
                 )
                 .unwrap();
-            current.advance(&content, support.delay).unwrap();
-            prior.advance(&old, support.delay).unwrap();
+            current
+                .advance(&content, sim_core::DaySpan::new(support.delay))
+                .unwrap();
+            prior
+                .advance(&old, sim_core::DaySpan::new(support.delay))
+                .unwrap();
         }
         let preview = current
             .preview(&content, &current.player, &"energy".into(), 1)
@@ -140,8 +144,12 @@ fn starting_eligibility_grants_no_resources_or_free_delivery_across_all_fifteen_
                 },
             )
             .unwrap();
-        current.advance(&content, preview.delay + 30).unwrap();
-        prior.advance(&old, baseline.delay + 30).unwrap();
+        current
+            .advance(&content, sim_core::DaySpan::new(preview.delay + 30))
+            .unwrap();
+        prior
+            .advance(&old, sim_core::DaySpan::new(baseline.delay + 30))
+            .unwrap();
         current.validate(&content).unwrap();
         prior.validate(&old).unwrap();
         let mut normalized = current.clone();
@@ -198,7 +206,7 @@ fn mixed_formats_19_and_18_preserve_the_previous_interest_golden_and_exact_recov
             },
         )
         .unwrap();
-    prior.advance(&old, 379).unwrap();
+    prior.advance(&old, sim_core::DaySpan::new(379)).unwrap();
     assert_eq!(prior.hash(), 0x1d07acd01d53d45f);
     let content = Content::technology_bundled().unwrap();
     let mut current = World::new(&content, CountryId("GBR".into()), 17).unwrap();
@@ -211,7 +219,9 @@ fn mixed_formats_19_and_18_preserve_the_previous_interest_golden_and_exact_recov
             },
         )
         .unwrap();
-    current.advance(&content, 7).unwrap();
+    current
+        .advance(&content, sim_core::DaySpan::new(7))
+        .unwrap();
     let directory =
         std::env::temp_dir().join(format!("geosim-technology-starter-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
@@ -234,8 +244,12 @@ fn mixed_formats_19_and_18_preserve_the_previous_interest_golden_and_exact_recov
     );
     assert_eq!(persistence::replay(&restored, &resolved).unwrap(), restored);
     let mut resumed = persistence::decode(&primary, &content).unwrap();
-    current.advance(&content, 30).unwrap();
-    resumed.advance(&content, 30).unwrap();
+    current
+        .advance(&content, sim_core::DaySpan::new(30))
+        .unwrap();
+    resumed
+        .advance(&content, sim_core::DaySpan::new(30))
+        .unwrap();
     assert_eq!(current, resumed);
     assert_eq!(persistence::replay(&current, &content).unwrap(), current);
     let fixture = Content::from_json(include_str!(

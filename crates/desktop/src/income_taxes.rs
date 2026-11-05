@@ -109,7 +109,7 @@ mod tests {
             ))
             .unwrap();
             let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
-            world.advance(&content, 1).unwrap();
+            world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
             let hash = world.hash();
             let ctx = egui::Context::default();
             ctx.set_zoom_factor(scale);

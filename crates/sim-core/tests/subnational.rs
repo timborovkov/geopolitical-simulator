@@ -52,7 +52,7 @@ fn protected_tax_entitlements_and_a_paid_local_grant_reconcile_without_creating_
     assert_eq!(w.player_country().accounts.treasury, Money(4980));
     assert_eq!(w.player_country().available_cash(), Money(4890));
     check(&w, &c);
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     let state = w.player_country().subnational.as_ref().unwrap();
     assert_eq!(state.orders[0].status, RegionalOrderStatus::Implementing);
     assert_eq!(state.orders[0].spent, Money(3));
@@ -67,7 +67,7 @@ fn protected_tax_entitlements_and_a_paid_local_grant_reconcile_without_creating_
         w.player_country().report.revenue.0 * 20 / 100
     );
     check(&w, &c);
-    w.advance(&c, 29).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(29)).unwrap();
     let order = &w.player_country().subnational.as_ref().unwrap().orders[0];
     assert_eq!(order.status, RegionalOrderStatus::Completed);
     assert_eq!(order.spent, Money(90));
@@ -116,7 +116,7 @@ fn autonomous_services_cannot_be_ordered_and_delegated_services_use_current_cons
         w.player_country().subnational.as_ref().unwrap().regions[1].service_level,
         2
     );
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(
         w.player_country().subnational.as_ref().unwrap().regions[1].service_level,
         3
@@ -189,7 +189,7 @@ fn withdrawal_and_refusal_release_only_escrow_and_keep_administration_and_cooldo
             },
         )
         .unwrap();
-    refused.advance(&c, 14).unwrap();
+    refused.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     let order = &refused
         .player_country()
         .subnational
@@ -207,7 +207,7 @@ fn withdrawal_and_refusal_release_only_escrow_and_keep_administration_and_cooldo
 fn national_spending_and_debt_repayment_cannot_consume_local_tax_entitlements() {
     let c = content();
     let mut w = start(&c, "AUR");
-    w.advance(&c, 90).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(90)).unwrap();
     let protected = w.player_country().regional_protected_cash();
     assert!(protected.0 > 0);
     let available = w.player_country().available_cash();
@@ -261,7 +261,8 @@ fn accepted_local_funding_survives_a_costed_constitutional_successor_and_cannot_
             },
         )
         .unwrap();
-        w.advance(&c, preview.delay).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(preview.delay))
+            .unwrap();
     }
     w.issue(
         &c,
@@ -272,7 +273,7 @@ fn accepted_local_funding_survives_a_costed_constitutional_successor_and_cannot_
     )
     .unwrap();
     let request = RegionalOrderId(w.next_command.0 - 1);
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     let before = w.hash();
     assert!(
         w.issue(&c, Action::CancelRegionalOrder { order: request })
@@ -287,7 +288,7 @@ fn accepted_local_funding_survives_a_costed_constitutional_successor_and_cannot_
         },
     )
     .unwrap();
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     let order = w
         .player_country()
         .subnational
@@ -318,7 +319,8 @@ fn pending_local_offers_lose_their_sponsor_without_cancelling_other_local_mandat
             },
         )
         .unwrap();
-        w.advance(&c, preview.delay).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(preview.delay))
+            .unwrap();
     }
     w.issue(
         &c,
@@ -336,7 +338,7 @@ fn pending_local_offers_lose_their_sponsor_without_cancelling_other_local_mandat
         },
     )
     .unwrap();
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     let order = &w.player_country().subnational.as_ref().unwrap().orders[0];
     assert_eq!(order.status, RegionalOrderStatus::Superseded);
     assert_eq!(order.escrow, Money(0));
@@ -364,7 +366,7 @@ fn territorial_provenance_private_cash_calendar_and_saved_state_are_validated() 
         },
     )
     .unwrap();
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     let public = serde_json::to_string(&w.project(&c, Viewer::Observer).unwrap()).unwrap();
     for private in [
         "tax_received",
@@ -413,7 +415,8 @@ fn territorial_provenance_private_cash_calendar_and_saved_state_are_validated() 
     check(&w, &c);
     let later = c.at_bookmark("2095-01-01").unwrap();
     let mut late = start(&later, "AUR");
-    late.advance(&later, MAX_DAY - late.day - 5).unwrap();
+    late.advance(&later, sim_core::DaySpan::new(MAX_DAY - late.day - 5))
+        .unwrap();
     assert!(
         late.preview_regional_order(&later, &late.player, &region("AUR", "city"), &grant())
             .unwrap_err()
@@ -425,7 +428,7 @@ fn territorial_provenance_private_cash_calendar_and_saved_state_are_validated() 
 fn ai_uses_shared_costed_offers_and_earlier_campaigns_keep_their_published_checksums() {
     let c = content();
     let mut w = start(&c, "BOR");
-    w.advance(&c, 180).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(180)).unwrap();
     assert!(
         w.journal
             .iter()
@@ -467,7 +470,7 @@ fn a_local_absorption_mandate_can_refuse_a_grant_even_when_national_backing_rema
         < 538
     {
         assert!(w.day < 1000);
-        w.advance(&c, 1).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     }
     w.issue(
         &c,
@@ -477,7 +480,7 @@ fn a_local_absorption_mandate_can_refuse_a_grant_even_when_national_backing_rema
         },
     )
     .unwrap();
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     let order = &w.player_country().subnational.as_ref().unwrap().orders[0];
     match &order.status {
         RegionalOrderStatus::Refused { reason } => {
@@ -495,7 +498,7 @@ fn a_local_absorption_mandate_can_refuse_a_grant_even_when_national_backing_rema
 fn an_instant_royal_order_after_settlement_keeps_the_dated_report_and_can_save_immediately() {
     let c = content();
     let mut w = start(&c, "COR");
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let settled = w.player_country().subnational.as_ref().unwrap().regions[1]
         .last
         .clone();
@@ -518,7 +521,7 @@ fn an_instant_royal_order_after_settlement_keeps_the_dated_report_and_can_save_i
         settled
     );
     check(&w, &c);
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let current = w.player_country().subnational.as_ref().unwrap().regions[1]
         .last
         .as_ref()

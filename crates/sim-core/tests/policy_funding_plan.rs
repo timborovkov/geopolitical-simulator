@@ -57,7 +57,7 @@ fn planning_quotes_full_requirements_without_treating_a_target_or_retained_cash_
             .retained_cash,
         Money(0)
     );
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let before = w.clone();
     let held = w.policy_funding_plan(&c, &"income_tax".into(), 30).unwrap();
     assert!(held.retained_cash.0 > 0 && held.retained_cash.0 < 20);
@@ -69,7 +69,7 @@ fn planning_quotes_full_requirements_without_treating_a_target_or_retained_cash_
         if w.player_country().retained_cash() == Money(20) {
             break;
         }
-        w.advance(&c, 1).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     }
     assert_eq!(w.player_country().retained_cash(), Money(20));
     w.issue(&c, Action::ReleaseCash { request }).unwrap();

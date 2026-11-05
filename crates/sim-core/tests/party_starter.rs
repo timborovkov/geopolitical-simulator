@@ -188,7 +188,9 @@ fn mixed_formats_21_and_19_retain_exact_old_campaigns_and_pending_new_policy_con
             },
         )
         .unwrap();
-    current.advance(&content, 7).unwrap();
+    current
+        .advance(&content, sim_core::DaySpan::new(7))
+        .unwrap();
     let directory =
         std::env::temp_dir().join(format!("geosim-party-starter-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
@@ -210,8 +212,12 @@ fn mixed_formats_21_and_19_retain_exact_old_campaigns_and_pending_new_policy_con
         primary
     );
     let mut resumed = persistence::decode(&primary, &content).unwrap();
-    current.advance(&content, 120).unwrap();
-    resumed.advance(&content, 120).unwrap();
+    current
+        .advance(&content, sim_core::DaySpan::new(120))
+        .unwrap();
+    resumed
+        .advance(&content, sim_core::DaySpan::new(120))
+        .unwrap();
     assert_eq!(current, resumed);
     assert_eq!(persistence::replay(&current, &content).unwrap(), current);
     let fixture = Content::from_json(include_str!(

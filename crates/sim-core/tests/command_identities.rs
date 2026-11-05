@@ -73,10 +73,10 @@ fn typed_receipts_and_cash_release_keep_the_pre_change_campaign_and_numeric_wire
             }
         ))
     ));
-    world.advance(&content, 14).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(world.hash(), 0xbf9cebfd31a16e85);
     check(&world, &content);
-    world.advance(&content, 94).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(94)).unwrap();
     assert_eq!(world.hash(), 0x9d112c7a163317b6);
     check(&world, &content);
 }
@@ -97,7 +97,9 @@ fn typed_budget_dispatch_keeps_pre_change_links_and_long_continuation_hash() {
             },
         )
         .unwrap();
-    world.advance(&content, 430).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(430))
+        .unwrap();
     assert_eq!(world.hash(), 0x5141a6d1566843de);
     let bill = &world.player_country().fiscal_plans.as_ref().unwrap().bills[0];
     assert_eq!(bill.status, BudgetBillStatus::Enacted);

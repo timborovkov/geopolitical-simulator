@@ -28,7 +28,7 @@ fn typed_policy_and_party_references_keep_published_json_and_campaign_bytes() {
         r#"{"Enact":{"policy":"income_tax","value":30}}"#
     );
     world.issue(&content, action).unwrap();
-    world.advance(&content, 60).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(60)).unwrap();
     assert_eq!(world.hash(), 0x4d601b2b61093b11);
     let encoded = persistence::encode(&world, &content).unwrap();
     let restored = persistence::decode(&encoded, &content).unwrap();
@@ -111,7 +111,9 @@ fn renaming_and_reordering_rosters_preserve_identity_and_names_cannot_issue_comm
         .unwrap();
     assert_eq!(world.player_country().projects[0].policy, policy);
     assert_eq!(world.player_country().ruling_party, party);
-    world.advance(&content, delay).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(delay))
+        .unwrap();
     assert_eq!(world.player_country().tax, 30);
     world.validate(&content).unwrap();
     assert_eq!(world, persistence::replay(&world, &content).unwrap());

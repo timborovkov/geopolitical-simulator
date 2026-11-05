@@ -56,7 +56,10 @@ fn play(
                     .as_ref()
                     .and_then(|state| state.pending.as_ref())
             {
-                world.advance(content, pending.decision_day - world.day)?;
+                world.advance(
+                    content,
+                    sim_core::DaySpan::new(pending.decision_day - world.day),
+                )?;
             }
             let preview = world.preview(content, &world.player, &"coalition".into(), 1)?;
             world.issue(
@@ -66,7 +69,7 @@ fn play(
                     value: 1,
                 },
             )?;
-            world.advance(content, preview.delay)?;
+            world.advance(content, sim_core::DaySpan::new(preview.delay))?;
         }
         // Minority cabinets may only gain borrowing authority after talks.
         // Accepted requests still supply no cash until their actual decision.
@@ -75,7 +78,7 @@ fn play(
             let preview = world.preview_borrowing(content, &world.player, amount)?;
             world.issue(content, Action::Borrow { amount })?;
             loans += 1;
-            world.advance(content, preview.consent_days)?;
+            world.advance(content, sim_core::DaySpan::new(preview.consent_days))?;
         }
         // Short dated loans can mature during the support negotiations. Obtain
         // any needed replacement cash through the same ordinary consent route.
@@ -92,7 +95,7 @@ fn play(
                 let amount = Money(definition.gdp / 10);
                 let preview = world.preview_borrowing(content, &world.player, amount)?;
                 world.issue(content, Action::Borrow { amount })?;
-                world.advance(content, preview.consent_days)?;
+                world.advance(content, sim_core::DaySpan::new(preview.consent_days))?;
             }
         }
         world.issue(
@@ -102,7 +105,7 @@ fn play(
                 contested: true,
             },
         )?;
-        world.advance(content, rules.route(true)?.days)?;
+        world.advance(content, sim_core::DaySpan::new(rules.route(true)?.days))?;
         if world.governing_regime(content, &world.player)? != &target
             || world.is_developer_modified()
         {
@@ -208,7 +211,10 @@ fn play(
             let amount = Money((definition.gdp / 20).min(c.debt.0));
             world.issue(content, Action::Repay { amount })?;
         }
-        world.advance(content, (review_day - world.day).min(30))?;
+        world.advance(
+            content,
+            sim_core::DaySpan::new((review_day - world.day).min(30)),
+        )?;
     }
     world.validate(content)?;
     persistence::replay(&world, content)?;

@@ -39,15 +39,17 @@ fn consent_withholds_cash_until_the_decision_and_survives_save_resume() {
     assert_eq!(world.player_country().debt, debt);
     assert_eq!(world.player_country().budget.borrowing, Money(0));
     rejected(&mut world, &content, Action::Borrow { amount: Money(1) });
-    world.advance(&content, 13).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(13)).unwrap();
     let bytes = persistence::encode(&world, &content).unwrap();
     assert_eq!(
         serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()["schema"],
         5
     );
     let mut resumed = persistence::decode(&bytes, &content).unwrap();
-    resumed.advance(&content, 1).unwrap();
-    world.advance(&content, 1).unwrap();
+    resumed
+        .advance(&content, sim_core::DaySpan::new(1))
+        .unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(world.hash(), resumed.hash());
     let country = world.player_country();
     assert_eq!(country.debt.0, debt.0 + 10000);
@@ -77,7 +79,7 @@ fn authority_is_checked_at_proposal_and_again_at_disbursement() {
             },
         )
         .unwrap();
-    world.advance(&content, 14).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(world.player_country().budget.borrowing, Money(0));
     assert_eq!(world.player_country().debt, Money(100000 / 3));
     assert!(
@@ -115,7 +117,7 @@ fn cancellation_creates_no_debt_and_wrong_ids_are_atomic() {
         .issue(&content, Action::CancelBorrow { request: id })
         .unwrap();
     rejected(&mut world, &content, Action::CancelBorrow { request: id });
-    world.advance(&content, 21).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(21)).unwrap();
     assert_eq!(world.player_country().debt, Money(100000 / 3));
     assert_eq!(world.player_country().budget.borrowing, Money(0));
     replay(&world, &content);
@@ -205,7 +207,7 @@ fn pending_credit_is_rechecked_after_an_emergency_draws_down_headroom() {
     let mut world = world(&content, "AUR");
     for _ in 0..11 {
         borrow(&mut world, &content, 10000);
-        world.advance(&content, 14).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(14)).unwrap();
     }
     let pending = borrow(&mut world, &content, 5000);
     world
@@ -217,7 +219,7 @@ fn pending_credit_is_rechecked_after_an_emergency_draws_down_headroom() {
         )
         .unwrap();
     let debt = world.player_country().debt;
-    world.advance(&content, 14).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(world.player_country().debt, debt);
     assert_eq!(debt.0, 148333);
     assert!(
@@ -290,11 +292,13 @@ fn party_route_and_ai_use_the_same_consent_workflow() {
     let content = fixture();
     let mut world = world(&content, "BOR");
     borrow(&mut world, &content, 1000);
-    world.advance(&content, 20).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(20)).unwrap();
     assert_eq!(world.player_country().budget.borrowing, Money(0));
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(world.player_country().budget.borrowing, Money(1000));
-    world.advance(&content, 339).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(339))
+        .unwrap();
     assert!(world.journal.iter().any(|entry| entry.ai));
     replay(&world, &content);
 }
@@ -304,7 +308,7 @@ fn successor_government_must_seek_its_own_financing_mandate() {
     let content = fixture();
     let mut world = world(&content, "AUR");
     // A real confidence-triggered election occurs before the loan decision.
-    world.advance(&content, 89).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(89)).unwrap();
     world
         .issue_developer(
             &content,
@@ -315,10 +319,12 @@ fn successor_government_must_seek_its_own_financing_mandate() {
             },
         )
         .unwrap();
-    world.advance(&content, 61).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(61)).unwrap();
     let election = world.player_country().next_election.unwrap();
     assert!(election > world.day);
-    world.advance(&content, election - world.day - 1).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(election - world.day - 1))
+        .unwrap();
     world
         .issue_developer(
             &content,
@@ -341,7 +347,7 @@ fn successor_government_must_seek_its_own_financing_mandate() {
         .unwrap();
     let request = borrow(&mut world, &content, 1000);
     let sponsor = world.player_country().government_number;
-    world.advance(&content, 14).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(14)).unwrap();
     assert!(world.player_country().government_number > sponsor);
     assert!(
         world
@@ -370,7 +376,7 @@ fn a_cash_constrained_ai_borrows_through_authority_and_waits_for_cash() {
     definition.services = 18;
     definition.welfare = 12;
     let mut world = world(&content, "COR");
-    world.advance(&content, 90).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(90)).unwrap();
     let issuer = CountryId("AUR".into());
     let request = world
         .journal
@@ -384,7 +390,9 @@ fn a_cash_constrained_ai_borrows_through_authority_and_waits_for_cash() {
     let request = request.clone();
     let decision = request.command.day + 14;
     if decision > world.day {
-        world.advance(&content, decision - world.day).unwrap();
+        world
+            .advance(&content, sim_core::DaySpan::new(decision - world.day))
+            .unwrap();
     }
     let state = world.countries[&issuer].financing.as_ref().unwrap();
     let instrument = state

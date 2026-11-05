@@ -109,7 +109,7 @@ fn actual_private_income_withholding_reconciles_and_public_payments_are_outside_
     let forecast = w
         .player_country()
         .forecast(c.country(&w.player).unwrap(), c.income_taxes.as_ref());
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let country = w.player_country();
     let r = country.income_tax_report.as_ref().unwrap();
     assert_eq!(r.standard_rate, 24);
@@ -175,7 +175,7 @@ fn policy_delivery_changes_the_standard_rate_and_forecasts_share_the_collection_
     )
     .unwrap();
     check(&c, &w);
-    w.advance(&c, p.delay - 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(p.delay - 1)).unwrap();
     assert_eq!(
         w.player_country()
             .income_tax_report
@@ -185,7 +185,7 @@ fn policy_delivery_changes_the_standard_rate_and_forecasts_share_the_collection_
         24
     );
     check(&c, &w);
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(
         w.player_country()
             .income_tax_report
@@ -200,7 +200,7 @@ fn policy_delivery_changes_the_standard_rate_and_forecasts_share_the_collection_
 #[test]
 fn same_day_developer_edits_do_not_rewrite_the_settled_rate_or_collection_capacity() {
     let (c, mut w) = setup();
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let report = w.player_country().income_tax_report.clone();
     let player = w.player.clone();
     for (field, value) in [
@@ -212,7 +212,7 @@ fn same_day_developer_edits_do_not_rewrite_the_settled_rate_or_collection_capaci
     }
     assert_eq!(w.player_country().income_tax_report, report);
     check(&c, &w);
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let report = w.player_country().income_tax_report.as_ref().unwrap();
     assert_eq!(report.standard_rate, 45);
     assert_eq!(report.administration, 100);
@@ -249,7 +249,7 @@ fn funded_collection_capacity_improves_withholding_only_when_it_operates() {
         },
     )
     .unwrap();
-    w.advance(&c, p.delay - 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(p.delay - 1)).unwrap();
     assert_eq!(
         w.player_country()
             .income_tax_report
@@ -258,7 +258,7 @@ fn funded_collection_capacity_improves_withholding_only_when_it_operates() {
             .administration,
         70
     );
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(
         w.player_country()
             .income_tax_report
@@ -297,7 +297,8 @@ fn a_budget_delivers_its_tax_rate_and_fulfils_a_nominal_standard_rate_undertakin
         },
     )
     .unwrap();
-    w.advance(&c, preview.review_day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(preview.review_day))
+        .unwrap();
     assert_eq!(
         w.player_country()
             .income_tax_report
@@ -316,7 +317,7 @@ fn a_budget_delivers_its_tax_rate_and_fulfils_a_nominal_standard_rate_undertakin
         .find(|p| p.id == source)
         .unwrap()
         .due_day;
-    w.advance(&c, due - w.day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due - w.day)).unwrap();
     assert_eq!(
         w.player_country()
             .income_tax_report
@@ -356,7 +357,7 @@ fn malformed_bands_reports_and_older_envelopes_reject_cleanly() {
     bad.rules = 12;
     bad.schema = 12;
     assert!(bad.validate().is_err());
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     for field in ["date", "rate", "capacity", "slice", "base", "cash", "group"] {
         let mut bad = w.clone();
         let r = bad
@@ -433,7 +434,7 @@ fn progressive_collection_does_not_bypass_governing_authority() {
 #[test]
 fn ai_collection_and_budgets_replay_across_a_fiscal_year() {
     let (c, mut w) = setup();
-    w.advance(&c, 720).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(720)).unwrap();
     assert!(
         w.journal
             .iter()
@@ -448,7 +449,7 @@ fn ai_collection_and_budgets_replay_across_a_fiscal_year() {
 fn local_claims_are_based_on_withheld_cash_and_private_workbooks_are_not_published() {
     let (c, mut w) = setup();
     assert!(w.player_country().income_tax_report.is_none());
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let country = w.player_country();
     let report = country.income_tax_report.as_ref().unwrap();
     let local = country

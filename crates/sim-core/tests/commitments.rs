@@ -33,7 +33,7 @@ fn amendment_pays_restarts_consent_and_preserves_direct_and_observed_history() {
     let mut w = start(&c, "AUR");
     let forecast = w.preview(&c, &w.player, &"income_tax".into(), 32).unwrap();
     let id = enact(&mut w, &c, "income_tax", 30);
-    w.advance(&c, 3).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(3)).unwrap();
     let p = w.preview_amendment(&c, &w.player, id, 32).unwrap();
     assert_eq!(p.annual_budget_change, forecast.annual_budget_change);
     assert_eq!(p.household_impacts, forecast.household_impacts);
@@ -54,12 +54,14 @@ fn amendment_pays_restarts_consent_and_preserves_direct_and_observed_history() {
     assert_eq!(w.player_country().accounts.treasury.0, before.0 - 2);
     assert_eq!(w.player_country().committed_cash, Money(18));
     check(&w, &c);
-    w.advance(&c, p.consent_day - w.day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(p.consent_day - w.day))
+        .unwrap();
     let r = &w.player_country().commitments.as_ref().unwrap()[0];
     assert_eq!(r.stage(), CommitmentStage::Implementing);
     assert_eq!(r.paid, Money(22));
     check(&w, &c);
-    w.advance(&c, p.due_day - w.day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(p.due_day - w.day))
+        .unwrap();
     assert_eq!(w.player_country().tax, 32);
     assert!(w.player_country().projects.is_empty());
     let r = &w.player_country().commitments.as_ref().unwrap()[0];
@@ -74,7 +76,7 @@ fn amendment_pays_restarts_consent_and_preserves_direct_and_observed_history() {
     assert_eq!(r.stage(), CommitmentStage::Operating);
     let baseline = r.baseline.clone();
     check(&w, &c);
-    w.advance(&c, 30).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(30)).unwrap();
     let r = &w.player_country().commitments.as_ref().unwrap()[0];
     assert_eq!(r.stage(), CommitmentStage::Evaluated);
     assert_eq!(r.evaluation.as_ref().unwrap().before, baseline);
@@ -98,10 +100,10 @@ fn withdrawal_releases_only_reservations_and_cannot_cancel_a_finished_programme(
     assert_eq!(w.player_country().accounts, before);
     assert_eq!(w.player_country().committed_cash, Money(0));
     check(&w, &c);
-    w.advance(&c, 200).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(200)).unwrap();
     assert_eq!(w.player_country().energy_capacity, 80);
     let id = enact(&mut w, &c, "energy", 1);
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     let before = w.player_country().accounts.clone();
     assert_eq!(
         w.preview_cancellation(&c, &w.player, id).unwrap(),
@@ -116,7 +118,7 @@ fn withdrawal_releases_only_reservations_and_cannot_cancel_a_finished_programme(
     check(&w, &c);
     let id = enact(&mut w, &c, "income_tax", 28);
     let delay = w.player_country().projects[0].due_day - w.day;
-    w.advance(&c, delay).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(delay)).unwrap();
     let hash = w.hash();
     assert!(
         w.issue(&c, Action::CancelCommitment { request: id })
@@ -219,7 +221,7 @@ fn amendment_cannot_spend_reserved_capital_and_reviews_expose_overlapping_delive
     let mut w = start(&c, "AUR");
     enact(&mut w, &c, "income_tax", 30);
     enact(&mut w, &c, "welfare", 6);
-    w.advance(&c, 89).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(89)).unwrap();
     let r = &w.player_country().commitments.as_ref().unwrap()[0];
     assert_eq!(r.evaluation.as_ref().unwrap().other_deliveries, 1);
     check(&w, &c);
@@ -238,7 +240,7 @@ fn refusal_is_retained_and_replacement_repeals_only_the_previous_level() {
         },
     )
     .unwrap();
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(
         w.player_country().commitments.as_ref().unwrap()[0].stage(),
         CommitmentStage::Refused
@@ -254,10 +256,10 @@ fn refusal_is_retained_and_replacement_repeals_only_the_previous_level() {
     )
     .unwrap();
     enact(&mut w, &c, "income_tax", 30);
-    w.advance(&c, 59).unwrap();
-    w.advance(&c, 30).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(59)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(30)).unwrap();
     enact(&mut w, &c, "income_tax", 24);
-    w.advance(&c, 59).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(59)).unwrap();
     let records = w.player_country().commitments.as_ref().unwrap();
     assert_eq!(records[1].stage(), CommitmentStage::Repealed);
     assert!(records[1].evaluation.is_some());
@@ -282,7 +284,7 @@ fn funded_withdrawal_requires_current_power_and_unapproved_programmes_cannot_ame
         .is_err()
     );
     assert_eq!(hash, w.hash());
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     w.issue_developer(
         &c,
         w.player.clone(),
@@ -320,7 +322,7 @@ fn immediate_route_after_regime_change_funds_an_amendment_without_a_stale_pendin
         },
     )
     .unwrap();
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     w.issue(
         &c,
         Action::AmendCommitment {

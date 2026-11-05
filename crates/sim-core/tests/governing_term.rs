@@ -42,10 +42,11 @@ fn proposal_reserves_cash_consent_pays_capital_and_rechecks_authority() {
         preview.cost.0 - preview.upfront_payment.0
     );
     let reserved = w.player_country().committed_cash.0;
-    w.advance(&c, preview.consent_delay - 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(preview.consent_delay - 1))
+        .unwrap();
     let mut restored = persistence::decode(&persistence::encode(&w, &c).unwrap(), &c).unwrap();
-    w.advance(&c, 1).unwrap();
-    restored.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
+    restored.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(w.hash(), restored.hash());
     assert_eq!(w.player_country().committed_cash.0, 0);
     assert_eq!(
@@ -69,7 +70,9 @@ fn proposal_reserves_cash_consent_pays_capital_and_rechecks_authority() {
         .get_mut(&player)
         .unwrap()
         .legislative_support = 0;
-    rejected.advance(&c, preview.consent_delay).unwrap();
+    rejected
+        .advance(&c, sim_core::DaySpan::new(preview.consent_delay))
+        .unwrap();
     assert!(rejected.player_country().projects.is_empty());
     assert_eq!(rejected.player_country().committed_cash.0, 0);
     assert_eq!(
@@ -123,9 +126,9 @@ fn welfare_reaches_target_groups_and_taxes_change_disposable_income() {
         },
     )
     .unwrap();
-    baseline.advance(&c, 180).unwrap();
-    welfare.advance(&c, 180).unwrap();
-    tax.advance(&c, 180).unwrap();
+    baseline.advance(&c, sim_core::DaySpan::new(180)).unwrap();
+    welfare.advance(&c, sim_core::DaySpan::new(180)).unwrap();
+    tax.advance(&c, sim_core::DaySpan::new(180)).unwrap();
     let vulnerable = |w: &World| {
         w.player_country()
             .households
@@ -172,7 +175,7 @@ fn annual_execution_reconciles_and_a_new_year_preserves_the_review() {
         },
     )
     .unwrap();
-    w.advance(&c, 366).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(366)).unwrap();
     w.validate(&c).unwrap();
     let state = w.player_country();
     assert_eq!(state.budget_reviews.len(), 1);
@@ -225,11 +228,16 @@ fn three_reference_crisis_terms_transition_and_replay_through_pending_programs()
         let preview_days = w.player_country().projects[0].due_day;
         let bytes = persistence::encode(&w, &c).unwrap();
         let mut resumed = persistence::decode(&bytes, &c).unwrap();
-        w.advance(&c, preview_days).unwrap();
-        resumed.advance(&c, preview_days).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(preview_days)).unwrap();
+        resumed
+            .advance(&c, sim_core::DaySpan::new(preview_days))
+            .unwrap();
         assert_eq!(w.hash(), resumed.hash());
-        w.advance(&c, 1827 - preview_days).unwrap();
-        resumed.advance(&c, 1827 - preview_days).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(1827 - preview_days))
+            .unwrap();
+        resumed
+            .advance(&c, sim_core::DaySpan::new(1827 - preview_days))
+            .unwrap();
         assert_eq!(w.hash(), resumed.hash());
         w.validate(&c).unwrap();
         assert!(

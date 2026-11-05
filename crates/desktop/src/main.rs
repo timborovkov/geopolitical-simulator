@@ -167,8 +167,8 @@ impl GameApp {
             walkthrough: walkthrough::Panel::default(),
         }
     }
-    fn advance(&mut self, days: u32) {
-        self.start_advance(days, self.pause_alerts);
+    fn advance(&mut self, elapsed: DaySpan) {
+        self.start_advance(elapsed, self.pause_alerts);
     }
     fn next_event(&mut self) {
         self.speed = 0;
@@ -183,7 +183,7 @@ impl GameApp {
             return;
         }
         let already_advancing = self.pending.is_some();
-        self.start_advance(remaining, true);
+        self.start_advance(DaySpan::new(remaining), true);
         if !already_advancing && let Some(job) = &mut self.pending {
             job.seeking_event = true;
             self.status =
@@ -191,7 +191,8 @@ impl GameApp {
                     .into();
         }
     }
-    fn start_advance(&mut self, days: u32, important: bool) {
+    fn start_advance(&mut self, elapsed: DaySpan, important: bool) {
+        let days = elapsed.units();
         if !self.recovery.is_empty() {
             self.speed = 0;
             self.status = "Close save recovery before advancing.".into();
@@ -205,7 +206,7 @@ impl GameApp {
         let Some(world) = self.world.as_ref() else {
             return;
         };
-        match advance::AdvanceJob::start(world.clone(), self.content.clone(), days, important) {
+        match advance::AdvanceJob::start(world.clone(), self.content.clone(), elapsed, important) {
             Ok(job) => {
                 self.pending = Some(job);
                 self.status =
@@ -229,7 +230,7 @@ impl GameApp {
         };
         let result = job.poll();
         let start = job.start_day;
-        let requested = job.requested;
+        let requested = job.requested.units();
         match result {
             Ok(None) => {}
             Err(error) => {
@@ -494,7 +495,7 @@ impl GameApp {
                 format!(
                     "Advancing {} / {} days",
                     job.completed.load(std::sync::atomic::Ordering::Relaxed),
-                    job.requested
+                    job.requested.units()
                 )
             }
         } else if self.speed == 0 {
@@ -531,7 +532,7 @@ impl GameApp {
                         if ui.selectable_label(self.speed == days, label).on_hover_text("Start automatic progression at this many days per step. Important events can stop it earlier.").clicked() { self.speed = days; }
                     }
                     for (days, label) in [(1, "+1 day"), (30, "+30 days")] {
-                        if ui.add_enabled(self.pending.is_none(), egui::Button::new(label)).clicked() { self.speed = 0; self.advance(days); }
+                        if ui.add_enabled(self.pending.is_none(), egui::Button::new(label)).clicked() { self.speed = 0; self.advance(DaySpan::new(days)); }
                     }
                     if ui.add_enabled(self.pending.is_none(), egui::Button::new("Next event")).clicked() {
                         self.next_event();
@@ -542,7 +543,7 @@ impl GameApp {
                             Ok(day) => {
                                 let current = self.world.as_ref().expect("world").day;
                                 if day < current { self.status = "Choose a future date; load a save to return to an earlier state.".into(); }
-                                else { self.speed = 0; self.advance(day - current); }
+                                else { self.speed = 0; self.advance(DaySpan::new(day - current)); }
                             }
                             Err(error) => self.status = error,
                         }
@@ -1869,7 +1870,7 @@ impl GameApp {
             && self.pending.is_none()
             && self.last_tick.elapsed() >= Duration::from_millis(350)
         {
-            self.advance(self.speed);
+            self.advance(DaySpan::new(self.speed));
             self.last_tick = Instant::now();
         }
         self.top(ctx);
@@ -2119,14 +2120,18 @@ mod interface_tests {
             .unwrap();
         let mut reviewed = pending.clone();
         let due = reviewed.player_country().project(&request).unwrap().due_day;
-        reviewed.advance(&content, due).unwrap();
+        reviewed
+            .advance(&content, sim_core::DaySpan::new(due))
+            .unwrap();
         let review = reviewed
             .player_country()
             .commitment(&request)
             .unwrap()
             .review_due
             .unwrap();
-        reviewed.advance(&content, review - reviewed.day).unwrap();
+        reviewed
+            .advance(&content, sim_core::DaySpan::new(review - reviewed.day))
+            .unwrap();
         for (world, expected) in [
             (pending, "Awaiting consent"),
             (withdrawn, "Withdrawn"),
@@ -2440,7 +2445,11 @@ mod interface_tests {
                 Money(20)
             );
             let content = app.content.clone();
-            app.world.as_mut().unwrap().advance(&content, 2).unwrap();
+            app.world
+                .as_mut()
+                .unwrap()
+                .advance(&content, sim_core::DaySpan::new(2))
+                .unwrap();
             for _ in 0..4 {
                 let _ = paint(&ctx, &mut app, &input);
             }
@@ -2596,7 +2605,8 @@ mod interface_tests {
             .expect("Next-event shortcut starts a worker");
         assert!(job.seeking_event);
         assert_eq!(
-            job.requested, MAX_DAY,
+            job.requested,
+            DaySpan::new(MAX_DAY),
             "Search must not end at a fixed 365-day horizon"
         );
         let deadline = Instant::now() + Duration::from_secs(10);
@@ -2636,7 +2646,7 @@ mod interface_tests {
             },
         )
         .unwrap();
-        old.advance(&classic, 31).unwrap();
+        old.advance(&classic, sim_core::DaySpan::new(31)).unwrap();
         let expected_old = old.hash();
         let dir = std::env::temp_dir().join(format!("geosim-new-campaign-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
@@ -2670,7 +2680,7 @@ mod interface_tests {
             app.world
                 .as_mut()
                 .unwrap()
-                .advance(&app.content, 1)
+                .advance(&app.content, sim_core::DaySpan::new(1))
                 .unwrap();
             persistence::save(&active_path, app.world.as_ref().unwrap(), &app.content).unwrap();
         }
@@ -2681,7 +2691,7 @@ mod interface_tests {
     fn failed_save_and_invalid_new_setup_leave_the_active_campaign_unchanged() {
         let content = Content::bundled().unwrap();
         let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
-        world.advance(&content, 10).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(10)).unwrap();
         let expected = world.hash();
         let dir = std::env::temp_dir().join(format!(
             "geosim-new-campaign-failure-{}",
@@ -2867,7 +2877,9 @@ mod interface_tests {
         let current = Content::bundled().unwrap();
         let classic = Content::classic_bundled().unwrap();
         let mut old_world = World::new(&classic, CountryId("GBR".into()), 17).unwrap();
-        old_world.advance(&classic, 31).unwrap();
+        old_world
+            .advance(&classic, sim_core::DaySpan::new(31))
+            .unwrap();
         let mut header: serde_json::Value =
             serde_json::from_slice(&persistence::encode(&old_world, &classic).unwrap()).unwrap();
         header["schema"] = 2.into();
@@ -2928,7 +2940,7 @@ mod interface_tests {
         );
         assert_eq!(app.speed, 0);
         assert_eq!(app.playback_label(), "Paused");
-        app.start_advance(0, false);
+        app.start_advance(DaySpan::ZERO, false);
         let _ = ctx.run(
             egui::RawInput {
                 focused: true,
@@ -3126,7 +3138,9 @@ mod interface_tests {
             ),
         ] {
             let mut world = World::new(&content, CountryId(own.into()), 17).unwrap();
-            world.advance(&content, 360).unwrap();
+            world
+                .advance(&content, sim_core::DaySpan::new(360))
+                .unwrap();
             let expected = world.hash();
             for scale in [1.0, 1.4] {
                 let ctx = egui::Context::default();
@@ -3193,7 +3207,7 @@ mod interface_tests {
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("wanted.json");
         let mut wanted = world.clone();
-        wanted.advance(&content, 2).unwrap();
+        wanted.advance(&content, sim_core::DaySpan::new(2)).unwrap();
         persistence::save(&path, &wanted, &content).unwrap();
         let ctx = egui::Context::default();
         let mut app = GameApp::from_context(&ctx, content, settings::Preferences::default());

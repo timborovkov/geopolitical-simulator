@@ -67,10 +67,10 @@ fn exact_same_day_decisions_delivery_and_review_resolve_owned_programmes() {
         );
     }
     let consent = w.player_country().project(&request).unwrap().consent_day;
-    w.advance(&c, consent).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(consent)).unwrap();
     linked(&w, request, CommitmentStage::Implementing);
     let due = w.player_country().project(&request).unwrap().due_day;
-    w.advance(&c, due - w.day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due - w.day)).unwrap();
     assert_eq!(w.player_country().tax, 32);
     linked(&w, request, CommitmentStage::Operating);
     let review = w
@@ -79,7 +79,8 @@ fn exact_same_day_decisions_delivery_and_review_resolve_owned_programmes() {
         .unwrap()
         .review_due
         .unwrap();
-    w.advance(&c, review - w.day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(review - w.day))
+        .unwrap();
     let event = linked(&w, request, CommitmentStage::Evaluated);
     assert_eq!(
         w.event_commitment(
@@ -119,7 +120,7 @@ fn withdrawal_and_refusal_link_history_and_rejected_orders_create_no_event() {
     )
     .unwrap();
     let consent = w.player_country().project(&refused).unwrap().consent_day;
-    w.advance(&c, consent).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(consent)).unwrap();
     let event = linked(&w, refused, CommitmentStage::Refused);
     assert_eq!(
         w.event_commitment(

@@ -46,14 +46,15 @@ fn proposal_is_paid_reserved_and_delayed_then_deliveries_reconcile_cash_and_spar
         opening.treasury.0 - p.fee.0
     );
     assert_eq!(w.player_country().committed_cash, p.cost);
-    w.advance(&c, p.review_day - 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(p.review_day - 1))
+        .unwrap();
     assert_eq!(
         w.player_country().reserves.as_ref().unwrap().orders[0].filled,
         0
     );
     let mut paid = 0;
     while w.day < 60 {
-        w.advance(&c, 1).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
         w.validate(&c).unwrap();
         let player = w.player_country();
         let state = player.reserves.as_ref().unwrap();
@@ -102,8 +103,8 @@ fn reserves_reduce_actual_post_import_shortfall_and_do_not_create_output_before_
     let mut w = world(&c);
     let mut baseline = world(&c);
     issue(&mut w, &c, GoodKind::Energy, 1);
-    w.advance(&c, 90).unwrap();
-    baseline.advance(&c, 90).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(90)).unwrap();
+    baseline.advance(&c, sim_core::DaySpan::new(90)).unwrap();
     assert_eq!(
         w.player_country().report.output,
         baseline.player_country().report.output
@@ -117,8 +118,8 @@ fn reserves_reduce_actual_post_import_shortfall_and_do_not_create_output_before_
             .released,
         Energy::ZERO
     );
-    w.advance(&c, 1).unwrap();
-    baseline.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
+    baseline.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert!(
         w.player_country().report.energy_coverage
             > baseline.player_country().report.energy_coverage
@@ -141,11 +142,11 @@ fn food_spoilage_and_release_keep_national_and_civilian_stock_books_separate() {
     let c = content();
     let mut w = world(&c);
     issue(&mut w, &c, GoodKind::Food, 1);
-    w.advance(&c, 90).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(90)).unwrap();
     let before = w.player_country().reserves.as_ref().unwrap();
     assert!(before.food.lost.units() > 0);
     assert_eq!(before.food.released, Food::ZERO);
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let s = w.player_country().reserves.as_ref().unwrap();
     assert!(s.food.last.as_ref().unwrap().released.units() > 0);
     assert_eq!(
@@ -180,7 +181,8 @@ fn unfed_civilian_physical_needs_prevent_national_procurement_and_expiry_release
     let mut w = world(&c);
     let p = w.preview_reserve(&c, &id(), GoodKind::Energy, 1).unwrap();
     issue(&mut w, &c, GoodKind::Energy, 1);
-    w.advance(&c, p.expiry_day + 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(p.expiry_day + 1))
+        .unwrap();
     let o = &w.player_country().reserves.as_ref().unwrap().orders[0];
     assert_eq!(o.status, ReserveStatus::Expired);
     assert_eq!(o.filled, 0);
@@ -194,7 +196,7 @@ fn cancellation_keeps_delivered_goods_and_paid_costs_and_returns_only_unspent_re
     let c = content();
     let mut w = world(&c);
     let request = issue(&mut w, &c, GoodKind::Energy, 2);
-    w.advance(&c, 20).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(20)).unwrap();
     let before = w.player_country().clone();
     let o = before.reserves.as_ref().unwrap().orders[0].clone();
     assert!(o.filled > 0 && o.filled < o.quantity);
@@ -242,7 +244,7 @@ fn support_is_rechecked_at_consent_and_refusal_does_not_deliver_goods() {
     let mut w = world(&c);
     let p = w.preview_reserve(&c, &id(), GoodKind::Energy, 1).unwrap();
     issue(&mut w, &c, GoodKind::Energy, 1);
-    w.advance(&c, p.review_day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(p.review_day)).unwrap();
     let o = &w.player_country().reserves.as_ref().unwrap().orders[0];
     assert!(matches!(o.status, ReserveStatus::Refused { .. }));
     assert_eq!(o.filled, 0);
@@ -266,7 +268,7 @@ fn rounding_is_prepaid_cumulatively_and_fixed_price_contracts_do_not_reprice_del
     issue(&mut w, &c, GoodKind::Energy, 1);
     let price = w.player_country().reserves.as_ref().unwrap().orders[0].price_bps;
     for _ in 0..110 {
-        w.advance(&c, 1).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
         w.validate(&c).unwrap();
         let o = &w.player_country().reserves.as_ref().unwrap().orders[0];
         assert_eq!(o.price_bps, price);
@@ -361,7 +363,7 @@ fn save_22_continues_pending_and_partial_orders_and_rejects_forged_stock_and_fun
     let c = content();
     let mut w = world(&c);
     issue(&mut w, &c, GoodKind::Energy, 2);
-    w.advance(&c, 7).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(7)).unwrap();
     let bytes = persistence::encode(&w, &c).unwrap();
     let header: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(header["schema"], 22);
@@ -369,13 +371,13 @@ fn save_22_continues_pending_and_partial_orders_and_rejects_forged_stock_and_fun
     h["schema"] = 21.into();
     assert!(persistence::decode(&serde_json::to_vec(&h).unwrap(), &c).is_err());
     let mut restored = persistence::decode(&bytes, &c).unwrap();
-    w.advance(&c, 15).unwrap();
-    restored.advance(&c, 15).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(15)).unwrap();
+    restored.advance(&c, sim_core::DaySpan::new(15)).unwrap();
     assert_eq!(w, restored);
     let bytes = persistence::encode(&w, &c).unwrap();
     let mut restored = persistence::decode(&bytes, &c).unwrap();
-    w.advance(&c, 100).unwrap();
-    restored.advance(&c, 100).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(100)).unwrap();
+    restored.advance(&c, sim_core::DaySpan::new(100)).unwrap();
     assert_eq!(w, restored);
     verify(&w, &c);
     let mut bad = w.clone();
@@ -406,7 +408,7 @@ fn save_22_continues_pending_and_partial_orders_and_rejects_forged_stock_and_fun
 fn ai_uses_the_same_funded_contracts_and_replay_path() {
     let c = content();
     let mut w = World::new(&c, CountryId("COR".into()), seed()).unwrap();
-    w.advance(&c, 1000).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1000)).unwrap();
     assert!(
         w.journal
             .iter()
@@ -453,12 +455,12 @@ fn zero_delay_royal_consent_still_waits_for_settlement_and_has_exact_delivery_wi
         w.player_country().reserves.as_ref().unwrap().orders[0].status,
         ReserveStatus::Active
     );
-    w.advance(&c, p.expiry_day).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(p.expiry_day)).unwrap();
     assert_eq!(
         w.player_country().reserves.as_ref().unwrap().orders[0].status,
         ReserveStatus::Active
     );
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(
         w.player_country().reserves.as_ref().unwrap().orders[0].status,
         ReserveStatus::Expired
@@ -474,7 +476,7 @@ fn procurement_spending_and_pending_reservations_cross_fiscal_years_without_rebo
     let mut w = world(&c);
     let p = w.preview_reserve(&c, &id(), GoodKind::Energy, 1).unwrap();
     issue(&mut w, &c, GoodKind::Energy, 1);
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(
         w.player_country()
             .budget_reviews
@@ -486,7 +488,7 @@ fn procurement_spending_and_pending_reservations_cross_fiscal_years_without_rebo
     );
     assert_eq!(w.player_country().budget.capital, Money(0));
     assert_eq!(w.player_country().committed_cash, p.cost);
-    w.advance(&c, 45).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(45)).unwrap();
     let paid = w.player_country().reserves.as_ref().unwrap().orders[0].paid;
     assert!(paid.0 > 0);
     assert!(w.player_country().budget.payments.0 >= paid.0);
@@ -498,7 +500,7 @@ fn procurement_spending_and_pending_reservations_cross_fiscal_years_without_rebo
 fn reserve_purchases_preserve_policy_capital_local_funds_and_temporary_cash_retention() {
     let c = content();
     let mut w = world(&c);
-    w.advance(&c, 30).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(30)).unwrap();
     w.issue(
         &c,
         Action::HoldCash {
@@ -517,7 +519,7 @@ fn reserve_purchases_preserve_policy_capital_local_funds_and_temporary_cash_rete
     .unwrap();
     issue(&mut w, &c, GoodKind::Food, 1);
     for _ in 0..45 {
-        w.advance(&c, 1).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
         w.validate(&c).unwrap();
         let p = w.player_country();
         assert!(

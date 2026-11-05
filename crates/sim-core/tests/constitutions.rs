@@ -22,7 +22,9 @@ fn support(world: &mut World, content: &Content) {
             },
         )
         .unwrap();
-    world.advance(content, delay).unwrap();
+    world
+        .advance(content, sim_core::DaySpan::new(delay))
+        .unwrap();
 }
 fn propose(world: &mut World, content: &Content, target: Regime, contested: bool) -> TransitionId {
     let id = TransitionId(world.next_command.0);
@@ -59,15 +61,17 @@ fn lawful_change_and_restoration_switch_real_powers_preserve_debt_and_resume_pen
         &Regime::Parliamentary
     );
     assert_eq!(world.player_country().committed_cash, Money(400));
-    world.advance(&content, 89).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(89)).unwrap();
     let bytes = persistence::encode(&world, &content).unwrap();
     assert_eq!(
         serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()["schema"],
         6
     );
     let mut resumed = persistence::decode(&bytes, &content).unwrap();
-    world.advance(&content, 1).unwrap();
-    resumed.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
+    resumed
+        .advance(&content, sim_core::DaySpan::new(1))
+        .unwrap();
     assert_eq!(world.hash(), resumed.hash());
     assert_eq!(
         world.governing_regime(&content, &world.player).unwrap(),
@@ -127,9 +131,11 @@ fn lawful_change_and_restoration_switch_real_powers_preserve_debt_and_resume_pen
         .as_ref()
         .unwrap()
         .next_request_day;
-    world.advance(&content, next - world.day).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(next - world.day))
+        .unwrap();
     propose(&mut world, &content, Regime::Parliamentary, false);
-    world.advance(&content, 90).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(90)).unwrap();
     assert_eq!(
         world.governing_regime(&content, &world.player).unwrap(),
         &Regime::Parliamentary
@@ -174,7 +180,7 @@ fn withdrawal_releases_only_unspent_reservations_and_keeps_inertia_and_sunk_cost
             contested: false,
         },
     );
-    world.advance(&content, 90).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(90)).unwrap();
     assert_eq!(
         world.governing_regime(&content, &world.player).unwrap(),
         &Regime::Parliamentary
@@ -196,7 +202,7 @@ fn lost_backing_refuses_a_pending_transition_and_releases_reserved_cash() {
     let (content, mut world) = setup();
     support(&mut world, &content);
     propose(&mut world, &content, Regime::Military, false);
-    world.advance(&content, 89).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(89)).unwrap();
     world
         .issue_developer(
             &content,
@@ -207,7 +213,7 @@ fn lost_backing_refuses_a_pending_transition_and_releases_reserved_cash() {
             },
         )
         .unwrap();
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(
         world.governing_regime(&content, &world.player).unwrap(),
         &Regime::Parliamentary
@@ -265,7 +271,7 @@ fn a_contested_transition_is_a_normal_costly_political_action_with_a_real_power_
         world.player_country().accounts.treasury.0,
         before.accounts.treasury.0 - 1000
     );
-    world.advance(&content, 14).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(
         world.governing_regime(&content, &world.player).unwrap(),
         &Regime::Military
@@ -305,7 +311,7 @@ fn constitutional_succession_cancels_old_pending_loan_mandates_without_creating_
     let (content, mut world) = setup();
     support(&mut world, &content);
     propose(&mut world, &content, Regime::AbsoluteMonarchy, false);
-    world.advance(&content, 89).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(89)).unwrap();
     world
         .issue(
             &content,
@@ -315,7 +321,7 @@ fn constitutional_succession_cancels_old_pending_loan_mandates_without_creating_
         )
         .unwrap();
     let debt = world.player_country().debt;
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(
         world.governing_regime(&content, &world.player).unwrap(),
         &Regime::AbsoluteMonarchy
@@ -398,7 +404,9 @@ fn invalid_templates_history_pending_dates_and_old_envelopes_fail_cleanly() {
 #[test]
 fn ai_preferences_use_shared_lawful_rules_and_public_reports_show_the_active_regime() {
     let (content, mut world) = setup();
-    world.advance(&content, 1827).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(1827))
+        .unwrap();
     let entry = world
         .journal
         .iter()
@@ -446,7 +454,9 @@ fn a_successor_cabinet_does_not_inherit_an_unapproved_constitutional_mandate() {
         )
         .unwrap();
     support(&mut world, &content);
-    world.advance(&content, 650 - world.day).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(650 - world.day))
+        .unwrap();
     support(&mut world, &content);
     propose(&mut world, &content, Regime::SingleParty, false);
     let due = world
@@ -460,7 +470,9 @@ fn a_successor_cabinet_does_not_inherit_an_unapproved_constitutional_mandate() {
         .decision_day;
     let election = world.player_country().next_election.unwrap();
     assert!(election < due);
-    world.advance(&content, election - world.day - 1).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(election - world.day - 1))
+        .unwrap();
     world
         .issue_developer(
             &content,
@@ -471,7 +483,9 @@ fn a_successor_cabinet_does_not_inherit_an_unapproved_constitutional_mandate() {
             },
         )
         .unwrap();
-    world.advance(&content, due - world.day).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(due - world.day))
+        .unwrap();
     assert!(world.player_country().government_number > 1);
     assert!(
         world
@@ -502,7 +516,7 @@ fn every_configured_form_applies_its_policy_consent_borrowing_and_review_clocks(
         let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
         support(&mut world, &content);
         propose(&mut world, &content, template.regime.clone(), false);
-        world.advance(&content, 90).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(90)).unwrap();
         assert_eq!(
             world.governing_regime(&content, &world.player).unwrap(),
             &template.regime
@@ -556,7 +570,10 @@ fn every_configured_form_applies_its_policy_consent_borrowing_and_review_clocks(
             .issue(&content, Action::Borrow { amount: Money(1) })
             .unwrap();
         world
-            .advance(&content, borrowing.consent_days.max(1))
+            .advance(
+                &content,
+                sim_core::DaySpan::new(borrowing.consent_days.max(1)),
+            )
             .unwrap();
         assert!(
             world

@@ -3,7 +3,7 @@ use sim_core::*;
 fn government_projection_excludes_foreign_accounts_and_future_truth() {
     let content = Content::bundled().unwrap();
     let mut w = World::new(&content, CountryId("GBR".into()), 17).unwrap();
-    w.advance(&content, 31).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(31)).unwrap();
     let view = w
         .project(&content, Viewer::Government(w.player.clone()))
         .unwrap();
@@ -28,7 +28,7 @@ fn government_projection_excludes_foreign_accounts_and_future_truth() {
     assert!(as_json.get("seed").is_none());
     assert!(as_json.get("journal").is_none());
     let unchanged = china.latest.clone();
-    w.advance(&content, 1).unwrap();
+    w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(
         w.public_report(&content, &china.country).unwrap().latest,
         unchanged
@@ -55,7 +55,7 @@ fn observer_has_only_public_reports_and_absent_releases_stay_unknown() {
 fn presentation_and_projection_changes_preserve_version_two_campaign_replay() {
     let c = Content::classic_bundled().unwrap();
     let mut w = World::new(&c, CountryId("GBR".into()), 2000).unwrap();
-    w.advance(&c, 360).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(360)).unwrap();
     assert_eq!(w.hash(), 0xc3994a175e880d20);
     let before = w.hash();
     let _ = w.project(&c, Viewer::Observer).unwrap();
@@ -69,7 +69,7 @@ fn presentation_and_projection_changes_preserve_version_two_campaign_replay() {
 fn reports_reject_wrong_content_before_publishing_any_view() {
     let content = Content::bundled().unwrap();
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
-    world.advance(&content, 31).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(31)).unwrap();
     let before = serde_json::to_value(&world).unwrap();
     let mut renamed = content.clone();
     renamed.countries[0].name.push_str(" changed");
@@ -110,7 +110,7 @@ fn batched_public_reports_match_individual_reports_without_private_state() {
         Content::bundled().unwrap(),
     ] {
         let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
-        world.advance(&content, 31).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(31)).unwrap();
         let before = world.hash();
         let observer = world.project(&content, Viewer::Observer).unwrap();
         let government = world

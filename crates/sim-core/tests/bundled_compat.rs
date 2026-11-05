@@ -7,7 +7,9 @@ fn published_constitutional_pack_keeps_its_no_order_campaign_golden() {
     ))
     .unwrap();
     let mut world = World::new(&content, CountryId("GBR".into()), 2000).unwrap();
-    world.advance(&content, 360).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(360))
+        .unwrap();
     assert_eq!(world.hash(), 0x542bcedc081ce958);
     persistence::replay(&world, &content).unwrap();
 }
@@ -85,13 +87,13 @@ fn bundled_recovery_selects_exact_pack_and_preserves_converted_backup_bytes() {
             },
         )
         .unwrap();
-    older.advance(&classic, 31).unwrap();
+    older.advance(&classic, sim_core::DaySpan::new(31)).unwrap();
     let mut header: serde_json::Value =
         serde_json::from_slice(&persistence::encode(&older, &classic).unwrap()).unwrap();
     header["schema"] = 2.into();
     let original = serde_json::to_vec_pretty(&header).unwrap();
     let mut newer = World::new(&current, player, 17).unwrap();
-    newer.advance(&current, 10).unwrap();
+    newer.advance(&current, sim_core::DaySpan::new(10)).unwrap();
     let dir = std::env::temp_dir().join(format!("geosim-bundled-recovery-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("mixed.json");
@@ -125,7 +127,9 @@ fn bundled_recovery_selects_exact_pack_and_preserves_converted_backup_bytes() {
         persistence::recovery_candidates_bundled(&path)[0].schema,
         Some(3)
     );
-    restored.advance(&resolved, 1).unwrap();
+    restored
+        .advance(&resolved, sim_core::DaySpan::new(1))
+        .unwrap();
     persistence::save(&path, &restored, &resolved).unwrap();
     assert_eq!(std::fs::read(&archive).unwrap(), original);
     persistence::replay(&restored, &resolved).unwrap();
@@ -157,7 +161,9 @@ fn unknown_pack_is_not_substituted_by_a_similar_bundled_roster() {
 fn preserved_market_pack_replays_and_recovers_without_financing_migration() {
     let market = Content::market_bundled().unwrap();
     let mut original = World::new(&market, CountryId("GBR".into()), 2000).unwrap();
-    original.advance(&market, 360).unwrap();
+    original
+        .advance(&market, sim_core::DaySpan::new(360))
+        .unwrap();
     assert_eq!(original.hash(), 0x8ef1c8a84552a107);
     let current = Content::observed_bundled().unwrap();
     let mut newer = World::new(&current, original.player.clone(), 42).unwrap();
@@ -200,7 +206,9 @@ fn preserved_market_pack_replays_and_recovers_without_financing_migration() {
 fn preserved_financing_pack_keeps_its_golden_and_pending_loan_when_restored_from_current_rules() {
     let finance = Content::finance_bundled().unwrap();
     let mut original = World::new(&finance, CountryId("GBR".into()), 2000).unwrap();
-    original.advance(&finance, 360).unwrap();
+    original
+        .advance(&finance, sim_core::DaySpan::new(360))
+        .unwrap();
     assert_eq!(original.hash(), 0x9bcec519bfc3c4f4);
     let mut pending = World::new(&finance, original.player.clone(), 2000).unwrap();
     pending
@@ -238,7 +246,9 @@ fn preserved_financing_pack_keeps_its_golden_and_pending_loan_when_restored_from
             .pending
             .is_some()
     );
-    restored.advance(&resolved, 14).unwrap();
+    restored
+        .advance(&resolved, sim_core::DaySpan::new(14))
+        .unwrap();
     assert_eq!(restored.hash(), 0xd7d347d722332a8a);
     assert_eq!(
         std::fs::read(dir.join("mixed.json.before-recovery-1")).unwrap(),
@@ -262,7 +272,9 @@ fn earlier_constitutional_pending_request_recovers_without_policy_lifecycle_migr
             },
         )
         .unwrap();
-    pending.advance(&earlier, 49).unwrap();
+    pending
+        .advance(&earlier, sim_core::DaySpan::new(49))
+        .unwrap();
     pending
         .issue(
             &earlier,
@@ -300,7 +312,9 @@ fn earlier_constitutional_pending_request_recovers_without_policy_lifecycle_migr
             .pending
             .is_some()
     );
-    restored.advance(&resolved, 90).unwrap();
+    restored
+        .advance(&resolved, sim_core::DaySpan::new(90))
+        .unwrap();
     assert_eq!(restored.hash(), 0x1615216df479c2ba);
     assert_eq!(std::fs::read(&backup).unwrap(), earlier_bytes);
     assert_eq!(
@@ -316,7 +330,9 @@ fn published_commitment_starter_keeps_its_no_order_campaign_golden() {
     let content =
         Content::from_json(include_str!("../../../data/initial-2000-commitments.json")).unwrap();
     let mut world = World::new(&content, CountryId("GBR".into()), 2000).unwrap();
-    world.advance(&content, 360).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(360))
+        .unwrap();
     assert_eq!(world.hash(), 0xdaf70b17cc0d2ff0);
     persistence::replay(&world, &content).unwrap();
 }
@@ -334,7 +350,9 @@ fn earlier_commitment_amendment_recovers_without_new_preparation_delays() {
             },
         )
         .unwrap();
-    pending.advance(&earlier, 3).unwrap();
+    pending
+        .advance(&earlier, sim_core::DaySpan::new(3))
+        .unwrap();
     pending
         .issue(
             &earlier,
@@ -363,7 +381,9 @@ fn earlier_commitment_amendment_recovers_without_new_preparation_delays() {
     assert_eq!(resolved, earlier);
     assert!(restored.player_country().cabinet.is_none());
     assert_eq!(restored.player_country().projects[0].due_day, 51);
-    restored.advance(&resolved, 78).unwrap();
+    restored
+        .advance(&resolved, sim_core::DaySpan::new(78))
+        .unwrap();
     assert_eq!(restored.hash(), 0x6e1b17c01398b1ec);
     assert_eq!(std::fs::read(&backup).unwrap(), earlier_bytes);
     assert_eq!(
@@ -381,7 +401,9 @@ fn published_cabinet_starter_keeps_its_no_order_campaign_golden() {
     assert_eq!(content.cabinet.as_ref().unwrap().portfolios.len(), 45);
     assert_eq!(content.cabinet.as_ref().unwrap().candidates.len(), 90);
     let mut world = World::new(&content, CountryId("GBR".into()), 2000).unwrap();
-    world.advance(&content, 360).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(360))
+        .unwrap();
     assert_eq!(world.hash(), 0xbec8276e0de88b7d);
     persistence::replay(&world, &content).unwrap();
 }
@@ -416,7 +438,9 @@ fn earlier_pending_minister_recovers_without_electoral_rules_or_changed_consent(
     let (resolved, mut restored) = persistence::restore_bundled(&path, &backup).unwrap();
     assert_eq!(resolved, earlier);
     assert!(restored.player_country().electoral_authority.is_none());
-    restored.advance(&resolved, 14).unwrap();
+    restored
+        .advance(&resolved, sim_core::DaySpan::new(14))
+        .unwrap();
     assert_eq!(restored.hash(), 0x8061566401cf6588);
     assert_eq!(
         restored.policy_preparation_days(&resolved, &restored.player, &"energy".into()),
@@ -444,7 +468,9 @@ fn default_early_poll_preserves_a_retained_cabinet_and_its_commissioned_programm
             },
         )
         .unwrap();
-    world.advance(&content, 365).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(365))
+        .unwrap();
     world
         .issue(
             &content,
@@ -463,7 +489,7 @@ fn default_early_poll_preserves_a_retained_cabinet_and_its_commissioned_programm
         .due_day;
     let government = world.player_country().government_number;
     world.issue(&content, Action::RequestElection).unwrap();
-    world.advance(&content, 67).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(67)).unwrap();
     assert_eq!(world.player_country().government_number, government);
     assert_eq!(
         world
@@ -490,7 +516,9 @@ fn default_early_poll_preserves_a_retained_cabinet_and_its_commissioned_programm
         due
     );
     assert_eq!(world.player_country().energy_capacity, 90);
-    world.advance(&content, due - world.day).unwrap();
+    world
+        .advance(&content, sim_core::DaySpan::new(due - world.day))
+        .unwrap();
     assert_eq!(world.player_country().energy_capacity, 105);
     persistence::replay(&world, &content).unwrap();
 }
@@ -555,7 +583,9 @@ fn earlier_electoral_roster_recovers_its_pending_poll_without_recalibrating_othe
             },
         )
         .unwrap();
-    pending.advance(&earlier, 365).unwrap();
+    pending
+        .advance(&earlier, sim_core::DaySpan::new(365))
+        .unwrap();
     pending
         .issue(
             &earlier,
@@ -586,9 +616,13 @@ fn earlier_electoral_roster_recovers_its_pending_poll_without_recalibrating_othe
     assert_ne!(candidates[0].content_id, candidates[1].content_id);
     let (resolved, mut restored) = persistence::restore_bundled(&path, &backup).unwrap();
     assert_eq!(resolved, earlier);
-    restored.advance(&resolved, 7).unwrap();
+    restored
+        .advance(&resolved, sim_core::DaySpan::new(7))
+        .unwrap();
     assert_eq!(restored.hash(), 0x7c6341dfbef5bedd);
-    restored.advance(&resolved, 60).unwrap();
+    restored
+        .advance(&resolved, sim_core::DaySpan::new(60))
+        .unwrap();
     assert_eq!(restored.hash(), 0xc12c0a5b7c9fc28d);
     assert_eq!(std::fs::read(&backup).unwrap(), earlier_bytes);
     assert_eq!(

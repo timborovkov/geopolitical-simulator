@@ -82,7 +82,7 @@ fn a_public_pledge_costs_administration_but_only_an_actual_policy_delivery_fulfi
     check(&w, &c);
     let source = enact(&mut w, &c, "energy", 1);
     let due = w.player_country().projects[0].due_day;
-    w.advance(&c, due).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due)).unwrap();
     assert_eq!(
         record(&w, id).status,
         UndertakingStatus::Fulfilled { evidence: source }
@@ -109,16 +109,16 @@ fn an_unimplemented_support_agreement_grants_backing_then_breaches_at_its_fixed_
     let c = content();
     let mut w = start(&c, "AUR");
     let id = declare(&mut w, &c, "service-agreement", None);
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(record(&w, id).status, UndertakingStatus::Active);
     assert_eq!(w.player_country().legislative_support, 72);
     assert_eq!(w.player_country().elite_support, 77);
     assert_eq!(w.player_country().services, 9);
     assert!(w.player_country().projects.is_empty());
     check(&w, &c);
-    w.advance(&c, 179).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(179)).unwrap();
     let before = w.player_country().clone();
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(record(&w, id).status, UndertakingStatus::Breached);
     assert_eq!(record(&w, id).resolved_day, Some(194));
     assert_eq!(
@@ -159,7 +159,7 @@ fn withdrawal_keeps_fees_and_intervals_and_only_accepted_promises_have_breach_co
     check(&w, &c);
     let mut w = start(&c, "AUR");
     let id = declare(&mut w, &c, "service-agreement", None);
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     w.issue(&c, Action::WithdrawUndertaking { request: id })
         .unwrap();
     assert_eq!(w.player_country().legislative_support, 54);
@@ -187,7 +187,7 @@ fn a_project_deadline_reuses_the_owned_policy_commitment_and_never_orders_a_seco
     assert_eq!(w.player_country().projects.len(), 1);
     assert_eq!(record(&w, id).linked_project, Some(source));
     check(&w, &c);
-    w.advance(&c, due).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due)).unwrap();
     assert_eq!(
         record(&w, id).status,
         UndertakingStatus::Fulfilled { evidence: source }
@@ -218,7 +218,7 @@ fn amending_or_withdrawing_the_attached_project_does_not_move_its_promised_targe
         assert_eq!(record(&w, id).goal.target, 26);
         assert_eq!(record(&w, id).deadline_day, deadline);
         check(&w, &c);
-        w.advance(&c, deadline).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(deadline)).unwrap();
         assert_eq!(record(&w, id).status, UndertakingStatus::Breached);
         check(&w, &c);
     }
@@ -238,10 +238,10 @@ fn delivery_during_review_is_recognized_when_the_undertaking_is_accepted() {
     let source = enact(&mut w, &c, "energy", 1);
     let due = w.player_country().projects[0].due_day;
     assert!(due < 30);
-    w.advance(&c, due).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due)).unwrap();
     assert_eq!(record(&w, id).status, UndertakingStatus::Pending);
     check(&w, &c);
-    w.advance(&c, 30 - due).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(30 - due)).unwrap();
     assert_eq!(
         record(&w, id).status,
         UndertakingStatus::Fulfilled { evidence: source }
@@ -257,11 +257,11 @@ fn review_rechecks_backing_after_another_accepted_agreement_is_withdrawn() {
     templates[0].elite_threshold = 70;
     let mut w = start(&c, "AUR");
     let support = declare(&mut w, &c, "service-agreement", None);
-    w.advance(&c, 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let pledge = declare(&mut w, &c, "energy-pledge", None);
     w.issue(&c, Action::WithdrawUndertaking { request: support })
         .unwrap();
-    w.advance(&c, 7).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(7)).unwrap();
     assert!(matches!(
         record(&w, pledge).status,
         UndertakingStatus::Refused { .. }
@@ -292,7 +292,7 @@ fn successor_cabinets_close_pending_and_active_undertakings_while_policy_project
     c.undertakings.as_mut().unwrap().templates[1].review_days = 30;
     let mut w = start(&c, "AUR");
     let source = enact(&mut w, &c, "energy", 1);
-    w.advance(&c, 14).unwrap(); // Existing capital is funded before succession.
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap(); // Existing capital is funded before succession.
     let pledge = declare(&mut w, &c, "energy-pledge", None);
     let agreement = declare(&mut w, &c, "service-agreement", None);
     w.issue(
@@ -303,7 +303,7 @@ fn successor_cabinets_close_pending_and_active_undertakings_while_policy_project
         },
     )
     .unwrap();
-    w.advance(&c, 14).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(record(&w, pledge).status, UndertakingStatus::Superseded);
     assert!(record(&w, pledge).accepted_day.is_some());
     assert_eq!(record(&w, agreement).status, UndertakingStatus::Superseded);
@@ -326,7 +326,7 @@ fn only_accepted_undertakings_and_their_outcomes_are_published() {
     let before = w.public_report(&c, &w.player).unwrap();
     declare(&mut w, &c, "energy-pledge", None);
     assert_eq!(w.public_report(&c, &w.player).unwrap(), before);
-    w.advance(&c, 7).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(7)).unwrap();
     let view = w.project(&c, Viewer::Observer).unwrap();
     assert!(view.own.is_none());
     let report = view.reports[&w.player].undertakings.as_ref().unwrap();
@@ -376,7 +376,7 @@ fn malformed_dates_targets_fees_links_and_credibility_fail_validation_without_pa
 fn ai_declares_costed_undertakings_through_shared_commands_and_replays() {
     let c = content();
     let mut w = start(&c, "COR");
-    w.advance(&c, 365).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(365)).unwrap();
     assert!(
         w.journal
             .iter()
@@ -389,7 +389,8 @@ fn ai_declares_costed_undertakings_through_shared_commands_and_replays() {
 fn promises_cannot_cross_the_campaign_calendar() {
     let c = content().at_bookmark("2095-01-01").unwrap();
     let mut w = start(&c, "AUR");
-    w.advance(&c, MAX_DAY - w.day - 1).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(MAX_DAY - w.day - 1))
+        .unwrap();
     let hash = w.hash();
     assert!(
         w.preview_undertaking(&c, &w.player, "energy-pledge", None)
@@ -427,7 +428,7 @@ fn a_morning_constitutional_successor_closes_a_pledge_before_a_funded_project_de
         },
     )
     .unwrap();
-    w.advance(&c, due).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due)).unwrap();
     assert_eq!(record(&w, pledge).status, UndertakingStatus::Superseded);
     assert_eq!(
         w.player_country()
@@ -450,7 +451,7 @@ fn direct_developer_capacity_edits_are_not_policy_delivery_evidence_and_later_ba
     let c = content();
     let mut w = start(&c, "AUR");
     let pledge = declare(&mut w, &c, "energy-pledge", None);
-    w.advance(&c, 7).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(7)).unwrap();
     w.issue_developer(
         &c,
         w.player.clone(),
@@ -460,7 +461,7 @@ fn direct_developer_capacity_edits_are_not_policy_delivery_evidence_and_later_ba
         },
     )
     .unwrap();
-    w.advance(&c, 180).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(180)).unwrap();
     assert_eq!(record(&w, pledge).status, UndertakingStatus::Breached);
     assert!(w.is_developer_modified());
     let later = declare(&mut w, &c, "energy-pledge", None);
@@ -481,7 +482,7 @@ fn a_lower_tax_pledge_uses_the_operating_rate_and_actual_downward_delivery_evide
     assert_eq!(record(&w, pledge).goal.target, 22);
     let source = enact(&mut w, &c, "income_tax", 22);
     let due = w.player_country().projects[0].due_day;
-    w.advance(&c, due).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due)).unwrap();
     assert_eq!(w.player_country().tax, 22);
     assert_eq!(
         record(&w, pledge).status,

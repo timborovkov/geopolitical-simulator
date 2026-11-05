@@ -52,7 +52,9 @@ mod tests {
         let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
         for day in [0, 30] {
             if day > world.day {
-                world.advance(&content, day - world.day).unwrap();
+                world
+                    .advance(&content, sim_core::DaySpan::new(day - world.day))
+                    .unwrap();
             }
             let hash = world.hash();
             for scale in [1.0, 1.4] {

@@ -104,7 +104,7 @@ fn seeded_cash_recovery_respects_actual_receipts_and_keeps_zero_receipt_targets_
             if w.player_country().retained_cash() == cost {
                 break;
             }
-            w.advance(&content, 1).unwrap();
+            w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
             receipts += w.player_country().report.revenue.0;
         }
         if receipts == 0 {
@@ -120,7 +120,7 @@ fn seeded_cash_recovery_respects_actual_receipts_and_keeps_zero_receipt_targets_
                     .funded_notice_day
                     .is_none()
             );
-            w.advance(&content, 1).unwrap();
+            w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
             assert!(
                 w.player_country()
                     .cash_management
@@ -192,7 +192,7 @@ fn mixed_format17_and_preserved_format16_recovery_keeps_originals_and_the_previo
             },
         )
         .unwrap();
-    prior.advance(&old, 379).unwrap();
+    prior.advance(&old, sim_core::DaySpan::new(379)).unwrap();
     assert_eq!(prior.hash(), 0xd532c2368aeeecca);
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     world
@@ -204,7 +204,7 @@ fn mixed_format17_and_preserved_format16_recovery_keeps_originals_and_the_previo
             },
         )
         .unwrap();
-    world.advance(&content, 3).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(3)).unwrap();
     let directory =
         std::env::temp_dir().join(format!("geosim-cash-starter-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
@@ -227,8 +227,10 @@ fn mixed_format17_and_preserved_format16_recovery_keeps_originals_and_the_previo
     );
     assert_eq!(persistence::replay(&restored, &resolved).unwrap(), restored);
     let mut resumed = persistence::decode(&primary, &content).unwrap();
-    world.advance(&content, 90).unwrap();
-    resumed.advance(&content, 90).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(90)).unwrap();
+    resumed
+        .advance(&content, sim_core::DaySpan::new(90))
+        .unwrap();
     assert_eq!(world, resumed);
     assert_eq!(persistence::replay(&world, &content).unwrap(), world);
     let fixture = Content::from_json(include_str!(

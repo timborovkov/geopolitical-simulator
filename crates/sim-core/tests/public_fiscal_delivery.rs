@@ -11,7 +11,7 @@ fn public_delivery_separates_review_schedule_and_phased_setting_operation_withou
     let content = Content::national_fiscal_bundled().unwrap();
     let foreign = CountryId("GBR".into());
     let mut world = World::new(&content, CountryId("FRA".into()), 17).unwrap();
-    world.advance(&content, 30).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
     assert_eq!(
         world.countries[&foreign]
             .fiscal_plans
@@ -29,7 +29,7 @@ fn public_delivery_separates_review_schedule_and_phased_setting_operation_withou
             .unwrap()
             .is_empty()
     );
-    world.advance(&content, 14).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(14)).unwrap();
     let plans = world
         .public_report(&content, &foreign)
         .unwrap()
@@ -61,7 +61,7 @@ fn public_delivery_separates_review_schedule_and_phased_setting_operation_withou
             .delivery
             .is_empty()
     );
-    world.advance(&content, 63).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(63)).unwrap();
     assert!(
         world
             .public_report(&content, &foreign)
@@ -72,7 +72,7 @@ fn public_delivery_separates_review_schedule_and_phased_setting_operation_withou
             .iter()
             .all(|p| p.operation.is_none())
     );
-    world.advance(&content, 1).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     let plans = world
         .public_report(&content, &foreign)
         .unwrap()
@@ -94,7 +94,7 @@ fn public_delivery_separates_review_schedule_and_phased_setting_operation_withou
             .operation
             .is_none()
     );
-    world.advance(&content, 30).unwrap();
+    world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
     let plans = world
         .public_report(&content, &foreign)
         .unwrap()
@@ -135,7 +135,7 @@ fn public_operations_keep_linked_historical_evidence_instead_of_inferring_it_fro
                 },
             )
             .unwrap();
-        world.advance(&content, 14).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(14)).unwrap();
         let bill = world.player_country().fiscal_plans.as_ref().unwrap().bills[0].clone();
         let project = bill
             .programmes
@@ -156,7 +156,7 @@ fn public_operations_keep_linked_historical_evidence_instead_of_inferring_it_fro
                     },
                 )
                 .unwrap();
-            world.advance(&content, 94).unwrap();
+            world.advance(&content, sim_core::DaySpan::new(94)).unwrap();
             assert_eq!(world.player_country().tax, 30);
             let plans = world
                 .public_report(&content, &world.player)
@@ -169,7 +169,7 @@ fn public_operations_keep_linked_historical_evidence_instead_of_inferring_it_fro
                 "an unlinked replacement must not certify the withdrawn budget programme"
             );
         } else {
-            world.advance(&content, 94).unwrap();
+            world.advance(&content, sim_core::DaySpan::new(94)).unwrap();
             world
                 .issue(
                     &content,
@@ -179,7 +179,7 @@ fn public_operations_keep_linked_historical_evidence_instead_of_inferring_it_fro
                     },
                 )
                 .unwrap();
-            world.advance(&content, 78).unwrap();
+            world.advance(&content, sim_core::DaySpan::new(78)).unwrap();
             assert_eq!(world.player_country().tax, 35);
             let plans = world
                 .public_report(&content, &world.player)

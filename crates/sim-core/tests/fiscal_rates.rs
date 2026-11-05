@@ -20,7 +20,7 @@ fn flat_tax_and_spending_forecasts_match_funded_settlement_at_rate_boundaries() 
                 let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
                 let definition = content.country(&world.player).unwrap();
                 let forecast = world.player_country().forecast(definition, None);
-                world.advance(&content, 1).unwrap();
+                world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
                 let country = world.player_country();
                 assert_eq!(
                     country.report.revenue, forecast.daily_revenue,

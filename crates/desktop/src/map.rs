@@ -651,7 +651,7 @@ mod tests {
             ),
             None
         );
-        world.advance(&content, 31).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(31)).unwrap();
         let before = world.hash();
         let view = world.project(&content, Viewer::Observer).unwrap();
         let report = &view.reports[&id];
@@ -688,7 +688,9 @@ mod tests {
         let content = Content::bundled().unwrap();
         let opening = World::new(&content, CountryId("GBR".into()), 17).unwrap();
         let mut released = opening.clone();
-        released.advance(&content, 31).unwrap();
+        released
+            .advance(&content, sim_core::DaySpan::new(31))
+            .unwrap();
         for scale in [1.0, 1.4] {
             for world in [&opening, &released] {
                 let before = world.hash();
@@ -812,7 +814,7 @@ mod tests {
     fn historical_statistics_choose_the_last_release_by_cutoff_and_keep_gaps_unknown() {
         let content = Content::bundled().unwrap();
         let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
-        world.advance(&content, 91).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(91)).unwrap();
         let before = world.hash();
         let mut view = world.project(&content, Viewer::Observer).unwrap();
         assert!(view.own.is_none());
@@ -909,7 +911,7 @@ mod tests {
     fn map_publication_picker_changes_only_the_display_and_can_return_to_latest_at_two_scales() {
         let content = Content::bundled().unwrap();
         let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
-        world.advance(&content, 91).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(91)).unwrap();
         let before = world.hash();
         let report = world.public_report(&content, &world.player).unwrap();
         for scale in [1.0, 1.4] {
@@ -1067,14 +1069,14 @@ mod tests {
         let content = Content::bundled().unwrap();
         let opening = World::new(&content, CountryId("GBR".into()), 17).unwrap();
         let mut world = opening.clone();
-        world.advance(&content, 61).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(61)).unwrap();
         let ctx = egui::Context::default();
         let mut map = WorldMap::new();
         map.layer = Layer::Approval;
         map.report_time = ReportTime::Published(30);
         let mut selected = world.player.clone();
         let _ = frame(&ctx, &mut map, &content, &world, &mut selected, 1.0, vec![]);
-        world.advance(&content, 30).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
         let before = world.hash();
         let _ = frame(&ctx, &mut map, &content, &world, &mut selected, 1.0, vec![]);
         assert_eq!(map.report_time, ReportTime::Published(30));
@@ -1131,7 +1133,7 @@ mod tests {
     fn physical_layer_mouse_controls_preserve_camera_selection_and_campaign_at_two_scales() {
         let content = Content::bundled().unwrap();
         let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
-        world.advance(&content, 30).unwrap();
+        world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
         let before = world.hash();
         for scale in [1.0, 1.4] {
             let ctx = egui::Context::default();
