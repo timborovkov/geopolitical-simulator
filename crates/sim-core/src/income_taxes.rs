@@ -166,7 +166,7 @@ pub struct IncomeTaxAssessment {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IncomeTaxWithholding {
-    pub group: String,
+    pub group: HouseholdGroupId,
     pub assessment: IncomeTaxAssessment,
     pub paid: Money,
 }
@@ -192,7 +192,7 @@ impl World {
         content: &Content,
         id: &CountryId,
         standard_rate: i32,
-    ) -> Result<Vec<(String, IncomeTaxAssessment)>, String> {
+    ) -> Result<Vec<(HouseholdGroupId, IncomeTaxAssessment)>, String> {
         let taxes = content
             .income_taxes
             .as_ref()

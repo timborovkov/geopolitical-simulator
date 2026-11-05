@@ -29,6 +29,36 @@ pub struct PolicyId(pub String);
 #[serde(transparent)]
 pub struct PartyId(pub String);
 
+/// A stable population group key, resolved within a country and independent of its display label.
+///
+/// ```compile_fail
+/// use sim_core::{CountryDefinition, CurrencyId};
+/// fn wrong_family(country: &CountryDefinition) {
+///     country.household(&CurrencyId::from("USD"));
+/// }
+/// ```
+#[derive(Clone, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(transparent)]
+pub struct HouseholdGroupId(pub String);
+
+/// A primary-currency identity code in bookmark metadata. Money remains in the
+/// game's reporting unit; this reference does not imply exchange-rate conversion.
+///
+/// ```compile_fail
+/// use sim_core::{CountryDefinition, HouseholdGroupId};
+/// fn wrong_family(country: &mut CountryDefinition) {
+///     country.currency = HouseholdGroupId::from("workers");
+/// }
+/// ```
+///
+/// ```compile_fail
+/// use sim_core::{CurrencyId, ReportingCurrency};
+/// let reporting_unit: ReportingCurrency = CurrencyId::from("USD");
+/// ```
+#[derive(Clone, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(transparent)]
+pub struct CurrencyId(pub String);
+
 macro_rules! string_id {
     ($id:ident) => {
         impl $id {
@@ -68,9 +98,23 @@ macro_rules! string_id {
 }
 string_id!(PolicyId);
 string_id!(PartyId);
+string_id!(HouseholdGroupId);
+string_id!(CurrencyId);
 
 // Preserve existing policy diagnostics while retaining a distinct Rust type.
 impl std::fmt::Debug for PolicyId {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self.0, formatter)
+    }
+}
+
+// Keep published cohort/currency diagnostics identical to their string encoding.
+impl std::fmt::Debug for HouseholdGroupId {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self.0, formatter)
+    }
+}
+impl std::fmt::Debug for CurrencyId {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Debug::fmt(&self.0, formatter)
     }

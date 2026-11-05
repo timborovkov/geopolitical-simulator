@@ -106,6 +106,7 @@ pub struct BudgetReview {
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HouseholdImpact {
+    /// Display label for the forecast; this field is not an entity selector.
     pub group: String,
     pub daily_disposable_change: Money,
 }

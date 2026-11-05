@@ -349,6 +349,17 @@ Current audited register: **4 complete, 99 partial and 238 proposed**. Completio
 
 - Native Linux play started the default seed-17 campaign, issued a paid proposal, opened it from Chronicle, paid for amendment, followed the original event to its current amended state, withdrew it and inspected retained history, then funded a replacement through real consent, operation and observed review. Reference-based navigation at 140% opened the correct review with direct delivery and before/after observations. Help search opens Chronicle; a real foreign event remains unavailable; selecting the preserved pack then cancelling changes no world state. Fourteen manual comparisons plus the day-30, operating and review autosaves match terminal or published bytes, and ten distinct native states independently replay. The format-24 monthly autosave is exact and leaves earlier autosaves untouched. A published rules-22 pending save re-saves byte-identically with its original unlinked Chronicle. Scale was restored and the native app closed. These observations concern the exercised Linux client.
 
+
+- Hosted [run 42009153696](https://github.com/timborovkov/geopolitical-simulator/actions/runs/42009153696) passed linked programme events and the rules-23 default on Windows, macOS and Ubuntu. Population/currency reference typing requires its own subsequent platform run.
+
+- `HouseholdGroupId` now covers country definitions, live population groups, private-income assessments and realized withholding keys. Country definition/live-state lookups resolve these keys within their owner, and native withholding tables retain the typed key through to label lookup. Forecast impact labels remain display text. `CurrencyId` distinguishes primary-currency bookmark codes and dated currency terms from population identities and the game's `ReportingCurrency`. Money retains its reporting unit. Transparent strings and preserved diagnostic formatting keep every content/save representation unchanged: rules 23, snapshot 24 and all 21 bundled packs remain as published. P01-02/P01-03 remain partial for broader identity/unit coverage.
+
+- Three added [compile-fail contracts](../crates/sim-core/src/ids.rs) reject currency codes at cohort lookup, population keys in a currency field and bookmark currency identities as monetary reporting units. Three [behavioral cases](../crates/sim-core/tests/group_identities.rs) preserve published content/opening/day-60 hashes and exact saves/replays, rename/reorder cohort definitions while resolving assessments by ID and rejecting display labels as selectors, and round-trip dated AUT/NEW-AUT identities without converting opening accounts or debt. Existing behavioral tests retain their original assertions and inputs.
+
+- Full validation passed 394 Rust checks including eleven compile-fail contracts, eight Python checks, strict lints/Rust docs, release builds and all 672 recovery/replay campaigns. Every preceding campaign hash remains identical. No content, rules or snapshot format changed.
+
+- Native Linux checks inspected all four cohort labels and reconciled balances, conditional and realized withholding plus marginal slices at 100%/140%, and the unchanged GBP reference label. Four snapshot comparisons match published pre-typing bytes; two distinct states independently replay. A preserved rules-22 pending save re-saves exactly. Scale was restored and the native app closed. These observations concern the exercised Linux client.
+
 ## Complete priority inventory
 
 | Priority | System | Requirements touched / total | Status |

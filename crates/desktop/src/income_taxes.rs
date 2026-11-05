@@ -9,8 +9,8 @@ fn percent(bps: u32) -> String {
 fn income_table(
     ui: &mut Ui,
     key: (&str, bool),
-    definitions: &[HouseholdDefinition],
-    rows: &[(&str, &IncomeTaxAssessment, Money)],
+    definition: &CountryDefinition,
+    rows: &[(&HouseholdGroupId, &IncomeTaxAssessment, Money)],
     last_column: &str,
 ) {
     egui::ScrollArea::horizontal().id_salt(key).show(ui, |ui| {
@@ -26,13 +26,7 @@ fn income_table(
             }
             ui.end_row();
             for (group, assessment, paid) in rows {
-                ui.label(
-                    &definitions
-                        .iter()
-                        .find(|h| h.id == *group)
-                        .expect("cohort")
-                        .name,
-                );
+                ui.label(&definition.household(group).expect("cohort").name);
                 ui.label(assessment.gross.0.to_string());
                 ui.label(ratio(assessment.annualised_reference_bps));
                 ui.label(assessment.potential.0.to_string());
@@ -73,8 +67,8 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, draft: Option<i32>) -
             ui.small("Holds opening GDP, expected private-income funding, current supply and collection capacity fixed. This is a forecast, not spendable treasury cash or an implementation guarantee.");
             match world.preview_income_taxes(content, &world.player, standard) {
                 Ok(rows) => {
-                    let display: Vec<_> = rows.iter().map(|(group,a)| (group.as_str(),a,a.collectible)).collect();
-                    income_table(ui, ("income-tax-projection", draft.is_some()), &d.households, &display, "Withholding");
+                    let display: Vec<_> = rows.iter().map(|(group,a)| (group,a,a.collectible)).collect();
+                    income_table(ui, ("income-tax-projection", draft.is_some()), d, &display, "Withholding");
                     ui.label(format!("Expected withholding {}m/day. Only actual received private income and cash transfers create tax receipts.", rows.iter().map(|(_,a)|a.collectible.0).sum::<i64>()));
                 }
                 Err(reason) => { ui.label(reason); }
@@ -82,12 +76,12 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, draft: Option<i32>) -
             if let Some(report) = &c.income_tax_report {
                 ui.strong(format!("Realized withholding {} · settled standard {}% · collection capacity {}%", date(report.day), report.standard_rate, report.administration));
                 ui.label(format!("Potential {}m; actually withheld {}m. Uncollected potential is retained by households; it is not cash or a treasury arrears claim.", report.potential().0, report.paid().0));
-                let display: Vec<_> = report.groups.iter().map(|line| (line.group.as_str(), &line.assessment, line.paid)).collect();
-                income_table(ui, ("income-tax-actual", draft.is_some()), &d.households, &display, "Paid");
+                let display: Vec<_> = report.groups.iter().map(|line| (&line.group, &line.assessment, line.paid)).collect();
+                income_table(ui, ("income-tax-actual", draft.is_some()), d, &display, "Paid");
                 egui::CollapsingHeader::new("Inspect actual marginal slices").id_salt(("income-slices",draft.is_some())).show(ui,|ui| {
                     ui.small("These annualised group bases are calculation inputs, not cash payments. Capacity is applied before rounding each cohort's daily withholding to whole million-credit units.");
                     for line in &report.groups {
-                        let name=&d.households.iter().find(|h|h.id==line.group).expect("cohort").name;
+                        let name=&d.household(&line.group).expect("cohort").name;
                         ui.strong(format!("{name}: private gross {}m/day",line.assessment.gross.0));
                         for slice in &line.assessment.slices {
                             ui.label(format!("{}: annualised group basis {}m at marginal {}",slice.band.0,slice.annual_base.0,percent(slice.marginal_rate_bps)));

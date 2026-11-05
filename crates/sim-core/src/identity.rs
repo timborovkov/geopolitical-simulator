@@ -1,5 +1,5 @@
 //! Dated reference identities initialize a bookmark; they do not schedule campaign outcomes.
-use crate::{CivilDate, Content, CountryDefinition, CountryId};
+use crate::{CivilDate, Content, CountryDefinition, CountryId, CurrencyId};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -125,7 +125,7 @@ pub struct OfficeTerm {
 pub struct CurrencyTerm {
     pub id: String,
     pub country: CountryId,
-    pub code: String,
+    pub code: CurrencyId,
     pub validity: Validity,
     pub source: String,
     pub source_version: String,
@@ -308,9 +308,10 @@ impl IdentityCatalogue {
             if term.id.is_empty()
                 || !records.insert(term.id.as_str())
                 || content.country(&term.country).is_none()
-                || !(3..=12).contains(&term.code.len())
+                || !(3..=12).contains(&term.code.as_str().len())
                 || !term
                     .code
+                    .as_str()
                     .bytes()
                     .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'-')
                 || !term.validity.valid()

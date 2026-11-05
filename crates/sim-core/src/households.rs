@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HouseholdDefinition {
-    pub id: String,
+    pub id: HouseholdGroupId,
     pub name: String,
     pub population_share: i64,
     pub income_share: i64,
@@ -13,7 +13,7 @@ pub struct HouseholdDefinition {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Household {
-    pub id: String,
+    pub id: HouseholdGroupId,
     pub population: Population,
     pub working_age: Population,
     pub employed: Population,

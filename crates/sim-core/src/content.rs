@@ -1,5 +1,5 @@
 //! Versioned, validated content, separate from authoritative formulas.
-use crate::{PartyId, PolicyId};
+use crate::{CurrencyId, HouseholdGroupId, PartyId, PolicyId};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -58,7 +58,7 @@ pub struct CountryDefinition {
     pub office: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub governing_office: Option<crate::OfficeId>,
-    pub currency: String,
+    pub currency: CurrencyId,
     pub population: u64,
     pub gdp: i64,
     pub tax: i32,
@@ -80,6 +80,10 @@ pub struct CountryDefinition {
     pub economic_source: String,
 }
 impl CountryDefinition {
+    /// Resolve an attributed cohort within this country's population definitions.
+    pub fn household(&self, id: &HouseholdGroupId) -> Option<&crate::HouseholdDefinition> {
+        self.households.iter().find(|group| &group.id == id)
+    }
     /// Resolve a stable party reference within this country's public roster.
     pub fn party(&self, id: &PartyId) -> Option<&PartyDefinition> {
         self.parties.iter().find(|party| &party.id == id)

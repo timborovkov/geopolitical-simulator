@@ -180,6 +180,10 @@ pub struct Country {
     pub income_tax_report: Option<IncomeTaxReport>,
 }
 impl Country {
+    /// Resolve one of this country's live population groups by stable identity.
+    pub fn household(&self, id: &HouseholdGroupId) -> Option<&Household> {
+        self.households.iter().find(|group| &group.id == id)
+    }
     /// Resolve this country's complete programme record, including completed work.
     pub fn commitment(&self, id: &CommitmentId) -> Option<&CommitmentRecord> {
         self.commitments
