@@ -125,7 +125,7 @@ impl World {
                     p.stage = PolicyStage::Implementing;
                     p.reserved = Money(0);
                     self.record_consent(id, &project, true);
-                    self.event(id,true,format!("{} received institutional consent. {}m paid to contractors; construction due {}.",project.policy,paid,date(project.due_day)));
+                    self.event_for_commitment(id,project.id,CommitmentStage::Implementing,format!("{} received institutional consent. {}m paid to contractors; construction due {}.",project.policy,paid,date(project.due_day)));
                 }
                 Err(reason) => {
                     self.countries
@@ -134,7 +134,7 @@ impl World {
                         .projects
                         .retain(|p| p.id != project.id);
                     self.record_consent(id, &project, false);
-                    self.event(id,true,format!("{} refused at consent: {reason}. Released {}m of reserved cash; proposal administration costs remain paid.",project.policy,project.reserved.0));
+                    self.event_for_commitment(id,project.id,CommitmentStage::Refused,format!("{} refused at consent: {reason}. Released {}m of reserved cash; proposal administration costs remain paid.",project.policy,project.reserved.0));
                 }
             }
         }

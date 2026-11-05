@@ -278,8 +278,9 @@ impl World {
                 let c = self.countries.get_mut(&id).expect("country");
                 c.committed_cash.0 += reserved.0;
                 c.budget.capital.0 += preview.upfront_payment.0;
+                let request = CommitmentId(self.next_project);
                 c.projects.push(PolicyInstance {
-                    id: CommitmentId(self.next_project),
+                    id: request,
                     policy: policy.clone(),
                     value: *value,
                     start_day: self.day + preview.consent_delay,
@@ -295,7 +296,7 @@ impl World {
                 });
                 self.record_proposal(&id, command.id);
                 self.next_project = next_project;
-                self.event(&id,true,format!("Proposed {} via {}. Paid {}m upfront, reserved {}m; consent {} and operating due {}.",content.policy(policy).expect("policy").name,preview.route,preview.upfront_payment.0,reserved.0,date(self.day+preview.consent_delay),date(self.day+preview.delay)));
+                self.event_for_commitment(&id,request,CommitmentStage::Proposed,format!("Proposed {} via {}. Paid {}m upfront, reserved {}m; consent {} and operating due {}.",content.policy(policy).expect("policy").name,preview.route,preview.upfront_payment.0,reserved.0,date(self.day+preview.consent_delay),date(self.day+preview.delay)));
             }
             Action::Borrow { amount } => {
                 if content.finance.is_some() {
@@ -550,9 +551,10 @@ impl World {
             if let Some(before) = before {
                 self.record_delivery(content, id, &p, &before);
             }
-            self.event(
+            self.event_for_commitment(
                 id,
-                true,
+                p.id,
+                CommitmentStage::Operating,
                 format!(
                     "{} is operating. Inspect household and fiscal execution for realized effects.",
                     p.policy

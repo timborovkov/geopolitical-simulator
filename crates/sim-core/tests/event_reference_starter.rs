@@ -12,9 +12,9 @@ fn without_references(mut world: World, prior: &World) -> World {
 
 #[test]
 fn seeded_event_references_preserve_every_definition_and_opening_resource() {
-    let content = Content::bundled().unwrap();
+    let content = Content::event_reference_bundled().unwrap();
     let old = Content::reserve_bundled().unwrap();
-    assert_eq!((content.schema, content.rules), (22, RULES_VERSION));
+    assert_eq!((content.schema, content.rules), (22, 22));
     assert_eq!(content.countries.len(), 15);
     assert_eq!(
         content.party_preferences.as_ref().unwrap().profiles.len(),
@@ -87,7 +87,7 @@ fn seeded_event_references_preserve_every_definition_and_opening_resource() {
 
 #[test]
 fn every_seeded_government_retains_private_references_without_altering_policy_or_ai_outcomes() {
-    let content = Content::bundled().unwrap();
+    let content = Content::event_reference_bundled().unwrap();
     let old = Content::reserve_bundled().unwrap();
     for country in &content.countries {
         let mut world = World::new(&content, country.id.clone(), 17).unwrap();
@@ -170,7 +170,7 @@ fn every_seeded_government_retains_private_references_without_altering_policy_or
 
 #[test]
 fn mixed_formats_23_and_22_preserve_reference_identity_and_exact_original_recovery_bytes() {
-    let content = Content::bundled().unwrap();
+    let content = Content::event_reference_bundled().unwrap();
     let old = Content::reserve_bundled().unwrap();
     let prior = World::new(&old, CountryId("GBR".into()), 17).unwrap();
     assert_eq!(prior.hash(), 0x343d72b6cdfb6c83);

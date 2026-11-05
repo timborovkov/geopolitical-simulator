@@ -4,15 +4,47 @@ use std::collections::BTreeMap;
 #[derive(Default)]
 pub struct Panel {
     levels: BTreeMap<CommitmentId, i32>,
+    focused: Option<CommitmentId>,
+    scroll_to_focus: bool,
 }
 impl Panel {
+    pub fn focus(&mut self, request: CommitmentId) {
+        self.focused = Some(request);
+        self.scroll_to_focus = true;
+    }
     /// Owner workspace only; read-only rendering returns an explicit command.
     pub fn show(&mut self, ui: &mut Ui, content: &Content, world: &World) -> Option<Action> {
         let records = world.player_country().commitments.as_ref()?;
         let mut action = None;
-        ui.heading("Commitments & outcomes");
+        let heading = ui.heading("Commitments & outcomes");
+        let reveal_history = self.scroll_to_focus;
+        if self.scroll_to_focus {
+            ui.scroll_to_rect_animation(
+                heading.rect,
+                Some(egui::Align::TOP),
+                egui::style::ScrollAnimation::none(),
+            );
+            self.scroll_to_focus = false;
+        }
+        if let Some(request) = self.focused {
+            ui.horizontal_wrapped(|ui| {
+                ui.strong(format!("Inspecting programme #{request}"));
+                if ui.button("Show all programmes").clicked() {
+                    self.focused = None;
+                }
+            });
+            if world.player_country().commitment(&request).is_none() {
+                ui.label("Programme is unavailable in your government's view.");
+                return None;
+            }
+        }
         ui.small("Amendment restarts consent and delivery with a paid administration fee. Withdrawal releases only money still reserved; contractors retain payments for work already commissioned.");
-        for p in &world.player_country().projects {
+        for p in world
+            .player_country()
+            .projects
+            .iter()
+            .filter(|p| self.focused.is_none_or(|id| p.id == id))
+        {
             ui.push_id(p.id,|ui| {egui::Frame::group(ui.style()).show(ui,|ui| {
                 ui.strong(format!("#{} · {} · level {}",p.id,content.policy(&p.policy).expect("policy").name,p.value));
                 ui.label(format!("{} · consent {} · operating due {} · reserved {}m",p.stage.label(),date(p.consent_day),date(p.due_day),p.reserved.0));
@@ -43,12 +75,26 @@ impl Panel {
                 }
             });});
         }
-        if world.player_country().projects.is_empty() {
-            ui.label("No pending commitments. Draft a programme above.");
+        if world
+            .player_country()
+            .projects
+            .iter()
+            .all(|p| self.focused.is_some_and(|id| p.id != id))
+        {
+            ui.label(if self.focused.is_some() {
+                "No pending work for this programme."
+            } else {
+                "No pending commitments. Draft a programme above."
+            });
         }
-        egui::CollapsingHeader::new(format!("Programme history · {} records",records.len())).default_open(true).show(ui,|ui| {
-            for r in records.iter().rev() {
-                egui::CollapsingHeader::new(format!("#{} · {} · {:?} · paid {}m",r.id.0,content.policy(&r.project.policy).expect("policy").name,r.stage(),r.paid.0)).id_salt(r.id.0).show(ui,|ui| {
+        let count = if self.focused.is_some() {
+            1
+        } else {
+            records.len()
+        };
+        egui::CollapsingHeader::new(format!("Programme history · {count} record{}",if count == 1 { "" } else { "s" })).default_open(true).open(reveal_history.then_some(true)).show(ui,|ui| {
+            for r in records.iter().rev().filter(|r| self.focused.is_none_or(|id| r.id == id)) {
+                egui::CollapsingHeader::new(format!("#{} · {} · {:?} · paid {}m",r.id.0,content.policy(&r.project.policy).expect("policy").name,r.stage(),r.paid.0)).id_salt(r.id.0).open(self.focused.map(|id| id == r.id)).show(ui,|ui| {
                     for m in &r.milestones {ui.label(format!("{} · {:?} · level {}",date(m.day),m.stage,m.value));}
                     for e in &r.direct_effects {ui.label(format!("Direct delivered change: {} from {} to {}",effect_label(&e.field),e.before,e.after));}
                     if let Some(day)=r.review_due {ui.label(format!("Observed outcome review due {}",date(day)));}

@@ -8,12 +8,18 @@ pub struct Panel {
     error: Option<String>,
 }
 impl Panel {
-    pub fn show(&mut self, ui: &mut egui::Ui, content: &Content, world: Option<&World>) {
+    pub fn show(
+        &mut self,
+        ui: &mut egui::Ui,
+        content: &Content,
+        world: Option<&World>,
+    ) -> Option<CommitmentId> {
+        let mut inspect = None;
         ui.heading("Chronicle & decisions");
         ui.label("Accepted outcomes, delivery dates and AI explanations. Most recent first; filtered to the selected country.");
         let Some(world) = world else {
             ui.label("Your chronicle begins with a mandate.");
-            return;
+            return None;
         };
         if world.event_sequences.is_some() {
             ui.label("References belong to this campaign. Only your government's retained entries are available; older entries may have expired.");
@@ -50,7 +56,7 @@ impl Panel {
                     ) {
                         Ok(Some(event)) => {
                             ui.strong("Referenced event");
-                            show_event(ui, event);
+                            inspect = show_event(ui, event).or(inspect.take());
                         }
                         Ok(None) => {
                             ui.label(
@@ -72,13 +78,24 @@ impl Panel {
                 .rev()
                 .filter(|e| e.country == world.player)
             {
-                show_event(ui, event);
+                inspect = show_event(ui, event).or(inspect.take());
             }
         });
+        if let Some(id) = inspect {
+            match world.event_commitment(content, Viewer::Government(world.player.clone()), &id) {
+                Ok(Some(record)) => return Some(record.id),
+                Ok(None) => {
+                    self.error = Some("Programme is unavailable in your government's view.".into())
+                }
+                Err(reason) => self.error = Some(reason),
+            }
+        }
+        None
     }
 }
-fn show_event(ui: &mut egui::Ui, event: &Event) {
+fn show_event(ui: &mut egui::Ui, event: &Event) -> Option<EventId> {
     let row = |ui: &mut egui::Ui| {
+        let mut inspect = None;
         egui::Frame::group(ui.style()).show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.colored_label(
@@ -105,12 +122,21 @@ fn show_event(ui: &mut egui::Ui, event: &Event) {
                 }
             });
             ui.label(&event.text);
+            if let Some(EventContext::Commitment { request, stage }) = event.context {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(format!("Recorded stage: {stage:?}"));
+                    if ui.button(format!("Inspect programme #{request}")).clicked() {
+                        inspect = event.id.clone();
+                    }
+                });
+            }
         });
+        inspect
     };
     if let Some(id) = &event.id {
-        ui.push_id(id.to_string(), row);
+        ui.push_id(id.to_string(), row).inner
     } else {
-        row(ui);
+        row(ui)
     }
 }
 

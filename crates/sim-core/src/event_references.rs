@@ -72,6 +72,7 @@ impl World {
         content: &Content,
         content_hash: u64,
     ) -> Result<(), String> {
+        self.validate_project_events()?;
         if let Some(reason) = &self.event_error {
             return Err(reason.clone());
         }

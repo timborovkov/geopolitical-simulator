@@ -574,6 +574,23 @@ def build_reserve_starter():
     return pack
 
 
+
+def build_project_event_starter():
+    pack = build_event_reference_starter()
+    pack.update(schema=23, rules=23, id="initial-2000-project-events-v23", name="A New Century · linked programme outcomes")
+    pack["sources"].append(dict(id="authored-starter-project-events-v1", quality="authored_scenario_model", description="Original typed links between private policy lifecycle events and their owned programme records. Inspection grants no resources, policy authority or privileged foreign information."))
+    pack["description"] += " Policy lifecycle events identify their owned programme and recorded stage directly. Chronicle inspection opens the real pending or historical record; outcome reviews remain observations rather than isolated causal estimates. Earlier content packs retain their original event encoding and replay behavior."
+    return pack
+
+
+def build_project_events():
+    pack = build_event_references()
+    pack.update(schema=23, rules=23, id="synthetic-project-events-v23", name="Fictional linked programme outcomes")
+    pack["sources"].append(dict(id="authored-project-event-contract-v1", quality="authored_synthetic_fixture", description="Original technical fixture for typed, country-scoped links from policy lifecycle events to programme records, including same-day decisions, refusal, withdrawal, operation and observed review."))
+    pack["description"] += " Private policy lifecycle events carry an owned programme ID and recorded stage. The link is independent of translated text, row position or policy names and survives filtering, retention and save/load. It grants no foreign access, cash, consent exemption or operating effects. Earlier definitions and campaigns retain their exact bytes and rules."
+    return pack
+
+
 def build_event_reference_starter():
     pack = build_reserve_starter()
     pack.update(schema=22, rules=22, id="initial-2000-event-references-v22", name="A New Century · stable chronicle references")
@@ -702,6 +719,7 @@ def main():
                            ("synthetic-party-preferences-test.json", build_party_preferences()),
                            ("synthetic-national-reserves-test.json", build_reserves()),
                            ("synthetic-event-references-test.json", build_event_references()),
+                           ("synthetic-project-events-test.json", build_project_events()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),
@@ -720,6 +738,7 @@ def main():
                            ("initial-2000-party-preferences.json", build_party_starter()),
                            ("initial-2000-national-reserves.json", build_reserve_starter()),
                            ("initial-2000-event-references.json", build_event_reference_starter()),
+                           ("initial-2000-project-events.json", build_project_event_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename
         expected = json.dumps(pack, ensure_ascii=False, indent=2) + "\n"

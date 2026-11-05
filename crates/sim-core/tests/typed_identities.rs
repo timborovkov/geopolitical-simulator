@@ -2,7 +2,7 @@ use sim_core::*;
 
 #[test]
 fn typed_policy_and_party_references_keep_published_json_and_campaign_bytes() {
-    let content = Content::bundled().unwrap();
+    let content = Content::event_reference_bundled().unwrap();
     assert_eq!(content.hash(), 0xcf3ddf9118d0c3c5);
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     assert_eq!(world.hash(), 0x0fc2d7e7ebdb9688);
@@ -43,7 +43,7 @@ fn typed_policy_and_party_references_keep_published_json_and_campaign_bytes() {
 
 #[test]
 fn renaming_and_reordering_rosters_preserve_identity_and_names_cannot_issue_commands() {
-    let mut content = Content::bundled().unwrap();
+    let mut content = Content::event_reference_bundled().unwrap();
     let country = CountryId("GBR".into());
     let policy = PolicyId::from("income_tax");
     let party = content.country(&country).unwrap().ruling_party.clone();

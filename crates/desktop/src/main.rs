@@ -1706,8 +1706,13 @@ impl GameApp {
         if self.foreign_report(ui) {
             return;
         }
-        self.event_browser
-            .show(ui, &self.content, self.world.as_ref());
+        if let Some(request) = self
+            .event_browser
+            .show(ui, &self.content, self.world.as_ref())
+        {
+            self.commitment_panel.focus(request);
+            self.tab = Tab::Policies;
+        }
     }
     fn guide(&mut self, ui: &mut egui::Ui) {
         ui.horizontal_wrapped(|ui| {
@@ -2038,6 +2043,150 @@ fn main() -> eframe::Result {
 #[cfg(test)]
 mod interface_tests {
     use super::*;
+
+    #[test]
+    fn chronicle_links_open_exact_pending_and_historical_programmes_at_both_scales_without_orders()
+    {
+        fn labels(output: &egui::FullOutput) -> String {
+            output
+                .shapes
+                .iter()
+                .filter_map(|s| match &s.shape {
+                    egui::Shape::Text(t) => Some(t.galley.text()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        }
+        fn click(ctx: &egui::Context, app: &mut GameApp, input: &egui::RawInput, label: &str) {
+            let output = ctx.run(input.clone(), |ctx| app.render(ctx));
+            let pos = output
+                .shapes
+                .iter()
+                .find_map(|s| match &s.shape {
+                    egui::Shape::Text(t) if t.galley.text() == label => {
+                        let center = t.pos + t.galley.size() / 2.0;
+                        s.clip_rect.contains(center).then_some(center)
+                    }
+                    _ => None,
+                })
+                .unwrap_or_else(|| panic!("Missing visible {label}: {}", labels(&output)));
+            let mut pointer = input.clone();
+            pointer.events = vec![
+                egui::Event::PointerMoved(pos),
+                egui::Event::PointerButton {
+                    pos,
+                    button: egui::PointerButton::Primary,
+                    pressed: true,
+                    modifiers: egui::Modifiers::NONE,
+                },
+                egui::Event::PointerButton {
+                    pos,
+                    button: egui::PointerButton::Primary,
+                    pressed: false,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ];
+            let _ = ctx.run(pointer, |ctx| app.render(ctx));
+        }
+        let content = Content::from_json(include_str!(
+            "../../../data/synthetic-project-events-test.json"
+        ))
+        .unwrap();
+        let mut pending = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+        pending
+            .issue(
+                &content,
+                Action::Enact {
+                    policy: "income_tax".into(),
+                    value: 30,
+                },
+            )
+            .unwrap();
+        let request = pending.player_country().projects[0].id;
+        let mut withdrawn = pending.clone();
+        withdrawn
+            .issue(&content, Action::CancelCommitment { request })
+            .unwrap();
+        let mut reviewed = pending.clone();
+        let due = reviewed.player_country().project(&request).unwrap().due_day;
+        reviewed.advance(&content, due).unwrap();
+        let review = reviewed
+            .player_country()
+            .commitment(&request)
+            .unwrap()
+            .review_due
+            .unwrap();
+        reviewed.advance(&content, review - reviewed.day).unwrap();
+        for (world, expected) in [
+            (pending, "Awaiting consent"),
+            (withdrawn, "Withdrawn"),
+            (reviewed, "Observed review"),
+        ] {
+            for scale in [1.0, 1.4] {
+                let ctx = egui::Context::default();
+                let mut app =
+                    GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+                ctx.set_zoom_factor(scale);
+                app.world = Some(world.clone());
+                app.selected = world.player.clone();
+                app.tab = Tab::Chronicle;
+                let input = egui::RawInput {
+                    focused: true,
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(1440.0 / scale, 1000.0 / scale),
+                    )),
+                    ..Default::default()
+                };
+                let before = app.world.clone();
+                click(&ctx, &mut app, &input, "Dismiss brief");
+                click(
+                    &ctx,
+                    &mut app,
+                    &input,
+                    &format!("Inspect programme #{request}"),
+                );
+                assert!(app.tab == Tab::Policies);
+                for _ in 0..3 {
+                    let _ = ctx.run(input.clone(), |ctx| app.render(ctx));
+                }
+                let output = ctx.run(input.clone(), |ctx| app.render(ctx));
+                let text = labels(&output);
+                assert!(
+                    text.contains(&format!("Inspecting programme #{request}")),
+                    "{scale}: {text}"
+                );
+                assert!(text.contains(expected), "{scale}: {text}");
+                click(&ctx, &mut app, &input, "Show all programmes");
+                let output = ctx.run(input.clone(), |ctx| app.render(ctx));
+                assert!(!labels(&output).contains("Inspecting programme"));
+                // A prior user collapse must not hide the next event's history.
+                click(&ctx, &mut app, &input, "Programme history · 1 record");
+                app.tab = Tab::Chronicle;
+                click(
+                    &ctx,
+                    &mut app,
+                    &input,
+                    &format!("Inspect programme #{request}"),
+                );
+                for _ in 0..3 {
+                    let _ = ctx.run(input.clone(), |ctx| app.render(ctx));
+                }
+                let reopened = ctx.run(input.clone(), |ctx| app.render(ctx));
+                assert!(
+                    labels(&reopened).contains(expected),
+                    "reopened {scale}: {}",
+                    labels(&reopened)
+                );
+                app.selected = CountryId("BOR".into());
+                app.tab = Tab::Chronicle;
+                let output = ctx.run(input.clone(), |ctx| app.render(ctx));
+                assert!(!labels(&output).contains("Inspect programme #"));
+                assert_eq!(app.world, before);
+            }
+        }
+    }
     #[test]
     fn event_briefs_are_owner_only_dismissible_and_open_the_owned_chronicle_without_commands() {
         for scale in [1.0, 1.4] {
@@ -2046,6 +2195,7 @@ mod interface_tests {
                     .unwrap();
             let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
             world.events.push(Event {
+                context: None,
                 id: None,
                 day: 0,
                 country: world.player.clone(),
@@ -2053,6 +2203,7 @@ mod interface_tests {
                 text: "OWN IMPORTANT DECISION".into(),
             });
             world.events.push(Event {
+                context: None,
                 id: None,
                 day: 0,
                 country: CountryId("BOR".into()),
@@ -2125,6 +2276,7 @@ mod interface_tests {
             assert_eq!(app.world.as_ref().unwrap().hash(), original);
             // A foreign notice cannot reopen an acknowledged owner brief.
             app.world.as_mut().unwrap().events.push(Event {
+                context: None,
                 id: None,
                 day: 0,
                 country: CountryId("BOR".into()),
@@ -2134,6 +2286,7 @@ mod interface_tests {
             let output = ctx.run(input.clone(), |ctx| app.render(ctx));
             assert!(!text(&output).contains("OWN IMPORTANT DECISION"));
             app.world.as_mut().unwrap().events.push(Event {
+                context: None,
                 id: None,
                 day: 0,
                 country: CountryId("AUR".into()),

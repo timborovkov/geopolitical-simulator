@@ -22,7 +22,7 @@ fn roundtrip(world: &World, content: &Content) {
 
 #[test]
 fn project_identity_keeps_numeric_json_and_published_campaign_hash() {
-    let content = Content::bundled().unwrap();
+    let content = Content::event_reference_bundled().unwrap();
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     let id = propose(&mut world, &content);
     assert_eq!(id, CommitmentId(1));
@@ -40,7 +40,7 @@ fn project_identity_keeps_numeric_json_and_published_campaign_hash() {
 
 #[test]
 fn scoped_project_lookup_survives_amendment_and_leaves_history_after_withdrawal() {
-    let content = Content::bundled().unwrap();
+    let content = Content::event_reference_bundled().unwrap();
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     let id = propose(&mut world, &content);
     let before = world.clone();

@@ -4,6 +4,17 @@ use std::{
     path::Path,
 };
 
+fn print_event(event: &Event) {
+    if let Some(id) = &event.id {
+        println!("{id} · {} · {}", date(event.day), event.text);
+    } else {
+        println!("{} · {}", date(event.day), event.text);
+    }
+    if let Some(EventContext::Commitment { request, stage }) = event.context {
+        println!("Programme #{request} · recorded stage {stage:?} · inspect: commitment {request}");
+    }
+}
+
 fn status(world: &World, content: &Content) {
     let c = world.player_country();
     let d = content.country(&world.player).expect("player");
@@ -146,7 +157,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "reserves | preview-reserve energy|food DAYS | procure-reserve energy|food DAYS | cancel-reserve ID\nstatus | countries | policies | party-preferences [COUNTRY] | party-alignment | sovereignty [COUNTRY] | technologies [POLICY] | preview POLICY VALUE | plan-policy POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nincome-tax-bands | income-tax-report | preview-income-tax STANDARD_RATE\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\ncash-retention | preview-retention MILLIONS DAYS | retain-cash MILLIONS DAYS | release-cash ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | public-report COUNTRY | events [COUNTRY] | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "reserves | preview-reserve energy|food DAYS | procure-reserve energy|food DAYS | cancel-reserve ID\nstatus | countries | policies | party-preferences [COUNTRY] | party-alignment | sovereignty [COUNTRY] | technologies [POLICY] | preview POLICY VALUE | plan-policy POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nincome-tax-bands | income-tax-report | preview-income-tax STANDARD_RATE\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitment ID | commitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\ncash-retention | preview-retention MILLIONS DAYS | retain-cash MILLIONS DAYS | release-cash ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | public-report COUNTRY | events [COUNTRY] | event COUNTRY#NUMBER | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if world.event_sequences.is_some() {println!("event COUNTRY#NUMBER · inspect one of your government's retained entries; references belong to this campaign.");}
                     if content.finance.as_ref().is_some_and(|rules|rules.maturity_days.is_some()) {
@@ -228,6 +239,13 @@ fn play(
                         world.issue(content, Action::Enact { policy, value })?;
                         println!("Commitment accepted.");
                     }
+                }
+                "commitment" => {
+                    let request = CommitmentId(number(words.get(1))?);
+                    let record = world.player_country().commitment(&request)
+                        .ok_or("No programme with that ID in your government's view")?;
+                    println!("Programme #{request} · current stage {:?}", record.stage());
+                    println!("{}", serde_json::to_string_pretty(record).map_err(|e| e.to_string())?);
                 }
                 "commitments" => {
                     let records = world
@@ -935,7 +953,7 @@ fn play(
                 "event" => {
                     let id=words.get(1).ok_or("Usage: event COUNTRY#NUMBER")?.parse::<EventId>()?;
                     match world.event_by_reference(content,Viewer::Government(world.player.clone()),&id)? {
-                        Some(event)=>println!("{} · {} · {}",id,date(event.day),event.text),
+                        Some(event)=>print_event(event),
                         None=>println!("No retained event with that reference in your government's view."),
                     }
                 }
@@ -943,7 +961,7 @@ fn play(
                     let id = words.get(1).map_or(world.player.0.as_str(), |s| *s);
                     if id == world.player.0 {
                         for e in world.events.iter().filter(|e| e.country == world.player) {
-                            if let Some(id)=&e.id {println!("{} · {} · {}",id,date(e.day),e.text);} else {println!("{} · {}", date(e.day), e.text);}
+                            print_event(e);
                         }
                     } else {
                         let report = world.public_report(content, &CountryId(id.into()))?;

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// Default new-game rules; each campaign retains its content's explicit version.
-pub const RULES_VERSION: u32 = 22;
+pub const RULES_VERSION: u32 = 23;
 pub const MAX_DAY: u32 = 36_525;
 /// Money is in millions of constant-2000 USD-equivalent game credits.
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -180,6 +180,13 @@ pub struct Country {
     pub income_tax_report: Option<IncomeTaxReport>,
 }
 impl Country {
+    /// Resolve this country's complete programme record, including completed work.
+    pub fn commitment(&self, id: &CommitmentId) -> Option<&CommitmentRecord> {
+        self.commitments
+            .as_ref()?
+            .iter()
+            .find(|record| &record.id == id)
+    }
     /// Resolve a pending project owned by this country. Completed projects remain in history.
     pub fn project(&self, id: &CommitmentId) -> Option<&PolicyInstance> {
         self.projects.iter().find(|project| &project.id == id)
@@ -291,6 +298,8 @@ pub struct Command {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Event {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<EventContext>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<EventId>,
     pub day: u32,
@@ -570,6 +579,15 @@ impl World {
         )
     }
     pub(crate) fn event(&mut self, country: &CountryId, important: bool, text: impl Into<String>) {
+        self.event_with_context(country, important, text, EventContext::General);
+    }
+    pub(crate) fn event_with_context(
+        &mut self,
+        country: &CountryId,
+        important: bool,
+        text: impl Into<String>,
+        context: EventContext,
+    ) {
         let id = match self.allocate_event_reference(country) {
             Ok(id) => id,
             Err(reason) => {
@@ -578,6 +596,7 @@ impl World {
             }
         };
         self.events.push(Event {
+            context: (self.rules >= 23).then_some(context),
             id,
             day: self.day,
             country: country.clone(),

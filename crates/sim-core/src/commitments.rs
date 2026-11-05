@@ -268,7 +268,7 @@ impl World {
         r.mark(self.day, CommitmentStage::Amended);
         // An intervening constitutional change may now permit immediate consent.
         self.resolve_consents(content, id);
-        self.event(id, true, format!("Commitment #{} amended to {value}. Paid {}m administration; consent {} and operating due {}. Existing capital reservation is unchanged.",request.0,preview.fee.0,date(preview.consent_day),date(preview.due_day)));
+        self.event_for_commitment(id, request, CommitmentStage::Amended, format!("Commitment #{} amended to {value}. Paid {}m administration; consent {} and operating due {}. Existing capital reservation is unchanged.",request.0,preview.fee.0,date(preview.consent_day),date(preview.due_day)));
         Ok(())
     }
     pub(crate) fn cancel_commitment(
@@ -290,7 +290,7 @@ impl World {
             .expect("record");
         r.project.reserved = Money(0);
         r.mark(self.day, CommitmentStage::Withdrawn);
-        self.event(id, true, format!("Commitment #{} withdrawn. Released {}m reserved cash; {}m already paid remains spent. No operating effect was delivered.", request.0,preview.released.0,preview.sunk.0));
+        self.event_for_commitment(id, request, CommitmentStage::Withdrawn, format!("Commitment #{} withdrawn. Released {}m reserved cash; {}m already paid remains spent. No operating effect was delivered.", request.0,preview.released.0,preview.sunk.0));
         Ok(())
     }
     pub(crate) fn record_proposal(&mut self, id: &CountryId, command: u64) {
@@ -458,10 +458,10 @@ impl World {
             });
             r.review_due = None;
             r.mark(self.day, CommitmentStage::Evaluated);
-            evaluated.push(r.id.0);
+            evaluated.push(r.id);
         }
         for request in evaluated {
-            self.event(id,true,format!("Commitment #{request} outcome review available: direct setting changes and observed settlement. Other programmes, prices and external shocks can also change outcomes; this is not a causal estimate."));
+            self.event_for_commitment(id,request,CommitmentStage::Evaluated,format!("Commitment #{request} outcome review available: direct setting changes and observed settlement. Other programmes, prices and external shocks can also change outcomes; this is not a causal estimate."));
         }
     }
 }
