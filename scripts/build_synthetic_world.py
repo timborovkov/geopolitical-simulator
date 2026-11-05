@@ -564,6 +564,16 @@ def build_party_preferences():
     return pack
 
 
+def build_reserves():
+    pack = build_party_preferences()
+    pack.update(schema=21, rules=21, id="synthetic-national-reserves-v21", name="Fictional national commodity reserves")
+    source = "authored-national-reserve-contracts-v1"
+    pack["sources"].append(dict(id=source,quality="authored_synthetic_fixture",description="Original costed fixed-price commodity import contracts, spare civilian import capacity, national buffers and automatic shortage releases. Quantities are authored game equivalents, not historical fuel stocks, tonnes, MWh or electricity storage technologies."))
+    pack["reserves"] = dict(capacity_days=3,order_days=90,fee_bps=1,ai_target_days=1,source=source,source_version="fictional-reserve-contracts-v1")
+    pack["description"] += " National food and energy reserves start empty. Ordinary consent and paid administration authorize fixed quoted-price import contracts, with full purchase cash reserved. Gradual procurement uses only import capacity remaining after civilian physical needs; no goods are created by proposal or consent. Stored goods cover post-import physical shortfalls automatically, while household affordability still applies. Food stocks spoil at the market storage rate; expiry or cancellation releases only unspent purchase reservations. Energy units are generic model equivalents, not a claim about electrical storage or fuel technologies."
+    return pack
+
+
 def build_interest_starter():
     pack = build_cash_starter()
     pack.update(schema=17, rules=17, id="initial-2000-interest-accrual-v17", name="A New Century · carried debt interest")
@@ -664,6 +674,7 @@ def main():
                            ("synthetic-technology-eligibility-test.json", build_technology_eligibility()),
                            ("synthetic-sovereignty-test.json", build_sovereignty()),
                            ("synthetic-party-preferences-test.json", build_party_preferences()),
+                           ("synthetic-national-reserves-test.json", build_reserves()),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),

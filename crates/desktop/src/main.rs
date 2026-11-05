@@ -20,6 +20,7 @@ mod map;
 mod markets;
 mod new_game;
 mod party_preferences;
+mod reserves;
 mod settings;
 mod sovereignty;
 mod subnational;
@@ -1382,9 +1383,13 @@ impl GameApp {
             }
             None => None,
         };
+        let reserve_action = reserves::show(ui, &self.content, w);
         let budget_action = self.fiscal_panel.show(ui, &self.content, w);
         let lending_action = financing::show(ui, &self.content, w, &mut self.money);
-        let mut finance_action = cash_action.or(budget_action).or(lending_action);
+        let mut finance_action = cash_action
+            .or(reserve_action)
+            .or(budget_action)
+            .or(lending_action);
         if self.content.finance.is_none() {
             ui.horizontal_wrapped(|ui| {
                 ui.label("Principal (m)");

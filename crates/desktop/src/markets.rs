@@ -30,7 +30,11 @@ fn show_quote<Q: Copy + Display>(ui: &mut egui::Ui, quote: &MarketQuote<Q>, rule
             ui.label(format!("{} settlement price {:.4} · next settlement price {:.4}", date(last.day), f64::from(last.price_bps) / 10000.0, f64::from(quote.next_price_bps) / 10000.0));
             let demand_label = if rule.kind == GoodKind::Food { "affordable food demand" } else { "requested industrial use" };
             ui.label(format!("Physical need {} · {demand_label} {} · supply {} · delivered {}", last.physical_need, last.requested_use, last.supply, last.delivered));
+            if let Some(released)=last.reserve_release {
+                ui.label(format!("Opening working stock {} + production {} + civilian imports {} + national reserve release {} = supply {}",last.opening_stock,last.production,last.imports,released,last.supply));
+            } else {
             ui.label(format!("Opening stock {} + production {} + imports {} = supply {}", last.opening_stock, last.production, last.imports, last.supply));
+            }
             ui.label(format!("Supply {} - delivered {} - loss {} = closing stock {}", last.supply, last.delivered, last.loss, last.closing_stock));
         } else {
             ui.label(format!("Opening reference price {:.4}. Awaiting first market settlement.", f64::from(quote.next_price_bps) / 10000.0));

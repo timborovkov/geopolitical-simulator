@@ -182,6 +182,10 @@ impl World {
             .ok_or("Missing country content")?;
         let id = command.issuer.clone();
         match &command.action {
+            Action::ProcureReserve { good, days } => {
+                self.procure_reserve(content, &id, ReserveOrderId(command.id), *good, *days)?
+            }
+            Action::CancelReserve { request } => self.cancel_reserve(content, &id, *request)?,
             Action::HoldCash { target, days } => {
                 self.hold_cash(content, &id, CashHoldId(command.id), *target, *days)?
             }
@@ -401,6 +405,7 @@ impl World {
                 self.resolve_consents(content, id);
                 self.resolve_borrowing(content, id);
                 self.complete_projects(content, id);
+                self.review_reserves(content, id);
                 self.settle(content, id);
                 self.evaluate_commitments(id);
                 self.evaluate_undertakings(content, id);
@@ -527,6 +532,7 @@ impl World {
             h.tax = Money(0);
             h.consumption = Money(0);
         }
+        self.begin_reserve_day(id);
         let quarter = (self.day - 1) / 90;
         let sample =
             crate::stable_hash(format!("{}:{}:{quarter}:supply-v2", self.seed, id.0).as_bytes());
@@ -628,7 +634,29 @@ impl World {
             "Bounded food imports",
         ))
         .expect("nonnegative imports");
+        let energy_released = Energy::new(
+            self.release_reserve(
+                id,
+                GoodKind::Energy,
+                energy_demand
+                    .saturating_sub(energy_available.checked_add(energy_imported).unwrap())
+                    .units(),
+            ),
+        )
+        .unwrap();
+        let food_released = Food::new(
+            self.release_reserve(
+                id,
+                GoodKind::Food,
+                food_demand
+                    .saturating_sub(food_available.checked_add(food_imported).unwrap())
+                    .units(),
+            ),
+        )
+        .unwrap();
         let energy_supply = energy_available
+            .checked_add(energy_released)
+            .unwrap()
             .checked_add(energy_imported)
             .expect("bounded energy imports");
         let energy_used = energy_supply.min(energy_demand);
@@ -807,6 +835,8 @@ impl World {
         );
         let arrears_paid = paid_external + paid_households + paid_firms;
         let food_supply = food_available
+            .checked_add(food_released)
+            .unwrap()
             .checked_add(food_imported)
             .expect("bounded food imports");
         let (consumption, food_consumed, food_requested) =
@@ -882,6 +912,7 @@ impl World {
                 opening_stock: opening_energy,
                 production: energy_produced,
                 imports: energy_imported,
+                reserve_release: content.reserves.as_ref().map(|_| energy_released),
                 supply: energy_supply,
                 delivered: energy_used,
                 loss: Energy::ZERO,
@@ -895,6 +926,7 @@ impl World {
                 opening_stock: opening_food,
                 production: food_produced,
                 imports: food_imported,
+                reserve_release: content.reserves.as_ref().map(|_| food_released),
                 supply: food_supply,
                 delivered: food_consumed,
                 loss: food_lost,
@@ -915,6 +947,7 @@ impl World {
             )
             .expect("validated price quantities");
         }
+        self.finish_reserve_day(content, id);
         if unpaid > 0 && previous_arrears == 0 {
             self.event(id,true,"Treasury cannot meet unreserved obligations: reduced payments and recorded arrears. Borrow or adjust spending; reserved policy capital is protected.");
         }
@@ -1105,6 +1138,7 @@ impl World {
         self.event(id, false, summary);
     }
     fn ai_turn(&mut self, content: &Content, id: &CountryId) {
+        self.ai_reserves(content, id);
         if self.ai_cash_management(content, id) {
             return;
         }

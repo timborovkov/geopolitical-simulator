@@ -77,6 +77,9 @@ impl MarketDefinition {
     }
 }
 
+fn no_reserve_release<Q>() -> Option<Q> {
+    None
+}
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MarketSettlement<Q> {
     pub day: u32,
@@ -87,6 +90,11 @@ pub struct MarketSettlement<Q> {
     pub opening_stock: Q,
     pub production: Q,
     pub imports: Q,
+    #[serde(
+        default = "no_reserve_release",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub reserve_release: Option<Q>,
     pub supply: Q,
     pub delivered: Q,
     pub loss: Q,
@@ -140,6 +148,10 @@ impl Markets {
                 country.report.energy_used.units(),
                 0,
             ],
+            country
+                .reserves
+                .as_ref()
+                .map(|s| s.energy.last.as_ref().map_or(0, |r| r.released.units())),
             Energy::units,
         )?;
         validate_quote(
@@ -155,6 +167,10 @@ impl Markets {
                 country.report.food_consumed.units(),
                 country.report.food_lost.units(),
             ],
+            country
+                .reserves
+                .as_ref()
+                .map(|s| s.food.last.as_ref().map_or(0, |r| r.released.units())),
             Food::units,
         )
     }
@@ -169,6 +185,7 @@ fn validate_quote<Q: Copy>(
     need: i64,
     stored: i64,
     report: [i64; 4],
+    reserve_release: Option<i64>,
     units: impl Fn(Q) -> i64,
 ) -> Result<(), String> {
     let invalid = || format!("Invalid market settlement or price for {}", rule.id.0);
@@ -204,7 +221,12 @@ fn validate_quote<Q: Copy>(
         ]
         .iter()
         .any(|value| !(0..=1_000_000_000).contains(value))
-        || i128::from(opening) + i128::from(produced) + i128::from(imported) != i128::from(supply)
+        || last.reserve_release.map(&units) != reserve_release
+        || i128::from(opening)
+            + i128::from(produced)
+            + i128::from(imported)
+            + i128::from(reserve_release.unwrap_or(0))
+            != i128::from(supply)
         || imported > need * i64::from(rule.import_limit_bps) / 10000
         || delivered != supply.min(affordable)
         || loss != (supply - delivered) * i64::from(rule.loss_bps) / 10000

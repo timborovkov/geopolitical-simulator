@@ -115,6 +115,8 @@ pub struct Observation {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Country {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reserves: Option<NationalReserves>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cash_management: Option<CashManagement>,
     pub id: CountryId,
     pub population: Population,
@@ -179,6 +181,13 @@ pub struct Country {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
+    ProcureReserve {
+        good: GoodKind,
+        days: u32,
+    },
+    CancelReserve {
+        request: ReserveOrderId,
+    },
     HoldCash {
         target: Money,
         days: u32,
@@ -467,6 +476,7 @@ impl World {
                         electoral_authority: content.elections.as_ref().map(|rules| {
                             ElectoralAuthority::new(rules, d.regime.clone(), start_day)
                         }),
+                        reserves: content.reserves.as_ref().map(|_| NationalReserves::new()),
                         energy_stock: Energy::ZERO,
                         food_stock: Food::ZERO,
                         report: DailyReport::default(),
@@ -625,6 +635,19 @@ impl World {
         for (index, entry) in self.journal.iter().enumerate() {
             let command = &entry.command;
             let valid_action = match &command.action {
+                Action::ProcureReserve { days, .. } => content
+                    .reserves
+                    .as_ref()
+                    .is_some_and(|r| (1..=r.capacity_days).contains(days)),
+                Action::CancelReserve { request } => {
+                    content.reserves.is_some()
+                        && request.0 > 0
+                        && request.0 < command.id
+                        && self.journal.get(request.0 as usize - 1).is_some_and(|e| {
+                            e.command.issuer == command.issuer
+                                && matches!(e.command.action, Action::ProcureReserve { .. })
+                        })
+                }
                 Action::HoldCash { target, days } => content
                     .cash_management
                     .as_ref()
@@ -828,6 +851,7 @@ impl World {
                 (Some(financing), Some(_)) => financing.validate(self, content, id)?,
                 _ => return Err("Country financing differs from campaign rules/content".into()),
             }
+            self.validate_reserves(content, id)?;
             self.validate_cash_management(content, id)?;
             self.validate_income_taxes(content, id)?;
             self.validate_fiscal_plans(content, id)?;
@@ -979,6 +1003,12 @@ impl World {
                         c.fiscal_plans
                             .as_ref()
                             .map_or(Money(0), FiscalPlans::reserved_cash)
+                            .0,
+                    )
+                    + i128::from(
+                        c.reserves
+                            .as_ref()
+                            .map_or(Money(0), NationalReserves::reserved_cash)
                             .0,
                     )
                     != i128::from(c.committed_cash.0)

@@ -23,6 +23,7 @@ mod outlook;
 mod party_preferences;
 pub mod persistence;
 mod rates;
+mod reserves;
 mod rules;
 mod sovereignty;
 mod subnational;
@@ -53,6 +54,7 @@ pub use model::*;
 pub use outlook::*;
 pub use party_preferences::*;
 pub use rates::*;
+pub use reserves::*;
 pub use sovereignty::*;
 pub use units::*;
 
