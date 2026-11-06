@@ -246,7 +246,7 @@ fn successor_cabinet_closes_terms_cancels_requests_and_retains_commissioned_prog
     .unwrap();
     w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let state = w.player_country().cabinet.as_ref().unwrap();
-    assert_eq!(state.government, 2);
+    assert_eq!(state.government, sim_core::GovernmentId(2));
     assert_eq!(state.since, 15);
     assert_eq!(state.terms[0].until, Some(15));
     assert!(state.pending.is_empty());

@@ -42,7 +42,7 @@ fn all_party_row_permutations_produce_the_same_remainder_seats_and_successor() {
             World::new_scenario(&pack, id.clone(), 17, Scenario::FiscalSupplyCrisis).unwrap();
         world.advance(&pack, sim_core::DaySpan::new(361)).unwrap();
         let country = world.player_country();
-        assert_eq!(country.government_number, 2);
+        assert_eq!(country.government_number, sim_core::GovernmentId(2));
         assert_eq!(country.ruling_party, PartyId::from("AUR-2"));
         assert_eq!(
             country.seats,

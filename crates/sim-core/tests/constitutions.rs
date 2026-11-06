@@ -95,7 +95,10 @@ fn lawful_change_and_restoration_switch_real_powers_preserve_debt_and_resume_pen
         request
     );
     assert!(world.player_country().next_election.is_none());
-    assert_eq!(world.player_country().government_number, 2);
+    assert_eq!(
+        world.player_country().government_number,
+        sim_core::GovernmentId(2)
+    );
     assert_eq!(world.player_country().committed_cash, Money(0));
     // The old loan keeps its 14-day legislative origin; the new government
     // really uses the 21-day party borrowing route.
@@ -140,7 +143,10 @@ fn lawful_change_and_restoration_switch_real_powers_preserve_debt_and_resume_pen
         world.governing_regime(&content, &world.player).unwrap(),
         &Regime::Parliamentary
     );
-    assert_eq!(world.player_country().government_number, 3);
+    assert_eq!(
+        world.player_country().government_number,
+        sim_core::GovernmentId(3)
+    );
     assert_eq!(world.player_country().next_election, Some(world.day + 365));
     assert_eq!(
         world.player_country().accounts.total(),
@@ -486,7 +492,7 @@ fn a_successor_cabinet_does_not_inherit_an_unapproved_constitutional_mandate() {
     world
         .advance(&content, sim_core::DaySpan::new(due - world.day))
         .unwrap();
-    assert!(world.player_country().government_number > 1);
+    assert!(world.player_country().government_number > sim_core::GovernmentId(1));
     assert!(
         world
             .player_country()

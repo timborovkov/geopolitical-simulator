@@ -226,12 +226,12 @@ fn expiry_cooldown_rejections_and_successor_governments_release_only_actual_cash
         .unwrap();
     hold(&mut successor, &c, 100, 90);
     for _ in 0..90 {
-        if successor.player_country().government_number > 1 {
+        if successor.player_country().government_number > sim_core::GovernmentId(1) {
             break;
         }
         successor.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     }
-    assert!(successor.player_country().government_number > 1);
+    assert!(successor.player_country().government_number > sim_core::GovernmentId(1));
     assert_eq!(successor.player_country().retained_cash(), Money(0));
     assert!(matches!(
         successor

@@ -135,7 +135,7 @@ pub struct BorrowingRequest {
     pub requested_day: u32,
     pub decision_day: u32,
     pub authority: AuthorityId,
-    pub sponsor_government: u32,
+    pub sponsor_government: crate::GovernmentId,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Financing {
@@ -348,7 +348,7 @@ impl Financing {
                 || request.decision_day <= world.day
                 || request.decision_day > MAX_DAY
                 || request.requested_day < start
-                || request.sponsor_government == 0
+                || request.sponsor_government == crate::GovernmentId(0)
                 || request.sponsor_government > country.government_number
                 || &entry.command.issuer != id
                 || !matches!(entry.command.action, Action::Borrow { amount } if amount == request.amount)

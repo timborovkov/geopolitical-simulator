@@ -162,3 +162,45 @@ impl std::fmt::Debug for CommandId {
         std::fmt::Debug::fmt(&self.0, formatter)
     }
 }
+
+/// A persistent governmental mandate within one country. Always resolve it
+/// together with the owning CountryId; equal numbers in different countries
+/// do not identify the same government. It identifies a mandate, not a person.
+/// Names and party-list positions do not participate in this identity.
+/// The transparent number preserves published snapshot and replay encodings.
+///
+/// ```compile_fail
+/// use sim_core::{Country, CommandId};
+/// fn wrong_family(country: &mut Country) {
+///     country.government_number = CommandId(1);
+/// }
+/// ```
+///
+/// ```compile_fail
+/// use sim_core::BorrowingRequest;
+/// fn implicit_number(request: &mut BorrowingRequest) {
+///     request.sponsor_government = 1u32;
+/// }
+/// ```
+#[derive(Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(transparent)]
+pub struct GovernmentId(pub u32);
+impl GovernmentId {
+    pub fn checked_add(self, count: u32) -> Option<Self> {
+        self.0.checked_add(count).map(Self)
+    }
+    /// Elapsed mandate count, not another identity.
+    pub fn saturating_sub(self, previous: Self) -> u32 {
+        self.0.saturating_sub(previous.0)
+    }
+}
+impl std::fmt::Display for GovernmentId {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, formatter)
+    }
+}
+impl std::fmt::Debug for GovernmentId {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self.0, formatter)
+    }
+}

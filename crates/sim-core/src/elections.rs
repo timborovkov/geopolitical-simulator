@@ -127,7 +127,7 @@ pub struct ElectionCase {
     pub proposed_day: u32,
     pub decision_day: u32,
     pub vote_day: u32,
-    pub sponsor: u32,
+    pub sponsor: crate::GovernmentId,
     pub form: Regime,
     pub paid: Money,
     pub status: ElectionCaseStatus,
@@ -137,8 +137,8 @@ pub struct ElectionCase {
 pub struct ElectoralPoll {
     pub day: u32,
     pub request: Option<ElectionRequestId>,
-    pub government_before: u32,
-    pub government_after: u32,
+    pub government_before: crate::GovernmentId,
+    pub government_after: crate::GovernmentId,
     pub governing_party: PartyId,
     pub seats: BTreeMap<PartyId, u16>,
     pub contested: bool,
@@ -146,7 +146,7 @@ pub struct ElectoralPoll {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ElectoralAuthority {
     pub regime: Regime,
-    pub government: u32,
+    pub government: crate::GovernmentId,
     pub next_request_day: u32,
     pub cases: Vec<ElectionCase>,
     pub polls: Vec<ElectoralPoll>,
@@ -155,7 +155,7 @@ impl ElectoralAuthority {
     pub fn new(rules: &ElectionDefinition, regime: Regime, start: u32) -> Self {
         Self {
             regime,
-            government: 1,
+            government: crate::GovernmentId(1),
             next_request_day: start + rules.minimum_interval_days,
             cases: Vec::new(),
             polls: Vec::new(),
@@ -395,7 +395,7 @@ impl World {
         &mut self,
         content: &Content,
         id: &CountryId,
-        government_before: u32,
+        government_before: crate::GovernmentId,
     ) {
         let Some(rules) = &content.elections else {
             return;
@@ -535,7 +535,7 @@ impl World {
                 || case.proposed_day.checked_add(rules.decision_days) != Some(case.decision_day)
                 || case.decision_day.checked_add(rules.campaign_days) != Some(case.vote_day)
                 || case.vote_day > MAX_DAY
-                || case.sponsor == 0
+                || case.sponsor == crate::GovernmentId(0)
                 || case.sponsor > country.government_number
                 || case.paid != fee
             {
@@ -596,7 +596,7 @@ impl World {
         for poll in &state.polls {
             if poll.day < start
                 || poll.day > self.day
-                || poll.government_before == 0
+                || poll.government_before == crate::GovernmentId(0)
                 || poll.government_after < poll.government_before
                 || poll.government_after > country.government_number
                 || poll.government_after.saturating_sub(poll.government_before) > 1

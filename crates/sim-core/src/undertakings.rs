@@ -215,7 +215,7 @@ pub struct UndertakingRecord {
     pub declared_day: u32,
     pub review_day: u32,
     pub deadline_day: u32,
-    pub sponsor: u32,
+    pub sponsor: crate::GovernmentId,
     pub fee: Money,
     pub accepted_day: Option<u32>,
     pub resolved_day: Option<u32>,
@@ -931,7 +931,7 @@ impl World {
                 || command.day.checked_add(t.review_days) != Some(r.review_day)
                 || r.review_day.checked_add(t.deadline_days) != Some(r.deadline_day)
                 || r.deadline_day > MAX_DAY
-                || r.sponsor == 0
+                || r.sponsor == crate::GovernmentId(0)
                 || r.sponsor > c.government_number
                 || r.fee
                     != Money(

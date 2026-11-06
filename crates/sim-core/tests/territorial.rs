@@ -62,7 +62,7 @@ fn lawful_devolution_changes_real_powers_and_tax_rights_without_changing_the_cab
         w.territorial_form_at(&c, &w.player, w.day).unwrap(),
         TerritorialForm::Federation
     );
-    assert_eq!(w.player_country().government_number, 1);
+    assert_eq!(w.player_country().government_number, GovernmentId(1));
     assert_eq!(w.player_country().accounts.total(), opening);
     assert_eq!(
         w.player_country()
@@ -433,7 +433,7 @@ fn malformed_rights_funds_and_history_are_rejected_without_arithmetic_panics() {
             }),
             2 => state.history[0].day = u32::MAX,
             3 => state.next_requisition_day = u32::MAX,
-            _ => state.reforms[0].sponsor = u32::MAX,
+            _ => state.reforms[0].sponsor = GovernmentId(u32::MAX),
         }
         assert!(bad.validate(&c).is_err(), "mutation {kind}");
     }

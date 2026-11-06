@@ -190,7 +190,7 @@ pub struct TerritorialReform {
     pub contested: bool,
     pub proposed_day: u32,
     pub decision_day: u32,
-    pub sponsor: u32,
+    pub sponsor: crate::GovernmentId,
     pub admin_cost: Money,
     pub paid_admin: Money,
     pub reserved: Money,
@@ -216,7 +216,7 @@ pub struct RegionalRequisition {
     pub fee: Money,
     pub coffer_before: Money,
     pub national_available_before: Money,
-    pub sponsor: u32,
+    pub sponsor: crate::GovernmentId,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TerritorialState {
@@ -1080,7 +1080,7 @@ impl World {
                 || record.from != self.territorial_form_at(content, id, command.day)?
                 || record.admin_cost != cost
                 || record.compensations != compensations
-                || record.sponsor == 0
+                || record.sponsor == crate::GovernmentId(0)
                 || record.sponsor > c.government_number
             {
                 return Err(
@@ -1212,7 +1212,7 @@ impl World {
             if !matches
                 || claim.id.0 != command.id.0
                 || claim.day != command.day
-                || claim.sponsor == 0
+                || claim.sponsor == crate::GovernmentId(0)
                 || claim.sponsor > c.government_number
                 || content
                     .subnational

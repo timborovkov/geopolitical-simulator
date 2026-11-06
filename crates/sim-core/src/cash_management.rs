@@ -50,7 +50,7 @@ pub struct CashHoldRecord {
     pub target: Money,
     pub start_day: u32,
     pub expiry_day: u32,
-    pub sponsor_government: u32,
+    pub sponsor_government: crate::GovernmentId,
     pub funded_notice_day: Option<u32>,
     pub ended: Option<(u32, CashHoldEnd)>,
 }
@@ -420,7 +420,7 @@ impl World {
                 || record.start_day < previous_end
                 || record.start_day.checked_add(days) != Some(record.expiry_day)
                 || record.expiry_day > MAX_DAY
-                || record.sponsor_government == 0
+                || record.sponsor_government == crate::GovernmentId(0)
                 || record.sponsor_government > c.government_number
                 || record.funded_notice_day.is_some_and(|day| {
                     day < record.start_day || day >= record.expiry_day || day > self.day

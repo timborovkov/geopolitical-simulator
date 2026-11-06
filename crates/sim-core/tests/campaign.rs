@@ -315,7 +315,7 @@ fn elections_change_government_country_continues_and_ai_is_active() {
     }
     w.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     let c = w.player_country();
-    assert_eq!(c.government_number, 2);
+    assert_eq!(c.government_number, sim_core::GovernmentId(2));
     assert_ne!(c.ruling_party, "USA:democratic");
     assert_eq!(w.player.0, "USA");
     assert!(w.journal.iter().any(|e| e.ai));

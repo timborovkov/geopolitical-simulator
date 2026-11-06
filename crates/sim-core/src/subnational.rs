@@ -203,7 +203,7 @@ pub struct RegionalOrder {
     pub proposed_day: u32,
     pub decision_day: u32,
     pub end_day: Option<u32>,
-    pub sponsor: u32,
+    pub sponsor: crate::GovernmentId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub charter_revision: Option<u32>,
     pub baseline_level: i32,
@@ -971,7 +971,7 @@ impl World {
                 || order.charter_revision != self.territorial_revision(content, id, command.day)
                 || command.day.checked_add(delay) != Some(order.decision_day)
                 || order.decision_day > MAX_DAY
-                || order.sponsor == 0
+                || order.sponsor == crate::GovernmentId(0)
                 || order.sponsor > c.government_number
                 || !(0..=8).contains(&order.baseline_level)
                 || order.paid_administration

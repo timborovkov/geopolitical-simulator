@@ -61,7 +61,7 @@ pub struct ReserveOrder {
     pub proposed_day: u32,
     pub review_day: u32,
     pub expiry_day: u32,
-    pub sponsor: u32,
+    pub sponsor: crate::GovernmentId,
     pub status: ReserveStatus,
     pub resolved_day: Option<u32>,
 }
@@ -764,7 +764,7 @@ impl World {
                 || o.review_day - o.proposed_day > 365
                 || o.expiry_day != o.review_day.max(o.proposed_day + 1) + rules.order_days - 1
                 || o.expiry_day > MAX_DAY
-                || o.sponsor == 0
+                || o.sponsor == crate::GovernmentId(0)
                 || o.sponsor > c.government_number
                 || o.reserved.0
                     != if o.status.open() {

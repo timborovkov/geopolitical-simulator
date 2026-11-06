@@ -139,7 +139,7 @@ pub struct MinisterialTerm {
     pub person: PersonId,
     pub since: u32,
     pub until: Option<u32>,
-    pub government: u32,
+    pub government: crate::GovernmentId,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PendingAppointment {
@@ -148,12 +148,12 @@ pub struct PendingAppointment {
     pub person: PersonId,
     pub proposed_day: u32,
     pub decision_day: u32,
-    pub sponsor: u32,
+    pub sponsor: crate::GovernmentId,
     pub paid: Money,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Cabinet {
-    pub government: u32,
+    pub government: crate::GovernmentId,
     pub since: u32,
     pub terms: Vec<MinisterialTerm>,
     pub pending: Vec<PendingAppointment>,
@@ -162,7 +162,7 @@ pub struct Cabinet {
 impl Cabinet {
     pub fn new(rules: &CabinetDefinition, id: &CountryId, day: u32) -> Self {
         Self {
-            government: 1,
+            government: crate::GovernmentId(1),
             since: day,
             terms: Vec::new(),
             pending: Vec::new(),
@@ -537,7 +537,7 @@ impl World {
         if state.government != country.government_number
             || state.since < start
             || state.since > self.day
-            || state.government == 1 && state.since != start
+            || state.government == crate::GovernmentId(1) && state.since != start
             || state.next_request_day.keys().collect::<BTreeSet<_>>() != offices
             || state
                 .next_request_day
@@ -578,7 +578,7 @@ impl World {
                 || term
                     .until
                     .is_some_and(|day| day < term.since || day > self.day)
-                || term.government == 0
+                || term.government == crate::GovernmentId(0)
                 || term.government > state.government
                 || term.until.is_none()
                     && (term.government != state.government || term.since < state.since)

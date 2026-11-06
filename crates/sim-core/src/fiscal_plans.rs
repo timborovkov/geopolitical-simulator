@@ -101,7 +101,7 @@ pub struct BudgetBill {
     pub proposed_day: u32,
     pub review_day: u32,
     pub effective_day: u32,
-    pub sponsor: u32,
+    pub sponsor: crate::GovernmentId,
     pub baseline: FiscalTargets,
     pub targets: FiscalTargets,
     pub fee: Money,
@@ -709,7 +709,7 @@ impl World {
                 || b.proposed_day < previous_next
                 || b.fee != fee
                 || b.implementation_cost != programme_cost(content, id, &b.targets, &b.baseline)
-                || b.sponsor == 0
+                || b.sponsor == crate::GovernmentId(0)
                 || b.sponsor > c.government_number
                 || b.review_day != expected_review
                 || b.review_day > MAX_DAY

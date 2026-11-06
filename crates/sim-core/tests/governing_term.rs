@@ -241,7 +241,7 @@ fn three_reference_crisis_terms_transition_and_replay_through_pending_programs()
         assert_eq!(w.hash(), resumed.hash());
         w.validate(&c).unwrap();
         assert!(
-            w.player_country().government_number > 1,
+            w.player_country().government_number > GovernmentId(1),
             "{id}: no political transition"
         );
         assert!(w.player_country().arrears.0 > 0, "{id}: no fiscal crisis");

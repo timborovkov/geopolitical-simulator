@@ -116,7 +116,7 @@ pub struct ConstitutionChange {
     pub to: Regime,
     pub day: u32,
     pub contested: bool,
-    pub government_number: u32,
+    pub government_number: crate::GovernmentId,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ConstitutionalRequest {
@@ -126,7 +126,7 @@ pub struct ConstitutionalRequest {
     pub contested: bool,
     pub proposed_day: u32,
     pub decision_day: u32,
-    pub sponsor_government: u32,
+    pub sponsor_government: crate::GovernmentId,
     pub cost: Money,
     pub upfront: Money,
     pub reserved: Money,
@@ -169,7 +169,7 @@ impl Constitution {
         let start = content.start_day()?;
         let mut current = definition.regime.clone();
         let mut previous_day = start;
-        let mut previous_government = 1;
+        let mut previous_government = crate::GovernmentId(1);
         let mut ids = BTreeSet::new();
         if self.history.len() > world.journal.len() {
             return Err("Invalid constitution history length".into());
@@ -214,7 +214,7 @@ impl Constitution {
                 || command.day.checked_add(route.days) != Some(request.decision_day)
                 || request.decision_day <= world.day
                 || request.decision_day > MAX_DAY
-                || request.sponsor_government == 0
+                || request.sponsor_government == crate::GovernmentId(0)
                 || request.sponsor_government > country.government_number
                 || request.cost != Money(cost)
                 || request.upfront != Money(upfront)

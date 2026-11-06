@@ -487,7 +487,7 @@ impl World {
                     || election_due
                     || self.countries[id].next_leadership_review == Some(self.day)
                 {
-                    self.politics(content, id);
+                    self.politics(content, id)?;
                     if election_due {
                         self.record_electoral_poll(content, id, previous_government);
                     }
@@ -1029,7 +1029,7 @@ impl World {
             self.event(id,true,"Treasury cannot meet unreserved obligations: reduced payments and recorded arrears. Borrow or adjust spending; reserved policy capital is protected.");
         }
     }
-    fn politics(&mut self, content: &Content, id: &CountryId) {
+    fn politics(&mut self, content: &Content, id: &CountryId) -> Result<(), String> {
         let d = content.country(id).expect("definition");
         let government = self
             .governing_rules(content, id)
@@ -1168,14 +1168,18 @@ impl World {
                             .expect("opposition");
                     c.ruling_party = successor.id.clone();
                     c.coalition = opposition.iter().map(|p| p.id.clone()).collect();
-                    c.executive = format!("{} cabinet {}", successor.name, c.government_number + 1);
+                    let next_government = c
+                        .government_number
+                        .checked_add(1)
+                        .ok_or("Government identity exhausted")?;
+                    c.executive = format!("{} cabinet {}", successor.name, next_government);
                     // Opposition parties agree a government; named historical leaders are not kept alive forever.
                     c.legislative_support = i32::from(rest);
                     c.approval = 55;
                     for h in &mut c.households {
                         h.approval = 55;
                     }
-                    c.government_number += 1;
+                    c.government_number = next_government;
                     transition = Some(format!(
                         "Election: {votes}% for the outgoing {outgoing}. {} forms a generated successor cabinet. Country play continues under its mandate.",
                         successor.name
@@ -1192,7 +1196,10 @@ impl World {
             && (c.elite_support < 40
                 || leadership_review && c.council_support < government.council_threshold.max(45))
         {
-            c.government_number += 1;
+            c.government_number = c
+                .government_number
+                .checked_add(1)
+                .ok_or("Government identity exhausted")?;
             c.executive = format!("Generated leadership council {}", c.government_number);
             c.elite_support = 65;
             c.council_support = 65;
@@ -1225,6 +1232,7 @@ impl World {
             self.event(id, true, message);
         }
         self.event(id, false, summary);
+        Ok(())
     }
     fn ai_turn(&mut self, content: &Content, id: &CountryId) {
         self.ai_reserves(content, id);
