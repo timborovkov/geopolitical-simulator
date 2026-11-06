@@ -12,7 +12,10 @@ fn region(id: &str, key: &str) -> RegionId {
     RegionId(format!("region:{id}:{key}"))
 }
 fn grant() -> RegionalOrderKind {
-    RegionalOrderKind::Grant { boost: 2, days: 30 }
+    RegionalOrderKind::Grant {
+        boost: 2,
+        days: sim_core::DaySpan::new(30),
+    }
 }
 fn check(w: &World, c: &Content) {
     w.validate(c).unwrap();
@@ -267,7 +270,10 @@ fn accepted_local_funding_survives_a_costed_constitutional_successor_and_cannot_
         &c,
         Action::RegionalOrder {
             region: region("AUR", "province"),
-            kind: RegionalOrderKind::Grant { boost: 2, days: 90 },
+            kind: RegionalOrderKind::Grant {
+                boost: 2,
+                days: sim_core::DaySpan::new(90),
+            },
         },
     )
     .unwrap();

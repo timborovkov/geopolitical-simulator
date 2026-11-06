@@ -88,7 +88,7 @@ impl World {
         content: &Content,
         id: &CountryId,
         target: Money,
-        days: u32,
+        days: DaySpan,
     ) -> Result<CashHoldPreview, String> {
         if self.content_hash != content.hash() {
             return Err("Cash retention requires the campaign's exact content".into());
@@ -113,7 +113,7 @@ impl World {
             ));
         }
         if !(1..=(d.gdp * rules.max_target_bps.units_i64() / 10000).max(1)).contains(&target.0)
-            || !(1..=rules.max_days.units()).contains(&days)
+            || !(1..=rules.max_days.units()).contains(&days.units())
         {
             return Err(format!(
                 "Target must be 1..{}m and duration 1..{} days",
@@ -123,7 +123,7 @@ impl World {
         }
         let expiry_day = self
             .day
-            .checked_add(days)
+            .checked_add(days.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Retention exceeds the campaign calendar")?;
         let next_allowed_day = self
@@ -145,7 +145,7 @@ impl World {
         id: &CountryId,
         request: CashHoldId,
         target: Money,
-        days: u32,
+        days: DaySpan,
     ) -> Result<(), String> {
         let preview = self.preview_cash_hold(content, id, target, days)?;
         let c = self.countries.get_mut(id).expect("country");
@@ -337,14 +337,14 @@ impl World {
                     return false;
                 }
                 if self
-                    .preview_cash_hold(content, id, preview.cost, rules.max_days.units())
+                    .preview_cash_hold(content, id, preview.cost, rules.max_days)
                     .is_ok()
                 {
                     let command = self.command(
                         id.clone(),
                         Action::HoldCash {
                             target: preview.cost,
-                            days: rules.max_days.units(),
+                            days: rules.max_days,
                         },
                     );
                     if self
@@ -416,11 +416,11 @@ impl World {
             if record.id.0 != entry.command.id.0
                 || record.target != target
                 || !(1..=max_target).contains(&target.0)
-                || !(1..=rules.max_days.units()).contains(&days)
+                || !(1..=rules.max_days.units()).contains(&days.units())
                 || record.start_day != entry.command.day
                 || record.start_day < next_allowed
                 || record.start_day < previous_end
-                || record.start_day.checked_add(days) != Some(record.expiry_day)
+                || record.start_day.checked_add(days.units()) != Some(record.expiry_day)
                 || record.expiry_day > MAX_DAY
                 || record.sponsor_government == crate::GovernmentId(0)
                 || record.sponsor_government > c.government_number

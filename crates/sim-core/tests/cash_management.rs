@@ -31,7 +31,7 @@ fn hold(w: &mut World, c: &Content, amount: i64, days: u32) -> CashHoldId {
         c,
         Action::HoldCash {
             target: Money(amount),
-            days,
+            days: sim_core::DaySpan::new(days),
         },
     )
     .unwrap();
@@ -152,11 +152,11 @@ fn expiry_cooldown_rejections_and_successor_governments_release_only_actual_cash
     for action in [
         Action::HoldCash {
             target: Money(1001),
-            days: 90,
+            days: sim_core::DaySpan::new(90),
         },
         Action::HoldCash {
             target: Money(1),
-            days: 91,
+            days: sim_core::DaySpan::new(91),
         },
         Action::ReleaseCash {
             request: CashHoldId(999),
@@ -173,7 +173,7 @@ fn expiry_cooldown_rejections_and_successor_governments_release_only_actual_cash
             &c,
             Action::HoldCash {
                 target: Money(1),
-                days: 1
+                days: sim_core::DaySpan::new(1)
             }
         )
         .is_err()
@@ -194,7 +194,10 @@ fn expiry_cooldown_rejections_and_successor_governments_release_only_actual_cash
         w.player_country().accounts.treasury,
         baseline.player_country().accounts.treasury
     );
-    assert!(w.preview_cash_hold(&c, &w.player, Money(10), 2).is_err());
+    assert!(
+        w.preview_cash_hold(&c, &w.player, Money(10), DaySpan::new(2))
+            .is_err()
+    );
     w.advance(&c, sim_core::DaySpan::new(88)).unwrap();
     hold(&mut w, &c, 100, 90);
     replay(&w, &c);

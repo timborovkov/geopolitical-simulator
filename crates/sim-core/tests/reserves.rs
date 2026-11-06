@@ -507,7 +507,7 @@ fn reserve_purchases_preserve_policy_capital_local_funds_and_temporary_cash_rete
         &c,
         Action::HoldCash {
             target: Money(1000),
-            days: 90,
+            days: sim_core::DaySpan::new(90),
         },
     )
     .unwrap();

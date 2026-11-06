@@ -76,7 +76,10 @@ fn default_local_grants_recover_without_migrating_a_preserved_observed_campaign(
         &c,
         Action::RegionalOrder {
             region,
-            kind: RegionalOrderKind::Grant { boost: 1, days: 30 },
+            kind: RegionalOrderKind::Grant {
+                boost: 1,
+                days: sim_core::DaySpan::new(30),
+            },
         },
     )
     .unwrap();

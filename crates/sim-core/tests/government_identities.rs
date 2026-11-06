@@ -91,7 +91,7 @@ fn typed_pending_sponsors_survive_restoration_and_expire_on_the_actual_successor
             &pack,
             Action::HoldCash {
                 target: Money(100),
-                days: 30,
+                days: sim_core::DaySpan::new(30),
             },
         )
         .unwrap();

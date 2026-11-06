@@ -182,8 +182,20 @@ pub struct RegionalBudget {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RegionalOrderKind {
-    Grant { boost: i32, days: u32 },
-    Directive { level: i32 },
+    /// A funded service period uses elapsed days, not a normalized rate.
+    /// ```compile_fail
+    /// use sim_core::{BasisPoints, RegionalOrderKind};
+    /// fn cannot_use_rate_as_a_grant_term() {
+    ///     let grant = RegionalOrderKind::Grant { boost: 1, days: BasisPoints::new(30) };
+    /// }
+    /// ```
+    Grant {
+        boost: i32,
+        days: DaySpan,
+    },
+    Directive {
+        level: i32,
+    },
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RegionalOrderStatus {
@@ -355,7 +367,7 @@ impl World {
         let (delay, principal, daily_supplement, end_duration) = match kind {
             RegionalOrderKind::Grant { boost, days } => {
                 if !(1..=3).contains(boost)
-                    || !(30..=180).contains(days)
+                    || !(30..=180).contains(&days.units())
                     || local.service_level + boost > 10
                 {
                     return Err(
@@ -385,7 +397,7 @@ impl World {
                 }
                 (
                     rules.grant_review_days.units(),
-                    Money(daily * i64::from(*days)),
+                    Money(daily * i64::from(days.units())),
                     Money(daily),
                     Some(*days),
                 )
@@ -410,7 +422,7 @@ impl World {
         let end_day = match end_duration {
             Some(days) => Some(
                 decision_day
-                    .checked_add(days - 1)
+                    .checked_add(days.units() - 1)
                     .filter(|day| *day <= MAX_DAY)
                     .ok_or("Funded regional service term exceeds the campaign calendar")?,
             ),
@@ -717,7 +729,10 @@ impl World {
         if !self.day.is_multiple_of(90) {
             return;
         }
-        let kind = RegionalOrderKind::Grant { boost: 1, days: 30 };
+        let kind = RegionalOrderKind::Grant {
+            boost: 1,
+            days: DaySpan::new(30),
+        };
         for mandate in &rules.charter(id).expect("charter").regions {
             let local = self.countries[id]
                 .subnational
@@ -1006,7 +1021,7 @@ impl World {
             }
             match kind {
                 RegionalOrderKind::Grant { boost, days } => {
-                    if !(1..=3).contains(boost) || !(30..=180).contains(days) {
+                    if !(1..=3).contains(boost) || !(30..=180).contains(&days.units()) {
                         return Err("Invalid regional grant dimensions".into());
                     }
                     let daily = regional_daily_cost(
@@ -1021,12 +1036,12 @@ impl World {
                     )
                     .0;
                     if !(1..=3).contains(boost)
-                        || !(30..=180).contains(days)
+                        || !(30..=180).contains(&days.units())
                         || order.baseline_level + boost > 10
                         || daily <= 0
                         || order.daily_supplement != Money(daily)
-                        || order.principal != Money(daily * i64::from(*days))
-                        || order.decision_day.checked_add(days - 1) != order.end_day
+                        || order.principal != Money(daily * i64::from(days.units()))
+                        || order.decision_day.checked_add(days.units() - 1) != order.end_day
                         || order.end_day.is_none_or(|day| day > MAX_DAY)
                     {
                         return Err(

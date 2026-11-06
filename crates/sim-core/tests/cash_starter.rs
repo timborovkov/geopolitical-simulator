@@ -93,7 +93,7 @@ fn seeded_cash_recovery_respects_actual_receipts_and_keeps_zero_receipt_targets_
             &content,
             Action::HoldCash {
                 target: cost,
-                days: 90,
+                days: sim_core::DaySpan::new(90),
             },
         )
         .unwrap();
@@ -200,7 +200,7 @@ fn mixed_format17_and_preserved_format16_recovery_keeps_originals_and_the_previo
             &content,
             Action::HoldCash {
                 target: Money(1000),
-                days: 90,
+                days: sim_core::DaySpan::new(90),
             },
         )
         .unwrap();

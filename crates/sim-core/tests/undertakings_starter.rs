@@ -113,7 +113,10 @@ fn compatible_undertakings_share_one_real_delivery_and_the_previous_roster_recov
             &old,
             Action::RegionalOrder {
                 region: RegionId("region:GBR:regional".into()),
-                kind: RegionalOrderKind::Grant { boost: 1, days: 30 },
+                kind: RegionalOrderKind::Grant {
+                    boost: 1,
+                    days: sim_core::DaySpan::new(30),
+                },
             },
         )
         .unwrap();

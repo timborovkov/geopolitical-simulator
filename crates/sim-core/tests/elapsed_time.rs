@@ -14,7 +14,7 @@ fn typed_event_elapsed_time_and_follow_on_steps_keep_pre_change_campaign_hashes(
         },
         Action::HoldCash {
             target: Money(100),
-            days: 30,
+            days: sim_core::DaySpan::new(30),
         },
         Action::ReleaseCash {
             request: CashHoldId(3),

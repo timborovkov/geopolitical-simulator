@@ -47,7 +47,7 @@ fn planning_quotes_full_requirements_without_treating_a_target_or_retained_cash_
         &c,
         Action::HoldCash {
             target: Money(20),
-            days: 90,
+            days: sim_core::DaySpan::new(90),
         },
     )
     .unwrap();

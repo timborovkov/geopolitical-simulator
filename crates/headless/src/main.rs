@@ -535,7 +535,7 @@ fn play(
                     let region = RegionId(words.get(1).ok_or("Missing region ID")?.to_string());
                     let kind = RegionalOrderKind::Grant {
                         boost: number(words.get(2))?,
-                        days: number(words.get(3))?,
+                        days: sim_core::DaySpan::new(number(words.get(3))?),
                     };
                     if words[0] == "preview-region-grant" {
                         println!(
@@ -819,10 +819,10 @@ fn play(
                     println!("{}", serde_json::to_string_pretty(state).map_err(|e|e.to_string())?);
                 }
                 "preview-retention" => {
-                    let preview = world.preview_cash_hold(content, &world.player, Money(number(words.get(1))?), number(words.get(2))?)?;
+                    let preview = world.preview_cash_hold(content, &world.player, Money(number(words.get(1))?), DaySpan::new(number(words.get(2))?))?;
                     println!("Target {}m; actual protected now {}m; approval -{}; expiry {}; reuse {}. Unfilled target is not cash. Wages, welfare and interest may become arrears; matured principal may remain unpaid. Local claims and project reservations remain protected.", preview.target.0, preview.retained_now.0, preview.approval_cost, date(preview.expiry_day), date(preview.next_allowed_day));
                 }
-                "retain-cash" => issue(world, content, Action::HoldCash { target: Money(number(words.get(1))?), days: number(words.get(2))? })?,
+                "retain-cash" => issue(world, content, Action::HoldCash { target: Money(number(words.get(1))?), days: sim_core::DaySpan::new(number(words.get(2))?)})?,
                 "release-cash" => issue(world, content, Action::ReleaseCash { request: CashHoldId(number(words.get(1))?) })?,
                 "sovereignty" => {
                     let country=words.get(1).map_or_else(||world.player.clone(),|id|CountryId((*id).into()));

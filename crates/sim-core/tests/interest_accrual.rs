@@ -134,7 +134,7 @@ fn fractional_interest_does_not_become_cash_and_unpaid_whole_units_reconcile() {
         &c,
         Action::HoldCash {
             target: Money(1000),
-            days: 90,
+            days: sim_core::DaySpan::new(90),
         },
     )
     .unwrap();

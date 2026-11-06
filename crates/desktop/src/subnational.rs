@@ -68,7 +68,7 @@ impl Panel {
                 }
                 ui.strong("Offer a funded service supplement");
                 ui.horizontal_wrapped(|ui| {ui.label("Additional levels");ui.add(egui::DragValue::new(&mut settings.0).range(1..=3));ui.label("Days");ui.add(egui::DragValue::new(&mut settings.1).range(30..=180));});
-                let kind=RegionalOrderKind::Grant {boost:settings.0,days:settings.1};
+                let kind=RegionalOrderKind::Grant {boost:settings.0,days: sim_core::DaySpan::new(settings.1)};
                 match world.preview_regional_order(content,&world.player,&mandate.id,&kind) {
                     Ok(preview)=>{
                         ui.label(format!("Pay {}m administration now · protect {}m escrow · local review {} · if accepted, {}m/day through {}.",preview.fee.0,preview.principal.0,date(preview.decision_day),preview.daily_supplement.0,date(preview.end_day.expect("term"))));
@@ -325,7 +325,10 @@ mod tests {
                 action,
                 Some(Action::RegionalOrder {
                     region: RegionId("region:AUR:province".into()),
-                    kind: RegionalOrderKind::Grant { boost: 2, days: 30 }
+                    kind: RegionalOrderKind::Grant {
+                        boost: 2,
+                        days: sim_core::DaySpan::new(30)
+                    }
                 })
             );
             world.issue(&content, action.take().unwrap()).unwrap();

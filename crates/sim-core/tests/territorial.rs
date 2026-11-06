@@ -190,7 +190,10 @@ fn contested_change_has_explicit_power_gate_and_accepted_grants_survive_new_char
         &c,
         Action::RegionalOrder {
             region: region("AUR", "province"),
-            kind: RegionalOrderKind::Grant { boost: 1, days: 30 },
+            kind: RegionalOrderKind::Grant {
+                boost: 1,
+                days: sim_core::DaySpan::new(30),
+            },
         },
     )
     .unwrap();
@@ -221,7 +224,10 @@ fn new_charter_releases_pending_regional_escrow_but_keeps_fees_and_history() {
         &c,
         Action::RegionalOrder {
             region: region("AUR", "province"),
-            kind: RegionalOrderKind::Grant { boost: 1, days: 30 },
+            kind: RegionalOrderKind::Grant {
+                boost: 1,
+                days: sim_core::DaySpan::new(30),
+            },
         },
     )
     .unwrap();
@@ -241,7 +247,10 @@ fn contested_requisition_changes_discretion_keeps_settled_report_and_cannot_take
         &c,
         Action::RegionalOrder {
             region: region("AUR", "province"),
-            kind: RegionalOrderKind::Grant { boost: 1, days: 30 },
+            kind: RegionalOrderKind::Grant {
+                boost: 1,
+                days: sim_core::DaySpan::new(30),
+            },
         },
     )
     .unwrap();

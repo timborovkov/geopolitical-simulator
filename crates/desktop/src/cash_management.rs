@@ -141,7 +141,12 @@ impl Panel {
                 ui.label("Days");
                 ui.add(egui::DragValue::new(&mut self.days).range(1..=rules.max_days.units()));
             });
-            match world.preview_cash_hold(content, &world.player, Money(self.target), self.days) {
+            match world.preview_cash_hold(
+                content,
+                &world.player,
+                Money(self.target),
+                DaySpan::new(self.days),
+            ) {
                 Ok(preview) => {
                     ui.label(format!("Protect {}m now; remaining {}m must come from future actual cash. Approval -{} (floor zero). Expires {}; reuse from {}. A target is not funded cash.", preview.retained_now.0, self.target - preview.retained_now.0, preview.approval_cost, date(preview.expiry_day), date(preview.next_allowed_day)));
                     if ui
@@ -150,7 +155,7 @@ impl Panel {
                     {
                         action = Some(Choice::Command(Action::HoldCash {
                             target: Money(self.target),
-                            days: self.days,
+                            days: sim_core::DaySpan::new(self.days),
                         }));
                     }
                 }
@@ -195,7 +200,7 @@ mod tests {
                 &content,
                 Action::HoldCash {
                     target: Money(100),
-                    days: 90,
+                    days: sim_core::DaySpan::new(90),
                 },
             )
             .unwrap();
@@ -252,7 +257,7 @@ mod tests {
                         &content,
                         Action::HoldCash {
                             target: Money(100),
-                            days: 90,
+                            days: sim_core::DaySpan::new(90),
                         },
                     )
                     .unwrap();

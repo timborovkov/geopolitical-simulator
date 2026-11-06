@@ -223,9 +223,16 @@ pub enum Action {
     CancelReserve {
         request: ReserveOrderId,
     },
+    /// A requested retention period is elapsed time, separate from a target date.
+    /// ```compile_fail
+    /// use sim_core::{Action, Money};
+    /// fn cannot_retain_until_a_raw_date(day: u32) {
+    ///     let action = Action::HoldCash { target: Money(50), days: day };
+    /// }
+    /// ```
     HoldCash {
         target: Money,
-        days: u32,
+        days: DaySpan,
     },
     ReleaseCash {
         request: CashHoldId,
@@ -735,10 +742,11 @@ impl World {
                                 && matches!(e.command.action, Action::ProcureReserve { .. })
                         })
                 }
-                Action::HoldCash { target, days } => content
-                    .cash_management
-                    .as_ref()
-                    .is_some_and(|r| target.0 > 0 && (1..=r.max_days.units()).contains(days)),
+                Action::HoldCash { target, days } => {
+                    content.cash_management.as_ref().is_some_and(|r| {
+                        target.0 > 0 && (1..=r.max_days.units()).contains(&days.units())
+                    })
+                }
                 Action::ReleaseCash { request } => {
                     content.cash_management.is_some() && request.0 > 0 && request.0 < command.id.0
                 }

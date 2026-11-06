@@ -132,7 +132,7 @@ fn mixed_formats_18_and_17_keep_the_previous_cash_recovery_golden_and_exact_orig
             &old,
             Action::HoldCash {
                 target: Money(333),
-                days: 90,
+                days: sim_core::DaySpan::new(90),
             },
         )
         .unwrap();

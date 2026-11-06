@@ -46,7 +46,7 @@ fn typed_receipts_and_cash_release_keep_the_pre_change_campaign_and_numeric_wire
         },
         Action::HoldCash {
             target: Money(100),
-            days: 30,
+            days: sim_core::DaySpan::new(30),
         },
         Action::ReleaseCash {
             request: CashHoldId(3),
