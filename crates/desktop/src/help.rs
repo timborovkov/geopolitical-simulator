@@ -1,7 +1,7 @@
 //! Searchable rules/content reference. This view has no access to private World state.
 use crate::Tab;
 use eframe::egui;
-use sim_core::{Content, CountryId, PolicyId};
+use sim_core::{Content, CountryId, OfficeHolder, PolicyId};
 
 #[derive(Default)]
 pub struct Help {
@@ -119,35 +119,148 @@ fn entries(content: &Content) -> Vec<Entry> {
         body: format!("Opening reference at {}: capital {}; executive {} ({}); currency {}; {:?}. {} Data quality: {}. These are bookmark definitions; the overview shows campaign developments and source records.", content.start, country.capital, country.executive, country.office, country.currency, country.regime, country.government.label(), country.quality),
         destination: Destination { tab: Tab::Overview, country: Some(country.id.clone()), policy: None },
     }));
+    entries.extend(bookmark_entries(content));
+    entries
+}
+fn bookmark_entries(content: &Content) -> Vec<Entry> {
+    let mut entries = Vec::new();
+    for country in &content.countries {
+        for party in &country.parties {
+            entries.push(Entry {
+                title:format!("Party · {} ({})",party.name,party.id),
+                body:format!("Opening reference at {} · {} ({}). Leader label: {}. Ideology: {}. Opening seats: {}. Party reference {}. Seats and profiles are authored scenario definitions, not current support or polling. Identity source {}; country data quality {}.",content.start,country.name,country.id.0,party.leader,party.ideology,party.seats,party.id,country.identity_source,country.quality),
+                destination:Destination {tab:Tab::Politics,country:Some(country.id.clone()),policy:None}
+            });
+        }
+    }
+    let Some(catalogue) = &content.identities else {
+        return entries;
+    };
+    let date = content.start.parse().expect("validated bookmark");
+    let active_offices: Vec<_> = catalogue
+        .offices
+        .iter()
+        .filter(|office| office.validity.contains(date))
+        .collect();
+    for person in &catalogue.people {
+        let mut roles: Vec<_> = active_offices
+            .iter()
+            .filter(|office| {
+                catalogue.terms.iter().any(|term| {
+                    term.office == office.id
+                        && term.validity.contains(date)
+                        && match &term.holder {
+                            OfficeHolder::Person { person: id } => id == &person.id,
+                            OfficeHolder::Collective { members, .. } => {
+                                members.contains(&person.id)
+                            }
+                            OfficeHolder::Vacant => false,
+                        }
+                })
+            })
+            .copied()
+            .collect();
+        roles.sort_by(|a, b| a.country.cmp(&b.country).then(a.id.cmp(&b.id)));
+        let Some(first) = roles.first() else {
+            continue;
+        };
+        let labels = roles
+            .iter()
+            .map(|office| {
+                format!(
+                    "{} ({}): {} ({})",
+                    content
+                        .country(&office.country)
+                        .expect("validated office country")
+                        .name,
+                    office.country.0,
+                    office.title,
+                    office.id.0
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("; ");
+        entries.push(Entry {
+            title:format!("Person · {} ({})",person.name,person.id.0),
+            body:format!("Person reference {} · active reference roles or listed collective memberships at {}: {}. Quality {:?}; source {} / {}. This is bookmark identity data, not a live appointment, biography or a scheduled handover.",person.id.0,content.start,labels,person.quality,person.source,person.source_version),
+            destination:Destination {tab:Tab::Overview,country:Some(first.country.clone()),policy:None}
+        });
+    }
+    for country in &content.countries {
+        for record in content.bookmark_offices(&country.id) {
+            let office = active_offices
+                .iter()
+                .find(|office| office.id == record.id)
+                .expect("bookmark office");
+            let detail=record.term.as_ref().map_or_else(||"Incumbency unspecified at this bookmark; this is not an explicit vacancy.".into(),|term| {
+                let members=match &term.holder {
+                    OfficeHolder::Collective{members,..} if members.is_empty()=>" Collective membership unspecified.".to_string(),
+                    OfficeHolder::Collective{members,..}=>format!(" Listed collective members: {}.",members.iter().map(|id|catalogue.people.iter().find(|person|&person.id==id).expect("validated person").name.as_str()).collect::<Vec<_>>().join(", ")),
+                    _=>String::new()
+                };
+                format!("Holder: {}.{} Term {} from {} until {} (end excluded); quality {:?}; source {} / {}.",record.holder,members,term.id,term.validity.valid_from,term.validity.valid_to.map_or_else(||"unspecified".into(),|date|date.to_string()),term.quality,term.source,term.source_version)
+            });
+            entries.push(Entry {
+                title:format!("Office · {} · {} ({})",record.title,country.name,record.id.0),
+                body:format!("Office reference {} · {} · {} ({}) at {}. {} Office coverage from {} until {} (end excluded); quality {:?}; source {} / {}. Reference dates do not schedule campaign outcomes or grant governing authority.",record.id.0,record.role.label(),country.name,country.id.0,content.start,detail,office.validity.valid_from,office.validity.valid_to.map_or_else(||"unspecified".into(),|date|date.to_string()),office.quality,office.source,office.source_version),
+                destination:Destination{tab:Tab::Overview,country:Some(country.id.clone()),policy:None}
+            });
+        }
+    }
+    for term in catalogue
+        .currencies
+        .iter()
+        .filter(|term| term.validity.contains(date))
+    {
+        let country = content
+            .country(&term.country)
+            .expect("validated currency country");
+        entries.push(Entry {
+            title:format!("Currency · {} · {}",term.code,country.name),
+            body:format!("Primary-currency reference {} · {} ({}) at {}. Record {} from {} until {} (end excluded); quality {:?}; source {} / {}. Monetary values remain game reporting credits; no exchange rate or future currency transition is inferred.",term.code,country.name,country.id.0,content.start,term.id,term.validity.valid_from,term.validity.valid_to.map_or_else(||"unspecified".into(),|date|date.to_string()),term.quality,term.source,term.source_version),
+            destination:Destination{tab:Tab::Overview,country:Some(country.id.clone()),policy:None}
+        });
+    }
     entries
 }
 fn matches(entry: &Entry, query: &str) -> bool {
-    let haystack = format!("{} {}", entry.title, entry.body).to_lowercase();
+    let haystack = crate::hydrology::search_key(&format!("{} {}", entry.title, entry.body));
     query
         .split_whitespace()
-        .all(|word| haystack.contains(&word.to_lowercase()))
+        .all(|word| haystack.contains(&crate::hydrology::search_key(word)))
 }
 impl Help {
     pub fn show(&mut self, ui: &mut egui::Ui, content: &Content) -> Option<Destination> {
         ui.heading("Game reference");
-        ui.label("Search rules, policies and the loaded bookmark's country records. Opening a screen changes inspection context; it does not issue an order.");
+        ui.label("Search rules, policies, parties and the loaded bookmark's active person/office/currency references. Reference records stay distinct from live campaign state. Opening a screen changes inspection context; it does not issue an order.");
         ui.horizontal_wrapped(|ui| {
-            ui.add(
+            let edit = ui.add(
                 egui::TextEdit::singleline(&mut self.query)
-                    .hint_text("Search, for example: food imports, arrears, election, country name")
+                    .return_key(None)
+                    .id_salt("game_reference_query")
+                    .hint_text("Search rules, names, parties or stable references")
                     .desired_width(540.0),
             );
             if ui.button("Clear search").clicked() {
                 self.query.clear();
+                edit.request_focus();
             }
         });
         let results: Vec<_> = entries(content)
             .into_iter()
             .filter(|entry| matches(entry, &self.query))
             .collect();
-        ui.label(format!("{} matching entries", results.len()));
+        ui.label(format!(
+            "{} matching {}",
+            results.len(),
+            if results.len() == 1 {
+                "entry"
+            } else {
+                "entries"
+            }
+        ));
         if results.is_empty() {
-            ui.label("No matching entries. Try a shorter term, a policy name or a country ID.");
+            ui.label("No matching entries. Try a shorter term, an unaccented name or a country/record reference.");
         }
         let mut destination = None;
         for entry in results {
@@ -166,6 +279,114 @@ impl Help {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn party_and_identity_search_preserves_loaded_reference_dates_labels_and_missingness() {
+        let default = Content::bundled().unwrap();
+        let parties = bookmark_entries(&default);
+        assert_eq!(parties.len(), 34);
+        let french = parties
+            .iter()
+            .find(|entry| matches(entry, "francois hollande"))
+            .unwrap();
+        assert_eq!(french.destination.country.as_ref().unwrap().0, "FRA");
+        assert!(french.destination.tab == Tab::Politics);
+        assert!(french.body.contains("François Hollande"));
+        assert!(french.body.contains("Opening seats"));
+        assert!(parties.iter().any(|entry| matches(entry, "KEIZO OBUCHI")));
+        let content = Content::bookmark_identities_bundled().unwrap();
+        let records = bookmark_entries(&content);
+        for (prefix, count) in [
+            ("Party ·", 34),
+            ("Person ·", 37),
+            ("Office ·", 49),
+            ("Currency ·", 15),
+        ] {
+            assert_eq!(
+                records
+                    .iter()
+                    .filter(|entry| entry.title.starts_with(prefix))
+                    .count(),
+                count
+            );
+        }
+        let collective = records
+            .iter()
+            .find(|entry| {
+                entry.title.starts_with("Office ·") && matches(entry, "DEU:greens:leadership")
+            })
+            .unwrap();
+        assert!(
+            collective
+                .body
+                .contains("Collective membership unspecified")
+        );
+        assert!(collective.body.contains("2000-01-02 (end excluded)"));
+        assert!(
+            !records
+                .iter()
+                .any(|entry| entry.title.starts_with("Person · Collective"))
+        );
+        assert!(
+            records
+                .iter()
+                .any(|entry| entry.title.starts_with("Currency ·")
+                    && matches(entry, "FRA EUR")
+                    && entry.body.contains("no exchange rate"))
+        );
+
+        let dated =
+            Content::from_json(include_str!("../../../data/synthetic-dated-test.json")).unwrap();
+        let records = bookmark_entries(&dated);
+        let person = records
+            .iter()
+            .find(|entry| entry.title.starts_with("Person · Fictional Steward C"))
+            .unwrap();
+        assert!(person.body.contains("Aurora Council"));
+        assert!(!person.body.contains("First Minister"));
+        assert!(
+            records
+                .iter()
+                .any(|entry| entry.title.starts_with("Office · Assembly Speaker")
+                    && entry.body.contains("Vacant"))
+        );
+        assert!(records.iter().any(
+            |entry| entry.title.starts_with("Office · Independent Auditor")
+                && entry.body.contains("Incumbency unspecified")
+                && entry.body.contains("not an explicit vacancy")
+        ));
+    }
+    #[test]
+    fn reference_destinations_follow_stable_keys_after_definition_reordering_and_label_changes() {
+        let mut content = Content::bookmark_identities_bundled().unwrap();
+        content.countries.reverse();
+        let catalogue = content.identities.as_mut().unwrap();
+        catalogue.people.reverse();
+        catalogue.offices.reverse();
+        catalogue.terms.reverse();
+        catalogue
+            .people
+            .iter_mut()
+            .find(|person| person.id.0 == "FRA:ps:opening-person")
+            .unwrap()
+            .name = "Revised person display".into();
+        let records = bookmark_entries(&content);
+        let person = records
+            .iter()
+            .find(|entry| {
+                entry.title.starts_with("Person ·") && matches(entry, "FRA:ps:opening-person")
+            })
+            .unwrap();
+        assert!(person.title.contains("Revised person display"));
+        assert_eq!(person.destination.country.as_ref().unwrap().0, "FRA");
+        let office = records
+            .iter()
+            .find(|entry| {
+                entry.title.starts_with("Office ·") && matches(entry, "FRA:ps:leadership")
+            })
+            .unwrap();
+        assert_eq!(office.destination.country.as_ref().unwrap().0, "FRA");
+        assert!(office.body.contains("Revised person display"));
+    }
     #[test]
     fn reference_search_uses_all_terms_and_only_the_loaded_bookmark() {
         let content =

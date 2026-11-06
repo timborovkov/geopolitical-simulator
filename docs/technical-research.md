@@ -35,6 +35,10 @@ Search accepts attributed names, aliases, country names and source IDs; unique c
 
 The native [history](../crates/desktop/src/navigation.rs) retains at most 64 presentation visits, using typed country/policy identities and a lightweight [map view](../crates/desktop/src/map.rs). It stores no `World`, private projection, geometry cache or accepted command. Screen/country/policy/reference-mode changes create visits; camera/layer changes and draft edits update the current visit. Back/Forward restores presentation state only. Loading, recovery and new campaigns discard history; invalid replacements retain it. Text editors, open popups and campaign/recovery dialogs retain keyboard ownership. Existing per-screen/country scroll IDs continue to retain scroll context independently. Individual panel queries and programme focus are not versioned by this history.
 
+### Bookmark reference index
+
+The native [reference index](../crates/desktop/src/help.rs) reads immutable `Content`, with no `World` argument. Party records retain opening labels/seats; active office terms and explicitly listed collective members determine person-reference roles at `content.start`, not the campaign date. Stable country/party/person/office/term identities remain searchable; destinations derive from typed country/office relationships rather than display names or row positions. Vacancy, absent incumbency, unknown collective membership, validity endpoints and source qualities remain distinct. Latin-accent/macron folding changes only lookup keys. The editor retains ownership through Enter and click-to-clear; related-screen navigation changes presentation context only. Live projections continue through the existing government/observer boundary.
+
 ## Architecture boundaries
 
 Suggested workspace modules:

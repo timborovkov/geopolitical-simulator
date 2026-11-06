@@ -3329,6 +3329,135 @@ mod interface_tests {
         std::fs::remove_dir_all(dir).unwrap();
     }
     #[test]
+    fn reference_records_search_confirmation_clear_and_back_preserve_world_and_input_at_two_scales()
+    {
+        let content = Content::bookmark_identities_bundled().unwrap();
+        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        world.advance(&content, DaySpan::new(61)).unwrap();
+        let before = persistence::encode(&world, &content).unwrap();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            let mut app =
+                GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            app.world = Some(world.clone());
+            app.selected = world.player.clone();
+            app.tab = Tab::Guide;
+            app.help.reference = true;
+            app.map.camera = map::Camera {
+                longitude: 11.6,
+                latitude: 48.2,
+                zoom: 8.,
+            };
+            let camera = app.map.camera;
+            let render = |app: &mut GameApp, events: Vec<egui::Event>| {
+                ctx.run(
+                    egui::RawInput {
+                        focused: true,
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(1440. / scale, 940. / scale),
+                        )),
+                        events,
+                        ..Default::default()
+                    },
+                    |ctx| app.render(ctx),
+                )
+            };
+            let text = |output: &egui::FullOutput| {
+                output
+                    .shapes
+                    .iter()
+                    .filter_map(|shape| match &shape.shape {
+                        egui::Shape::Text(text) => Some(text.galley.text()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            };
+            let click = |app: &mut GameApp, label: &str| {
+                let output = render(app, vec![]);
+                let point = output
+                    .shapes
+                    .iter()
+                    .find_map(|shape| match &shape.shape {
+                        egui::Shape::Text(text) if text.galley.text() == label => {
+                            let point = text.pos + text.galley.size() / 2.;
+                            shape.clip_rect.contains(point).then_some(point)
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| {
+                        panic!("Visible {label} missing at {scale}: {}", text(&output))
+                    });
+                for pressed in [true, false] {
+                    render(
+                        app,
+                        vec![
+                            egui::Event::PointerMoved(point),
+                            egui::Event::PointerButton {
+                                pos: point,
+                                button: egui::PointerButton::Primary,
+                                pressed,
+                                modifiers: egui::Modifiers::NONE,
+                            },
+                        ],
+                    );
+                }
+            };
+            render(&mut app, vec![]);
+            render(&mut app, vec![]);
+            click(
+                &mut app,
+                "Search rules, names, parties or stable references",
+            );
+            let key = |key, pressed| egui::Event::Key {
+                key,
+                physical_key: None,
+                pressed,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            };
+            let confirm = |value: &str| {
+                vec![
+                    key(egui::Key::N, true),
+                    egui::Event::Text(value.into()),
+                    key(egui::Key::N, false),
+                    key(egui::Key::Enter, true),
+                    key(egui::Key::Enter, false),
+                ]
+            };
+            let output = render(&mut app, confirm("Francois Hollande"));
+            assert!(
+                app.pending.is_none(),
+                "Reference input must not start time advancement"
+            );
+            assert_eq!(app.speed, 0);
+            assert!(ctx.wants_keyboard_input());
+            assert!(text(&output).contains("François Hollande"));
+            assert!(text(&output).contains("3 matching entries"));
+            click(&mut app, "Open relevant screen");
+            assert_eq!(app.selected.0, "FRA");
+            assert!(app.tab == Tab::Politics);
+            click(&mut app, "Back");
+            assert_eq!(app.selected.0, "GBR");
+            assert!(app.tab == Tab::Guide && app.help.reference);
+            let output = render(&mut app, vec![]);
+            assert!(text(&output).contains("3 matching entries"));
+            assert_eq!(app.map.camera, camera);
+            click(&mut app, "Clear search");
+            assert!(ctx.wants_keyboard_input());
+            render(&mut app, confirm("N"));
+            assert!(app.pending.is_none());
+            assert_eq!(app.speed, 0);
+            assert_eq!(app.selected, world.player);
+            assert_eq!(
+                persistence::encode(app.world.as_ref().unwrap(), &content).unwrap(),
+                before
+            );
+        }
+    }
+    #[test]
     fn household_overflow_scrollbar_reaches_last_columns_and_returns_without_orders_at_two_scales()
     {
         let mut content =
