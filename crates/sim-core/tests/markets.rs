@@ -23,8 +23,8 @@ fn prices_respond_with_a_lag_and_reprice_baskets_without_creating_cash() {
     }
     world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
     let markets = world.player_country().markets.as_ref().unwrap();
-    assert_eq!(markets.food.last.as_ref().unwrap().price_bps, 10000);
-    let following_price = markets.food.next_price_bps;
+    assert_eq!(markets.food.last.as_ref().unwrap().price_bps.units(), 10000);
+    let following_price = markets.food.next_price_bps.units();
     assert!(following_price > 10000);
     let first_basket: i64 = world
         .player_country()
@@ -43,7 +43,8 @@ fn prices_respond_with_a_lag_and_reprice_baskets_without_creating_cash() {
             .last
             .as_ref()
             .unwrap()
-            .price_bps,
+            .price_bps
+            .units(),
         following_price
     );
     world.advance(&content, sim_core::DaySpan::new(10)).unwrap();
@@ -88,7 +89,7 @@ fn physical_need_requested_use_and_delivery_are_separate() {
     assert!(last.supply >= last.physical_need);
     assert!(last.requested_use < last.physical_need);
     assert_eq!(last.delivered, last.requested_use);
-    assert!(food.next_price_bps < last.price_bps);
+    assert!(food.next_price_bps.units() < last.price_bps.units());
     assert!(world.player_country().report.food_coverage < 100);
     world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
     world.validate(&content).unwrap();
@@ -99,31 +100,61 @@ fn physical_need_requested_use_and_delivery_are_separate() {
 fn bounded_price_adjustment_handles_shortage_surplus_and_zero_demand() {
     let content = fixture();
     let rule = content.markets.as_ref().unwrap().good(GoodKind::Food);
-    assert_eq!(next_market_price(10000, 100, 100, rule).unwrap(), 10000);
-    assert!(next_market_price(10000, 90, 100, rule).unwrap() > 10000);
-    assert!(next_market_price(10000, 110, 100, rule).unwrap() < 10000);
     assert_eq!(
-        next_market_price(rule.maximum_price_bps, 0, 100, rule).unwrap(),
-        rule.maximum_price_bps
+        next_market_price(BasisPoints::new(10000), 100, 100, rule)
+            .unwrap()
+            .units(),
+        10000
+    );
+    assert!(
+        next_market_price(BasisPoints::new(10000), 90, 100, rule)
+            .unwrap()
+            .units()
+            > 10000
+    );
+    assert!(
+        next_market_price(BasisPoints::new(10000), 110, 100, rule)
+            .unwrap()
+            .units()
+            < 10000
     );
     assert_eq!(
-        next_market_price(rule.minimum_price_bps, 100, 0, rule).unwrap(),
-        rule.minimum_price_bps
+        next_market_price(rule.maximum_price_bps, 0, 100, rule)
+            .unwrap()
+            .units(),
+        rule.maximum_price_bps.units()
     );
-    assert_eq!(next_market_price(10000, 0, 0, rule).unwrap(), 10000);
-    assert!(next_market_price(10000, -1, 100, rule).is_err());
-    for price in [rule.minimum_price_bps, 10000, rule.maximum_price_bps] {
+    assert_eq!(
+        next_market_price(rule.minimum_price_bps, 100, 0, rule)
+            .unwrap()
+            .units(),
+        rule.minimum_price_bps.units()
+    );
+    assert_eq!(
+        next_market_price(BasisPoints::new(10000), 0, 0, rule)
+            .unwrap()
+            .units(),
+        10000
+    );
+    assert!(next_market_price(BasisPoints::new(10000), -1, 100, rule).is_err());
+    for price in [
+        rule.minimum_price_bps.units(),
+        10000,
+        rule.maximum_price_bps.units(),
+    ] {
         for supply in [0, 90, 100, 110, 10000] {
-            let next = next_market_price(price, supply, 100, rule).unwrap();
+            let next = next_market_price(BasisPoints::new(price), supply, 100, rule)
+                .unwrap()
+                .units();
             assert!(
                 u64::from(price.abs_diff(next)) * 10000
-                    <= u64::from(price) * u64::from(rule.adjustment_bps)
+                    <= u64::from(price) * u64::from(rule.adjustment_bps.units())
             );
         }
     }
     let mut invalid = rule.clone();
-    invalid.adjustment_bps = u32::MAX;
-    assert!(next_market_price(10000, i64::MAX, 1, &invalid).is_err());
+    invalid.adjustment_bps = BasisPoints::new(u32::MAX);
+    assert!(next_market_price(BasisPoints::new(10000), i64::MAX, 1, &invalid).is_err());
 }
 
 #[test]
@@ -139,9 +170,9 @@ fn market_content_provenance_ranges_and_rules_are_validated() {
                 invalid.markets.as_mut().unwrap().goods[1].id =
                     invalid.markets.as_ref().unwrap().goods[0].id.clone()
             }
-            3 => invalid.markets.as_mut().unwrap().goods[0].loss_bps = 1,
+            3 => invalid.markets.as_mut().unwrap().goods[0].loss_bps = BasisPoints::new(1),
             4 => invalid.markets.as_mut().unwrap().source = "missing".into(),
-            5 => invalid.markets.as_mut().unwrap().goods[1].minimum_price_bps = 0,
+            5 => invalid.markets.as_mut().unwrap().goods[1].minimum_price_bps = BasisPoints::ZERO,
             _ => invalid.schema = 2,
         }
         assert!(invalid.validate().is_err());

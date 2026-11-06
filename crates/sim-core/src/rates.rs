@@ -39,7 +39,7 @@ macro_rules! scalar {
 }
 // Rates may exceed 100%. Policy-specific limits remain command/content rules.
 scalar!(Percent, Debug);
-scalar!(BasisPoints, Debug);
+scalar!(BasisPoints);
 // A duration, not an absolute simulation date or a calendar-year mandate.
 scalar!(DaySpan);
 impl DaySpan {
@@ -66,6 +66,17 @@ impl std::fmt::Display for DaySpan {
     }
 }
 
+// Keep the preceding numeric diagnostics when rate fields acquire their unit.
+impl std::fmt::Debug for BasisPoints {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
+impl std::fmt::Display for BasisPoints {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
 impl Percent {
     pub fn as_basis_points(self) -> Option<BasisPoints> {
         self.0.checked_mul(100).map(BasisPoints)
@@ -76,6 +87,10 @@ impl Percent {
     }
 }
 impl BasisPoints {
+    /// Explicit lossless extraction for signed monetary and allocation arithmetic.
+    pub fn units_i64(self) -> i64 {
+        i64::from(self.0)
+    }
     pub const DENOMINATOR: u32 = 10_000;
     pub fn as_exact_percent(self) -> Option<Percent> {
         self.0.is_multiple_of(100).then_some(Percent(self.0 / 100))

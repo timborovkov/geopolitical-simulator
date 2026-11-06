@@ -9,11 +9,11 @@ pub struct TerritorialOrderId(pub u64);
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TerritorialTemplate {
     pub form: TerritorialForm,
-    pub tax_pool_bps: i64,
+    pub tax_pool_bps: BasisPoints,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RequisitionRule {
-    pub administration_cost_bps: i64,
+    pub administration_cost_bps: BasisPoints,
     pub elite_threshold: i32,
     pub council_threshold: i32,
     pub approval_cost: i32,
@@ -29,7 +29,7 @@ pub struct TerritorialDefinition {
     pub contested: Option<TransitionRoute>,
     pub cooldown_days: DaySpan,
     pub local_consent_approval: i32,
-    pub compensation_bps: i64,
+    pub compensation_bps: BasisPoints,
     pub requisition: Option<RequisitionRule>,
     pub ai_targets: BTreeMap<CountryId, TerritorialForm>,
     pub source: String,
@@ -55,7 +55,7 @@ impl TerritorialDefinition {
             || !content.sources.iter().any(|s| s.id == self.source)
             || !(30..=730).contains(&self.cooldown_days.units())
             || !(0..=100).contains(&self.local_consent_approval)
-            || !(1..=1000).contains(&self.compensation_bps)
+            || !(1..=1000).contains(&self.compensation_bps.units_i64())
             || self
                 .ai_targets
                 .keys()
@@ -66,7 +66,7 @@ impl TerritorialDefinition {
             );
         }
         for (index, template) in self.templates.iter().enumerate() {
-            if !(0..=4000).contains(&template.tax_pool_bps)
+            if !(0..=4000).contains(&template.tax_pool_bps.units_i64())
                 || self.templates[..index]
                     .iter()
                     .any(|other| other.form == template.form)
@@ -76,8 +76,8 @@ impl TerritorialDefinition {
         }
         for route in std::iter::once(&self.lawful).chain(self.contested.iter()) {
             if !(1..=365).contains(&route.days.units())
-                || !(1..=1000).contains(&route.cost_bps)
-                || !(1..=10000).contains(&route.upfront_bps)
+                || !(1..=1000).contains(&route.cost_bps.units_i64())
+                || !(1..=10000).contains(&route.upfront_bps.units_i64())
                 || [
                     route.legislative_threshold,
                     route.elite_threshold,
@@ -95,7 +95,7 @@ impl TerritorialDefinition {
             }
         }
         if let Some(rule) = &self.requisition
-            && (!(1..=1000).contains(&rule.administration_cost_bps)
+            && (!(1..=1000).contains(&rule.administration_cost_bps.units_i64())
                 || !(30..=730).contains(&rule.cooldown_days.units())
                 || [
                     rule.elite_threshold,
@@ -123,15 +123,16 @@ impl TerritorialDefinition {
         let weights: Vec<_> = base
             .regions
             .iter()
-            .map(|r| r.population_share_bps)
+            .map(|r| r.population_share_bps.units_i64())
             .collect();
-        let shares = apportion(template.tax_pool_bps, &weights);
+        let shares = apportion(template.tax_pool_bps.units_i64(), &weights);
         let fallback = base
             .regions
             .iter()
             .max_by(|a, b| {
                 a.population_share_bps
-                    .cmp(&b.population_share_bps)
+                    .units_i64()
+                    .cmp(&b.population_share_bps.units_i64())
                     .then_with(|| a.id.cmp(&b.id))
             })
             .ok_or("Empty territorial charter")?
@@ -149,7 +150,8 @@ impl TerritorialDefinition {
             .zip(shares)
             .map(|(original, tax)| {
                 let mut region = original.clone();
-                region.tax_entitlement_bps = tax;
+                region.tax_entitlement_bps =
+                    BasisPoints::new(u32::try_from(tax).expect("bounded territorial entitlement"));
                 region.autonomous_services = match target {
                     TerritorialForm::Federation => true,
                     TerritorialForm::DelegatedUnitary => false,
@@ -410,7 +412,9 @@ impl World {
             .ok_or("Missing territorial charter")?;
         let future = rules.apply_template(base, target)?;
         let amount = Money(
-            (content.country(id).ok_or("Missing country")?.gdp * rules.compensation_bps / 10000)
+            (content.country(id).ok_or("Missing country")?.gdp
+                * rules.compensation_bps.units_i64()
+                / 10000)
                 .max(1),
         );
         let mut lost = Vec::new();
@@ -418,7 +422,7 @@ impl World {
         for next in future {
             let previous = self.regional_mandate_at(content, id, &next.id, day)?;
             if previous.autonomous_services && !next.autonomous_services
-                || next.tax_entitlement_bps < previous.tax_entitlement_bps
+                || next.tax_entitlement_bps.units_i64() < previous.tax_entitlement_bps.units_i64()
             {
                 lost.push(next.id.clone());
                 if !contested {
@@ -500,7 +504,7 @@ impl World {
         for next in &future {
             let previous = self.regional_mandate_at(content, id, &next.id, self.day)?;
             differs |= next.autonomous_services != previous.autonomous_services
-                || next.tax_entitlement_bps != previous.tax_entitlement_bps;
+                || next.tax_entitlement_bps.units_i64() != previous.tax_entitlement_bps.units_i64();
         }
         let from = self.territorial_form_at(content, id, self.day)?;
         if !differs && from == *target {
@@ -514,9 +518,10 @@ impl World {
             .checked_add(route.days.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Territorial review exceeds the campaign calendar")?;
-        let admin_cost =
-            Money((content.country(id).expect("country").gdp * route.cost_bps / 10000).max(1));
-        let upfront = Money((admin_cost.0 * route.upfront_bps / 10000).max(1));
+        let admin_cost = Money(
+            (content.country(id).expect("country").gdp * route.cost_bps.units_i64() / 10000).max(1),
+        );
+        let upfront = Money((admin_cost.0 * route.upfront_bps.units_i64() / 10000).max(1));
         let reserved = Money(
             admin_cost.0 - upfront.0
                 + compensations
@@ -580,7 +585,8 @@ impl World {
             return Err("Requisition must be positive and covered by the local base coffer; accepted grants and escrow are protected".into());
         }
         let fee = Money(
-            (content.country(id).ok_or("Missing country")?.gdp * rules.administration_cost_bps
+            (content.country(id).ok_or("Missing country")?.gdp
+                * rules.administration_cost_bps.units_i64()
                 / 10000)
                 .max(1),
         );
@@ -1074,8 +1080,8 @@ impl World {
                 record.contested,
                 command.day,
             )?;
-            let cost = Money((d.gdp * route.cost_bps / 10000).max(1));
-            let upfront = Money((cost.0 * route.upfront_bps / 10000).max(1));
+            let cost = Money((d.gdp * route.cost_bps.units_i64() / 10000).max(1));
+            let upfront = Money((cost.0 * route.upfront_bps.units_i64() / 10000).max(1));
             let reservation =
                 Money(cost.0 - upfront.0 + compensations.iter().map(|p| p.amount.0).sum::<i64>());
             if !matches
@@ -1102,7 +1108,8 @@ impl World {
             for next in rules.apply_template(base, &record.target)? {
                 let previous = self.regional_mandate_at(content, id, &next.id, command.day)?;
                 differs |= previous.autonomous_services != next.autonomous_services
-                    || previous.tax_entitlement_bps != next.tax_entitlement_bps;
+                    || previous.tax_entitlement_bps.units_i64()
+                        != next.tax_entitlement_bps.units_i64();
             }
             if !differs {
                 return Err("Territorial reform records a settlement already in force".into());
@@ -1234,7 +1241,8 @@ impl World {
                 .any(|value| !(0..=1_000_000_000_000).contains(value))
                 || claim.amount.0 == 0
                 || claim.amount.0 > claim.coffer_before.0
-                || claim.fee != Money((d.gdp * rule.administration_cost_bps / 10000).max(1))
+                || claim.fee
+                    != Money((d.gdp * rule.administration_cost_bps.units_i64() / 10000).max(1))
                 || claim.fee.0 > claim.national_available_before.0 + claim.amount.0
             {
                 return Err(

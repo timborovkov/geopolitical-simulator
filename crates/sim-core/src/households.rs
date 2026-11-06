@@ -136,8 +136,9 @@ impl World {
                 .as_ref()
                 .expect("configured markets")
                 .food
-                .next_price_bps;
-            let share = i64::from(markets.food_budget_share_bps);
+                .next_price_bps
+                .units();
+            let share = i64::from(markets.food_budget_share_bps.units());
             base_basket * (10000 - share + share * i64::from(price) / 10000) / 10000
         } else {
             base_basket

@@ -1,5 +1,5 @@
 //! Read-only indicators of modeled group means, not individual survey estimates.
-use crate::{Household, Money, Population};
+use crate::{BasisPoints, Household, Money, Population};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LivingStandards {
@@ -17,7 +17,7 @@ pub struct LivingStandards {
     /// Population-weighted Gini of group-mean disposable income, in 0..=10000.
     /// Excludes within-group inequality. Undefined for zero total income,
     /// negative disposable income, or income assigned to a zero-person group.
-    pub group_mean_gini_bps: Option<u16>,
+    pub group_mean_gini_bps: Option<BasisPoints>,
 }
 
 pub fn living_standards(groups: &[Household]) -> Result<LivingStandards, String> {
@@ -125,7 +125,9 @@ pub fn living_standards(groups: &[Household]) -> Result<LivingStandards, String>
             .and_then(|value| value.checked_mul(2))
             .ok_or_else(overflow)?;
         let gini = numerator.checked_mul(10000).ok_or_else(overflow)? / denominator;
-        result.group_mean_gini_bps = Some(u16::try_from(gini).map_err(|_| overflow())?);
+        result.group_mean_gini_bps = Some(BasisPoints::new(u32::from(
+            u16::try_from(gini).map_err(|_| overflow())?,
+        )));
     }
     Ok(result)
 }
@@ -155,10 +157,10 @@ mod tests {
             living_standards(&[group(1, 100), group(3, 300)])
                 .unwrap()
                 .group_mean_gini_bps,
-            Some(0)
+            Some(BasisPoints::new(0))
         );
         let original = living_standards(&[group(1, 0), group(1, 100)]).unwrap();
-        assert_eq!(original.group_mean_gini_bps, Some(5000));
+        assert_eq!(original.group_mean_gini_bps, Some(BasisPoints::new(5000)));
         assert_eq!(
             living_standards(&[group(1, 100), group(1, 0)])
                 .unwrap()

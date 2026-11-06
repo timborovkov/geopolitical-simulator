@@ -1,5 +1,5 @@
 //! Rules-3 relative prices, with physical quantities kept dimensionally distinct.
-use crate::{Content, Energy, Food};
+use crate::{BasisPoints, Content, Energy, Food};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -19,20 +19,20 @@ pub struct GoodDefinition {
     pub kind: GoodKind,
     pub name: String,
     pub unit: String,
-    pub minimum_price_bps: u32,
-    pub maximum_price_bps: u32,
+    pub minimum_price_bps: BasisPoints,
+    pub maximum_price_bps: BasisPoints,
     /// Maximum relative daily price movement, in basis points.
-    pub adjustment_bps: u32,
-    pub import_limit_bps: u32,
+    pub adjustment_bps: BasisPoints,
+    pub import_limit_bps: BasisPoints,
     pub storage_days: u32,
-    pub loss_bps: u32,
+    pub loss_bps: BasisPoints,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MarketDefinition {
     pub goods: Vec<GoodDefinition>,
     /// Share of the essential basket repriced by the food price index.
-    pub food_budget_share_bps: u32,
+    pub food_budget_share_bps: BasisPoints,
     pub source: String,
     pub source_version: String,
 }
@@ -45,7 +45,7 @@ impl MarketDefinition {
     }
     pub fn validate(&self, content: &Content) -> Result<(), String> {
         if self.goods.len() != 2
-            || self.food_budget_share_bps > 10000
+            || self.food_budget_share_bps.units() > 10000
             || self.source_version.is_empty()
             || !content
                 .sources
@@ -60,16 +60,16 @@ impl MarketDefinition {
             if good.id.0.is_empty()
                 || good.name.is_empty()
                 || good.unit.is_empty()
-                || !(500..=10000).contains(&good.minimum_price_bps)
-                || !(10000..=100000).contains(&good.maximum_price_bps)
-                || !(1..=1000).contains(&good.adjustment_bps)
-                || good.import_limit_bps > 10000
+                || !(500..=10000).contains(&good.minimum_price_bps.units())
+                || !(10000..=100000).contains(&good.maximum_price_bps.units())
+                || !(1..=1000).contains(&good.adjustment_bps.units())
+                || good.import_limit_bps.units() > 10000
                 || !(1..=30).contains(&good.storage_days)
-                || good.loss_bps > 10000
+                || good.loss_bps.units() > 10000
             {
                 return Err(format!("Invalid good ranges or identity: {}", good.id.0));
             }
-            if good.kind == GoodKind::Energy && good.loss_bps != 0 {
+            if good.kind == GoodKind::Energy && good.loss_bps.units() != 0 {
                 return Err("Energy storage losses require a network-loss model; use zero for this market version".into());
             }
         }
@@ -83,7 +83,7 @@ fn no_reserve_release<Q>() -> Option<Q> {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MarketSettlement<Q> {
     pub day: u32,
-    pub price_bps: u32,
+    pub price_bps: BasisPoints,
     pub physical_need: Q,
     /// Food: household demand after affordability. Energy: requested physical industrial use; only imports have a cash settlement in this version.
     pub requested_use: Q,
@@ -105,7 +105,7 @@ pub struct MarketQuote<Q> {
     pub good: GoodId,
     /// Applies on the next daily settlement; last.price_bps records the price
     /// actually used for the last settlement, avoiding a retrospective reprice.
-    pub next_price_bps: u32,
+    pub next_price_bps: BasisPoints,
     pub last: Option<MarketSettlement<Q>>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -118,12 +118,12 @@ impl Markets {
         Self {
             energy: MarketQuote {
                 good: definition.good(GoodKind::Energy).id.clone(),
-                next_price_bps: 10000,
+                next_price_bps: BasisPoints::new(10000),
                 last: None,
             },
             food: MarketQuote {
                 good: definition.good(GoodKind::Food).id.clone(),
-                next_price_bps: 10000,
+                next_price_bps: BasisPoints::new(10000),
                 last: None,
             },
         }
@@ -190,7 +190,8 @@ fn validate_quote<Q: Copy>(
 ) -> Result<(), String> {
     let invalid = || format!("Invalid market settlement or price for {}", rule.id.0);
     if quote.good != rule.id
-        || !(rule.minimum_price_bps..=rule.maximum_price_bps).contains(&quote.next_price_bps)
+        || !(rule.minimum_price_bps.units()..=rule.maximum_price_bps.units())
+            .contains(&quote.next_price_bps.units())
     {
         return Err(invalid());
     }
@@ -227,9 +228,9 @@ fn validate_quote<Q: Copy>(
             + i128::from(imported)
             + i128::from(reserve_release.unwrap_or(0))
             != i128::from(supply)
-        || imported > need * i64::from(rule.import_limit_bps) / 10000
+        || imported > need * i64::from(rule.import_limit_bps.units()) / 10000
         || delivered != supply.min(affordable)
-        || loss != (supply - delivered) * i64::from(rule.loss_bps) / 10000
+        || loss != (supply - delivered) * i64::from(rule.loss_bps.units()) / 10000
         || closing != supply - delivered - loss
         || closing != stored
         || closing > need * i64::from(rule.storage_days)
@@ -243,34 +244,46 @@ fn validate_quote<Q: Copy>(
 
 /// Relative price response uses only this country's settled supply and requested
 /// use (affordable food demand or physical industrial energy need). It affects the following day; caps are explicit economic assumptions.
+/// ```compile_fail
+/// use sim_core::{next_market_price, GoodDefinition};
+/// fn cannot_pass_a_calendar_day(rule: &GoodDefinition, day: u32) {
+///     next_market_price(day, 100, 100, rule);
+/// }
+/// ```
 pub fn next_market_price(
-    current: u32,
+    current: BasisPoints,
     supply: i64,
     demand: i64,
     rule: &GoodDefinition,
-) -> Result<u32, String> {
+) -> Result<BasisPoints, String> {
+    let current = current.units();
     if supply < 0
         || demand < 0
-        || current < rule.minimum_price_bps
-        || current > rule.maximum_price_bps
-        || !(500..=10000).contains(&rule.minimum_price_bps)
-        || !(10000..=100000).contains(&rule.maximum_price_bps)
-        || !(1..=1000).contains(&rule.adjustment_bps)
+        || current < rule.minimum_price_bps.units()
+        || current > rule.maximum_price_bps.units()
+        || !(500..=10000).contains(&rule.minimum_price_bps.units())
+        || !(10000..=100000).contains(&rule.maximum_price_bps.units())
+        || !(1..=1000).contains(&rule.adjustment_bps.units())
     {
         return Err("Invalid market quantities or current price".into());
     }
     if supply == demand {
-        return Ok(current);
+        return Ok(BasisPoints::new(current));
     }
     let imbalance = (i128::from(supply) - i128::from(demand)).abs();
-    let pressure_bps = (imbalance * i128::from(rule.adjustment_bps) / i128::from(demand.max(1)))
-        .min(i128::from(rule.adjustment_bps));
+    let pressure_bps = (imbalance * i128::from(rule.adjustment_bps.units())
+        / i128::from(demand.max(1)))
+    .min(i128::from(rule.adjustment_bps.units()));
     let movement = (i128::from(current) * pressure_bps / 10000) as u32;
-    Ok(if supply < demand {
-        current.saturating_add(movement).min(rule.maximum_price_bps)
+    Ok(BasisPoints::new(if supply < demand {
+        current
+            .saturating_add(movement)
+            .min(rule.maximum_price_bps.units())
     } else {
-        current.saturating_sub(movement).max(rule.minimum_price_bps)
-    })
+        current
+            .saturating_sub(movement)
+            .max(rule.minimum_price_bps.units())
+    }))
 }
 
 pub(crate) fn legacy_rules() -> u32 {

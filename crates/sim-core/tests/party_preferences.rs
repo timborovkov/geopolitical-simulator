@@ -57,7 +57,7 @@ fn positions_are_explicit_attributed_and_not_ideology_label_bonuses() {
     assert_eq!(aligned.metric, Some(PartyBackingMetric::Legislative));
     assert_eq!(aligned.max_penalty, 20);
     assert_eq!(aligned.penalty, 0);
-    assert_eq!(aligned.known_positions_bps, 10000);
+    assert_eq!(aligned.known_positions_bps.units(), 10000);
     let opposed = world
         .party_alignment_for(&content, &player(), &hostile())
         .unwrap()
@@ -228,7 +228,7 @@ fn coalition_seats_weight_known_positions_and_unknowns_create_no_opposition() {
         .unwrap()
         .unwrap();
     assert_eq!(r.penalty, 0);
-    assert_eq!(r.known_positions_bps, 6000);
+    assert_eq!(r.known_positions_bps.units(), 6000);
     assert!(r.parties[1].distance_bps.is_none());
 }
 #[test]
@@ -637,7 +637,7 @@ fn leadership_uses_the_ruling_party_id_and_royal_routes_ignore_party_influence_c
         .unwrap()
         .unwrap();
     assert_eq!(report.penalty, 0);
-    assert_eq!(report.known_positions_bps, 0);
+    assert_eq!(report.known_positions_bps.units(), 0);
     assert_eq!(
         report
             .parties

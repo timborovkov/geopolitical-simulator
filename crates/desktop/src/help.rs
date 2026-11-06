@@ -111,7 +111,7 @@ fn entries(content: &Content) -> Vec<Entry> {
     }
     entries.extend(content.policies.iter().map(|policy| Entry {
         title: format!("Policy · {}", policy.name),
-        body: format!("{} {} Affected groups: {}. Allowed values {}–{}; base implementation {} days; capital cost {} basis points of opening GDP. Authority and administration may add delay: use the live preview before committing.", policy.id, policy.description, policy.groups, policy.min, policy.max, policy.days, policy.cost_bps),
+        body: format!("{} {} Affected groups: {}. Allowed values {}–{}; base implementation {} days; capital cost {} basis points of opening GDP. Authority and administration may add delay: use the live preview before committing.", policy.id, policy.description, policy.groups, policy.min, policy.max, policy.days, policy.cost_bps.units_i64()),
         destination: Destination { tab: Tab::Policies, country: None, policy: Some(policy.id.clone()) },
     }));
     entries.extend(content.countries.iter().map(|country| Entry {

@@ -1245,7 +1245,7 @@ impl GameApp {
                 {
                     prepare_funding = true;
                 }
-                if (definition.gdp * p.cost_bps / 10000).max(1) > c.available_cash().0
+                if (definition.gdp * p.cost_bps.units_i64() / 10000).max(1) > c.available_cash().0
                     && ui.button("Review treasury and financing").clicked()
                 {
                     self.tab = Tab::Treasury;
@@ -1351,7 +1351,7 @@ impl GameApp {
                             "Group-mean income Gini · 0–1",
                             indicators.group_mean_gini_bps.map_or_else(
                                 || "Undefined".into(),
-                                |gini| format!("{:.3}", f64::from(gini) / 10000.0),
+                                |gini| format!("{:.3}", f64::from(gini.units()) / 10000.0),
                             ),
                         );
                     });

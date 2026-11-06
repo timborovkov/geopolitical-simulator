@@ -27,7 +27,7 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Actio
             for days in 1..=rules.capacity_days {
                 match world.preview_reserve(content,&world.player,good,days) {
                     Ok(p)=>{
-                        ui.label(format!("{days} day(s), {} units: pay {}m administration now; reserve {}m purchase cash. Review {}; earliest delivery {}; expires {}. Quoted price index {:.4}. {}",p.quantity,p.fee.0,p.cost.0,date(p.review_day),date(p.earliest_delivery_day),date(p.expiry_day),f64::from(p.price_bps)/10000.0,p.route));
+                        ui.label(format!("{days} day(s), {} units: pay {}m administration now; reserve {}m purchase cash. Review {}; earliest delivery {}; expires {}. Quoted price index {:.4}. {}",p.quantity,p.fee.0,p.cost.0,date(p.review_day),date(p.earliest_delivery_day),date(p.expiry_day),f64::from(p.price_bps.units())/10000.0,p.route));
                         if ui.button(format!("Authorize {good:?} contract · {days} day(s)")).clicked() {action=Some(Action::ProcureReserve{good,days});}
                     }
                     Err(reason)=>{ui.small(format!("{days} day(s): {reason}"));}
@@ -89,7 +89,7 @@ fn show_order(
     ui.small(format!(
         "Administration paid {}m · fixed quoted price index {:.4} · unfilled quantity {} units",
         order.fee.0,
-        f64::from(order.price_bps) / 10000.0,
+        f64::from(order.price_bps.units()) / 10000.0,
         order.quantity - order.filled
     ));
     if let Some(day) = order.last_fill_day {

@@ -37,7 +37,7 @@ fn authored_bands_apply_marginal_slices_not_the_top_rate_to_all_income() {
     assert_eq!(
         a.slices
             .iter()
-            .map(|s| s.marginal_rate_bps)
+            .map(|s| s.marginal_rate_bps.units())
             .collect::<Vec<_>>(),
         vec![0, 2000, 3000]
     );
@@ -46,7 +46,7 @@ fn authored_bands_apply_marginal_slices_not_the_top_rate_to_all_income() {
         .unwrap();
     assert_eq!(a.potential, Money(55));
     assert_eq!(a.collectible, Money(44));
-    assert_eq!(a.slices.last().unwrap().marginal_rate_bps, 4000);
+    assert_eq!(a.slices.last().unwrap().marginal_rate_bps.units(), 4000);
     assert_eq!(
         taxes
             .assess(&d, Population(1000), Money(10), 20, 80)
@@ -350,10 +350,10 @@ fn falling_received_income_reduces_withholding_and_the_average_burden_without_ch
 fn malformed_bands_reports_and_older_envelopes_reject_cleanly() {
     let (c, mut w) = setup();
     let mut bad = c.clone();
-    bad.income_taxes.as_mut().unwrap().bands[1].lower_gdp_per_resident_bps = 0;
+    bad.income_taxes.as_mut().unwrap().bands[1].lower_gdp_per_resident_bps = BasisPoints::new(0);
     assert!(bad.validate().is_err());
     let mut bad = c.clone();
-    bad.income_taxes.as_mut().unwrap().bands[3].rate_multiplier_bps = 100000;
+    bad.income_taxes.as_mut().unwrap().bands[3].rate_multiplier_bps = BasisPoints::new(100000);
     assert!(bad.validate().is_err());
     let mut bad = c.clone();
     bad.rules = 12;
@@ -373,7 +373,10 @@ fn malformed_bands_reports_and_older_envelopes_reject_cleanly() {
             "date" => r.day += 1,
             "rate" => r.standard_rate += 1,
             "capacity" => r.administration += 1,
-            "slice" => r.groups[0].assessment.slices[0].marginal_rate_bps += 1,
+            "slice" => {
+                let rate = &mut r.groups[0].assessment.slices[0].marginal_rate_bps;
+                *rate = rate.checked_add(BasisPoints::new(1)).unwrap();
+            }
             "base" => r.groups[0].assessment.gross.0 += 1,
             "cash" => r.groups[0].paid.0 += 1,
             "group" => r.groups[0].group = "unknown".into(),
@@ -468,7 +471,7 @@ fn local_claims_are_based_on_withheld_cash_and_private_workbooks_are_not_publish
         .unwrap()
         .regions
         .iter()
-        .map(|r| r.tax_entitlement_bps)
+        .map(|r| r.tax_entitlement_bps.units_i64())
         .sum();
     assert_eq!(local, report.paid().0 * entitled / 10000);
     assert_ne!(local, report.potential().0 * entitled / 10000);

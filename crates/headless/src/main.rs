@@ -36,10 +36,10 @@ fn status(world: &World, content: &Content) {
             println!(
                 "Settlement {} prices: food {:.4}, energy {:.4}; next settlement: food {:.4}, energy {:.4}",
                 date(food.day),
-                f64::from(food.price_bps) / 10000.0,
-                f64::from(energy.price_bps) / 10000.0,
-                f64::from(markets.food.next_price_bps) / 10000.0,
-                f64::from(markets.energy.next_price_bps) / 10000.0
+                f64::from(food.price_bps.units()) / 10000.0,
+                f64::from(energy.price_bps.units()) / 10000.0,
+                f64::from(markets.food.next_price_bps.units()) / 10000.0,
+                f64::from(markets.energy.next_price_bps.units()) / 10000.0
             );
             println!(
                 "Food physical need {} · affordable demand {} · supply {} · delivered {} · loss {} · closing stock {}",
@@ -1009,7 +1009,7 @@ fn play(
                             indicators.food_below_target.0 as f64 * 100.0 / total,
                             indicators.group_mean_gini_bps.map_or_else(
                                 || "undefined".into(),
-                                |gini| format!("{:.3}", f64::from(gini) / 10000.0)
+                                |gini| format!("{:.3}", f64::from(gini.units()) / 10000.0)
                             )
                         );
                         println!(

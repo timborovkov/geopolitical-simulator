@@ -17,8 +17,8 @@ pub struct RegimeTemplate {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TransitionRoute {
     pub days: DaySpan,
-    pub cost_bps: i64,
-    pub upfront_bps: i64,
+    pub cost_bps: BasisPoints,
+    pub upfront_bps: BasisPoints,
     pub legislative_threshold: i32,
     pub elite_threshold: i32,
     pub council_threshold: i32,
@@ -88,8 +88,8 @@ impl ConstitutionDefinition {
         }
         for route in std::iter::once(&self.lawful).chain(self.contested.iter()) {
             if !(1..=365).contains(&route.days.units())
-                || !(1..=1000).contains(&route.cost_bps)
-                || !(1..=10000).contains(&route.upfront_bps)
+                || !(1..=1000).contains(&route.cost_bps.units_i64())
+                || !(1..=10000).contains(&route.upfront_bps.units_i64())
                 || [
                     route.legislative_threshold,
                     route.elite_threshold,
@@ -207,8 +207,8 @@ impl Constitution {
         if let Some(request) = &self.pending {
             let command = transition_command(world, id, request.id)?;
             let route = rules.route(request.contested)?;
-            let cost = (definition.gdp * route.cost_bps / 10000).max(1);
-            let upfront = (cost * route.upfront_bps / 10000).max(1);
+            let cost = (definition.gdp * route.cost_bps.units_i64() / 10000).max(1);
+            let upfront = (cost * route.upfront_bps.units_i64() / 10000).max(1);
             if !matches!(&command.action, Action::Reconstitute { target, contested } if target == &request.target && *contested == request.contested)
                 || request.from != self.regime
                 || request.target == self.regime
@@ -405,7 +405,9 @@ impl World {
             .filter(|day| *day <= MAX_DAY)
             .ok_or("No time remains for the constitutional decision")?;
         let cost = Money(
-            (content.country(id).ok_or("Missing country")?.gdp * route.cost_bps / 10000).max(1),
+            (content.country(id).ok_or("Missing country")?.gdp * route.cost_bps.units_i64()
+                / 10000)
+                .max(1),
         );
         if country.available_cash().0 < cost.0 {
             return Err(format!(
@@ -413,7 +415,7 @@ impl World {
                 cost.0
             ));
         }
-        let upfront = Money((cost.0 * route.upfront_bps / 10000).max(1));
+        let upfront = Money((cost.0 * route.upfront_bps.units_i64() / 10000).max(1));
         Ok(ConstitutionalPreview {
             target: target.clone(),
             contested,

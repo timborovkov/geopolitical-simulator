@@ -15,7 +15,7 @@ fn seeded_reserves_preserve_all_prior_definitions_and_grant_no_opening_resources
         (
             rules.capacity_days,
             rules.order_days.units(),
-            rules.fee_bps,
+            rules.fee_bps.units(),
             rules.ai_target_days
         ),
         (3, 90, 1, 1)
@@ -108,7 +108,7 @@ fn dated_supply_feedback_explains_both_physical_shortfalls_and_quota_bottlenecks
     );
     assert_eq!(world, before);
     let mut wrong = content.clone();
-    wrong.reserves.as_mut().unwrap().fee_bps = 2;
+    wrong.reserves.as_mut().unwrap().fee_bps = BasisPoints::new(2);
     assert!(
         world
             .reserve_supply(&wrong, &world.player, GoodKind::Food)

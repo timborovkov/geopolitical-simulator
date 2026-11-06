@@ -1,5 +1,5 @@
 //! Versioned, validated content, separate from authoritative formulas.
-use crate::{CurrencyId, DaySpan, HouseholdGroupId, PartyId, PolicyId, Population};
+use crate::{BasisPoints, CurrencyId, DaySpan, HouseholdGroupId, PartyId, PolicyId, Population};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -96,7 +96,14 @@ pub struct PolicyDefinition {
     pub min: i32,
     pub max: i32,
     pub days: DaySpan,
-    pub cost_bps: i64,
+    /// An authored GDP fraction, distinct from a cash amount.
+    /// ```compile_fail
+    /// use sim_core::{Money, PolicyDefinition};
+    /// fn cannot_assign_cash(policy: &mut PolicyDefinition, cash: Money) {
+    ///     policy.cost_bps = cash.0;
+    /// }
+    /// ```
+    pub cost_bps: BasisPoints,
     pub description: String,
     pub groups: String,
 }
@@ -627,7 +634,7 @@ impl Content {
                 || p.min > p.max
                 || p.days.units() == 0
                 || p.days.units() > 365
-                || !(0..=1000).contains(&p.cost_bps)
+                || !(0..=1000).contains(&p.cost_bps.units_i64())
                 || match p.id.as_str() {
                     "income_tax" => p.min < 10 || p.max > 45,
                     "services" => p.min < 4 || p.max > 18,

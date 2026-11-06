@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct ReserveDefinition {
     pub capacity_days: u32,
     pub order_days: DaySpan,
-    pub fee_bps: u32,
+    pub fee_bps: BasisPoints,
     pub ai_target_days: u32,
     pub source: String,
     pub source_version: String,
@@ -16,7 +16,7 @@ impl ReserveDefinition {
     pub fn validate(&self, content: &Content) -> Result<(), String> {
         if !(1..=10).contains(&self.capacity_days)
             || !(30..=365).contains(&self.order_days.units())
-            || !(1..=10).contains(&self.fee_bps)
+            || !(1..=10).contains(&self.fee_bps.units())
             || !(1..=self.capacity_days).contains(&self.ai_target_days)
             || self.source_version.trim().is_empty()
             || self.source_version.len() > 128
@@ -51,7 +51,7 @@ pub struct ReserveOrder {
     pub days: u32,
     pub quantity: i64,
     pub filled: i64,
-    pub price_bps: u32,
+    pub price_bps: BasisPoints,
     pub last_fill_day: Option<u32>,
     pub last_fill_quantity: i64,
     pub quoted_cost: Money,
@@ -128,7 +128,7 @@ impl Default for NationalReserves {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ReservePreview {
     pub quantity: i64,
-    pub price_bps: u32,
+    pub price_bps: BasisPoints,
     pub cost: Money,
     pub fee: Money,
     pub review_day: u32,
@@ -214,7 +214,7 @@ impl World {
             .as_ref()
             .ok_or("Missing commodity market rules")?
             .good(good);
-        let import_capacity = physical_need * i64::from(rule.import_limit_bps) / 10000;
+        let import_capacity = physical_need * i64::from(rule.import_limit_bps.units()) / 10000;
         Ok(Some(ReserveSupply {
             day,
             physical_need,
@@ -269,11 +269,11 @@ impl World {
             .as_ref()
             .ok_or("Reserve procurement requires commodity markets")?;
         let price_bps = match good {
-            GoodKind::Energy => market.energy.next_price_bps,
-            GoodKind::Food => market.food.next_price_bps,
+            GoodKind::Energy => market.energy.next_price_bps.units(),
+            GoodKind::Food => market.food.next_price_bps.units(),
         };
         let cost = contract_cost(d.gdp, need, quantity, price_bps);
-        let fee = Money((d.gdp * i64::from(rules.fee_bps) / 10000).max(1));
+        let fee = Money((d.gdp * i64::from(rules.fee_bps.units()) / 10000).max(1));
         if c.available_cash().0 < cost.0 + fee.0 {
             return Err(format!(
                 "Requires {}m uncommitted national cash: {}m administration and {}m reserved purchase budget",
@@ -293,7 +293,7 @@ impl World {
             .ok_or("Reserve contract exceeds the campaign calendar")?;
         Ok(ReservePreview {
             quantity,
-            price_bps,
+            price_bps: BasisPoints::new(price_bps),
             cost,
             fee,
             review_day,
@@ -535,7 +535,7 @@ impl World {
             if supply < need {
                 continue;
             }
-            let quantity = (need * i64::from(r.import_limit_bps) / 10000 - imports)
+            let quantity = (need * i64::from(r.import_limit_bps.units()) / 10000 - imports)
                 .min(o.quantity - o.filled)
                 .max(0);
             if quantity == 0 {
@@ -596,7 +596,8 @@ impl World {
                         .as_ref()
                         .unwrap()
                         .good(GoodKind::Food)
-                        .loss_bps,
+                        .loss_bps
+                        .units(),
                 ),
                 10000,
             )
@@ -756,9 +757,10 @@ impl World {
                 || !(1..=rules.capacity_days).contains(&o.days)
                 || o.quantity != need * i64::from(o.days)
                 || !(0..=o.quantity).contains(&o.filled)
-                || !(market.minimum_price_bps..=market.maximum_price_bps).contains(&o.price_bps)
-                || o.quoted_cost != contract_cost(d.gdp, need, o.quantity, o.price_bps)
-                || o.fee != Money((d.gdp * i64::from(rules.fee_bps) / 10000).max(1))
+                || !(market.minimum_price_bps.units()..=market.maximum_price_bps.units())
+                    .contains(&o.price_bps.units())
+                || o.quoted_cost != contract_cost(d.gdp, need, o.quantity, o.price_bps.units())
+                || o.fee != Money((d.gdp * i64::from(rules.fee_bps.units()) / 10000).max(1))
                 || o.paid != paid_for(o, o.filled)
                 || o.review_day < o.proposed_day
                 || o.review_day - o.proposed_day > 365
@@ -828,7 +830,7 @@ impl World {
             0,
             c.report.energy_imported.units(),
             quotes.energy.last.as_ref().map_or(0, |x| x.supply.units()),
-            e.import_limit_bps,
+            e.import_limit_bps.units(),
             bought(GoodKind::Energy),
         )?;
         validate_stock(
@@ -838,10 +840,10 @@ impl World {
             rules,
             self.day,
             content.start_day()?,
-            f.loss_bps,
+            f.loss_bps.units(),
             c.report.food_imported.units(),
             quotes.food.last.as_ref().map_or(0, |x| x.supply.units()),
-            f.import_limit_bps,
+            f.import_limit_bps.units(),
             bought(GoodKind::Food),
         )
     }

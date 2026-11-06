@@ -71,7 +71,7 @@ fn lawful_devolution_changes_real_powers_and_tax_rights_without_changing_the_cab
             .unwrap()
             .regions
             .iter()
-            .map(|r| r.tax_entitlement_bps)
+            .map(|r| r.tax_entitlement_bps.units_i64())
             .sum::<i64>(),
         3000
     );
@@ -438,7 +438,7 @@ fn malformed_rights_funds_and_history_are_rejected_without_arithmetic_panics() {
         assert!(bad.validate(&c).is_err(), "mutation {kind}");
     }
     let mut bad = c.clone();
-    bad.territorial.as_mut().unwrap().templates[0].tax_pool_bps = 10001;
+    bad.territorial.as_mut().unwrap().templates[0].tax_pool_bps = BasisPoints::new(10001);
     assert!(bad.validate().is_err());
     let mut bad = c.clone();
     bad.territorial.as_mut().unwrap().source = "missing".into();

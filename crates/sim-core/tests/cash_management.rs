@@ -281,7 +281,7 @@ fn snapshot_and_content_validation_reject_invalid_terms_and_false_cash() {
         .clear();
     assert!(corrupt.validate(&c).is_err());
     let mut bad = c.clone();
-    bad.cash_management.as_mut().unwrap().max_target_bps = 101;
+    bad.cash_management.as_mut().unwrap().max_target_bps = BasisPoints::new(101);
     assert!(bad.validate().is_err());
     let mut bad = c.clone();
     bad.rules = 15;

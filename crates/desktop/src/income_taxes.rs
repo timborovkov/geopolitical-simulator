@@ -55,11 +55,11 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, draft: Option<i32>) -
                 for label in ["Band", "Annual private income / benchmark", "Marginal rate"] { ui.strong(label); }
                 ui.end_row();
                 for (index, band) in rules.bands.iter().enumerate() {
-                    let lower = percent(band.lower_gdp_per_resident_bps);
-                    let range = rules.bands.get(index + 1).map_or(format!("{lower} and above"), |next| format!("{lower} to {}", percent(next.lower_gdp_per_resident_bps)));
+                    let lower = percent(band.lower_gdp_per_resident_bps.units());
+                    let range = rules.bands.get(index + 1).map_or(format!("{lower} and above"), |next| format!("{lower} to {}", percent(next.lower_gdp_per_resident_bps.units())));
                     ui.label(&band.id.0);
                     ui.label(range);
-                    ui.label(percent(rules.marginal_rate_bps(band, standard).expect("validated band")));
+                    ui.label(percent(rules.marginal_rate_bps(band, standard).expect("validated band").units()));
                     ui.end_row();
                 }
             });
@@ -84,7 +84,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, draft: Option<i32>) -
                         let name=&d.household(&line.group).expect("cohort").name;
                         ui.strong(format!("{name}: private gross {}m/day",line.assessment.gross.0));
                         for slice in &line.assessment.slices {
-                            ui.label(format!("{}: annualised group basis {}m at marginal {}",slice.band.0,slice.annual_base.0,percent(slice.marginal_rate_bps)));
+                            ui.label(format!("{}: annualised group basis {}m at marginal {}",slice.band.0,slice.annual_base.0,percent(slice.marginal_rate_bps.units())));
                         }
                     }
                 });

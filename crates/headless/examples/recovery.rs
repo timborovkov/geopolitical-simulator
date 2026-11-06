@@ -87,7 +87,7 @@ fn play(
             .as_ref()
             .is_some_and(|finance| finance.maturity_days.is_some())
         {
-            let cost = (definition.gdp * rules.route(true)?.cost_bps / 10000).max(1);
+            let cost = (definition.gdp * rules.route(true)?.cost_bps.units_i64() / 10000).max(1);
             for _ in 0..3 {
                 if world.player_country().available_cash().0 >= cost {
                     break;

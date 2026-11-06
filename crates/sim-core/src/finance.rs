@@ -125,7 +125,14 @@ pub struct DebtInstrument {
     /// Opening calibration is recognized at the bookmark, not a historical
     /// claim that the country's actual debt originated on that date.
     pub issued_day: u32,
-    pub annual_rate_bps: u32,
+    /// Annual basis points; four percent is 400 basis points, not four.
+    /// ```compile_fail
+    /// use sim_core::{DebtInstrument, Percent};
+    /// fn cannot_assign_percent_count(loan: &mut DebtInstrument) {
+    ///     loan.annual_rate_bps = Percent::new(4).units();
+    /// }
+    /// ```
+    pub annual_rate_bps: BasisPoints,
     /// None denotes perpetual principal, including the opening calibration.
     pub maturity_day: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -166,7 +173,7 @@ impl Financing {
                 original_principal: Money(country.gdp / 3),
                 outstanding: Money(country.gdp / 3),
                 issued_day: day,
-                annual_rate_bps: 400,
+                annual_rate_bps: BasisPoints::new(400),
                 maturity_day: None,
                 maturity_repaid: None,
                 last_maturity_payment_day: None,
@@ -244,7 +251,7 @@ impl Financing {
                 || instrument.original_principal.0 <= 0
                 || instrument.outstanding.0 < 0
                 || instrument.outstanding.0 > instrument.original_principal.0
-                || instrument.annual_rate_bps != 400
+                || instrument.annual_rate_bps.units() != 400
                 || instrument.maturity_day
                     != if index == 0 {
                         None
@@ -563,7 +570,7 @@ impl World {
                 original_principal: amount,
                 outstanding: amount,
                 issued_day: self.day,
-                annual_rate_bps: 400,
+                annual_rate_bps: BasisPoints::new(400),
                 maturity_day: content
                     .finance
                     .as_ref()

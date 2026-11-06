@@ -30,8 +30,8 @@ pub struct RegionalMandate {
     pub authority: OfficeId,
     pub name: String,
     pub tier: RegionalTier,
-    pub population_share_bps: i64,
-    pub tax_entitlement_bps: i64,
+    pub population_share_bps: BasisPoints,
+    pub tax_entitlement_bps: BasisPoints,
     pub autonomous_services: bool,
     pub service_level: i32,
 }
@@ -46,7 +46,7 @@ pub struct SubnationalDefinition {
     pub charters: Vec<TerritorialCharter>,
     pub grant_review_days: DaySpan,
     pub cooldown_days: DaySpan,
-    pub administration_cost_bps: i64,
+    pub administration_cost_bps: BasisPoints,
     pub absorption_days: DaySpan,
     pub source: String,
     pub source_version: String,
@@ -66,7 +66,7 @@ impl SubnationalDefinition {
     pub fn validate(&self, content: &Content) -> Result<(), String> {
         if !(1..=90).contains(&self.grant_review_days.units())
             || !(30..=365).contains(&self.cooldown_days.units())
-            || !(1..=100).contains(&self.administration_cost_bps)
+            || !(1..=100).contains(&self.administration_cost_bps.units_i64())
             || !(30..=365).contains(&self.absorption_days.units())
             || self.source_version.is_empty()
             || !content
@@ -97,13 +97,13 @@ impl SubnationalDefinition {
                 || charter
                     .regions
                     .iter()
-                    .map(|r| i128::from(r.population_share_bps))
+                    .map(|r| i128::from(r.population_share_bps.units_i64()))
                     .sum::<i128>()
                     != 10000
                 || charter
                     .regions
                     .iter()
-                    .map(|r| i128::from(r.tax_entitlement_bps))
+                    .map(|r| i128::from(r.tax_entitlement_bps.units_i64()))
                     .sum::<i128>()
                     > 4000
             {
@@ -117,8 +117,8 @@ impl SubnationalDefinition {
                     || region.id.0.is_empty()
                     || region.authority.0.is_empty()
                     || region.name.is_empty()
-                    || !(1..=10000).contains(&region.population_share_bps)
-                    || !(0..=4000).contains(&region.tax_entitlement_bps)
+                    || !(1..=10000).contains(&region.population_share_bps.units_i64())
+                    || !(0..=4000).contains(&region.tax_entitlement_bps.units_i64())
                     || !(0..=8).contains(&region.service_level)
                     || content.cabinet.as_ref().is_some_and(|cabinet| {
                         cabinet.portfolios.iter().any(|p| p.id == region.authority)
@@ -171,8 +171,8 @@ pub struct RegionalSettlement {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RegionalBudget {
     pub id: RegionId,
-    pub population_share_bps: i64,
-    pub tax_entitlement_bps: i64,
+    pub population_share_bps: BasisPoints,
+    pub tax_entitlement_bps: BasisPoints,
     pub service_level: i32,
     pub cash: Money,
     pub tax_received: Money,
@@ -277,7 +277,10 @@ impl Country {
             state
                 .regions
                 .iter()
-                .map(|r| regional_daily_cost(d.gdp, r.population_share_bps, r.service_level).0)
+                .map(|r| {
+                    regional_daily_cost(d.gdp, r.population_share_bps.units_i64(), r.service_level)
+                        .0
+                })
                 .sum::<i64>()
                 + state
                     .orders
@@ -293,7 +296,7 @@ impl Country {
                 state
                     .regions
                     .iter()
-                    .map(|r| r.tax_entitlement_bps)
+                    .map(|r| r.tax_entitlement_bps.units_i64())
                     .sum::<i64>()
             })
             / 10000
@@ -360,14 +363,18 @@ impl World {
                             .into(),
                     );
                 }
-                let base =
-                    regional_daily_cost(d.gdp, mandate.population_share_bps, local.service_level).0;
+                let base = regional_daily_cost(
+                    d.gdp,
+                    mandate.population_share_bps.units_i64(),
+                    local.service_level,
+                )
+                .0;
                 if local.cash.0 > base.max(1) * i64::from(rules.absorption_days.units()) {
                     return Err("The local authority's cash mandate does not permit another funded supplement yet".into());
                 }
                 let daily = regional_daily_cost(
                     d.gdp,
-                    mandate.population_share_bps,
+                    mandate.population_share_bps.units_i64(),
                     local.service_level + boost,
                 )
                 .0 - base;
@@ -409,7 +416,7 @@ impl World {
             ),
             None => None,
         };
-        let fee = Money((d.gdp * rules.administration_cost_bps / 10000).max(1));
+        let fee = Money((d.gdp * rules.administration_cost_bps.units_i64() / 10000).max(1));
         if country.available_cash().0 < fee.0 + principal.0 {
             return Err("Regional offers require national uncommitted cash, excluding local entitlements and existing escrow".into());
         }
@@ -559,7 +566,7 @@ impl World {
                 && local.cash.0
                     > regional_daily_cost(
                         content.country(id).expect("country").gdp,
-                        mandate.population_share_bps,
+                        mandate.population_share_bps.units_i64(),
                         local.service_level,
                     )
                     .0
@@ -622,7 +629,7 @@ impl World {
             .expect("subnational")
             .regions
             .iter()
-            .map(|r| r.tax_entitlement_bps)
+            .map(|r| r.tax_entitlement_bps.units_i64())
             .collect();
         let total_share: i64 = shares.iter().sum();
         let receipts = if total_share == 0 {
@@ -651,8 +658,11 @@ impl World {
                 .expect("region");
             local.cash.0 += receipt;
             local.tax_received.0 += receipt;
-            let requested =
-                regional_daily_cost(d.gdp, mandate.population_share_bps, local.service_level);
+            let requested = regional_daily_cost(
+                d.gdp,
+                mandate.population_share_bps.units_i64(),
+                local.service_level,
+            );
             let base = local.cash.0.min(requested.0);
             local.cash.0 -= base;
             local.base_spent.0 += base;
@@ -720,7 +730,7 @@ impl World {
             if local.cash.0
                 >= regional_daily_cost(
                     content.country(id).expect("country").gdp,
-                    mandate.population_share_bps,
+                    mandate.population_share_bps.units_i64(),
                     local.service_level,
                 )
                 .0
@@ -788,7 +798,7 @@ impl World {
         let shares: Vec<_> = state
             .regions
             .iter()
-            .map(|r| r.tax_entitlement_bps)
+            .map(|r| r.tax_entitlement_bps.units_i64())
             .collect();
         let total_share: i64 = shares.iter().sum();
         let receipts = if total_share == 0 {
@@ -840,8 +850,9 @@ impl World {
             if !(0..=8).contains(&local.service_level)
                 || !(0..=8).contains(&settled_level)
                 || local.id != mandate.id
-                || local.population_share_bps != mandate.population_share_bps
-                || local.tax_entitlement_bps != mandate.tax_entitlement_bps
+                || local.population_share_bps.units_i64()
+                    != mandate.population_share_bps.units_i64()
+                || local.tax_entitlement_bps.units_i64() != mandate.tax_entitlement_bps.units_i64()
                 || local.service_level != level
                 || local.next_order_day != clock
                 || proposals
@@ -913,7 +924,7 @@ impl World {
                         || last.requested_base
                             != regional_daily_cost(
                                 d.gdp,
-                                mandate.population_share_bps,
+                                mandate.population_share_bps.units_i64(),
                                 settled_level,
                             )
                         || last.paid_base.0 < 0
@@ -980,7 +991,7 @@ impl World {
                 || order.sponsor > c.government_number
                 || !(0..=8).contains(&order.baseline_level)
                 || order.paid_administration
-                    != Money((d.gdp * rules.administration_cost_bps / 10000).max(1))
+                    != Money((d.gdp * rules.administration_cost_bps.units_i64() / 10000).max(1))
                 || [
                     order.principal.0,
                     order.escrow.0,
@@ -1000,12 +1011,12 @@ impl World {
                     }
                     let daily = regional_daily_cost(
                         d.gdp,
-                        mandate.population_share_bps,
+                        mandate.population_share_bps.units_i64(),
                         order.baseline_level + boost,
                     )
                     .0 - regional_daily_cost(
                         d.gdp,
-                        mandate.population_share_bps,
+                        mandate.population_share_bps.units_i64(),
                         order.baseline_level,
                     )
                     .0;

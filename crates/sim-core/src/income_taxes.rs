@@ -22,9 +22,9 @@ pub struct IncomeTaxBandId(pub String);
 pub struct IncomeTaxBand {
     pub id: IncomeTaxBandId,
     /// Annual private income relative to opening GDP per resident, in basis points.
-    pub lower_gdp_per_resident_bps: u32,
+    pub lower_gdp_per_resident_bps: BasisPoints,
     /// Factor applied to the operating income_tax standard rate; 10000 means 1x.
-    pub rate_multiplier_bps: u32,
+    pub rate_multiplier_bps: BasisPoints,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IncomeTaxDefinition {
@@ -41,19 +41,22 @@ impl IncomeTaxDefinition {
             || self
                 .bands
                 .first()
-                .is_none_or(|b| b.lower_gdp_per_resident_bps != 0)
+                .is_none_or(|b| b.lower_gdp_per_resident_bps.units() != 0)
             || self.bands.iter().any(|b| {
                 b.id.0.trim().is_empty()
                     || b.id.0.len() > 64
                     || !ids.insert(&b.id)
-                    || b.lower_gdp_per_resident_bps > 1_000_000
-                    || b.rate_multiplier_bps > 20_000
+                    || b.lower_gdp_per_resident_bps.units() > 1_000_000
+                    || b.rate_multiplier_bps.units() > 20_000
             })
             || self.bands.windows(2).any(|b| {
-                b[0].lower_gdp_per_resident_bps >= b[1].lower_gdp_per_resident_bps
-                    || b[0].rate_multiplier_bps > b[1].rate_multiplier_bps
+                b[0].lower_gdp_per_resident_bps.units() >= b[1].lower_gdp_per_resident_bps.units()
+                    || b[0].rate_multiplier_bps.units() > b[1].rate_multiplier_bps.units()
             })
-            || self.bands.iter().all(|b| b.rate_multiplier_bps == 0)
+            || self
+                .bands
+                .iter()
+                .all(|b| b.rate_multiplier_bps.units() == 0)
         {
             return Err("Income bands need unique IDs, complete ordered coverage, progressive bounded marginal factors and 365-day annualisation".into());
         }
@@ -76,11 +79,13 @@ impl IncomeTaxDefinition {
         &self,
         band: &IncomeTaxBand,
         standard_rate: i32,
-    ) -> Result<u32, String> {
-        if !(10..=45).contains(&standard_rate) || band.rate_multiplier_bps > 20_000 {
+    ) -> Result<BasisPoints, String> {
+        if !(10..=45).contains(&standard_rate) || band.rate_multiplier_bps.units() > 20_000 {
             return Err("Invalid standard rate or marginal multiplier".into());
         }
-        Ok(standard_rate as u32 * 100 * band.rate_multiplier_bps / 10_000)
+        Ok(BasisPoints::new(
+            standard_rate as u32 * 100 * band.rate_multiplier_bps.units() / 10_000,
+        ))
     }
     /// A representative resident within each cohort, not an intra-cohort distribution.
     /// All slices use the cohort's aggregate annualised income, keeping money integral.
@@ -115,15 +120,15 @@ impl IncomeTaxDefinition {
         let mut numerator = 0_i128;
         let mut slices = Vec::new();
         for (index, b) in self.bands.iter().enumerate() {
-            let lower = threshold(b.lower_gdp_per_resident_bps);
+            let lower = threshold(b.lower_gdp_per_resident_bps.units());
             let upper = self
                 .bands
                 .get(index + 1)
-                .map_or(annual, |b| threshold(b.lower_gdp_per_resident_bps));
+                .map_or(annual, |b| threshold(b.lower_gdp_per_resident_bps.units()));
             let amount = (annual.min(upper) - lower).max(0);
             if amount > 0 {
                 let rate = self.marginal_rate_bps(b, standard_rate)?;
-                numerator += amount * i128::from(rate);
+                numerator += amount * i128::from(rate.units());
                 slices.push(IncomeTaxSlice {
                     band: b.id.clone(),
                     annual_base: Money(
@@ -154,7 +159,7 @@ pub struct IncomeTaxSlice {
     pub band: IncomeTaxBandId,
     /// Annualised aggregate private-income basis; this is not a cash payment.
     pub annual_base: Money,
-    pub marginal_rate_bps: u32,
+    pub marginal_rate_bps: BasisPoints,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IncomeTaxAssessment {

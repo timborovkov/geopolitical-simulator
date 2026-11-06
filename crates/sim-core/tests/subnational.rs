@@ -347,7 +347,8 @@ fn pending_local_offers_lose_their_sponsor_without_cancelling_other_local_mandat
 fn territorial_provenance_private_cash_calendar_and_saved_state_are_validated() {
     let c = content();
     let mut bad = c.clone();
-    bad.subnational.as_mut().unwrap().charters[0].regions[0].population_share_bps += 1;
+    let share = &mut bad.subnational.as_mut().unwrap().charters[0].regions[0].population_share_bps;
+    *share = share.checked_add(BasisPoints::new(1)).unwrap();
     assert!(bad.validate().is_err());
     let mut bad = c.clone();
     bad.subnational.as_mut().unwrap().charters[0].regions[0].authority =

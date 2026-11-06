@@ -8,7 +8,7 @@ fn preserved_cash_management_preserves_the_complete_prior_roster_and_resolves_fi
     let rules = content.cash_management.as_ref().unwrap();
     assert_eq!(
         (
-            rules.max_target_bps,
+            rules.max_target_bps.units_i64(),
             rules.max_days.units(),
             rules.cooldown_days.units(),
             rules.approval_cost

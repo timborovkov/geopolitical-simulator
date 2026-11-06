@@ -27,7 +27,7 @@ impl std::fmt::Display for CommitmentId {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CommitmentDefinition {
-    pub amendment_fee_bps: i64,
+    pub amendment_fee_bps: BasisPoints,
     pub maximum_amendments: u32,
     pub evaluation_days: DaySpan,
     pub source: String,
@@ -35,7 +35,7 @@ pub struct CommitmentDefinition {
 }
 impl CommitmentDefinition {
     pub fn validate(&self, content: &Content) -> Result<(), String> {
-        if !(1..=10000).contains(&self.amendment_fee_bps)
+        if !(1..=10000).contains(&self.amendment_fee_bps.units_i64())
             || !(1..=10).contains(&self.maximum_amendments)
             || !(1..=365).contains(&self.evaluation_days.units())
             || self.source_version.is_empty()
@@ -171,7 +171,7 @@ impl World {
         }
         let government = self.governing_rules(content, id)?;
         government.check(c, p.policy.as_str(), value)?;
-        let fee = Money((p.cost.0 * rules.amendment_fee_bps / 10000).max(1));
+        let fee = Money((p.cost.0 * rules.amendment_fee_bps.units_i64() / 10000).max(1));
         if fee.0 > c.available_cash().0 {
             return Err("Amendment administration requires uncommitted treasury cash".into());
         }
@@ -516,7 +516,9 @@ impl World {
             };
             let definition = content.policy(policy).ok_or("Unknown commitment policy")?;
             let cost = Money(
-                (content.country(id).expect("country").gdp * definition.cost_bps / 10000).max(1),
+                (content.country(id).expect("country").gdp * definition.cost_bps.units_i64()
+                    / 10000)
+                    .max(1),
             );
             if r.milestones.is_empty()
                 || r.id.0 != ordinal as u64 + 1
@@ -655,7 +657,7 @@ impl World {
                             cost.0 - (cost.0 / 10).max(1)
                         }
                         + i64::from(r.amendments)
-                            * (cost.0 * rules.amendment_fee_bps / 10000).max(1)
+                            * (cost.0 * rules.amendment_fee_bps.units_i64() / 10000).max(1)
             {
                 return Err("Commitment funding or pending project disagrees with history".into());
             }

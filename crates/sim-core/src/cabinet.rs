@@ -24,8 +24,8 @@ pub struct MinisterCandidate {
 pub struct CabinetDefinition {
     pub portfolios: Vec<PortfolioDefinition>,
     pub candidates: Vec<MinisterCandidate>,
-    pub appointment_cost_bps: i64,
-    pub dismissal_cost_bps: i64,
+    pub appointment_cost_bps: BasisPoints,
+    pub dismissal_cost_bps: BasisPoints,
     pub cooldown_days: DaySpan,
     pub vacancy_preparation_days: DaySpan,
     pub source: String,
@@ -39,8 +39,8 @@ impl CabinetDefinition {
         self.candidates.iter().find(|p| &p.person == id)
     }
     pub fn validate(&self, content: &Content) -> Result<(), String> {
-        if !(1..=100).contains(&self.appointment_cost_bps)
-            || !(1..=100).contains(&self.dismissal_cost_bps)
+        if !(1..=100).contains(&self.appointment_cost_bps.units_i64())
+            || !(1..=100).contains(&self.dismissal_cost_bps.units_i64())
             || !(1..=365).contains(&self.cooldown_days.units())
             || !(1..=90).contains(&self.vacancy_preparation_days.units())
             || self.source_version.is_empty()
@@ -260,7 +260,7 @@ impl World {
         government.check(c, "appointments", 1)?;
         let fee = Money(
             (content.country(id).ok_or("Missing country definition")?.gdp
-                * rules.appointment_cost_bps
+                * rules.appointment_cost_bps.units_i64()
                 / 10000)
                 .max(1),
         );
@@ -375,7 +375,9 @@ impl World {
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Dismissal cooldown would exceed the campaign calendar")?;
         let fee = Money(
-            (content.country(id).expect("country").gdp * rules.dismissal_cost_bps / 10000).max(1),
+            (content.country(id).expect("country").gdp * rules.dismissal_cost_bps.units_i64()
+                / 10000)
+                .max(1),
         );
         if fee.0 > c.available_cash().0 {
             return Err("Dismissal administration requires uncommitted treasury".into());
@@ -614,7 +616,9 @@ impl World {
             }
         }
         let fee = Money(
-            (content.country(id).expect("country").gdp * rules.appointment_cost_bps / 10000).max(1),
+            (content.country(id).expect("country").gdp * rules.appointment_cost_bps.units_i64()
+                / 10000)
+                .max(1),
         );
         let mut pending = BTreeSet::new();
         for p in &state.pending {

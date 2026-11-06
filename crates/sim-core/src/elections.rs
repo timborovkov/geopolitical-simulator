@@ -55,7 +55,7 @@ pub struct ElectionDefinition {
     pub campaign_days: DaySpan,
     pub minimum_interval_days: DaySpan,
     pub regular_term_years: u16,
-    pub administration_cost_bps: i64,
+    pub administration_cost_bps: BasisPoints,
     pub source: String,
     pub source_version: String,
 }
@@ -68,7 +68,7 @@ impl ElectionDefinition {
             || !(30..=180).contains(&self.campaign_days.units())
             || !(1..=365).contains(&self.minimum_interval_days.units())
             || !(1..=4).contains(&self.regular_term_years)
-            || !(1..=100).contains(&self.administration_cost_bps)
+            || !(1..=100).contains(&self.administration_cost_bps.units_i64())
             || self.source_version.is_empty()
             || !content.sources.iter().any(|s| s.id == self.source)
         {
@@ -235,7 +235,8 @@ impl World {
             );
         }
         let fee = Money(
-            (content.country(id).expect("country").gdp * rules.administration_cost_bps / 10000)
+            (content.country(id).expect("country").gdp * rules.administration_cost_bps.units_i64()
+                / 10000)
                 .max(1),
         );
         if fee.0 > c.available_cash().0 {
@@ -511,7 +512,8 @@ impl World {
             );
         }
         let fee = Money(
-            (content.country(id).expect("country").gdp * rules.administration_cost_bps / 10000)
+            (content.country(id).expect("country").gdp * rules.administration_cost_bps.units_i64()
+                / 10000)
                 .max(1),
         );
         let mut interval = start + rules.minimum_interval_days.units();

@@ -70,7 +70,7 @@ impl World {
         if current == value {
             return Err("The proposed level is already in force".into());
         }
-        let cost = Money((d.gdp * p.cost_bps / 10000).max(1));
+        let cost = Money((d.gdp * p.cost_bps.units_i64() / 10000).max(1));
         let available = c.available_cash().0;
         if require_cash && available < cost.0 {
             return Err(format!(
@@ -635,11 +635,11 @@ impl World {
         let energy_price = c
             .markets
             .as_ref()
-            .map_or(10000, |markets| markets.energy.next_price_bps);
+            .map_or(10000, |markets| markets.energy.next_price_bps.units());
         let food_price = c
             .markets
             .as_ref()
-            .map_or(10000, |markets| markets.food.next_price_bps);
+            .map_or(10000, |markets| markets.food.next_price_bps.units());
         let opening_energy = c.energy_stock;
         let opening_food = c.food_stock;
         let energy_produced = energy_demand
@@ -687,7 +687,9 @@ impl World {
                 .min(
                     energy_demand
                         .scaled(
-                            i64::from(energy_rule.map_or(2500, |rule| rule.import_limit_bps)),
+                            i64::from(
+                                energy_rule.map_or(2500, |rule| rule.import_limit_bps.units()),
+                            ),
                             10000,
                         )
                         .expect("positive ratio"),
@@ -704,7 +706,7 @@ impl World {
                 .min(
                     food_demand
                         .scaled(
-                            i64::from(food_rule.map_or(3500, |rule| rule.import_limit_bps)),
+                            i64::from(food_rule.map_or(3500, |rule| rule.import_limit_bps.units())),
                             10000,
                         )
                         .expect("positive ratio"),
@@ -926,7 +928,7 @@ impl World {
             .expect("delivery limited by supply");
         let food_lost = food_left
             .scaled(
-                i64::from(food_rule.map_or(100, |rule| rule.loss_bps)),
+                i64::from(food_rule.map_or(100, |rule| rule.loss_bps.units())),
                 10000,
             )
             .expect("positive loss ratio");
@@ -986,7 +988,7 @@ impl World {
         if let Some(markets) = &mut c.markets {
             markets.energy.last = Some(MarketSettlement {
                 day: self.day,
-                price_bps: energy_price,
+                price_bps: BasisPoints::new(energy_price),
                 physical_need: energy_demand,
                 requested_use: energy_demand,
                 opening_stock: opening_energy,
@@ -1000,7 +1002,7 @@ impl World {
             });
             markets.food.last = Some(MarketSettlement {
                 day: self.day,
-                price_bps: food_price,
+                price_bps: BasisPoints::new(food_price),
                 physical_need: food_demand,
                 requested_use: food_requested,
                 opening_stock: opening_food,
@@ -1013,14 +1015,14 @@ impl World {
                 closing_stock: c.food_stock,
             });
             markets.energy.next_price_bps = next_market_price(
-                energy_price,
+                BasisPoints::new(energy_price),
                 energy_supply.units(),
                 energy_demand.units(),
                 energy_rule.expect("configured energy rule"),
             )
             .expect("validated price quantities");
             markets.food.next_price_bps = next_market_price(
-                food_price,
+                BasisPoints::new(food_price),
                 food_supply.units(),
                 food_requested.units(),
                 food_rule.expect("configured food rule"),

@@ -84,8 +84,8 @@ fn alignment_body(ui: &mut egui::Ui, content: &Content, report: &PartyAlignmentR
         ));
         ui.label(format!(
             "Known position coverage: {}.{:02}%",
-            report.known_positions_bps / 100,
-            report.known_positions_bps % 100
+            report.known_positions_bps.units() / 100,
+            report.known_positions_bps.units() % 100
         ));
         ui.small("Only operating policies affect this reduction. Held backing moves at monthly political reviews alongside opinion, funding and institutional effects. Coalition-seat weights apply to legislatures; party leadership uses the ruling party.");
         for row in &report.parties {
@@ -98,7 +98,11 @@ fn alignment_body(ui: &mut egui::Ui, content: &Content, report: &PartyAlignmentR
                 row.weight,
                 row.distance_bps.map_or_else(
                     || "policy positions unknown".into(),
-                    |distance| format!("policy distance {}.{:02}%", distance / 100, distance % 100)
+                    |distance| format!(
+                        "policy distance {}.{:02}%",
+                        distance.units() / 100,
+                        distance.units() % 100
+                    )
                 )
             ));
         }

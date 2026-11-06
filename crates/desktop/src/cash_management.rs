@@ -45,7 +45,7 @@ impl Panel {
             .country(&world.player)
             .ok_or("Missing country definition")?
             .gdp
-            * rules.max_target_bps
+            * rules.max_target_bps.units_i64()
             / 10000)
             .max(1);
         if plan.preview.cost.0 > max {
@@ -130,7 +130,9 @@ impl Panel {
                 action = Some(Choice::Command(Action::ReleaseCash { request: active.id }));
             }
         } else {
-            let max = (content.country(&world.player)?.gdp * rules.max_target_bps / 10000).max(1);
+            let max = (content.country(&world.player)?.gdp * rules.max_target_bps.units_i64()
+                / 10000)
+                .max(1);
             self.target = self.target.clamp(1, max);
             self.days = self.days.clamp(1, rules.max_days.units());
             ui.horizontal_wrapped(|ui| {

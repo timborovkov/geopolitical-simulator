@@ -52,7 +52,7 @@ pub struct UndertakingTemplate {
     pub delta: i32,
     pub review_days: DaySpan,
     pub deadline_days: DaySpan,
-    pub administration_cost_bps: i64,
+    pub administration_cost_bps: BasisPoints,
     pub minimum_credibility: i32,
     pub elite_threshold: i32,
     pub council_threshold: i32,
@@ -132,7 +132,7 @@ impl UndertakingDefinition {
                 || !goal
                 || !(1..=90).contains(&t.review_days.units())
                 || !(1..=730).contains(&t.deadline_days.units())
-                || !(1..=1000).contains(&t.administration_cost_bps)
+                || !(1..=1000).contains(&t.administration_cost_bps.units_i64())
                 || [
                     t.minimum_credibility,
                     t.elite_threshold,
@@ -402,7 +402,9 @@ impl World {
             .filter(|d| *d <= MAX_DAY)
             .ok_or("Undertaking deadline exceeds the campaign calendar")?;
         let fee = Money(
-            (content.country(id).expect("country").gdp * t.administration_cost_bps / 10000).max(1),
+            (content.country(id).expect("country").gdp * t.administration_cost_bps.units_i64()
+                / 10000)
+                .max(1),
         );
         if c.available_cash().0 < fee.0 {
             return Err(
@@ -935,7 +937,8 @@ impl World {
                 || r.sponsor > c.government_number
                 || r.fee
                     != Money(
-                        (content.country(id).expect("country").gdp * t.administration_cost_bps
+                        (content.country(id).expect("country").gdp
+                            * t.administration_cost_bps.units_i64()
                             / 10000)
                             .max(1),
                     )

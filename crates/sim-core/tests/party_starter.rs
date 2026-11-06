@@ -63,11 +63,11 @@ fn starter_preserves_the_roster_and_seeds_explicit_attributed_positions_without_
         match alignment.metric {
             Some(PartyBackingMetric::Legislative) => {
                 routes.0 += 1;
-                assert_eq!(alignment.known_positions_bps, 10000);
+                assert_eq!(alignment.known_positions_bps.units(), 10000);
             }
             Some(PartyBackingMetric::PartyLeadership) => {
                 routes.1 += 1;
-                assert_eq!(alignment.known_positions_bps, 10000);
+                assert_eq!(alignment.known_positions_bps.units(), 10000);
             }
             None => {
                 routes.2 += 1;

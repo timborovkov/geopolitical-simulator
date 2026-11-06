@@ -10,7 +10,7 @@ pub struct FiscalPlanDefinition {
     pub review_days: DaySpan,
     pub cooldown_days: DaySpan,
     pub annual_window_days: DaySpan,
-    pub administration_cost_bps: i64,
+    pub administration_cost_bps: BasisPoints,
     pub source: String,
     pub source_version: String,
 }
@@ -20,7 +20,7 @@ impl FiscalPlanDefinition {
             || !(1..=90).contains(&self.review_days.units())
             || !(1..=365).contains(&self.cooldown_days.units())
             || !(90..=365).contains(&self.annual_window_days.units())
-            || !(1..=100).contains(&self.administration_cost_bps)
+            || !(1..=100).contains(&self.administration_cost_bps.units_i64())
             || self.source_version.is_empty()
             || !content.sources.iter().any(|s| s.id == self.source)
         {
@@ -193,7 +193,9 @@ fn programme_cost(
         targets
             .changed(baseline)
             .iter()
-            .map(|(p, _)| (gdp * content.policy(p).expect("policy").cost_bps / 10000).max(1))
+            .map(|(p, _)| {
+                (gdp * content.policy(p).expect("policy").cost_bps.units_i64() / 10000).max(1)
+            })
             .sum(),
     )
 }
@@ -288,7 +290,7 @@ impl World {
             .ok_or("Project ID space exhausted")?;
         let cost = programme_cost(content, id, targets, &baseline);
         let d = content.country(id).ok_or("Missing country definition")?;
-        let fee = Money((d.gdp * rules.administration_cost_bps / 10000).max(1));
+        let fee = Money((d.gdp * rules.administration_cost_bps.units_i64() / 10000).max(1));
         if cost.0 + fee.0 > c.available_cash().0 {
             return Err(format!(
                 "Budget needs {}m uncommitted cash: {}m administration plus {}m reserved implementation; available {}m",
@@ -675,7 +677,8 @@ impl World {
             return Err("Fiscal-plan journal, interval or pending count mismatch".into());
         }
         let fee = Money(
-            (content.country(id).expect("country").gdp * rules.administration_cost_bps / 10000)
+            (content.country(id).expect("country").gdp * rules.administration_cost_bps.units_i64()
+                / 10000)
                 .max(1),
         );
         let mut previous_next = content.start_day()?;

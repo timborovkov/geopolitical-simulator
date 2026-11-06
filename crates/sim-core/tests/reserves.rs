@@ -263,15 +263,17 @@ fn rounding_is_prepaid_cumulatively_and_fixed_price_contracts_do_not_reprice_del
         .iter_mut()
         .find(|g| g.kind == GoodKind::Energy)
         .unwrap();
-    energy.import_limit_bps = 2100;
+    energy.import_limit_bps = BasisPoints::new(2100);
     let mut w = world(&c);
     issue(&mut w, &c, GoodKind::Energy, 1);
-    let price = w.player_country().reserves.as_ref().unwrap().orders[0].price_bps;
+    let price = w.player_country().reserves.as_ref().unwrap().orders[0]
+        .price_bps
+        .units();
     for _ in 0..110 {
         w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
         w.validate(&c).unwrap();
         let o = &w.player_country().reserves.as_ref().unwrap().orders[0];
-        assert_eq!(o.price_bps, price);
+        assert_eq!(o.price_bps.units(), price);
         assert!(
             i128::from(o.paid.0) * i128::from(o.quantity)
                 >= i128::from(o.quoted_cost.0) * i128::from(o.filled)
@@ -333,7 +335,7 @@ fn bad_definitions_requests_and_private_foreign_projections_fail_without_mutatio
         assert_eq!(w.hash(), h);
     }
     let mut other = c.clone();
-    other.reserves.as_mut().unwrap().fee_bps = 2;
+    other.reserves.as_mut().unwrap().fee_bps = BasisPoints::new(2);
     assert!(
         w.preview_reserve(&other, &id(), GoodKind::Energy, 1)
             .is_err()

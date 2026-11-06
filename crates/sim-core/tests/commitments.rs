@@ -162,7 +162,7 @@ fn amendments_validate_backing_levels_limits_ownership_and_cash_atomically() {
     assert_eq!(w.hash(), hash);
     check(&w, &c);
     let mut poor = c.clone();
-    poor.commitments.as_mut().unwrap().amendment_fee_bps = 10000;
+    poor.commitments.as_mut().unwrap().amendment_fee_bps = BasisPoints::new(10000);
     let mut w = start(&poor, "AUR");
     let id = enact(&mut w, &poor, "income_tax", 30);
     w.issue_developer(

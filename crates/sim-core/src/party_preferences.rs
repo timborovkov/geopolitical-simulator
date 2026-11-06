@@ -64,7 +64,7 @@ pub struct PartyAlignmentContribution {
     pub weight: u32,
     pub known_importance: u32,
     pub total_importance: u32,
-    pub distance_bps: Option<u32>,
+    pub distance_bps: Option<BasisPoints>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PartyAlignmentReport {
@@ -72,7 +72,7 @@ pub struct PartyAlignmentReport {
     pub metric: Option<PartyBackingMetric>,
     pub max_penalty: i32,
     pub penalty: i32,
-    pub known_positions_bps: u32,
+    pub known_positions_bps: BasisPoints,
     pub parties: Vec<PartyAlignmentContribution>,
     pub source: String,
     pub source_version: String,
@@ -250,7 +250,7 @@ impl PartyPreferenceDefinition {
                     weight,
                     known_importance: known,
                     total_importance: importance,
-                    distance_bps: (known > 0).then_some(distance_bps as u32),
+                    distance_bps: (known > 0).then_some(BasisPoints::new(distance_bps as u32)),
                 });
             }
         }
@@ -299,7 +299,7 @@ impl PartyPreferenceDefinition {
             metric: score.metric,
             max_penalty: score.cap,
             penalty: score.penalty,
-            known_positions_bps: score.known,
+            known_positions_bps: BasisPoints::new(score.known),
             parties: score.parties,
             source: self.source.clone(),
             source_version: self.source_version.clone(),
@@ -364,8 +364,8 @@ impl World {
             metric.label(),
             after.penalty,
             before.penalty,
-            after.known_positions_bps / 100,
-            after.known_positions_bps % 100
+            after.known_positions_bps.units() / 100,
+            after.known_positions_bps.units() % 100
         ))
     }
 }

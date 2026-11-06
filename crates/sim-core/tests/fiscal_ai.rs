@@ -111,7 +111,7 @@ fn national_fiscal_ai_cannot_bypass_legal_backing_or_implementation_cash() {
         if !block_backing {
             for policy in &mut content.policies {
                 if matches!(policy.id.as_str(), "income_tax" | "services" | "welfare") {
-                    policy.cost_bps = 1000;
+                    policy.cost_bps = BasisPoints::new(1000);
                 }
             }
             content.validate().unwrap();

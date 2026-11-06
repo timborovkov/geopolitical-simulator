@@ -136,7 +136,7 @@ fn unfunded_maturity_stays_outstanding_retries_and_does_not_create_duplicate_ope
     let mut content = fixture(false);
     for policy in &mut content.policies {
         if ["energy", "agriculture"].contains(&policy.id.as_str()) {
-            policy.cost_bps = 500;
+            policy.cost_bps = BasisPoints::new(500);
         }
     }
     content.validate().unwrap();

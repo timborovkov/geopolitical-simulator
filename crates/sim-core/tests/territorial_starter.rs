@@ -25,7 +25,7 @@ fn the_territorial_starter_retains_all_reference_data_with_explicit_authored_loc
             charter
                 .regions
                 .iter()
-                .map(|r| r.population_share_bps)
+                .map(|r| r.population_share_bps.units_i64())
                 .sum::<i64>(),
             10000
         );

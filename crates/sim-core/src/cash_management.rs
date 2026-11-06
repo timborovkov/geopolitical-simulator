@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CashManagementDefinition {
-    pub max_target_bps: i64,
+    pub max_target_bps: BasisPoints,
     pub max_days: DaySpan,
     pub cooldown_days: DaySpan,
     pub approval_cost: i32,
@@ -14,7 +14,7 @@ pub struct CashManagementDefinition {
 
 impl CashManagementDefinition {
     pub fn validate(&self, content: &Content) -> Result<(), String> {
-        if !(1..=100).contains(&self.max_target_bps)
+        if !(1..=100).contains(&self.max_target_bps.units_i64())
             || !(1..=90).contains(&self.max_days.units())
             || !(90..=365).contains(&self.cooldown_days.units())
             || !(1..=20).contains(&self.approval_cost)
@@ -112,12 +112,12 @@ impl World {
                 date(state.next_allowed_day)
             ));
         }
-        if !(1..=(d.gdp * rules.max_target_bps / 10000).max(1)).contains(&target.0)
+        if !(1..=(d.gdp * rules.max_target_bps.units_i64() / 10000).max(1)).contains(&target.0)
             || !(1..=rules.max_days.units()).contains(&days)
         {
             return Err(format!(
                 "Target must be 1..{}m and duration 1..{} days",
-                (d.gdp * rules.max_target_bps / 10000).max(1),
+                (d.gdp * rules.max_target_bps.units_i64() / 10000).max(1),
                 rules.max_days.units()
             ));
         }
@@ -409,8 +409,10 @@ impl World {
             let Action::HoldCash { target, days } = entry.command.action else {
                 unreachable!()
             };
-            let max_target =
-                (content.country(id).expect("country").gdp * rules.max_target_bps / 10000).max(1);
+            let max_target = (content.country(id).expect("country").gdp
+                * rules.max_target_bps.units_i64()
+                / 10000)
+                .max(1);
             if record.id.0 != entry.command.id.0
                 || record.target != target
                 || !(1..=max_target).contains(&target.0)
