@@ -46,7 +46,7 @@ pub fn apportion(total: i64, weights: &[i64]) -> Vec<i64> {
 }
 pub(crate) fn initial_households(d: &CountryDefinition, cash: Money) -> Vec<Household> {
     let population = apportion(
-        d.population as i64,
+        d.population.0 as i64,
         &d.households
             .iter()
             .map(|h| h.population_share)

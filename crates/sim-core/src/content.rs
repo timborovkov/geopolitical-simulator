@@ -1,5 +1,5 @@
 //! Versioned, validated content, separate from authoritative formulas.
-use crate::{CurrencyId, HouseholdGroupId, PartyId, PolicyId};
+use crate::{CurrencyId, HouseholdGroupId, PartyId, PolicyId, Population};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -59,7 +59,7 @@ pub struct CountryDefinition {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub governing_office: Option<crate::OfficeId>,
     pub currency: CurrencyId,
-    pub population: u64,
+    pub population: Population,
     pub gdp: i64,
     pub tax: i32,
     pub services: i32,
@@ -505,8 +505,8 @@ impl Content {
             if c.id.0.is_empty()
                 || !ids.insert(&c.id)
                 || c.name.is_empty()
-                || c.population < 1000
-                || c.population > 2_000_000_000
+                || c.population.0 < 1000
+                || c.population.0 > 2_000_000_000
                 || !(1_000..=100_000_000).contains(&c.gdp)
                 || !(10..=45).contains(&c.tax)
                 || !(4..=18).contains(&c.services)
@@ -590,7 +590,7 @@ impl Content {
                 || fact.transformation.is_empty()
                 || match fact.field.as_str() {
                     "population" => {
-                        fact.applied_value != c.population as i64
+                        fact.applied_value != c.population.0 as i64
                             || fact.original_units != "persons"
                     }
                     "gdp" => fact.applied_value != c.gdp || fact.original_units != "current USD",

@@ -744,7 +744,7 @@ impl GameApp {
         }
         egui::CollapsingHeader::new("Opening data & provenance").show(ui,|ui|{
             let facts:Vec<_>=self.content.facts.iter().filter(|f|f.country==d.id).collect();
-            for (field, value) in [("population", d.population as i64), ("gdp", d.gdp)] {
+            for (field, value) in [("population", d.population.0 as i64), ("gdp", d.gdp)] {
                 if !facts.iter().any(|fact| fact.field == field) { ui.label(format!("{field}: {value} · authored calibration; no observation record in this pack.")); }
             }
             for fact in facts {ui.label(format!("{}: {} {} ({} observation; source {}). Applied {}. {}",fact.field,fact.original_value,fact.original_units,fact.observation_period,fact.source,fact.applied_value,fact.transformation));ui.small(format!("Pinned mirror revision {}. Primary API not independently reconciled.",fact.source_version));}
@@ -784,7 +784,7 @@ impl GameApp {
                 metric(
                     ui,
                     "Population",
-                    format!("{:.1} million", d.population as f64 / 1_000_000.0),
+                    format!("{:.1} million", d.population.0 as f64 / 1_000_000.0),
                 );
                 metric(ui, "Opening GDP", format!("{}m credits/year", d.gdp));
                 metric(
@@ -1361,54 +1361,60 @@ impl GameApp {
                 }
             }
         }
-        egui::ScrollArea::horizontal().show(ui, |ui| {
-            egui::Grid::new("households").striped(true).show(ui, |ui| {
-                for label in [
-                    "Group",
-                    "Population",
-                    "Employed / working age",
-                    "Cash m",
-                    "Disposable m/day",
-                    "Basket m/day",
-                    "Income / basket %",
-                    "Cash / basket days",
-                    "Food %",
-                    "Approval %",
-                    "Arrears m",
-                ] {
-                    ui.strong(label);
-                }
-                ui.end_row();
-                for (h, definition) in c.households.iter().zip(&d.households) {
-                    for value in [
-                        definition.name.clone(),
-                        h.population.0.to_string(),
-                        format!("{} / {}", h.employed.0, h.working_age.0),
-                        h.cash.0.to_string(),
-                        (h.income.0 - h.tax.0).to_string(),
-                        h.basket_cost.0.to_string(),
-                        if h.basket_cost.0 > 0 {
-                            format!(
-                                "{:.0}",
-                                (h.income.0 - h.tax.0) as f64 * 100.0 / h.basket_cost.0 as f64
-                            )
-                        } else {
-                            "Unavailable".into()
-                        },
-                        if h.basket_cost.0 > 0 {
-                            format!("{:.1}", h.cash.0 as f64 / h.basket_cost.0 as f64)
-                        } else {
-                            "Unavailable".into()
-                        },
-                        h.food_coverage.to_string(),
-                        h.approval.to_string(),
-                        h.arrears.0.to_string(),
-                    ] {
-                        ui.label(value);
-                    }
-                    ui.end_row();
-                }
-            });
+        ui.scope(|ui| {
+            ui.spacing_mut().scroll = egui::style::ScrollStyle::solid();
+            egui::ScrollArea::horizontal()
+                .id_salt(("household_table_scroll", self.selected.0.as_str()))
+                .show(ui, |ui| {
+                    egui::Grid::new("households").striped(true).show(ui, |ui| {
+                        for label in [
+                            "Group",
+                            "Population",
+                            "Employed / working age",
+                            "Cash m",
+                            "Disposable m/day",
+                            "Basket m/day",
+                            "Income / basket %",
+                            "Cash / basket days",
+                            "Food %",
+                            "Approval %",
+                            "Arrears m",
+                        ] {
+                            ui.strong(label);
+                        }
+                        ui.end_row();
+                        for (h, definition) in c.households.iter().zip(&d.households) {
+                            for value in [
+                                definition.name.clone(),
+                                h.population.0.to_string(),
+                                format!("{} / {}", h.employed.0, h.working_age.0),
+                                h.cash.0.to_string(),
+                                (h.income.0 - h.tax.0).to_string(),
+                                h.basket_cost.0.to_string(),
+                                if h.basket_cost.0 > 0 {
+                                    format!(
+                                        "{:.0}",
+                                        (h.income.0 - h.tax.0) as f64 * 100.0
+                                            / h.basket_cost.0 as f64
+                                    )
+                                } else {
+                                    "Unavailable".into()
+                                },
+                                if h.basket_cost.0 > 0 {
+                                    format!("{:.1}", h.cash.0 as f64 / h.basket_cost.0 as f64)
+                                } else {
+                                    "Unavailable".into()
+                                },
+                                h.food_coverage.to_string(),
+                                h.approval.to_string(),
+                                h.arrears.0.to_string(),
+                            ] {
+                                ui.label(value);
+                            }
+                            ui.end_row();
+                        }
+                    });
+                });
         });
         ui.small("Income/basket compares realized daily income after tax to the modeled essential basket. Cash/basket is the remaining cash buffer at today's basket cost, ignoring future income and price changes.");
         ui.separator();
@@ -3321,6 +3327,136 @@ mod interface_tests {
         assert_eq!(app.save_path, path.display().to_string());
         assert_eq!(app.world.as_ref().unwrap().hash(), wanted.hash());
         std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn household_overflow_scrollbar_reaches_last_columns_and_returns_without_orders_at_two_scales()
+    {
+        let mut content =
+            Content::from_json(include_str!("../../../data/synthetic-test.json")).unwrap();
+        content.countries[0].population = Population(1_000_003);
+        let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+        world.advance(&content, DaySpan::new(61)).unwrap();
+        let before = persistence::encode(&world, &content).unwrap();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            let mut app =
+                GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            app.world = Some(world.clone());
+            app.selected = world.player.clone();
+            app.tab = Tab::Society;
+            let render = |app: &mut GameApp, time, events: Vec<egui::Event>| {
+                ctx.run(
+                    egui::RawInput {
+                        focused: true,
+                        time: Some(time),
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(1440. / scale, 940. / scale),
+                        )),
+                        events,
+                        ..Default::default()
+                    },
+                    |ctx| app.render(ctx),
+                )
+            };
+            let visible = |output: &egui::FullOutput, label: &str| {
+                output.shapes.iter().any(|shape|matches!(&shape.shape,egui::Shape::Text(text) if text.galley.text()==label&&shape.clip_rect.contains_rect(text.galley.rect.translate(text.pos.to_vec2()))))
+            };
+            render(&mut app, 0., vec![]);
+            render(&mut app, 0.25, vec![]);
+            let initial = render(&mut app, 0.5, vec![]);
+            assert!(visible(&initial, "Population"));
+            if scale == 1.4 {
+                assert!(!visible(&initial, "Arrears m"));
+                let last_row = initial
+                    .shapes
+                    .iter()
+                    .find_map(|shape| match &shape.shape {
+                        egui::Shape::Text(text)
+                            if text.galley.text() == "Asset-owning households" =>
+                        {
+                            Some(text.pos.y + text.galley.size().y)
+                        }
+                        _ => None,
+                    })
+                    .unwrap();
+                let notes = initial
+                    .shapes
+                    .iter()
+                    .find_map(|shape| match &shape.shape {
+                        egui::Shape::Text(text)
+                            if text.galley.text().starts_with("Income/basket compares") =>
+                        {
+                            Some(text.pos.y)
+                        }
+                        _ => None,
+                    })
+                    .unwrap();
+                let track = initial
+                    .shapes
+                    .iter()
+                    .filter_map(|shape| match &shape.shape {
+                        egui::Shape::Rect(rect)
+                            if rect.rect.top() >= last_row
+                                && rect.rect.bottom() <= notes
+                                && rect.rect.height() >= 6.
+                                && rect.rect.height() <= 18.
+                                && rect.rect.width() > 200. =>
+                        {
+                            Some(rect.rect)
+                        }
+                        _ => None,
+                    })
+                    .max_by(|a, b| a.width().total_cmp(&b.width()))
+                    .expect("Overflow has a visible mouse scrollbar even without hover");
+                let drag = |app: &mut GameApp, start, end, time| {
+                    render(
+                        app,
+                        time,
+                        vec![
+                            egui::Event::PointerMoved(start),
+                            egui::Event::PointerButton {
+                                pos: start,
+                                button: egui::PointerButton::Primary,
+                                pressed: true,
+                                modifiers: egui::Modifiers::NONE,
+                            },
+                        ],
+                    );
+                    render(app, time + 0.1, vec![egui::Event::PointerMoved(end)]);
+                    render(
+                        app,
+                        time + 0.2,
+                        vec![egui::Event::PointerButton {
+                            pos: end,
+                            button: egui::PointerButton::Primary,
+                            pressed: false,
+                            modifiers: egui::Modifiers::NONE,
+                        }],
+                    );
+                };
+                let left = egui::pos2(track.left() + 12., track.center().y);
+                let right = egui::pos2(track.right() - 12., track.center().y);
+                drag(&mut app, left, right, 0.6);
+                let end = render(&mut app, 1.0, vec![]);
+                for label in ["Food %", "Approval %", "Arrears m"] {
+                    assert!(visible(&end, label), "{label} stays reachable at {scale}");
+                }
+                drag(&mut app, right, left, 1.1);
+            } else {
+                assert!(visible(&initial, "Arrears m"));
+            }
+            let returned = render(&mut app, 1.5, vec![]);
+            assert!(visible(&returned, "Population"));
+            assert_eq!(app.selected, world.player);
+            assert!(app.pending.is_none());
+            assert_eq!(app.speed, 0);
+            assert_eq!(
+                persistence::encode(app.world.as_ref().unwrap(), &content).unwrap(),
+                before
+            );
+        }
     }
     #[test]
     fn inspection_history_buttons_keys_branches_and_load_preserve_campaign_at_two_scales() {

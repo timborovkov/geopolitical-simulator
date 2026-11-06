@@ -10,6 +10,22 @@ pub const MAX_DAY: u32 = 36_525;
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(transparent)]
 pub struct Money(pub i64);
+/// A resident count shared by country definitions, live cohorts and public reports.
+/// Counts remain unsigned scalar JSON; numerical conversion is explicit at boundaries.
+///
+/// ```compile_fail
+/// use sim_core::{CountryDefinition, Money};
+/// fn wrong_unit(country: &mut CountryDefinition) {
+///     country.population = Money(1000);
+/// }
+/// ```
+///
+/// ```compile_fail
+/// use sim_core::CountryDefinition;
+/// fn implicit_scalar(country: &CountryDefinition) {
+///     let residents: u64 = country.population;
+/// }
+/// ```
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(transparent)]
 pub struct Population(pub u64);
@@ -409,7 +425,7 @@ impl World {
                     d.id.clone(),
                     Country {
                         id: d.id.clone(),
-                        population: Population(d.population),
+                        population: d.population,
                         households: crate::households::initial_households(d, accounts.households),
                         committed_cash: Money(0),
                         council_support: 65,
@@ -959,7 +975,7 @@ impl World {
                     }
                 || !(1..=200).contains(&c.energy_capacity)
                 || !(1..=200).contains(&c.food_capacity)
-                || c.population.0 != d.population
+                || c.population != d.population
                 || !(0..=1_000_000_000).contains(&c.energy_stock.units())
                 || !(0..=1_000_000_000).contains(&c.food_stock.units())
                 || [

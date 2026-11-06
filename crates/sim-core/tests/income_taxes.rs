@@ -26,7 +26,7 @@ fn authored_bands_apply_marginal_slices_not_the_top_rate_to_all_income() {
     let taxes = c.income_taxes.as_ref().unwrap();
     let mut d = c.countries[0].clone();
     d.gdp = 365000;
-    d.population = 10000;
+    d.population = Population(10000);
     let a = taxes
         .assess(&d, Population(1000), Money(100), 20, 80)
         .unwrap();
@@ -68,7 +68,7 @@ fn collection_is_bounded_monotone_and_has_no_tax_cliff_even_at_large_inputs() {
     let t = c.income_taxes.as_ref().unwrap();
     let mut d = c.countries[0].clone();
     d.gdp = 365000;
-    d.population = 10000;
+    d.population = Population(10000);
     for rate in [10, 28, 45] {
         for admin in [1, 35, 70, 100] {
             let mut last_tax = 0;
@@ -87,7 +87,7 @@ fn collection_is_bounded_monotone_and_has_no_tax_cliff_even_at_large_inputs() {
         }
     }
     d.gdp = 100000000;
-    d.population = 2000000000;
+    d.population = Population(2000000000);
     let a = t
         .assess(&d, Population(200000000), Money(1000000000000), 45, 100)
         .unwrap();
@@ -338,7 +338,7 @@ fn falling_received_income_reduces_withholding_and_the_average_burden_without_ch
     let t = c.income_taxes.as_ref().unwrap();
     let mut d = c.countries[0].clone();
     d.gdp = 365000;
-    d.population = 10000;
+    d.population = Population(10000);
     let high = t.assess(&d, Population(1000), Money(100), 20, 80).unwrap();
     let low = t.assess(&d, Population(1000), Money(50), 20, 80).unwrap();
     assert!(low.collectible.0 < high.collectible.0);

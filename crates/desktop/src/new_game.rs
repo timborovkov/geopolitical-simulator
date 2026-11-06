@@ -186,7 +186,7 @@ impl Setup {
                 });
                 let country = self.content.country(&self.player).expect("selected country");
                 ui.label(format!("{:?} · {}", country.regime, country.government.label()));
-                ui.label(format!("Bookmark baseline: {:.1}m people · GDP {}m/year · domestic energy/food {}%/{}% · administration {}%", country.population as f64 / 1_000_000.0, country.gdp, country.energy, country.food, country.capacity));
+                ui.label(format!("Bookmark baseline: {:.1}m people · GDP {}m/year · domestic energy/food {}%/{}% · administration {}%", country.population.0 as f64 / 1_000_000.0, country.gdp, country.energy, country.food, country.capacity));
                 ui.horizontal(|ui| { ui.label("World seed"); ui.add(egui::TextEdit::singleline(&mut self.seed).desired_width(180.0)); });
                 egui::ComboBox::from_label("Scenario").selected_text(self.scenario.id()).show_ui(ui, |ui| {
                     ui.selectable_value(&mut self.scenario, Scenario::Sandbox, "Sandbox");

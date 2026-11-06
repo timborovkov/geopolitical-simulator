@@ -1069,7 +1069,7 @@ fn play(
                         "Bookmark primary currency: {} (identity metadata; values use game reporting credits).",
                         content.country(&world.player).expect("player").currency
                     );
-                    for (field, value) in [("population", d.population as i64), ("gdp", d.gdp)] {
+                    for (field, value) in [("population", d.population.0 as i64), ("gdp", d.gdp)] {
                         if !content
                             .facts
                             .iter()

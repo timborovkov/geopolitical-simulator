@@ -617,7 +617,7 @@ impl World {
             return;
         }
         let d = content.country(id).unwrap();
-        if c.population.0 != d.population {
+        if c.population != d.population {
             return;
         }
         let need = (c.population.0 / 1000) as i64;
@@ -737,7 +737,7 @@ impl World {
             return Err("Reserve order history exceeds its retention limit".into());
         }
         let d = content.country(id).unwrap();
-        if c.population.0 != d.population {
+        if c.population != d.population {
             return Err("Reserve population differs from fixed country definition".into());
         }
         let need = (c.population.0 / 1000) as i64;
