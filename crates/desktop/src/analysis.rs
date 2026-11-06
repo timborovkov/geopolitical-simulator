@@ -76,7 +76,7 @@ impl Analysis {
         selected: &mut CountryId,
     ) {
         ui.heading("Trends & country comparisons");
-        ui.label("Compare published observations at their actual release dates. Private treasury history is available only for your government.");
+        ui.label("Compare dated public review statistics. Archive series are separately labelled sample means. Private treasury history is available only for your government.");
         let Some(world) = world else {
             ui.label("Begin a campaign to collect observations. Countries without a release remain unknown.");
             return;
@@ -131,9 +131,14 @@ impl Analysis {
             }
         }
         let mut series = Vec::new();
-        for id in ids {
-            if let Some(data) = charts::series(world, content, &id, self.metric, self.horizon) {
+        for id in &ids {
+            if let Some(data) = charts::series(world, content, id, self.metric, self.horizon) {
                 series.push(data);
+                if let Some(archive) =
+                    charts::archived_series(world, content, id, self.metric, self.horizon)
+                {
+                    series.push(archive);
+                }
             } else {
                 ui.label(format!(
                     "{}: no permission to inspect treasury history",
@@ -142,6 +147,22 @@ impl Analysis {
             }
         }
         self.chart.show(ui, self.metric, &series);
+        if world.rules >= 25 {
+            egui::CollapsingHeader::new("Archived review sample coverage").show(ui, |ui| {
+                ui.small("Each bucket summarizes retired review samples from one calendar year. The oldest retained year can be partial. These means do not reconstruct daily history or annual accounts.");
+                for id in &ids {
+                    if self.metric == Metric::Treasury && id != &world.player { continue; }
+                    if let Ok(report) = world.public_report(content, id) {
+                        for summary in report.archived_reviews.unwrap_or_default() {
+                            if summary.last_day.saturating_add(self.horizon) >= world.day {
+                                ui.label(format!("{} · {}: {} review sample{}, {} through {}", report.name, summary.year, summary.samples, if summary.samples == 1 { "" } else { "s" }, sim_core::date(summary.first_day), sim_core::date(summary.last_day)));
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
         ui.separator();
         ui.heading("Country comparison · click a heading to sort");
         let mut reports: Vec<_> = content
@@ -205,12 +226,120 @@ impl Analysis {
                         }
                     });
             });
-        ui.small("Opening GDP is a scenario calibration with provenance in the overview; current debt/approval/needs are published simulation results. Unknown observations sort last in either direction. Monthly history retains up to ten years.");
+        ui.small("Opening GDP is a scenario calibration with provenance in the overview; current debt/approval/needs are published simulation results. Unknown observations sort last in either direction. Recent review history retains 120 samples; archive-enabled campaigns retain older calendar-year sample summaries.");
     }
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn archived_means_and_coverage_are_inspectable_without_foreign_cash_or_orders_at_two_scales() {
+        let content = Content::from_json(include_str!(
+            "../../../data/synthetic-statistical-history-test.json"
+        ))
+        .unwrap();
+        let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+        world
+            .advance(&content, sim_core::DaySpan::new(3660))
+            .unwrap();
+        world
+            .advance(&content, sim_core::DaySpan::new(600))
+            .unwrap();
+        let before = sim_core::persistence::encode(&world, &content).unwrap();
+        assert!(
+            charts::archived_series(
+                &world,
+                &content,
+                &CountryId("BOR".into()),
+                Metric::Treasury,
+                36525
+            )
+            .is_none()
+        );
+        assert!(
+            charts::archived_series(&world, &content, &world.player, Metric::Treasury, 360)
+                .is_none()
+        );
+        let own = charts::archived_series(&world, &content, &world.player, Metric::Treasury, 36525)
+            .unwrap();
+        assert!(own.label.contains("archived review-sample means"));
+        assert!(!own.points.is_empty());
+        for scale in [1., 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let mut panel = Analysis {
+                metric: Metric::Treasury,
+                horizon: 36525,
+                pinned: vec![CountryId("BOR".into())],
+                ..Default::default()
+            };
+            let mut selected = world.player.clone();
+            let mut frame = |events, offset| {
+                ctx.run(
+                    egui::RawInput {
+                        focused: true,
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(1440. / scale, 940. / scale),
+                        )),
+                        events,
+                        ..Default::default()
+                    },
+                    |ctx| {
+                        egui::SidePanel::left("test_sidebar")
+                            .exact_width(230.)
+                            .show(ctx, |_| {});
+                        egui::CentralPanel::default().show(ctx, |ui| {
+                            egui::ScrollArea::vertical()
+                                .vertical_scroll_offset(offset)
+                                .show(ui, |ui| {
+                                    panel.show(ui, &content, Some(&world), &mut selected)
+                                });
+                        });
+                    },
+                )
+            };
+            let mut found = None;
+            for offset in [0., 160., 320.] {
+                frame(vec![], offset);
+                let output = frame(vec![], offset);
+                found = output.shapes.iter().find_map(|shape| match &shape.shape {
+                    egui::Shape::Text(text)
+                        if text.galley.text() == "Archived review sample coverage" =>
+                    {
+                        let p = text.pos + text.galley.size() / 2.;
+                        shape.clip_rect.contains(p).then_some((p, offset))
+                    }
+                    _ => None,
+                });
+                if found.is_some() {
+                    break;
+                }
+            }
+            let (point, offset) = found.expect("Visible archive coverage control");
+            for pressed in [true, false] {
+                frame(
+                    vec![
+                        egui::Event::PointerMoved(point),
+                        egui::Event::PointerButton {
+                            pos: point,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ],
+                    offset,
+                );
+            }
+            let output = frame(vec![], offset);
+            assert!(output.shapes.iter().any(|shape|matches!(&shape.shape,egui::Shape::Text(text) if text.galley.text().contains("review samples,"))));
+            assert_eq!(selected, world.player);
+            assert_eq!(
+                sim_core::persistence::encode(&world, &content).unwrap(),
+                before
+            );
+        }
+    }
     #[test]
     fn unknown_is_not_sorted_as_zero_in_either_direction() {
         let c = Content::bundled().unwrap();

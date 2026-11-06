@@ -1214,7 +1214,10 @@ impl World {
             output: c.report.output,
         });
         if c.history.len() > 120 {
-            c.history.remove(0);
+            let retired = c.history.remove(0);
+            if let Some(archive) = &mut c.statistical_archive {
+                archive.retire(&retired)?;
+            }
         }
         let summary = format!(
             "Monthly review: needs {needs}%, approval {}%, revenue {}m/day, payments {}m/day, arrears {}m. Support follows household needs, funded service delivery and disposable income.",

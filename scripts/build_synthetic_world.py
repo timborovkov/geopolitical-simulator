@@ -768,6 +768,18 @@ def build_bookmark_identity_starter():
     return pack
 
 
+def build_statistical_history(synthetic=False):
+    pack = build_stable_elections(synthetic=True) if synthetic else build_bookmark_identity_starter()
+    pack.update(schema=25, rules=25,
+                id="synthetic-statistical-history-v25" if synthetic else "initial-2000-statistical-history-v25",
+                name="Fictional archived review statistics" if synthetic else "A New Century · archived review statistics")
+    pack["sources"].append(dict(id="authored-statistical-retention-v1",
+                                quality="authored_synthetic_fixture" if synthetic else "authored_scenario_model",
+                                description="Original bounded retention rule: retain 120 recent review observations and summarize older samples by calendar year. Means are floor-rounded review-sample means, not annual accounts or time-weighted daily statistics. Coverage remains explicit; private treasury values are never foreign public data."))
+    pack["description"] += " Older review observations are retained as calendar-year sample summaries after leaving the 120-review recent window. This changes statistical retention only; it grants no resources or authority. All earlier rules packs keep their original behavior."
+    return pack
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -795,6 +807,7 @@ def main():
                            ("synthetic-event-references-test.json", build_event_references()),
                            ("synthetic-project-events-test.json", build_project_events()),
                            ("synthetic-stable-elections-test.json", build_stable_elections(synthetic=True)),
+                           ("synthetic-statistical-history-test.json", build_statistical_history(synthetic=True)),
                            ("initial-2000-markets.json", build_market_starter()),
                            ("initial-2000-finance.json", build_finance_starter()),
                            ("initial-2000-constitutions.json", build_constitution_starter()),
@@ -815,6 +828,7 @@ def main():
                            ("initial-2000-event-references.json", build_event_reference_starter()),
                            ("initial-2000-project-events.json", build_project_event_starter()),
                            ("initial-2000-stable-elections.json", build_stable_elections()),
+                           ("initial-2000-statistical-history.json", build_statistical_history()),
                            ("initial-2000-bookmark-identities.json", build_bookmark_identity_starter()),
                            ("initial-2000-cabinet.json", build_cabinet_starter())]:
         target = ROOT / "data" / filename

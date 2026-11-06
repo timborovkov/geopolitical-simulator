@@ -1119,6 +1119,15 @@ fn play(
                     }
                 }
                 "history" => {
+                    if let Some(archive) = &world.player_country().statistical_archive {
+                        println!("Older archived review-sample means (floor rounded, not annual totals or daily time averages):");
+                        for summary in &archive.years {
+                            if let Some(mean) = summary.mean() {
+                                println!("{} · {} samples, {} through {} · mean cash {}m · debt {}m · approval {}% · needs {}% · daily output {}m", summary.year, summary.samples, date(summary.first_day), date(summary.last_day), mean.treasury.0, mean.debt.0, mean.approval, mean.needs, mean.output.0);
+                            }
+                        }
+                        println!("Recent review point observations:");
+                    }
                     for o in &world.player_country().history {
                         println!(
                             "{} · cash {}m · debt {}m · approval {}% · needs {}%",

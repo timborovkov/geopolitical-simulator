@@ -68,6 +68,59 @@ pub fn series(
         points,
     })
 }
+/// Archived samples remain a separately labelled series rather than silently
+/// replacing recent point observations with calendar-year means.
+pub fn archived_series(
+    world: &World,
+    content: &Content,
+    id: &CountryId,
+    metric: Metric,
+    horizon: u32,
+) -> Option<Series> {
+    let name = content.country(id)?.name.clone();
+    let points: Vec<_> = if metric == Metric::Treasury {
+        if id != &world.player {
+            return None;
+        }
+        world
+            .player_country()
+            .statistical_archive
+            .as_ref()?
+            .years
+            .iter()
+            .filter(|summary| summary.last_day.saturating_add(horizon) >= world.day)
+            .filter_map(|summary| {
+                summary
+                    .mean()
+                    .map(|mean| (mean.day, mean.treasury.0 as f64))
+            })
+            .collect()
+    } else {
+        world
+            .public_report(content, id)
+            .ok()?
+            .archived_reviews?
+            .iter()
+            .filter(|summary| summary.last_day.saturating_add(horizon) >= world.day)
+            .map(|summary| {
+                (
+                    summary.last_day,
+                    match metric {
+                        Metric::Approval => f64::from(summary.mean.approval),
+                        Metric::Needs => f64::from(summary.mean.needs),
+                        Metric::Debt => summary.mean.debt.0 as f64,
+                        Metric::Output => summary.mean.daily_output.0 as f64,
+                        Metric::Treasury => unreachable!(),
+                    },
+                )
+            })
+            .collect()
+    };
+    (!points.is_empty()).then(|| Series {
+        label: format!("{name} · archived review-sample means"),
+        points,
+    })
+}
 fn bounds(series: &[Series]) -> Option<(u32, u32, f64, f64)> {
     let mut points = series.iter().flat_map(|s| s.points.iter());
     let first = points.next()?;
@@ -277,7 +330,7 @@ impl Chart {
                 );
             }
         });
-        ui.small(if forecast { "Daily hypothetical funding balances; negative values are funding gaps, not overdrafts. Click then use Left/Right to inspect one day at a time." } else { "Monthly point observations; output is that release day's flow. Click then use Left/Right to inspect; vertical axes show units and scale." });
+        ui.small(if forecast { "Daily hypothetical funding balances; negative values are funding gaps, not overdrafts. Click then use Left/Right to inspect one day at a time." } else { "Review points show the release day; output is that day's flow. Separately labelled archive series show floor-rounded review-sample means at the last sampled date, not annual totals or daily time averages. Click then use Left/Right to inspect." });
         egui::CollapsingHeader::new("Inspect chart values").show(ui, |ui| {
             for s in series {
                 ui.strong(&s.label);

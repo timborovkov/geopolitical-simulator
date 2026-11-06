@@ -46,6 +46,8 @@ pub struct PublicCountryReport {
     /// None means no statistical release yet; absence is not a zero observation.
     pub latest: Option<PublishedObservation>,
     pub history: Vec<PublishedObservation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub archived_reviews: Option<Vec<crate::PublishedAnnualReview>>,
     pub seats: BTreeMap<PartyId, u16>,
     pub governing_parties: Vec<PartyId>,
 }
@@ -117,6 +119,10 @@ impl World {
             population: c.population,
             opening_gdp: Money(d.gdp),
             initial_data_quality: d.quality.clone(),
+            archived_reviews: c
+                .statistical_archive
+                .as_ref()
+                .map(crate::StatisticalArchive::published),
             latest: history.last().cloned(),
             history,
             seats: c.seats.clone(),

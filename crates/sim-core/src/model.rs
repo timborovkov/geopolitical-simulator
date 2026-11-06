@@ -173,6 +173,8 @@ pub struct Country {
     pub report: DailyReport,
     pub history: Vec<Observation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub statistical_archive: Option<crate::StatisticalArchive>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub markets: Option<Markets>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub financing: Option<Financing>,
@@ -522,6 +524,8 @@ impl World {
                         food_stock: Food::ZERO,
                         report: DailyReport::default(),
                         history: Vec::new(),
+                        statistical_archive: (content.rules >= 25)
+                            .then(crate::StatisticalArchive::default),
                         markets: content.markets.as_ref().map(Markets::new),
                         constitution: content
                             .constitutions
@@ -909,6 +913,11 @@ impl World {
             previous_day = command.day;
         }
         for (id, c) in &self.countries {
+            match (&c.statistical_archive, self.rules >= 25) {
+                (Some(archive), true) => archive.validate(start_day, &c.history)?,
+                (None, false) => {}
+                _ => return Err("Statistical archive differs from campaign rules".into()),
+            }
             let d = content.country(id).ok_or("Unknown country in save")?;
             match (&c.markets, &content.markets) {
                 (None, None) => {}

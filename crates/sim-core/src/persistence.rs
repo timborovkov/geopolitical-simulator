@@ -18,13 +18,14 @@ struct Save {
 const MAX_SAVE_BYTES: usize = 32 * 1024 * 1024;
 pub const SAVE_SCHEMA: u32 = 3;
 /// New rules require a distinct envelope so older clients reject unfamiliar state.
-/// Fixed-price, market, financing and constitutional campaigns use formats 3–25.
+/// Fixed-price, market, financing and constitutional campaigns use formats 3–26.
 pub fn snapshot_schema(world: &World) -> u32 {
     snapshot_schema_for_rules(world.rules)
 }
 /// Envelope version for a validated campaign's rules.
 pub fn snapshot_schema_for_rules(rules: u32) -> u32 {
     match rules {
+        25 => 26,
         24 => 25,
         23 => 24,
         22 => 23,
@@ -93,10 +94,15 @@ fn decode_save(bytes: &[u8], content: &Content) -> Result<Save, String> {
     }
     let header: serde_json::Value =
         serde_json::from_slice(bytes).map_err(|e| format!("Damaged save: {e}"))?;
-    if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2..=25)) {
-        return Err("Unsupported save version; supported snapshot formats are 2 through 25. The original file is preserved".into());
+    if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2..=26)) {
+        return Err("Unsupported save version; supported snapshot formats are 2 through 26. The original file is preserved".into());
     }
     let save: Save = serde_json::from_slice(bytes).map_err(|e| format!("Damaged save: {e}"))?;
+    if save.world.rules == 25 && save.schema < 26 {
+        return Err(
+            "Archived review statistics require snapshot format 26; original file preserved".into(),
+        );
+    }
     if save.world.rules == 24 && save.schema < 25 {
         return Err(
             "Stable political selection requires snapshot format 25; original file preserved"
@@ -455,7 +461,7 @@ fn load_bundled_save(path: &Path) -> Result<(Content, Save), String> {
         serde_json::from_slice(&bytes).map_err(|error| format!("Damaged save: {error}"))?;
     if !matches!(
         header.get("schema").and_then(|value| value.as_u64()),
-        Some(2..=25)
+        Some(2..=26)
     ) {
         return Err("Unsupported save version; original file preserved".into());
     }

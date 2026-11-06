@@ -347,3 +347,10 @@ Add fixtures for a functioning one-party succession, a failed personal successio
 - Profile before adding ECS complexity, multithreading, GPU computation or dynamic scripting. Data layout and avoiding redundant calculations come first.
 - Confirm UI crate compatibility, rendering integration and target-platform support in a representative prototype before pinning versions. No exact version number is asserted here as a permanent choice.
 - Cross-platform delivery includes actual tests on macOS, Linux and Windows; a successful cross-compilation is not evidence that input, fonts, graphics drivers, saves and packaging work on a user's machine.
+
+
+### Bounded archived review samples
+
+Optional rules 25 adds the [statistical archive](../crates/sim-core/src/statistical_history.rs). After retaining 120 ordered `Observation` values, each retired review enters a calendar-year bucket. At most one review per country/day yields at most 366 samples/year and at most 101 buckets within the campaign calendar. Checked integer sums retain money units and bounded percentage sums. Public summaries omit treasury and all private sums; each published mean carries its sample count and first/last review dates. Means floor once and do not stand in for annual accounts or continuous daily histories.
+
+The [retention tests](../crates/sim-core/tests/statistical_history.rs) compare twelve simulated years with preserved rules 24, independently reconstruct retired samples and verify that normalizing only the new archive/content identity leaves the rest of the world identical. Date, sum, missing-state and envelope checks reject invalid archives. Snapshot 26 and exact-hash bundled loading preserve earlier files; the optional pack keeps the dated opening-reference crosswalk while every prior pack stays unchanged. [Trends](../crates/desktop/src/analysis.rs) renders archive means as separately labelled series and exposes sample coverage. The archived year being filled can be partial; its plotted date is the last sampled review. The default retains its existing rules.
