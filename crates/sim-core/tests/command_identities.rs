@@ -1,7 +1,7 @@
 use sim_core::*;
 
 fn setup() -> (Content, World) {
-    let content = Content::bundled().unwrap();
+    let content = Content::stable_elections_bundled().unwrap();
     let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     (content, world)
 }

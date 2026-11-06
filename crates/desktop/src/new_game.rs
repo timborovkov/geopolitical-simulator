@@ -20,6 +20,86 @@ pub fn default_save_path(content: &Content) -> String {
 mod tests {
     use super::*;
     #[test]
+    fn default_setup_can_select_and_prepare_the_preserved_starter_at_two_scales() {
+        for scale in [1., 1.4] {
+            let content = Content::bundled().unwrap();
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let mut setup = Setup::new(&content, &CountryId("GBR".into()), 17, true).unwrap();
+            assert_eq!(setup.content.rules, 25);
+            assert_eq!(setup.save_path, "saves/campaign-v26.json");
+            let mut frame = |events| {
+                ctx.run(
+                    egui::RawInput {
+                        focused: true,
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(1440. / scale, 940. / scale),
+                        )),
+                        events,
+                        ..Default::default()
+                    },
+                    |ctx| {
+                        assert!(matches!(
+                            setup.show(ctx, true, true, "saves/unchanged.json"),
+                            Choice::Waiting
+                        ));
+                    },
+                )
+            };
+            let locate = |output: &egui::FullOutput, label: &str| {
+                output
+                    .shapes
+                    .iter()
+                    .find_map(|shape| match &shape.shape {
+                        egui::Shape::Text(text) if text.galley.text() == label => {
+                            let rect = egui::Rect::from_min_size(text.pos, text.galley.size());
+                            shape.clip_rect.contains_rect(rect).then_some(rect.center())
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| panic!("Visible choice missing: {label}"))
+            };
+            frame(vec![]);
+            frame(vec![]);
+            let point = locate(&frame(vec![]), "Default · history and opening references");
+            for pressed in [true, false] {
+                frame(vec![
+                    egui::Event::PointerMoved(point),
+                    egui::Event::PointerButton {
+                        pos: point,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ]);
+            }
+            let point = locate(&frame(vec![]), "Earlier · stable political selection");
+            for pressed in [true, false] {
+                frame(vec![
+                    egui::Event::PointerMoved(point),
+                    egui::Event::PointerButton {
+                        pos: point,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ]);
+            }
+            frame(vec![]);
+            assert_eq!(
+                setup.content.hash(),
+                Content::stable_elections_bundled().unwrap().hash()
+            );
+            assert_eq!(setup.save_path, "saves/campaign-v25.json");
+            let world = setup.prepare().unwrap();
+            world.validate(&setup.content).unwrap();
+            assert_eq!(persistence::snapshot_schema(&world), 25);
+            assert!(world.player_country().statistical_archive.is_none());
+            assert_eq!(world.seed, 17);
+        }
+    }
+    #[test]
     fn optional_identity_pack_prepares_without_reusing_the_default_manual_save_path() {
         let current = Content::bundled().unwrap();
         let pack = Content::bookmark_identities_bundled().unwrap();
@@ -37,7 +117,7 @@ mod tests {
 enum Pack {
     Current,
     BookmarkIdentities,
-    StatisticalHistory,
+    StableElections,
     ProgrammeEvents,
     EventReferences,
     Reserve,
@@ -142,11 +222,11 @@ impl Setup {
                 if active { ui.label(format!("Save active campaign to: {current_save_path}. A separate archived snapshot will also be retained.")); }
                 if self.bundled_catalog {
                     let previous = self.pack;
-                    let pack_label = match self.pack { Pack::Current => "Default · stable political selection", Pack::BookmarkIdentities => "Optional · dated opening references", Pack::StatisticalHistory => "Optional · long-campaign review archive", Pack::ProgrammeEvents => "Earlier · linked programme outcomes", Pack::EventReferences => "Earlier · stable chronicle references", Pack::Reserve => "Earlier · national commodity reserves", Pack::Party => "Earlier · party policy preferences", Pack::Technology => "Earlier · technology prerequisites", Pack::Interest => "Earlier · carried debt interest", Pack::Cash => "Earlier · temporary cash retention", Pack::DatedDebt => "Earlier · dated loan principal", Pack::NationalFiscal => "Earlier · national fiscal reviews", Pack::Income => "Earlier · progressive private-income bands", Pack::Fiscal => "Earlier · annual and supplementary budgets", Pack::Undertaking => "Earlier · delivery undertakings", Pack::Territorial => "Earlier · territorial government", Pack::Observed => "Earlier · expanded observations", Pack::Electoral => "Earlier · electoral mandates", Pack::Cabinet => "Earlier · ministries and policies", Pack::Commitment => "Earlier · policy commitments", Pack::Constitution => "Earlier · political transitions", Pack::Finance => "Earlier · borrowing and prices", Pack::Market => "Earlier · prices only", _ => "Classic · fixed prices" };
+                    let pack_label = match self.pack { Pack::Current => "Default · history and opening references", Pack::BookmarkIdentities => "Optional · dated opening references", Pack::StableElections => "Earlier · stable political selection", Pack::ProgrammeEvents => "Earlier · linked programme outcomes", Pack::EventReferences => "Earlier · stable chronicle references", Pack::Reserve => "Earlier · national commodity reserves", Pack::Party => "Earlier · party policy preferences", Pack::Technology => "Earlier · technology prerequisites", Pack::Interest => "Earlier · carried debt interest", Pack::Cash => "Earlier · temporary cash retention", Pack::DatedDebt => "Earlier · dated loan principal", Pack::NationalFiscal => "Earlier · national fiscal reviews", Pack::Income => "Earlier · progressive private-income bands", Pack::Fiscal => "Earlier · annual and supplementary budgets", Pack::Undertaking => "Earlier · delivery undertakings", Pack::Territorial => "Earlier · territorial government", Pack::Observed => "Earlier · expanded observations", Pack::Electoral => "Earlier · electoral mandates", Pack::Cabinet => "Earlier · ministries and policies", Pack::Commitment => "Earlier · policy commitments", Pack::Constitution => "Earlier · political transitions", Pack::Finance => "Earlier · borrowing and prices", Pack::Market => "Earlier · prices only", _ => "Classic · fixed prices" };
                     egui::ComboBox::from_label("World pack").height(320.0).selected_text(pack_label).show_ui(ui, |ui| {
-                        ui.selectable_value(&mut self.pack, Pack::Current, "Default · stable political selection");
+                        ui.selectable_value(&mut self.pack, Pack::Current, "Default · history and opening references");
                         ui.selectable_value(&mut self.pack, Pack::BookmarkIdentities, "Optional · dated opening references");
-                        ui.selectable_value(&mut self.pack, Pack::StatisticalHistory, "Optional · long-campaign review archive");
+                        ui.selectable_value(&mut self.pack, Pack::StableElections, "Earlier · stable political selection");
                         ui.selectable_value(&mut self.pack, Pack::ProgrammeEvents, "Earlier · linked programme outcomes");
                         ui.selectable_value(&mut self.pack, Pack::EventReferences, "Earlier · stable chronicle references");
                         ui.selectable_value(&mut self.pack, Pack::Reserve, "Earlier · national commodity reserves");
@@ -171,7 +251,7 @@ impl Setup {
                     });
                     if self.pack != previous {
                         let old_default = default_save_path(&self.content);
-                        match match self.pack { Pack::BookmarkIdentities => Content::bookmark_identities_bundled(), Pack::StatisticalHistory => Content::statistical_history_bundled(), Pack::ProgrammeEvents => Content::programme_events_bundled(), Pack::EventReferences => Content::event_reference_bundled(), Pack::Reserve => Content::reserve_bundled(), Pack::Party => Content::party_bundled(), Pack::Technology => Content::technology_bundled(), Pack::Interest => Content::interest_bundled(), Pack::Cash => Content::cash_bundled(), Pack::DatedDebt => Content::debt_bundled(), Pack::NationalFiscal => Content::national_fiscal_bundled(), Pack::Income => Content::income_bundled(), Pack::Fiscal => Content::fiscal_bundled(), Pack::Undertaking => Content::undertaking_bundled(), Pack::Territorial => Content::territorial_bundled(), Pack::Observed => Content::observed_bundled(), Pack::Electoral => Content::electoral_bundled(), Pack::Cabinet => Content::cabinet_bundled(), Pack::Classic => Content::classic_bundled(), Pack::Commitment => Content::commitment_bundled(), Pack::Constitution => Content::constitution_bundled(), Pack::Finance => Content::finance_bundled(), Pack::Market => Content::market_bundled(), _ => Content::bundled() } {
+                        match match self.pack { Pack::BookmarkIdentities => Content::bookmark_identities_bundled(), Pack::StableElections => Content::stable_elections_bundled(), Pack::ProgrammeEvents => Content::programme_events_bundled(), Pack::EventReferences => Content::event_reference_bundled(), Pack::Reserve => Content::reserve_bundled(), Pack::Party => Content::party_bundled(), Pack::Technology => Content::technology_bundled(), Pack::Interest => Content::interest_bundled(), Pack::Cash => Content::cash_bundled(), Pack::DatedDebt => Content::debt_bundled(), Pack::NationalFiscal => Content::national_fiscal_bundled(), Pack::Income => Content::income_bundled(), Pack::Fiscal => Content::fiscal_bundled(), Pack::Undertaking => Content::undertaking_bundled(), Pack::Territorial => Content::territorial_bundled(), Pack::Observed => Content::observed_bundled(), Pack::Electoral => Content::electoral_bundled(), Pack::Cabinet => Content::cabinet_bundled(), Pack::Classic => Content::classic_bundled(), Pack::Commitment => Content::commitment_bundled(), Pack::Constitution => Content::constitution_bundled(), Pack::Finance => Content::finance_bundled(), Pack::Market => Content::market_bundled(), _ => Content::bundled() } {
                             Ok(content) => {
                                 if content.country(&self.player).is_none() { self.player = content.countries[0].id.clone(); }
                                 if self.save_path == old_default { self.save_path = default_save_path(&content); }

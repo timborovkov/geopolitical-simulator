@@ -3,7 +3,7 @@ use sim_core::*;
 #[test]
 fn opening_crosswalk_preserves_all_prior_definitions_and_opening_world_resources() {
     let pack = Content::bookmark_identities_bundled().unwrap();
-    let prior = Content::bundled().unwrap();
+    let prior = Content::stable_elections_bundled().unwrap();
     assert_eq!(pack.rules, prior.rules);
     let mut normalized = pack.clone();
     normalized.id = prior.id.clone();
@@ -119,7 +119,7 @@ fn opening_records_preserve_distinct_executives_collective_missingness_and_exclu
 #[test]
 fn reference_metadata_never_schedules_a_handover_and_campaign_saves_replay() {
     let pack = Content::bookmark_identities_bundled().unwrap();
-    let prior = Content::bundled().unwrap();
+    let prior = Content::stable_elections_bundled().unwrap();
     let country = CountryId("GBR".into());
     let mut world = World::new(&pack, country.clone(), 17).unwrap();
     let mut expected = World::new(&prior, country, 17).unwrap();

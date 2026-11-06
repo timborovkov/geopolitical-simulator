@@ -281,8 +281,8 @@ mod tests {
     use super::*;
     #[test]
     fn party_and_identity_search_preserves_loaded_reference_dates_labels_and_missingness() {
-        let default = Content::bundled().unwrap();
-        let parties = bookmark_entries(&default);
+        let preserved = Content::stable_elections_bundled().unwrap();
+        let parties = bookmark_entries(&preserved);
         assert_eq!(parties.len(), 34);
         let french = parties
             .iter()
@@ -293,7 +293,7 @@ mod tests {
         assert!(french.body.contains("François Hollande"));
         assert!(french.body.contains("Opening seats"));
         assert!(parties.iter().any(|entry| matches(entry, "KEIZO OBUCHI")));
-        let content = Content::bookmark_identities_bundled().unwrap();
+        let content = Content::bundled().unwrap();
         let records = bookmark_entries(&content);
         for (prefix, count) in [
             ("Party ·", 34),

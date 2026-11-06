@@ -2,7 +2,7 @@ use sim_core::*;
 
 #[test]
 fn typed_event_elapsed_time_and_follow_on_steps_keep_pre_change_campaign_hashes() {
-    let content = Content::bundled().unwrap();
+    let content = Content::stable_elections_bundled().unwrap();
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     for action in [
         Action::Enact {

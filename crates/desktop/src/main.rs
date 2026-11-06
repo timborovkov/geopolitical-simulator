@@ -732,42 +732,6 @@ impl GameApp {
                 .map_or(d.executive.as_str(), |report| report.executive.as_str())
         ));
 
-        self.map.show(
-            ui,
-            &self.content,
-            self.world.as_ref(),
-            &mut self.selected,
-            (ui.available_height() * 0.48).clamp(200.0, 420.0),
-        );
-        if self.selected != d.id {
-            return;
-        }
-        egui::CollapsingHeader::new("Opening data & provenance").show(ui,|ui|{
-            let facts:Vec<_>=self.content.facts.iter().filter(|f|f.country==d.id).collect();
-            for (field, value) in [("population", d.population.0 as i64), ("gdp", d.gdp)] {
-                if !facts.iter().any(|fact| fact.field == field) { ui.label(format!("{field}: {value} · authored calibration; no observation record in this pack.")); }
-            }
-            for fact in facts {ui.label(format!("{}: {} {} ({} observation; source {}). Applied {}. {}",fact.field,fact.original_value,fact.original_units,fact.observation_period,fact.source,fact.applied_value,fact.transformation));ui.small(format!("Pinned mirror revision {}. Primary API not independently reconciled.",fact.source_version));}
-            ui.small("Debt, capacities, household profiles, seats, preferences and political rules are authored. Identity names remain a starter curation; all simulated outcomes branch from the bookmark.");
-        });
-        sovereignty::show(ui, &self.content, &self.selected);
-        let offices = self.content.bookmark_offices(&self.selected);
-        if !offices.is_empty() {
-            ui.collapsing(format!("Reference offices at {}", self.content.start), |ui| {
-                ui.label("Reference terms initialize the bookmark. Campaign succession follows simulated institutions; future reference records do not force a change.");
-                ui.label(format!("Primary currency identity: {}. Monetary values use game reporting credits; exchange rates are not modeled.", d.currency));
-                for office in &offices {
-                    ui.strong(format!("{} · {}: {}", office.role.label(), office.title, office.holder));
-                    if let Some(term) = &office.term {
-                        ui.small(format!("Reference from {} until {} (end excluded) · {:?} · source {}@{}", term.validity.valid_from,
-                            term.validity.valid_to.map_or_else(|| "open-ended".into(), |date| date.to_string()), term.quality, term.source, term.source_version));
-                    } else { ui.small("No incumbent record at the bookmark; this is unknown, not a recorded vacancy."); }
-                }
-            });
-        }
-        if self.foreign_report(ui) {
-            return;
-        }
         if self.world.is_none() {
             ui.add_space(10.0);
             ui.heading("Your first mandate");
@@ -814,7 +778,45 @@ impl GameApp {
                     match World::new_scenario(&self.content,d.id.clone(),self.seed,self.scenario){Ok(w)=>{self.world=Some(w);self.money=(d.gdp/100).max(1);self.status="Mandate started, paused. Advance a day to collect the first fiscal and supply report.".into();},Err(e)=>self.status=e}
                 }
             });
-        } else if let Some(w) = &self.world {
+        }
+
+        self.map.show(
+            ui,
+            &self.content,
+            self.world.as_ref(),
+            &mut self.selected,
+            (ui.available_height() * 0.48).clamp(200.0, 420.0),
+        );
+        if self.selected != d.id {
+            return;
+        }
+        egui::CollapsingHeader::new("Opening data & provenance").show(ui,|ui|{
+            let facts:Vec<_>=self.content.facts.iter().filter(|f|f.country==d.id).collect();
+            for (field, value) in [("population", d.population.0 as i64), ("gdp", d.gdp)] {
+                if !facts.iter().any(|fact| fact.field == field) { ui.label(format!("{field}: {value} · authored calibration; no observation record in this pack.")); }
+            }
+            for fact in facts {ui.label(format!("{}: {} {} ({} observation; source {}). Applied {}. {}",fact.field,fact.original_value,fact.original_units,fact.observation_period,fact.source,fact.applied_value,fact.transformation));ui.small(format!("Pinned mirror revision {}. Primary API not independently reconciled.",fact.source_version));}
+            ui.small("Debt, capacities, household profiles, seats, preferences and political rules are authored. Identity names remain a starter curation; all simulated outcomes branch from the bookmark.");
+        });
+        sovereignty::show(ui, &self.content, &self.selected);
+        let offices = self.content.bookmark_offices(&self.selected);
+        if !offices.is_empty() {
+            ui.collapsing(format!("Reference offices at {}", self.content.start), |ui| {
+                ui.label("Reference terms initialize the bookmark. Campaign succession follows simulated institutions; future reference records do not force a change.");
+                ui.label(format!("Primary currency identity: {}. Monetary values use game reporting credits; exchange rates are not modeled.", d.currency));
+                for office in &offices {
+                    ui.strong(format!("{} · {}: {}", office.role.label(), office.title, office.holder));
+                    if let Some(term) = &office.term {
+                        ui.small(format!("Reference from {} until {} (end excluded) · {:?} · source {}@{}", term.validity.valid_from,
+                            term.validity.valid_to.map_or_else(|| "open-ended".into(), |date| date.to_string()), term.quality, term.source, term.source_version));
+                    } else { ui.small("No incumbent record at the bookmark; this is unknown, not a recorded vacancy."); }
+                }
+            });
+        }
+        if self.foreign_report(ui) {
+            return;
+        }
+        if let Some(w) = &self.world {
             let c = &w.countries[&self.selected];
             ui.horizontal_wrapped(|ui| {
                 metric(ui, "Treasury", format!("{}m", c.accounts.treasury.0));
@@ -2117,6 +2119,80 @@ fn main() -> eframe::Result {
 #[cfg(test)]
 mod interface_tests {
     use super::*;
+    #[test]
+    fn first_launch_start_is_visible_and_starts_the_combined_default_at_two_scales() {
+        for scale in [1., 1.4] {
+            let content = Content::bundled().unwrap();
+            let ctx = egui::Context::default();
+            let mut app =
+                GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            let mut frame = |events| {
+                ctx.run(
+                    egui::RawInput {
+                        focused: true,
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(1280. / scale, 800. / scale),
+                        )),
+                        events,
+                        ..Default::default()
+                    },
+                    |ctx| app.render(ctx),
+                )
+            };
+            frame(vec![]);
+            frame(vec![]);
+            let output = frame(vec![]);
+            let point = output
+                .shapes
+                .iter()
+                .find_map(|shape| match &shape.shape {
+                    egui::Shape::Text(text)
+                        if text.galley.text() == "Begin as United Kingdom >" =>
+                    {
+                        let rect = egui::Rect::from_min_size(text.pos, text.galley.size());
+                        shape.clip_rect.contains_rect(rect).then_some(rect.center())
+                    }
+                    _ => None,
+                })
+                .expect("The complete start action must be visible without scrolling");
+            for pressed in [true, false] {
+                frame(vec![
+                    egui::Event::PointerMoved(point),
+                    egui::Event::PointerButton {
+                        pos: point,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ]);
+            }
+            let world = app
+                .world
+                .as_ref()
+                .expect("Visible start button starts the country");
+            world.validate(&content).unwrap();
+            assert_eq!(world.player, CountryId("GBR".into()));
+            assert_eq!(world.day, 0);
+            assert!(world.journal.is_empty());
+            assert!(
+                world
+                    .player_country()
+                    .statistical_archive
+                    .as_ref()
+                    .unwrap()
+                    .years
+                    .is_empty()
+            );
+            assert!(!content.bookmark_offices(&world.player).is_empty());
+            assert_eq!(persistence::snapshot_schema(world), 26);
+            assert_eq!(app.save_path, "saves/campaign-v26.json");
+            assert_eq!(app.speed, 0);
+            assert!(app.pending.is_none());
+        }
+    }
+
     fn editor_shortcut_frame(
         ctx: &egui::Context,
         app: &mut GameApp,

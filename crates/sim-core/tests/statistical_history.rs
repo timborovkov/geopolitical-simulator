@@ -192,7 +192,7 @@ fn forged_archive_ranges_missing_state_and_legacy_injection_are_rejected() {
         }
         assert!(bad.validate(&content).is_err(), "case {case}");
     }
-    let legacy = Content::bundled().unwrap();
+    let legacy = Content::stable_elections_bundled().unwrap();
     let mut old = World::new(&legacy, CountryId("GBR".into()), 17).unwrap();
     old.countries
         .get_mut(&old.player.clone())

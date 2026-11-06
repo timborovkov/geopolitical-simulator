@@ -173,11 +173,15 @@ pub struct Content {
 }
 impl Content {
     pub fn bundled() -> Result<Self, String> {
+        Self::statistical_history_bundled()
+    }
+    /// Preserved rules-24 starter before combined opening references and archived reviews.
+    pub fn stable_elections_bundled() -> Result<Self, String> {
         Self::from_json(include_str!(
             "../../../data/initial-2000-stable-elections.json"
         ))
     }
-    /// Optional statistical retention with preserved recent reviews and older annual sample summaries.
+    /// Statistical retention with preserved recent reviews and older annual sample summaries.
     pub fn statistical_history_bundled() -> Result<Self, String> {
         Self::from_json(include_str!(
             "../../../data/initial-2000-statistical-history.json"
@@ -295,7 +299,7 @@ impl Content {
         for pack in [
             Self::bundled()?,
             Self::bookmark_identities_bundled()?,
-            Self::statistical_history_bundled()?,
+            Self::stable_elections_bundled()?,
             Self::programme_events_bundled()?,
             Self::event_reference_bundled()?,
             Self::reserve_bundled()?,

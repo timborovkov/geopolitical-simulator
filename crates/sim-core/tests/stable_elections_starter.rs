@@ -2,9 +2,9 @@ use sim_core::*;
 
 #[test]
 fn stable_starter_preserves_historical_definitions_and_resolves_all_twenty_two_packs() {
-    let current = Content::bundled().unwrap();
+    let current = Content::stable_elections_bundled().unwrap();
     let old = Content::programme_events_bundled().unwrap();
-    assert_eq!((current.schema, current.rules), (24, RULES_VERSION));
+    assert_eq!((current.schema, current.rules), (24, 24));
     assert_eq!(current.hash(), 0xd705e31066ca7139);
     assert_eq!(old.hash(), 0x2ece4c40d10ad679);
     let mut normalized = current.clone();
@@ -60,7 +60,7 @@ fn stable_starter_preserves_historical_definitions_and_resolves_all_twenty_two_p
 
 #[test]
 fn current_receipts_and_pre_poll_resources_match_the_preserved_rules23_campaign() {
-    let current = Content::bundled().unwrap();
+    let current = Content::stable_elections_bundled().unwrap();
     let old = Content::programme_events_bundled().unwrap();
     let id = CountryId("GBR".into());
     let mut world = World::new(&current, id.clone(), 17).unwrap();
@@ -86,7 +86,7 @@ fn current_receipts_and_pre_poll_resources_match_the_preserved_rules23_campaign(
 
 #[test]
 fn formats25_and24_recover_exact_originals_and_reject_a_downgraded_new_header() {
-    let current = Content::bundled().unwrap();
+    let current = Content::stable_elections_bundled().unwrap();
     let old = Content::programme_events_bundled().unwrap();
     let id = CountryId("GBR".into());
     let mut world = World::new(&current, id.clone(), 17).unwrap();
