@@ -151,7 +151,7 @@ impl World {
                 .finance
                 .as_ref()
                 .and_then(|r| r.maturity_days)
-                .and_then(|term| assumption.decision_day.checked_add(term))
+                .and_then(|term| assumption.decision_day.checked_add(term.units()))
         });
         if assumed_maturity.is_some_and(|day| day > MAX_DAY) {
             return Err("Hypothetical loan maturity exceeds the campaign calendar".into());

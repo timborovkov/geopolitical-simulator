@@ -26,8 +26,8 @@ pub struct CabinetDefinition {
     pub candidates: Vec<MinisterCandidate>,
     pub appointment_cost_bps: i64,
     pub dismissal_cost_bps: i64,
-    pub cooldown_days: u32,
-    pub vacancy_preparation_days: u32,
+    pub cooldown_days: DaySpan,
+    pub vacancy_preparation_days: DaySpan,
     pub source: String,
     pub source_version: String,
 }
@@ -41,8 +41,8 @@ impl CabinetDefinition {
     pub fn validate(&self, content: &Content) -> Result<(), String> {
         if !(1..=100).contains(&self.appointment_cost_bps)
             || !(1..=100).contains(&self.dismissal_cost_bps)
-            || !(1..=365).contains(&self.cooldown_days)
-            || !(1..=90).contains(&self.vacancy_preparation_days)
+            || !(1..=365).contains(&self.cooldown_days.units())
+            || !(1..=90).contains(&self.vacancy_preparation_days.units())
             || self.source_version.is_empty()
             || !content.sources.iter().any(|s| s.id == self.source)
         {
@@ -185,7 +185,7 @@ impl Cabinet {
 pub struct AppointmentPreview {
     pub fee: Money,
     pub decision_day: u32,
-    pub preparation_days: u32,
+    pub preparation_days: DaySpan,
     pub elite_cost: i32,
     pub council_cost: i32,
     pub route: String,
@@ -196,16 +196,16 @@ impl World {
         content: &Content,
         id: &CountryId,
         policy: &PolicyId,
-    ) -> u32 {
+    ) -> DaySpan {
         let Some(rules) = &content.cabinet else {
-            return 0;
+            return DaySpan::ZERO;
         };
         let Some(office) = rules
             .portfolios
             .iter()
             .find(|p| &p.country == id && p.policies.iter().any(|p| p == policy))
         else {
-            return 0;
+            return DaySpan::ZERO;
         };
         self.countries[id]
             .cabinet
@@ -213,7 +213,10 @@ impl World {
             .and_then(|c| c.minister(&office.id))
             .and_then(|t| rules.candidate(&t.person))
             .map_or(rules.vacancy_preparation_days, |p| {
-                rules.vacancy_preparation_days * (100 - p.skill) as u32 / 100
+                rules
+                    .vacancy_preparation_days
+                    .scaled((100 - p.skill) as u32, 100)
+                    .expect("validated candidate skill")
             })
     }
     pub fn preview_appointment(
@@ -266,18 +269,21 @@ impl World {
         }
         let decision_day = self
             .day
-            .checked_add(government.consent_days)
+            .checked_add(government.consent_days.units())
             .filter(|d| *d <= MAX_DAY)
             .ok_or("Appointment would exceed the campaign calendar")?;
         self.day
-            .checked_add(rules.cooldown_days)
+            .checked_add(rules.cooldown_days.units())
             .filter(|d| *d <= MAX_DAY)
             .ok_or("Appointment cooldown would exceed the campaign calendar")?;
         let cost = (100 - candidate.acceptability) / 10;
         Ok(AppointmentPreview {
             fee,
             decision_day,
-            preparation_days: rules.vacancy_preparation_days * (100 - candidate.skill) as u32 / 100,
+            preparation_days: rules
+                .vacancy_preparation_days
+                .scaled((100 - candidate.skill) as u32, 100)
+                .expect("validated candidate skill"),
             elite_cost: cost,
             council_cost: cost,
             route: government.label(),
@@ -304,7 +310,13 @@ impl World {
         let cabinet = c.cabinet.as_mut().expect("cabinet");
         cabinet.next_request_day.insert(
             office.clone(),
-            self.day + content.cabinet.as_ref().expect("rules").cooldown_days,
+            self.day
+                + content
+                    .cabinet
+                    .as_ref()
+                    .expect("rules")
+                    .cooldown_days
+                    .units(),
         );
         cabinet.pending.push(PendingAppointment {
             id: request,
@@ -359,7 +371,7 @@ impl World {
         self.governing_rules(content, id)?
             .check(c, "appointments", 1)?;
         self.day
-            .checked_add(rules.cooldown_days)
+            .checked_add(rules.cooldown_days.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Dismissal cooldown would exceed the campaign calendar")?;
         let fee = Money(
@@ -394,7 +406,13 @@ impl World {
             .for_each(|t| t.until = Some(self.day));
         cabinet.next_request_day.insert(
             office.clone(),
-            self.day + content.cabinet.as_ref().expect("rules").cooldown_days,
+            self.day
+                + content
+                    .cabinet
+                    .as_ref()
+                    .expect("rules")
+                    .cooldown_days
+                    .units(),
         );
         self.event(id,true,format!("Minister dismissed from {}. Paid {}m administration. Permanent civil service now prepares new proposals with the configured vacancy delay; funded projects retain their delivery dates.",content.cabinet.as_ref().expect("rules").office(office).expect("office").title,fee.0));
         Ok(())
@@ -571,7 +589,8 @@ impl World {
             let origin = appointment(term.appointment, &term.office, &term.person)?;
             let delay = self
                 .governing_rules_at(content, id, origin.day)?
-                .consent_days;
+                .consent_days
+                .units();
             if !ids.insert(term.appointment.0)
                 || origin.day.checked_add(delay) != Some(term.since)
                 || term.since > self.day
@@ -602,7 +621,8 @@ impl World {
             let origin = appointment(p.id, &p.office, &p.person)?;
             let delay = self
                 .governing_rules_at(content, id, origin.day)?
-                .consent_days;
+                .consent_days
+                .units();
             if !ids.insert(p.id.0)
                 || !pending.insert(&p.office)
                 || p.proposed_day != origin.day
@@ -612,7 +632,7 @@ impl World {
                 || p.sponsor != state.government
                 || p.proposed_day < state.since
                 || p.paid != fee
-                || state.next_request_day[&p.office] != p.proposed_day + rules.cooldown_days
+                || state.next_request_day[&p.office] != p.proposed_day + rules.cooldown_days.units()
             {
                 return Err("Invalid pending ministerial appointment".into());
             }

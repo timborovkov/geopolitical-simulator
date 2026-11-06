@@ -1194,19 +1194,19 @@ impl GameApp {
                     ui.strong("Decision preview · forecast");
                     ui.label(format!(
                         "Cash now: {}m · delivery: {} days · annual consolidated net expenditure change: {:+}m",
-                        preview.cost.0, preview.delay, preview.annual_budget_change.0
+                        preview.cost.0, preview.delay.units(), preview.annual_budget_change.0
                     ));
                     if self.policy == "coalition" {
                         ui.label("Authority: Direct governing negotiation; backing changes after delivery.");
                     } else { ui.label(format!("Authority: {}", preview.route)); }
-                    ui.label(format!("Paid upfront {}m; reserve {}m until consent in {} days. Reserved money cannot fund other obligations.",preview.upfront_payment.0,preview.cost.0-preview.upfront_payment.0,preview.consent_delay));
+                    ui.label(format!("Paid upfront {}m; reserve {}m until consent in {} days. Reserved money cannot fund other obligations.",preview.upfront_payment.0,preview.cost.0-preview.upfront_payment.0,preview.consent_delay.units()));
                     ui.strong("Direct household income change after delivery · forecast m/day");
                     for impact in &preview.household_impacts {ui.label(format!("{}: {:+}m",impact.group,impact.daily_disposable_change.0));}
                     ui.label(preview.explanation);
                 });
                 if ui
                     .button(
-                        RichText::new(if preview.consent_delay == 0 {
+                        RichText::new(if preview.consent_delay.units() == 0 {
                             "Authorize and fund commitment"
                         } else {
                             "Propose and reserve funds"

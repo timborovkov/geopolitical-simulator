@@ -81,7 +81,8 @@ fn legal_routes_apply_to_all_regimes_and_support_can_be_negotiated() {
         let delivery_day = w
             .preview(&content, &d.id, &"coalition".into(), 1)
             .unwrap()
-            .delay;
+            .delay
+            .units();
         w.issue(
             &content,
             Action::Enact {
@@ -150,7 +151,7 @@ fn policy_has_cost_delay_no_duplicate_and_save_resumes_exactly() {
         )
         .is_err()
     );
-    w.advance(&content, sim_core::DaySpan::new(preview.delay - 1))
+    w.advance(&content, sim_core::DaySpan::new(preview.delay.units() - 1))
         .unwrap();
     assert_eq!(w.player_country().energy_capacity, 90);
     let bytes = persistence::encode(&w, &content).unwrap();

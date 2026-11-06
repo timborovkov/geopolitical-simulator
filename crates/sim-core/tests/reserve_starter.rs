@@ -14,7 +14,7 @@ fn seeded_reserves_preserve_all_prior_definitions_and_grant_no_opening_resources
     assert_eq!(
         (
             rules.capacity_days,
-            rules.order_days,
+            rules.order_days.units(),
             rules.fee_bps,
             rules.ai_target_days
         ),

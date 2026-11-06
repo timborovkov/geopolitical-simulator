@@ -47,8 +47,7 @@ fn the_seeded_fiscal_roster_preserves_all_prior_data_and_each_country_can_delive
                 },
             )
             .unwrap();
-            w.advance(&c, sim_core::DaySpan::new(support.delay))
-                .unwrap();
+            w.advance(&c, support.delay).unwrap();
         }
         let preview = w.preview_budget(&c, &w.player, 2000, &t).unwrap();
         let before = w.player_country().accounts.treasury;

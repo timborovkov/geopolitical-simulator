@@ -18,7 +18,7 @@ pub struct BorrowingAuthority {
     pub id: AuthorityId,
     pub label: String,
     pub route: DecisionRoute,
-    pub consent_days: u32,
+    pub consent_days: DaySpan,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct EmergencyFinance {
@@ -27,7 +27,7 @@ pub struct EmergencyFinance {
     pub legislative_cost: i32,
     pub elite_cost: i32,
     pub council_cost: i32,
-    pub cooldown_days: u32,
+    pub cooldown_days: DaySpan,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct FinanceDefinition {
@@ -35,8 +35,14 @@ pub struct FinanceDefinition {
     pub interest_accrual: Option<InterestAccrualRule>,
     pub authorities: Vec<BorrowingAuthority>,
     /// Authored term for newly disbursed loans; opening calibration stays perpetual.
+    /// ```compile_fail
+    /// use sim_core::Content;
+    /// fn cannot_assign_a_date(content: &mut Content, date: u32) {
+    ///     content.finance.as_mut().unwrap().maturity_days = Some(date);
+    /// }
+    /// ```
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub maturity_days: Option<u32>,
+    pub maturity_days: Option<DaySpan>,
     pub emergency: Option<EmergencyFinance>,
     pub source: String,
     pub source_version: String,
@@ -54,7 +60,7 @@ impl FinanceDefinition {
         if (content.rules >= 15) != self.maturity_days.is_some()
             || self
                 .maturity_days
-                .is_some_and(|days| !(30..=3650).contains(&days))
+                .is_some_and(|days| !(30..=3650).contains(&days.units()))
         {
             return Err("Dated loan principal requires rules 15 and a 30–3650 day term".into());
         }
@@ -72,7 +78,7 @@ impl FinanceDefinition {
         for (index, authority) in self.authorities.iter().enumerate() {
             if authority.id.0.is_empty()
                 || authority.label.is_empty()
-                || authority.consent_days > 180
+                || authority.consent_days.units() > 180
                 || self.authorities[..index]
                     .iter()
                     .any(|other| other.id == authority.id || other.route == authority.route)
@@ -90,7 +96,7 @@ impl FinanceDefinition {
                 ]
                 .into_iter()
                 .any(|cost| !(0..=100).contains(&cost))
-                || !(30..=365).contains(&emergency.cooldown_days))
+                || !(30..=365).contains(&emergency.cooldown_days.units()))
         {
             return Err("Invalid emergency-financing constraints or political costs".into());
         }
@@ -245,7 +251,7 @@ impl Financing {
                     } else {
                         rules
                             .maturity_days
-                            .and_then(|days| instrument.issued_day.checked_add(days))
+                            .and_then(|days| instrument.issued_day.checked_add(days.units()))
                     }
                 || instrument.maturity_day.is_some_and(|day| day > MAX_DAY)
                 || instrument.issued_day < previous_issue
@@ -306,6 +312,7 @@ impl Financing {
                             )
                             .ok_or("Debt lacks legal authority")?
                             .consent_days
+                            .units()
                     };
                     if &entry.command.issuer != id
                         || amount != instrument.original_principal
@@ -340,11 +347,13 @@ impl Financing {
                 .ok_or("Pending loan lacks legal authority")?;
             if request.amount.0 <= 0
                 || request.amount.0 > definition.gdp / 10
-                || authority.consent_days == 0
+                || authority.consent_days.units() == 0
                 || request.authority != authority.id
                 || request.requested_day != entry.command.day
                 || Some(request.decision_day)
-                    != request.requested_day.checked_add(authority.consent_days)
+                    != request
+                        .requested_day
+                        .checked_add(authority.consent_days.units())
                 || request.decision_day <= world.day
                 || request.decision_day > MAX_DAY
                 || request.requested_day < start
@@ -382,7 +391,8 @@ impl Financing {
                         .emergency
                         .as_ref()
                         .ok_or("Contested borrowing lacks rules")?
-                        .cooldown_days,
+                        .cooldown_days
+                        .units(),
                 )
                 .ok_or("Emergency deadline overflow")?
         } else {
@@ -402,7 +412,7 @@ pub struct BorrowingPreview {
     pub amount: Money,
     pub authority: AuthorityId,
     pub route: String,
-    pub consent_days: u32,
+    pub consent_days: DaySpan,
     pub decision_day: u32,
 }
 
@@ -413,7 +423,11 @@ impl World {
             .finance
             .as_ref()
             .and_then(|r| r.maturity_days)
-            .is_some_and(|term| self.day.checked_add(term).is_none_or(|day| day > MAX_DAY))
+            .is_some_and(|term| {
+                self.day
+                    .checked_add(term.units())
+                    .is_none_or(|day| day > MAX_DAY)
+            })
         {
             return Err("Loan maturity would exceed the campaign calendar".into());
         }
@@ -466,12 +480,12 @@ impl World {
         government.check(country, "borrow", 0)?;
         let decision_day = self
             .day
-            .checked_add(authority.consent_days)
+            .checked_add(authority.consent_days.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("No time remains for institutional loan approval")?;
         if rules.maturity_days.is_some_and(|term| {
             decision_day
-                .checked_add(term)
+                .checked_add(term.units())
                 .is_none_or(|day| day > MAX_DAY)
         }) {
             return Err("Loan maturity would exceed the campaign calendar".into());
@@ -554,7 +568,7 @@ impl World {
                     .finance
                     .as_ref()
                     .and_then(|r| r.maturity_days)
-                    .map(|days| self.day + days),
+                    .map(|days| self.day + days.units()),
                 maturity_repaid: content
                     .finance
                     .as_ref()
@@ -569,7 +583,7 @@ impl World {
             .and_then(|r| r.maturity_days)
             .map_or_else(
                 || "voluntary principal repayment".into(),
-                |days| format!("principal due {}", date(self.day + days)),
+                |days| format!("principal due {}", date(self.day + days.units())),
             );
         self.event(id, true, format!("Loan #{} disbursed: {}m from the finite external creditor at 4% annual interest, with {terms}.{}", loan.0, amount.0, if contested { " Constitutional borrowing consent was bypassed through an explicit contested act." } else { " Institutional authority and financing were checked at disbursement." }));
     }
@@ -643,7 +657,7 @@ impl World {
         amount: Money,
     ) -> Result<(), String> {
         let preview = self.preview_borrowing(content, id, amount)?;
-        if preview.consent_days == 0 {
+        if preview.consent_days.units() == 0 {
             self.disburse_loan(content, id, loan, amount, false);
         } else {
             let country = self.countries.get_mut(id).expect("country");
@@ -675,7 +689,7 @@ impl World {
             .ok_or("Emergency counter exhausted")?;
         let next = self
             .day
-            .checked_add(rule.cooldown_days)
+            .checked_add(rule.cooldown_days.units())
             .ok_or("Emergency cooldown overflow")?;
         financing.emergency_count = count;
         financing.next_emergency_day = next;

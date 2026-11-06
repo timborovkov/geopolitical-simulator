@@ -66,7 +66,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
             ui.label(format!(
                 "{} · consent {} days · decision {} · fixed 4% annual interest",
                 preview.route,
-                preview.consent_days,
+                preview.consent_days.units(),
                 date(preview.decision_day)
             ));
             if let Some(term) = content
@@ -77,11 +77,11 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
                 ui.label(format!(
                     "If approved on schedule: {}m principal due {}.",
                     money,
-                    date(preview.decision_day + term)
+                    date(preview.decision_day + term.units())
                 ));
             }
             if ui
-                .button(if preview.consent_days == 0 {
+                .button(if preview.consent_days.units() == 0 {
                     "Issue authorized loan"
                 } else {
                     "Request borrowing consent"
@@ -101,7 +101,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
         ui.colored_label(Color32::LIGHT_YELLOW, "Bypasses constitutional borrowing consent. Effective council backing and creditor limits still apply. This is a political act with consequences.");
         match world.preview_emergency_borrowing(content, &world.player, Money(*money)) {
             Ok(rule) => {
-                ui.label(format!("Immediate {}m; approval -{}, legislative support -{}, elite backing -{}, council backing -{} (floor zero). Cooldown {} days.", money, rule.approval_cost, rule.legislative_cost, rule.elite_cost, rule.council_cost, rule.cooldown_days));
+                ui.label(format!("Immediate {}m; approval -{}, legislative support -{}, elite backing -{}, council backing -{} (floor zero). Cooldown {} days.", money, rule.approval_cost, rule.legislative_cost, rule.elite_cost, rule.council_cost, rule.cooldown_days.units()));
                 if ui.button("Take contested loan with these costs").clicked() {
                     action = Some(Action::EmergencyBorrow { amount: Money(*money) });
                 }

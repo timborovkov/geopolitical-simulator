@@ -79,7 +79,7 @@ impl Panel {
                 }
                 if let Some(rule) = content.territorial.as_ref().and_then(|r|r.requisition.as_ref()) {
                     egui::CollapsingHeader::new("Contested requisition of local base funds").id_salt(("requisition",&mandate.id.0)).show(ui,|ui| {
-                        ui.label(format!("Violates this local mandate. Requires elite {}, council {}. Costs approval {}, legislature {}, elite {}, council {}; interval {} days. Accepted grants and pending escrow remain protected.",rule.elite_threshold,rule.council_threshold,rule.approval_cost,rule.legislative_cost,rule.elite_cost,rule.council_cost,rule.cooldown_days));
+                        ui.label(format!("Violates this local mandate. Requires elite {}, council {}. Costs approval {}, legislature {}, elite {}, council {}; interval {} days. Accepted grants and pending escrow remain protected.",rule.elite_threshold,rule.council_threshold,rule.approval_cost,rule.legislative_cost,rule.elite_cost,rule.council_cost,rule.cooldown_days.units()));
                         let amount=self.requisitions.entry(mandate.id.clone()).or_insert(1);
                         ui.horizontal(|ui|{ui.label("Base funds claimed (m)");ui.add(egui::DragValue::new(amount).range(1..=local.cash.0.max(1)));});
                         match world.preview_regional_requisition(content,&world.player,&mandate.id,Money(*amount)) {
@@ -124,7 +124,7 @@ impl Panel {
             });
             ui.checkbox(&mut self.contested_territorial,"Use contested effective-power route");
             let route=rules.route(self.contested_territorial);
-            if let Ok(route)=route {ui.label(format!("Review {} days; backing legislature {} / elite {}, council {}, approval {}. On enactment: approval -{}, legislature -{}, elite -{}, council -{}. Reform interval {} days.",route.days,route.legislative_threshold,route.elite_threshold,route.council_threshold,route.approval_threshold,route.approval_cost,route.legislative_cost,route.elite_cost,route.council_cost,rules.cooldown_days));}
+            if let Ok(route)=route {ui.label(format!("Review {} days; backing legislature {} / elite {}, council {}, approval {}. On enactment: approval -{}, legislature -{}, elite -{}, council -{}. Reform interval {} days.",route.days,route.legislative_threshold,route.elite_threshold,route.council_threshold,route.approval_threshold,route.approval_cost,route.legislative_cost,route.elite_cost,route.council_cost,rules.cooldown_days.units()));}
             match world.preview_territorial_reform(content,&world.player,target,self.contested_territorial) {
                 Ok(p)=>{ui.label(format!("Pay {}m now; reserve {}m. Total administration {}m; local compensation {}m across {} authorities. Review {}. Existing local cash and accepted grant terms continue.",p.upfront.0,p.reserved.0,p.admin_cost.0,p.compensations.iter().map(|r|r.amount.0).sum::<i64>(),p.compensations.len(),date(p.decision_day)));if ui.button("Submit territorial reform").clicked(){action=Some(Action::ReformTerritory{target:target.clone(),contested:self.contested_territorial});}}
                 Err(reason)=>{ui.label(format!("Cannot reform: {reason}"));}

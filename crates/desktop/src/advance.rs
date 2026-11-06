@@ -152,7 +152,7 @@ mod tests {
             .find(|d| d.id.0 == "GBR")
             .unwrap()
             .government
-            .consent_days = 30;
+            .consent_days = DaySpan::new(30);
         let seed = (0_u64..100)
             .find(|seed| {
                 !sim_core::stable_hash(format!("{seed}:GBR:0:supply-v2").as_bytes())

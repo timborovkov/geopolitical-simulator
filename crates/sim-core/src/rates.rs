@@ -14,9 +14,9 @@ use crate::Money;
 use serde::{Deserialize, Serialize};
 
 macro_rules! scalar {
-    ($name:ident) => {
+    ($name:ident $(, $debug:ident)?) => {
         #[derive(
-            Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord,
+            Clone, Copy, $($debug,)? Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord,
         )]
         #[serde(transparent)]
         pub struct $name(u32);
@@ -38,10 +38,33 @@ macro_rules! scalar {
     };
 }
 // Rates may exceed 100%. Policy-specific limits remain command/content rules.
-scalar!(Percent);
-scalar!(BasisPoints);
+scalar!(Percent, Debug);
+scalar!(BasisPoints, Debug);
 // A duration, not an absolute simulation date or a calendar-year mandate.
 scalar!(DaySpan);
+impl DaySpan {
+    /// Scale a whole-day duration, rounding down once. A zero denominator or
+    /// a result beyond the supported duration range returns None.
+    pub fn scaled(self, numerator: u32, denominator: u32) -> Option<Self> {
+        if denominator == 0 {
+            return None;
+        }
+        u32::try_from(u64::from(self.0) * u64::from(numerator) / u64::from(denominator))
+            .ok()
+            .map(Self::new)
+    }
+}
+// Configured durations retain the published numeric diagnostic and JSON forms.
+impl std::fmt::Debug for DaySpan {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
+impl std::fmt::Display for DaySpan {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
 
 impl Percent {
     pub fn as_basis_points(self) -> Option<BasisPoints> {

@@ -28,7 +28,7 @@ pub struct IncomeTaxBand {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IncomeTaxDefinition {
-    pub annualisation_days: u32,
+    pub annualisation_days: DaySpan,
     pub bands: Vec<IncomeTaxBand>,
     pub source: String,
     pub source_version: String,
@@ -36,7 +36,7 @@ pub struct IncomeTaxDefinition {
 impl IncomeTaxDefinition {
     fn validate_shape(&self) -> Result<(), String> {
         let mut ids = BTreeSet::new();
-        if self.annualisation_days != 365
+        if self.annualisation_days.units() != 365
             || !(2..=12).contains(&self.bands.len())
             || self
                 .bands
@@ -103,7 +103,7 @@ impl IncomeTaxDefinition {
         {
             return Err("Income assessment requires bounded received income, population, GDP, standard rate and collection capacity".into());
         }
-        let annual = i128::from(gross.0) * i128::from(self.annualisation_days);
+        let annual = i128::from(gross.0) * i128::from(self.annualisation_days.units());
         let threshold = |bps: u32| {
             i128::from(d.gdp) * i128::from(group_population.0) * i128::from(bps)
                 / (i128::from(d.population.0) * 10_000)
@@ -134,7 +134,7 @@ impl IncomeTaxDefinition {
                 });
             }
         }
-        let denominator = i128::from(self.annualisation_days) * 10_000;
+        let denominator = i128::from(self.annualisation_days.units()) * 10_000;
         let potential = i64::try_from(numerator / denominator)
             .map_err(|_| "Potential withholding exceeds supported precision")?;
         let collectible =

@@ -6,7 +6,10 @@ fn preserved_dated_loans_preserve_the_entire_previous_roster_and_resolve_all_fou
     let old = Content::national_fiscal_bundled().unwrap();
     assert_eq!(content.rules, 15);
     assert_eq!((content.schema, content.rules), (15, 15));
-    assert_eq!(content.finance.as_ref().unwrap().maturity_days, Some(365));
+    assert_eq!(
+        content.finance.as_ref().unwrap().maturity_days,
+        Some(DaySpan::new(365))
+    );
     assert_eq!(content.sources.len(), old.sources.len() + 1);
     assert_eq!(
         &content.sources[..old.sources.len()],
@@ -79,18 +82,14 @@ fn each_seeded_government_can_issue_a_dated_loan_through_its_ordinary_authority_
                     },
                 )
                 .unwrap();
-            world
-                .advance(&content, sim_core::DaySpan::new(support.delay))
-                .unwrap();
+            world.advance(&content, support.delay).unwrap();
         }
         let preview = world
             .preview_borrowing(&content, &world.player, amount)
             .unwrap();
         let id = LoanId(world.next_command.0);
         world.issue(&content, Action::Borrow { amount }).unwrap();
-        world
-            .advance(&content, sim_core::DaySpan::new(preview.consent_days))
-            .unwrap();
+        world.advance(&content, preview.consent_days).unwrap();
         let loan = world
             .player_country()
             .financing

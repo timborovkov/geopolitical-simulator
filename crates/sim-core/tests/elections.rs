@@ -162,8 +162,8 @@ fn withdrawal_and_refusal_retain_administration_and_the_statutory_interval() {
 fn an_earlier_mandatory_confidence_poll_supersedes_an_announced_poll() {
     let mut c = content();
     let rules = c.elections.as_mut().unwrap();
-    rules.minimum_interval_days = 1;
-    rules.campaign_days = 180;
+    rules.minimum_interval_days = DaySpan::new(1);
+    rules.campaign_days = DaySpan::new(180);
     c.countries[0].parties[0].seats = 40;
     c.countries[0].parties[1].seats = 60;
     c.validate().unwrap();
@@ -209,7 +209,7 @@ fn an_earlier_mandatory_confidence_poll_supersedes_an_announced_poll() {
 #[test]
 fn a_costed_contested_constitutional_change_can_supersede_the_electoral_mandate() {
     let mut c = content();
-    c.elections.as_mut().unwrap().minimum_interval_days = 1;
+    c.elections.as_mut().unwrap().minimum_interval_days = DaySpan::new(1);
     let mut w = start(&c, "AUR");
     for _ in 0..3 {
         let p = w.preview(&c, &w.player, &"coalition".into(), 1).unwrap();
@@ -221,7 +221,7 @@ fn a_costed_contested_constitutional_change_can_supersede_the_electoral_mandate(
             },
         )
         .unwrap();
-        w.advance(&c, sim_core::DaySpan::new(p.delay)).unwrap();
+        w.advance(&c, p.delay).unwrap();
     }
     let id = request(&mut w, &c);
     w.advance(&c, sim_core::DaySpan::new(7)).unwrap();
@@ -315,7 +315,7 @@ fn independent_mandates_private_requests_saved_state_and_ai_share_validated_rule
         bad.cabinet.as_ref().unwrap().portfolios[0].id.clone();
     assert!(bad.validate().is_err());
     let mut bad = c.clone();
-    bad.elections.as_mut().unwrap().campaign_days = 0;
+    bad.elections.as_mut().unwrap().campaign_days = DaySpan::new(0);
     assert!(bad.validate().is_err());
     let mut w = start(&c, "AUR");
     w.advance(&c, sim_core::DaySpan::new(365)).unwrap();
@@ -357,9 +357,9 @@ fn independent_mandates_private_requests_saved_state_and_ai_share_validated_rule
 fn an_announced_poll_on_a_confidence_review_day_actually_counts_the_seats() {
     let mut c = content();
     let rules = c.elections.as_mut().unwrap();
-    rules.minimum_interval_days = 1;
-    rules.decision_days = 60;
-    rules.campaign_days = 60;
+    rules.minimum_interval_days = DaySpan::new(1);
+    rules.decision_days = DaySpan::new(60);
+    rules.campaign_days = DaySpan::new(60);
     c.countries[0].parties[0].seats = 40;
     c.countries[0].parties[1].seats = 60;
     c.validate().unwrap();

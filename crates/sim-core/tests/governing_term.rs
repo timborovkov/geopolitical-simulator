@@ -42,8 +42,11 @@ fn proposal_reserves_cash_consent_pays_capital_and_rechecks_authority() {
         preview.cost.0 - preview.upfront_payment.0
     );
     let reserved = w.player_country().committed_cash.0;
-    w.advance(&c, sim_core::DaySpan::new(preview.consent_delay - 1))
-        .unwrap();
+    w.advance(
+        &c,
+        sim_core::DaySpan::new(preview.consent_delay.units() - 1),
+    )
+    .unwrap();
     let mut restored = persistence::decode(&persistence::encode(&w, &c).unwrap(), &c).unwrap();
     w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     restored.advance(&c, sim_core::DaySpan::new(1)).unwrap();
@@ -70,9 +73,7 @@ fn proposal_reserves_cash_consent_pays_capital_and_rechecks_authority() {
         .get_mut(&player)
         .unwrap()
         .legislative_support = 0;
-    rejected
-        .advance(&c, sim_core::DaySpan::new(preview.consent_delay))
-        .unwrap();
+    rejected.advance(&c, preview.consent_delay).unwrap();
     assert!(rejected.player_country().projects.is_empty());
     assert_eq!(rejected.player_country().committed_cash.0, 0);
     assert_eq!(
@@ -99,7 +100,8 @@ fn royal_party_and_parliamentary_approval_differ() {
         saudi
             .preview(&c, &id, &"welfare".into(), 7)
             .unwrap()
-            .consent_delay,
+            .consent_delay
+            .units(),
         0
     );
     assert!(saudi.preview(&c, &id, &"coalition".into(), 1).is_ok());

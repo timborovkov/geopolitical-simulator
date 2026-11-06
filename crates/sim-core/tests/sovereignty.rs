@@ -201,7 +201,8 @@ fn public_reports_freeze_bookmark_references_without_private_state_or_future_tra
         let delay = changed
             .preview(&c, &changed.player, &"coalition".into(), 1)
             .unwrap()
-            .delay;
+            .delay
+            .units();
         changed
             .issue(
                 &c,

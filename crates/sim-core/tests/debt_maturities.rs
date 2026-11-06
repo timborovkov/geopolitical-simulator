@@ -232,13 +232,13 @@ fn mixed_voluntary_and_maturity_redemption_preserves_fifo_and_rejects_forged_his
 #[test]
 fn maturity_rules_are_versioned_bounded_and_leave_the_preserved_starter_unchanged() {
     let mut content = fixture(true);
-    content.finance.as_mut().unwrap().maturity_days = Some(29);
+    content.finance.as_mut().unwrap().maturity_days = Some(DaySpan::new(29));
     assert!(content.validate().is_err());
     let mut content = fixture(true);
     content.finance.as_mut().unwrap().maturity_days = None;
     assert!(content.validate().is_err());
     let mut content = Content::national_fiscal_bundled().unwrap();
-    content.finance.as_mut().unwrap().maturity_days = Some(180);
+    content.finance.as_mut().unwrap().maturity_days = Some(DaySpan::new(180));
     assert!(content.validate().is_err());
     let content = Content::national_fiscal_bundled().unwrap();
     let mut w = World::new(&content, CountryId("FRA".into()), 17).unwrap();

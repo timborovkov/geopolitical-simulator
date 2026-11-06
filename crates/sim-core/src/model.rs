@@ -375,11 +375,18 @@ pub struct World {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PolicyPreview {
     pub cost: Money,
-    pub delay: u32,
+    /// Elapsed time until operation, not an absolute due date.
+    /// ```compile_fail
+    /// use sim_core::PolicyPreview;
+    /// fn cannot_assign_a_duration_to_a_date(preview: &PolicyPreview) {
+    ///     let due_day: u32 = preview.delay;
+    /// }
+    /// ```
+    pub delay: DaySpan,
     pub annual_budget_change: Money,
     pub route: String,
     pub explanation: String,
-    pub consent_delay: u32,
+    pub consent_delay: DaySpan,
     pub upfront_payment: Money,
     pub household_impacts: Vec<HouseholdImpact>,
 }
@@ -435,7 +442,7 @@ impl World {
                         next_leadership_review: d
                             .government
                             .leadership_review_days
-                            .map(|days| start_day + days),
+                            .map(|days| start_day + days.units()),
                         budget: BudgetPeriod {
                             start_day,
                             end_day: crate::budget::next_fiscal_end(start_day),
@@ -731,7 +738,7 @@ impl World {
                 Action::HoldCash { target, days } => content
                     .cash_management
                     .as_ref()
-                    .is_some_and(|r| target.0 > 0 && (1..=r.max_days).contains(days)),
+                    .is_some_and(|r| target.0 > 0 && (1..=r.max_days.units()).contains(days)),
                 Action::ReleaseCash { request } => {
                     content.cash_management.is_some() && request.0 > 0 && request.0 < command.id.0
                 }

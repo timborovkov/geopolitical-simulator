@@ -45,7 +45,8 @@ fn typed_pending_sponsors_survive_restoration_and_expire_on_the_actual_successor
     let delay = world
         .preview(&pack, &world.player, &"coalition".into(), 1)
         .unwrap()
-        .delay;
+        .delay
+        .units();
     world
         .issue(
             &pack,

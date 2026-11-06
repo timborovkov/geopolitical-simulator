@@ -15,9 +15,15 @@ pub enum DecisionRoute {
 pub struct GovernmentDefinition {
     pub route: DecisionRoute,
     pub threshold: i32,
-    pub consent_days: u32,
+    /// A duration, distinct from a percentage or calendar date.
+    /// ```compile_fail
+    /// use sim_core::{BasisPoints, Content};
+    /// let mut content = Content::bundled().unwrap();
+    /// content.countries[0].government.consent_days = BasisPoints::new(14);
+    /// ```
+    pub consent_days: DaySpan,
     pub council_threshold: i32,
-    pub leadership_review_days: Option<u32>,
+    pub leadership_review_days: Option<DaySpan>,
 }
 impl GovernmentDefinition {
     pub fn label(&self) -> String {
@@ -31,7 +37,9 @@ impl GovernmentDefinition {
         };
         format!(
             "{name}: backing ≥{}, council ≥{}; consent {} days",
-            self.threshold, self.council_threshold, self.consent_days
+            self.threshold,
+            self.council_threshold,
+            self.consent_days.units()
         )
     }
     /// Route categories also cover non-policy decisions; this does not look up a policy.

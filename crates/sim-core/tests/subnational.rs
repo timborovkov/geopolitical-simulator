@@ -261,8 +261,7 @@ fn accepted_local_funding_survives_a_costed_constitutional_successor_and_cannot_
             },
         )
         .unwrap();
-        w.advance(&c, sim_core::DaySpan::new(preview.delay))
-            .unwrap();
+        w.advance(&c, preview.delay).unwrap();
     }
     w.issue(
         &c,
@@ -306,7 +305,7 @@ fn accepted_local_funding_survives_a_costed_constitutional_successor_and_cannot_
 #[test]
 fn pending_local_offers_lose_their_sponsor_without_cancelling_other_local_mandates() {
     let mut c = content();
-    c.subnational.as_mut().unwrap().grant_review_days = 30;
+    c.subnational.as_mut().unwrap().grant_review_days = DaySpan::new(30);
     c.validate().unwrap();
     let mut w = start(&c, "AUR");
     for _ in 0..3 {
@@ -319,8 +318,7 @@ fn pending_local_offers_lose_their_sponsor_without_cancelling_other_local_mandat
             },
         )
         .unwrap();
-        w.advance(&c, sim_core::DaySpan::new(preview.delay))
-            .unwrap();
+        w.advance(&c, preview.delay).unwrap();
     }
     w.issue(
         &c,

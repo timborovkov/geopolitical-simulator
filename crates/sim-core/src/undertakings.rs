@@ -50,8 +50,8 @@ pub struct UndertakingTemplate {
     pub policy: Option<PolicyId>,
     pub direction: GoalDirection,
     pub delta: i32,
-    pub review_days: u32,
-    pub deadline_days: u32,
+    pub review_days: DaySpan,
+    pub deadline_days: DaySpan,
     pub administration_cost_bps: i64,
     pub minimum_credibility: i32,
     pub elite_threshold: i32,
@@ -62,7 +62,7 @@ pub struct UndertakingTemplate {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UndertakingDefinition {
     pub templates: Vec<UndertakingTemplate>,
-    pub cooldown_days: u32,
+    pub cooldown_days: DaySpan,
     pub maximum_open: usize,
     pub source: String,
     pub source_version: String,
@@ -107,7 +107,7 @@ impl UndertakingDefinition {
             || self.templates.is_empty()
             || self.templates.len() > 24
             || !(1..=3).contains(&self.maximum_open)
-            || !(30..=730).contains(&self.cooldown_days)
+            || !(30..=730).contains(&self.cooldown_days.units())
             || self.source_version.is_empty()
             || !content.sources.iter().any(|s| s.id == self.source)
         {
@@ -130,8 +130,8 @@ impl UndertakingDefinition {
                 || t.name.is_empty()
                 || !ids.insert(&t.id)
                 || !goal
-                || !(1..=90).contains(&t.review_days)
-                || !(1..=730).contains(&t.deadline_days)
+                || !(1..=90).contains(&t.review_days.units())
+                || !(1..=730).contains(&t.deadline_days.units())
                 || !(1..=1000).contains(&t.administration_cost_bps)
                 || [
                     t.minimum_credibility,
@@ -395,10 +395,10 @@ impl World {
         };
         let review_day = self
             .day
-            .checked_add(t.review_days)
+            .checked_add(t.review_days.units())
             .ok_or("Undertaking review overflow")?;
         let deadline_day = review_day
-            .checked_add(t.deadline_days)
+            .checked_add(t.deadline_days.units())
             .filter(|d| *d <= MAX_DAY)
             .ok_or("Undertaking deadline exceeds the campaign calendar")?;
         let fee = Money(
@@ -424,7 +424,7 @@ impl World {
             } else {
                 goal.target
             };
-            match self.preview(content,id,&goal.policy,value){Ok(p)=>(self.day.checked_add(p.delay),Some("Indicative date for a separate policy order issued now under current backing and resources; no policy has been ordered".into())),Err(reason)=>(None,Some(reason))}
+            match self.preview(content,id,&goal.policy,value){Ok(p)=>(self.day.checked_add(p.delay.units()),Some("Indicative date for a separate policy order issued now under current backing and resources; no policy has been ordered".into())),Err(reason)=>(None,Some(reason))}
         };
         Ok(UndertakingPreview {
             kind: t.kind,
@@ -510,7 +510,7 @@ impl World {
         let state = c.undertakings.as_mut().expect("undertakings");
         state
             .next_declaration
-            .insert(preview.kind, self.day + rules.cooldown_days);
+            .insert(preview.kind, self.day + rules.cooldown_days.units());
         let mut record = UndertakingRecord {
             id: request,
             template: template.into(),
@@ -898,7 +898,7 @@ impl World {
             let records: Vec<_> = state.records.iter().filter(|r| r.kind == kind).collect();
             let expected = records.last().map_or(Ok(content.start_day()?), |r| {
                 r.declared_day
-                    .checked_add(rules.cooldown_days)
+                    .checked_add(rules.cooldown_days.units())
                     .ok_or("Undertaking interval overflow")
             })?;
             if state.next_declaration.get(&kind) != Some(&expected)
@@ -909,7 +909,7 @@ impl World {
             for pair in records.windows(2) {
                 if pair[0]
                     .declared_day
-                    .checked_add(rules.cooldown_days)
+                    .checked_add(rules.cooldown_days.units())
                     .is_none_or(|d| pair[1].declared_day < d)
                     || pair[0]
                         .resolved_day
@@ -928,8 +928,8 @@ impl World {
                 || r.id.0 != command.id.0
                 || r.kind != t.kind
                 || r.declared_day != command.day
-                || command.day.checked_add(t.review_days) != Some(r.review_day)
-                || r.review_day.checked_add(t.deadline_days) != Some(r.deadline_day)
+                || command.day.checked_add(t.review_days.units()) != Some(r.review_day)
+                || r.review_day.checked_add(t.deadline_days.units()) != Some(r.deadline_day)
                 || r.deadline_day > MAX_DAY
                 || r.sponsor == crate::GovernmentId(0)
                 || r.sponsor > c.government_number

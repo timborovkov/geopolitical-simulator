@@ -29,7 +29,7 @@ impl std::fmt::Display for CommitmentId {
 pub struct CommitmentDefinition {
     pub amendment_fee_bps: i64,
     pub maximum_amendments: u32,
-    pub evaluation_days: u32,
+    pub evaluation_days: DaySpan,
     pub source: String,
     pub source_version: String,
 }
@@ -37,7 +37,7 @@ impl CommitmentDefinition {
     pub fn validate(&self, content: &Content) -> Result<(), String> {
         if !(1..=10000).contains(&self.amendment_fee_bps)
             || !(1..=10).contains(&self.maximum_amendments)
-            || !(1..=365).contains(&self.evaluation_days)
+            || !(1..=365).contains(&self.evaluation_days.units())
             || self.source_version.is_empty()
             || !content.sources.iter().any(|s| s.id == self.source)
         {
@@ -113,7 +113,7 @@ pub struct AmendmentPreview {
     pub consent_day: u32,
     pub due_day: u32,
     pub route: String,
-    pub preparation_days: u32,
+    pub preparation_days: DaySpan,
     pub annual_budget_change: Money,
     pub household_impacts: Vec<HouseholdImpact>,
 }
@@ -177,11 +177,16 @@ impl World {
         }
         let consent_day = self
             .day
-            .checked_add(government.consent_days)
+            .checked_add(government.consent_days.units())
             .ok_or("Consent date overflow")?;
         let preparation_days = self.policy_preparation_days(content, id, &p.policy);
+        let implementation = definition
+            .days
+            .checked_add(DaySpan::new((100 - c.administration) as u32 / 2))
+            .and_then(|days| days.checked_add(preparation_days))
+            .ok_or("Implementation duration overflow")?;
         let due_day = consent_day
-            .checked_add(definition.days + (100 - c.administration) as u32 / 2 + preparation_days)
+            .checked_add(implementation.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Implementation would exceed the campaign calendar")?;
         let (annual_budget_change, household_impacts) = crate::rules::policy_forecast(
@@ -415,7 +420,14 @@ impl World {
         r.approval_at_delivery = Some(before.approval);
         r.review_due = self
             .day
-            .checked_add(content.commitments.as_ref().expect("rules").evaluation_days)
+            .checked_add(
+                content
+                    .commitments
+                    .as_ref()
+                    .expect("rules")
+                    .evaluation_days
+                    .units(),
+            )
             .filter(|day| *day <= MAX_DAY);
         r.mark(self.day, CommitmentStage::Operating);
     }
@@ -606,7 +618,8 @@ impl World {
             }
             if let Some(e) = &r.evaluation {
                 expected.push(CommitmentStage::Evaluated);
-                if operating.and_then(|m| m.day.checked_add(rules.evaluation_days)) != Some(e.day)
+                if operating.and_then(|m| m.day.checked_add(rules.evaluation_days.units()))
+                    != Some(e.day)
                     || e.day > self.day
                     || e.before != r.baseline
                     || Some(e.approval_before) != r.approval_at_delivery
@@ -656,7 +669,7 @@ impl World {
             }
             let expected_review = if r.stage() == CommitmentStage::Operating {
                 operating
-                    .and_then(|m| m.day.checked_add(rules.evaluation_days))
+                    .and_then(|m| m.day.checked_add(rules.evaluation_days.units()))
                     .filter(|day| *day <= MAX_DAY)
             } else {
                 None

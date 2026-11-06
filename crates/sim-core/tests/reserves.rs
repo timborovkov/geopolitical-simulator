@@ -221,7 +221,7 @@ fn cancellation_keeps_delivered_goods_and_paid_costs_and_returns_only_unspent_re
 fn support_is_rechecked_at_consent_and_refusal_does_not_deliver_goods() {
     let mut c = content();
     let d = c.countries.iter_mut().find(|d| d.id == id()).unwrap();
-    d.government.consent_days = 60;
+    d.government.consent_days = DaySpan::new(60);
     d.parties[0].seats = 51;
     d.parties[1].seats = 49;
     d.tax = 10;
@@ -437,7 +437,7 @@ fn zero_delay_royal_consent_still_waits_for_settlement_and_has_exact_delivery_wi
     assert_eq!(p.earliest_delivery_day, w.day + 1);
     assert_eq!(
         p.expiry_day,
-        p.earliest_delivery_day + c.reserves.as_ref().unwrap().order_days - 1
+        p.earliest_delivery_day + c.reserves.as_ref().unwrap().order_days.units() - 1
     );
     w.issue(
         &c,

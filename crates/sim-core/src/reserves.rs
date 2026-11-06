@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ReserveDefinition {
     pub capacity_days: u32,
-    pub order_days: u32,
+    pub order_days: DaySpan,
     pub fee_bps: u32,
     pub ai_target_days: u32,
     pub source: String,
@@ -15,7 +15,7 @@ pub struct ReserveDefinition {
 impl ReserveDefinition {
     pub fn validate(&self, content: &Content) -> Result<(), String> {
         if !(1..=10).contains(&self.capacity_days)
-            || !(30..=365).contains(&self.order_days)
+            || !(30..=365).contains(&self.order_days.units())
             || !(1..=10).contains(&self.fee_bps)
             || !(1..=self.capacity_days).contains(&self.ai_target_days)
             || self.source_version.trim().is_empty()
@@ -284,11 +284,11 @@ impl World {
         }
         let review_day = self
             .day
-            .checked_add(government.consent_days)
+            .checked_add(government.consent_days.units())
             .ok_or("Invalid review date")?;
         let earliest_delivery_day = review_day.max(self.day + 1);
         let expiry_day = earliest_delivery_day
-            .checked_add(rules.order_days - 1)
+            .checked_add(rules.order_days.units() - 1)
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Reserve contract exceeds the campaign calendar")?;
         Ok(ReservePreview {
@@ -762,7 +762,8 @@ impl World {
                 || o.paid != paid_for(o, o.filled)
                 || o.review_day < o.proposed_day
                 || o.review_day - o.proposed_day > 365
-                || o.expiry_day != o.review_day.max(o.proposed_day + 1) + rules.order_days - 1
+                || o.expiry_day
+                    != o.review_day.max(o.proposed_day + 1) + rules.order_days.units() - 1
                 || o.expiry_day > MAX_DAY
                 || o.sponsor == crate::GovernmentId(0)
                 || o.sponsor > c.government_number

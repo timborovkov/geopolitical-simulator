@@ -52,7 +52,7 @@ impl Panel {
             return Err("This decision costs more than the temporary retention limit; review other financing".into());
         }
         self.target = plan.preview.cost.0;
-        self.days = rules.max_days;
+        self.days = rules.max_days.units();
         self.reveal = true;
         self.plan = Some(Draft {
             country: world.player.clone(),
@@ -132,12 +132,12 @@ impl Panel {
         } else {
             let max = (content.country(&world.player)?.gdp * rules.max_target_bps / 10000).max(1);
             self.target = self.target.clamp(1, max);
-            self.days = self.days.clamp(1, rules.max_days);
+            self.days = self.days.clamp(1, rules.max_days.units());
             ui.horizontal_wrapped(|ui| {
                 ui.label("Target (million credits)");
                 ui.add(egui::DragValue::new(&mut self.target).range(1..=max));
                 ui.label("Days");
-                ui.add(egui::DragValue::new(&mut self.days).range(1..=rules.max_days));
+                ui.add(egui::DragValue::new(&mut self.days).range(1..=rules.max_days.units()));
             });
             match world.preview_cash_hold(content, &world.player, Money(self.target), self.days) {
                 Ok(preview) => {

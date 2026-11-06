@@ -51,9 +51,9 @@ pub struct ElectoralMandate {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ElectionDefinition {
     pub mandates: Vec<ElectoralMandate>,
-    pub decision_days: u32,
-    pub campaign_days: u32,
-    pub minimum_interval_days: u32,
+    pub decision_days: DaySpan,
+    pub campaign_days: DaySpan,
+    pub minimum_interval_days: DaySpan,
     pub regular_term_years: u16,
     pub administration_cost_bps: i64,
     pub source: String,
@@ -64,9 +64,9 @@ impl ElectionDefinition {
         self.mandates.iter().find(|m| &m.country == id)
     }
     pub fn validate(&self, content: &Content) -> Result<(), String> {
-        if !(1..=90).contains(&self.decision_days)
-            || !(30..=180).contains(&self.campaign_days)
-            || !(1..=365).contains(&self.minimum_interval_days)
+        if !(1..=90).contains(&self.decision_days.units())
+            || !(30..=180).contains(&self.campaign_days.units())
+            || !(1..=365).contains(&self.minimum_interval_days.units())
             || !(1..=4).contains(&self.regular_term_years)
             || !(1..=100).contains(&self.administration_cost_bps)
             || self.source_version.is_empty()
@@ -156,7 +156,7 @@ impl ElectoralAuthority {
         Self {
             regime,
             government: crate::GovernmentId(1),
-            next_request_day: start + rules.minimum_interval_days,
+            next_request_day: start + rules.minimum_interval_days.units(),
             cases: Vec::new(),
             polls: Vec::new(),
         }
@@ -222,10 +222,10 @@ impl World {
         }
         let decision_day = self
             .day
-            .checked_add(rules.decision_days)
+            .checked_add(rules.decision_days.units())
             .ok_or("Election decision date overflow")?;
         let vote_day = decision_day
-            .checked_add(rules.campaign_days)
+            .checked_add(rules.campaign_days.units())
             .filter(|d| *d <= MAX_DAY)
             .ok_or("The required review and campaign period would exceed the campaign calendar")?;
         if c.next_election.is_some_and(|day| day <= vote_day) {
@@ -272,7 +272,8 @@ impl World {
                 .elections
                 .as_ref()
                 .expect("rules")
-                .minimum_interval_days;
+                .minimum_interval_days
+                .units();
         state.cases.push(ElectionCase {
             id: request,
             proposed_day: self.day,
@@ -340,7 +341,7 @@ impl World {
         if changed {
             state.next_request_day = state
                 .next_request_day
-                .max(self.day + rules.minimum_interval_days);
+                .max(self.day + rules.minimum_interval_days.units());
         }
         if cancelled {
             self.event(id,true,if earlier { "An earlier mandatory confidence poll superseded the announced election. The authority retains the earlier legal date; paid administration remains spent." } else { "Electoral mandate or sponsoring cabinet changed. Superseded requests and polls remain in history; paid administration remains spent. A government order alone cannot cancel an announced poll." });
@@ -430,7 +431,7 @@ impl World {
         });
         state.next_request_day = state
             .next_request_day
-            .max(self.day + rules.minimum_interval_days);
+            .max(self.day + rules.minimum_interval_days.units());
         c.next_election = date(self.day)
             .parse::<CivilDate>()
             .expect("date")
@@ -480,7 +481,7 @@ impl World {
         if state.regime != *self.governing_regime(content, id)?
             || state.government != country.government_number
             || state.next_request_day < start
-            || state.next_request_day > MAX_DAY + rules.minimum_interval_days
+            || state.next_request_day > MAX_DAY + rules.minimum_interval_days.units()
         {
             return Err("Invalid electoral authority identity or interval".into());
         }
@@ -513,7 +514,7 @@ impl World {
             (content.country(id).expect("country").gdp * rules.administration_cost_bps / 10000)
                 .max(1),
         );
-        let mut interval = start + rules.minimum_interval_days;
+        let mut interval = start + rules.minimum_interval_days.units();
         for (case, origin) in state.cases.iter().zip(proposals) {
             let command = &origin.command;
             let form = country
@@ -532,8 +533,9 @@ impl World {
                 || case.proposed_day != command.day
                 || case.form != *form
                 || !mandate.snap_forms.contains(form)
-                || case.proposed_day.checked_add(rules.decision_days) != Some(case.decision_day)
-                || case.decision_day.checked_add(rules.campaign_days) != Some(case.vote_day)
+                || case.proposed_day.checked_add(rules.decision_days.units())
+                    != Some(case.decision_day)
+                || case.decision_day.checked_add(rules.campaign_days.units()) != Some(case.vote_day)
                 || case.vote_day > MAX_DAY
                 || case.sponsor == crate::GovernmentId(0)
                 || case.sponsor > country.government_number
@@ -541,7 +543,7 @@ impl World {
             {
                 return Err("Invalid electoral request origin, jurisdiction, dates or cost".into());
             }
-            interval = interval.max(case.proposed_day + rules.minimum_interval_days);
+            interval = interval.max(case.proposed_day + rules.minimum_interval_days.units());
             let resolved = case.resolved_day;
             let withdrawn=self.journal.iter().any(|entry| &entry.command.issuer==id && matches!(entry.command.action,Action::WithdrawElectionRequest{request} if request==case.id) && Some(entry.command.day)==resolved);
             if (case.status == ElectionCaseStatus::Withdrawn) != withdrawn {
@@ -614,13 +616,13 @@ impl World {
             {
                 return Err("Invalid recorded modeled poll".into());
             }
-            interval = interval.max(poll.day + rules.minimum_interval_days);
+            interval = interval.max(poll.day + rules.minimum_interval_days.units());
         }
         if state.polls.windows(2).any(|p| p[0].day >= p[1].day) {
             return Err("Invalid poll chronology".into());
         }
         if let Some(change) = country.constitution.as_ref().and_then(|c| c.history.last()) {
-            interval = interval.max(change.day + rules.minimum_interval_days);
+            interval = interval.max(change.day + rules.minimum_interval_days.units());
         }
         if state.next_request_day != interval {
             return Err(

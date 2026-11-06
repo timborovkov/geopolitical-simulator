@@ -39,11 +39,12 @@ fn appointment_reduces_only_future_preparation_without_moving_funded_deadlines_o
     let c = content();
     let mut w = start(&c, "AUR");
     assert_eq!(
-        w.policy_preparation_days(&c, &w.player, &"energy".into()),
+        w.policy_preparation_days(&c, &w.player, &"energy".into())
+            .units(),
         30
     );
     let original = w.preview(&c, &w.player, &"energy".into(), 1).unwrap();
-    assert_eq!(original.delay, 149);
+    assert_eq!(original.delay.units(), 149);
     w.issue(
         &c,
         Action::Enact {
@@ -61,7 +62,8 @@ fn appointment_reduces_only_future_preparation_without_moving_funded_deadlines_o
     check(&w, &c);
     w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(
-        w.policy_preparation_days(&c, &w.player, &"energy".into()),
+        w.policy_preparation_days(&c, &w.player, &"energy".into())
+            .units(),
         4
     );
     assert_eq!(w.player_country().projects[0].due_day, 149);
@@ -70,7 +72,8 @@ fn appointment_reduces_only_future_preparation_without_moving_funded_deadlines_o
     assert_eq!(
         w.preview(&c, &w.player, &"agriculture".into(), 1)
             .unwrap()
-            .delay,
+            .delay
+            .units(),
         153
     );
     check(&w, &c);
@@ -90,11 +93,15 @@ fn professional_and_consensus_candidates_have_a_visible_political_and_timing_tra
         .unwrap();
     consensus.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(
-        professional.policy_preparation_days(&c, &professional.player, &"income_tax".into()),
+        professional
+            .policy_preparation_days(&c, &professional.player, &"income_tax".into())
+            .units(),
         4
     );
     assert_eq!(
-        consensus.policy_preparation_days(&c, &consensus.player, &"income_tax".into()),
+        consensus
+            .policy_preparation_days(&c, &consensus.player, &"income_tax".into())
+            .units(),
         13
     );
     assert_eq!(professional.player_country().elite_support, 59);
@@ -208,7 +215,7 @@ fn cancellation_and_refusal_keep_costs_and_cooldown_and_rejections_are_atomic() 
 fn successor_cabinet_closes_terms_cancels_requests_and_retains_commissioned_programmes() {
     let mut c = content();
     let route = &mut c.constitutions.as_mut().unwrap().lawful;
-    route.days = 1;
+    route.days = DaySpan::new(1);
     route.legislative_threshold = 51;
     route.elite_threshold = 0;
     route.elite_cost = 0;
@@ -252,7 +259,8 @@ fn successor_cabinet_closes_terms_cancels_requests_and_retains_commissioned_prog
     assert!(state.pending.is_empty());
     assert_eq!(w.player_country().projects[0].due_day, due);
     assert_eq!(
-        w.policy_preparation_days(&c, &w.player, &"energy".into()),
+        w.policy_preparation_days(&c, &w.player, &"energy".into())
+            .units(),
         30
     );
     appoint(&mut w, &c, "finance", "professional");
@@ -266,7 +274,7 @@ fn successor_cabinet_closes_terms_cancels_requests_and_retains_commissioned_prog
     );
     let amended = w.player_country().projects[1].id;
     let preview = w.preview_amendment(&c, &w.player, amended, 32).unwrap();
-    assert_eq!(preview.preparation_days, 4);
+    assert_eq!(preview.preparation_days.units(), 4);
     assert_eq!(preview.consent_day, 15);
     w.issue(
         &c,
@@ -322,7 +330,8 @@ fn dismissal_requires_current_power_costs_cash_and_restores_civil_service_prepar
     w.issue(&c, action).unwrap();
     assert_eq!(w.player_country().accounts.treasury.0, before.0 - 10);
     assert_eq!(
-        w.policy_preparation_days(&c, &w.player, &"income_tax".into()),
+        w.policy_preparation_days(&c, &w.player, &"income_tax".into())
+            .units(),
         30
     );
     check(&w, &c);

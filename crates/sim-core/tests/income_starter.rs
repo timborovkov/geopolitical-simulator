@@ -52,8 +52,7 @@ fn the_income_roster_preserves_prior_identity_and_delivers_tax_policy_under_ever
                 },
             )
             .unwrap();
-            w.advance(&c, sim_core::DaySpan::new(support.delay))
-                .unwrap();
+            w.advance(&c, support.delay).unwrap();
         }
         let preview = w
             .preview(&c, &w.player, &"income_tax".into(), rate)
@@ -68,8 +67,7 @@ fn the_income_roster_preserves_prior_identity_and_delivers_tax_policy_under_ever
         )
         .unwrap();
         assert_eq!(w.player_country().income_tax_report, settled);
-        w.advance(&c, sim_core::DaySpan::new(preview.delay))
-            .unwrap();
+        w.advance(&c, preview.delay).unwrap();
         let country = w.player_country();
         let report = country.income_tax_report.as_ref().unwrap();
         assert_eq!(report.standard_rate, rate);

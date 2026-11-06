@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CashManagementDefinition {
     pub max_target_bps: i64,
-    pub max_days: u32,
-    pub cooldown_days: u32,
+    pub max_days: DaySpan,
+    pub cooldown_days: DaySpan,
     pub approval_cost: i32,
     pub source: String,
     pub source_version: String,
@@ -15,8 +15,8 @@ pub struct CashManagementDefinition {
 impl CashManagementDefinition {
     pub fn validate(&self, content: &Content) -> Result<(), String> {
         if !(1..=100).contains(&self.max_target_bps)
-            || !(1..=90).contains(&self.max_days)
-            || !(90..=365).contains(&self.cooldown_days)
+            || !(1..=90).contains(&self.max_days.units())
+            || !(90..=365).contains(&self.cooldown_days.units())
             || !(1..=20).contains(&self.approval_cost)
             || self.source_version.is_empty()
             || !content.sources.iter().any(|s| s.id == self.source)
@@ -113,12 +113,12 @@ impl World {
             ));
         }
         if !(1..=(d.gdp * rules.max_target_bps / 10000).max(1)).contains(&target.0)
-            || !(1..=rules.max_days).contains(&days)
+            || !(1..=rules.max_days.units()).contains(&days)
         {
             return Err(format!(
                 "Target must be 1..{}m and duration 1..{} days",
                 (d.gdp * rules.max_target_bps / 10000).max(1),
-                rules.max_days
+                rules.max_days.units()
             ));
         }
         let expiry_day = self
@@ -128,7 +128,7 @@ impl World {
             .ok_or("Retention exceeds the campaign calendar")?;
         let next_allowed_day = self
             .day
-            .checked_add(rules.cooldown_days)
+            .checked_add(rules.cooldown_days.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Retention cooldown exceeds the campaign calendar")?;
         Ok(CashHoldPreview {
@@ -337,14 +337,14 @@ impl World {
                     return false;
                 }
                 if self
-                    .preview_cash_hold(content, id, preview.cost, rules.max_days)
+                    .preview_cash_hold(content, id, preview.cost, rules.max_days.units())
                     .is_ok()
                 {
                     let command = self.command(
                         id.clone(),
                         Action::HoldCash {
                             target: preview.cost,
-                            days: rules.max_days,
+                            days: rules.max_days.units(),
                         },
                     );
                     if self
@@ -414,7 +414,7 @@ impl World {
             if record.id.0 != entry.command.id.0
                 || record.target != target
                 || !(1..=max_target).contains(&target.0)
-                || !(1..=rules.max_days).contains(&days)
+                || !(1..=rules.max_days.units()).contains(&days)
                 || record.start_day != entry.command.day
                 || record.start_day < next_allowed
                 || record.start_day < previous_end
@@ -430,7 +430,7 @@ impl World {
             }
             next_allowed = record
                 .start_day
-                .checked_add(rules.cooldown_days)
+                .checked_add(rules.cooldown_days.units())
                 .filter(|day| *day <= MAX_DAY)
                 .ok_or("Invalid cash retention cooldown")?;
             match &record.ended {

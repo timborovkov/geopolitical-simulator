@@ -8,7 +8,7 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Actio
     ui.collapsing("National food & energy reserves",|ui|{
         ui.label("These national buffers are separate from firms' working stocks. Paid import contracts fill gradually after consent, only when civilian physical needs are covered and import capacity remains. Fixed quoted prices and finite contract quantities are scenario rules, not a historical commodity exchange.");
         ui.label("Stored goods automatically cover physical shortfalls left after normal imports. Food still has to reach households through the existing market; insufficient household cash can still limit delivery. Food stocks spoil at the ordinary storage rate. Energy quantities are model equivalents, not a claim about electricity storage technology.");
-        ui.small(format!("Storage capacity: {} days of baseline need per commodity · contract duration {} days after consent · {}@{}",rules.capacity_days,rules.order_days,rules.source,rules.source_version));
+        ui.small(format!("Storage capacity: {} days of baseline need per commodity · contract duration {} days after consent · {}@{}",rules.capacity_days,rules.order_days.units(),rules.source,rules.source_version));
         for good in [GoodKind::Energy,GoodKind::Food] {
             ui.strong(format!("{good:?} · national inventory {} units",state.stored(good)));
             match world.reserve_supply(content,&world.player,good) {

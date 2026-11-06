@@ -230,7 +230,7 @@ fn play(
                     let value=number(words.get(2))?;
                     let plan=world.policy_funding_plan(content,&policy,value)?;
                     println!("Funding comparison for {} at proposed value {value}: implementation cost {}m; spendable cash {}m; actual retained cash {}m; spendable shortfall {}m.",content.policy(&policy).expect("validated policy").name,plan.preview.cost.0,plan.available_cash.0,plan.retained_cash.0,plan.shortfall.0);
-                    println!("Authority: {}. Conditional consent {} days; delivery lag {} days; upfront {}m and remaining reservation {}m.",plan.preview.route,plan.preview.consent_delay,plan.preview.delay,plan.preview.upfront_payment.0,plan.preview.cost.0-plan.preview.upfront_payment.0);
+                    println!("Authority: {}. Conditional consent {} days; delivery lag {} days; upfront {}m and remaining reservation {}m.",plan.preview.route,plan.preview.consent_delay.units(),plan.preview.delay.units(),plan.preview.upfront_payment.0,plan.preview.cost.0-plan.preview.upfront_payment.0);
                     println!("This comparison approves no order or funding. Future receipts and retention targets are not cash. Release retained cash before proposing; actual funding and authority are rechecked.");
                 }
                 "preview" | "enact" => {
@@ -904,7 +904,7 @@ fn play(
                             amount.0,
                             preview.route,
                             date(preview.decision_day),
-                            preview.consent_days
+                            preview.consent_days.units()
                         ),
                         Err(reason) => println!("Ordinary borrowing unavailable: {reason}"),
                     }
@@ -918,7 +918,7 @@ fn play(
                             rule.legislative_cost,
                             rule.elite_cost,
                             rule.council_cost,
-                            rule.cooldown_days
+                            rule.cooldown_days.units()
                         ),
                         Err(reason) => println!("Emergency route unavailable: {reason}"),
                     }

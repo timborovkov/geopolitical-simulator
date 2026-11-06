@@ -57,7 +57,7 @@ impl Panel {
                     match world.preview_amendment(content,&world.player,p.id,*value) {
                         Ok(preview)=>{
                             ui.label(format!("Pay {}m administration now; consent restarts to {}, delivery {}. {}",preview.fee.0,date(preview.consent_day),date(preview.due_day),preview.route));
-                            if preview.preparation_days > 0 { ui.label(format!("Portfolio preparation adds {} days to the restarted delivery process.",preview.preparation_days)); }
+                            if preview.preparation_days.units() > 0 { ui.label(format!("Portfolio preparation adds {} days to the restarted delivery process.",preview.preparation_days.units())); }
                             ui.label(format!("After delivery versus current operating levels: annual consolidated net expenditure change {:+}m (forecast).",preview.annual_budget_change.0));
                             for impact in &preview.household_impacts {ui.label(format!("{}: {:+}m/day disposable income",impact.group,impact.daily_disposable_change.0));}
                             ui.small("Forecast holds opening GDP, collection and funded wages constant; shocks, prices and other pending changes can alter outcomes.");

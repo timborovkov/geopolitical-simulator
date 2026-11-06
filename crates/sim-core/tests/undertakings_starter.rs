@@ -38,8 +38,7 @@ fn the_undertaking_starter_preserves_all_country_observations_and_territorial_ri
                 },
             )
             .unwrap();
-            w.advance(&c, sim_core::DaySpan::new(support.delay))
-                .unwrap();
+            w.advance(&c, support.delay).unwrap();
         }
         w.issue(
             &c,

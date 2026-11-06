@@ -1,5 +1,5 @@
 //! Versioned, validated content, separate from authoritative formulas.
-use crate::{CurrencyId, HouseholdGroupId, PartyId, PolicyId, Population};
+use crate::{CurrencyId, DaySpan, HouseholdGroupId, PartyId, PolicyId, Population};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -95,7 +95,7 @@ pub struct PolicyDefinition {
     pub name: String,
     pub min: i32,
     pub max: i32,
-    pub days: u32,
+    pub days: DaySpan,
     pub cost_bps: i64,
     pub description: String,
     pub groups: String,
@@ -550,10 +550,10 @@ impl Content {
                 || c.households.iter().map(|h| h.savings_share).sum::<i64>() != 100
                 || !(1..=100).contains(&c.government.threshold)
                 || !(0..=100).contains(&c.government.council_threshold)
-                || c.government.consent_days > 60
+                || c.government.consent_days.units() > 60
                 || c.government
                     .leadership_review_days
-                    .is_some_and(|days| !(30..=1827).contains(&days))
+                    .is_some_and(|days| !(30..=1827).contains(&days.units()))
                 || c.regime.competitive()
                     != (c.government.route == crate::DecisionRoute::Legislature)
             {
@@ -625,8 +625,8 @@ impl Content {
             if !expected.contains(&p.id.as_str())
                 || !policies.insert(p.id.as_str())
                 || p.min > p.max
-                || p.days == 0
-                || p.days > 365
+                || p.days.units() == 0
+                || p.days.units() > 365
                 || !(0..=1000).contains(&p.cost_bps)
                 || match p.id.as_str() {
                     "income_tax" => p.min < 10 || p.max > 45,

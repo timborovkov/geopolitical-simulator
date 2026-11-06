@@ -46,7 +46,7 @@ impl Panel {
                 match world.preview_appointment(content,&world.player,&office.id,selected) {
                     Ok(preview)=>{
                         ui.label(format!("Pay {}m now · decision {} · {}",preview.fee.0,date(preview.decision_day),preview.route));
-                        ui.label(format!("If approved: portfolio preparation {} days; elite backing -{}, council backing -{} (floor zero). Cooldown {} days from proposal.",preview.preparation_days,preview.elite_cost,preview.council_cost,rules.cooldown_days));
+                        ui.label(format!("If approved: portfolio preparation {} days; elite backing -{}, council backing -{} (floor zero). Cooldown {} days from proposal.",preview.preparation_days.units(),preview.elite_cost,preview.council_cost,rules.cooldown_days.units()));
                         ui.small("Authority and sponsoring cabinet are rechecked on the decision date. Administration and cooldown remain after withdrawal or refusal.");
                         if ui.button("Propose this ministerial appointment").clicked() {action=Some(Action::Appoint{office:office.id.clone(),person:selected.clone()});}
                     }
@@ -55,7 +55,7 @@ impl Panel {
                 if holder.is_some() {
                     match world.preview_dismissal(content,&world.player,&office.id) {
                         Ok(fee)=>{
-                            ui.label(format!("Dismissal costs {}m; civil-service preparation returns to {} days and a {}-day appointment cooldown starts.",fee.0,rules.vacancy_preparation_days,rules.cooldown_days));
+                            ui.label(format!("Dismissal costs {}m; civil-service preparation returns to {} days and a {}-day appointment cooldown starts.",fee.0,rules.vacancy_preparation_days.units(),rules.cooldown_days.units()));
                             if ui.button("Dismiss incumbent with these costs").clicked() {action=Some(Action::DismissMinister{office:office.id.clone()});}
                         }
                         Err(reason)=>{ui.label(format!("Cannot dismiss: {reason}"));}

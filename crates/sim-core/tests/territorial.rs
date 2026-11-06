@@ -149,7 +149,7 @@ fn withdrawal_and_review_refusal_keep_sunk_administration_and_interval() {
     );
     check(&w, &c);
     let mut c = ready();
-    c.territorial.as_mut().unwrap().lawful.days = 1;
+    c.territorial.as_mut().unwrap().lawful.days = DaySpan::new(1);
     let mut w = start(&c, "AUR");
     w.advance(&c, sim_core::DaySpan::new(20)).unwrap();
     reform(&mut w, &c, TerritorialForm::Federation, false);
@@ -184,7 +184,7 @@ fn contested_change_has_explicit_power_gate_and_accepted_grants_survive_new_char
         .contested
         .as_mut()
         .unwrap()
-        .days = 20;
+        .days = DaySpan::new(20);
     let mut w = start(&c, "AUR");
     w.issue(
         &c,
@@ -215,7 +215,7 @@ fn contested_change_has_explicit_power_gate_and_accepted_grants_survive_new_char
 #[test]
 fn new_charter_releases_pending_regional_escrow_but_keeps_fees_and_history() {
     let mut c = ready();
-    c.territorial.as_mut().unwrap().lawful.days = 7;
+    c.territorial.as_mut().unwrap().lawful.days = DaySpan::new(7);
     let mut w = start(&c, "AUR");
     w.issue(
         &c,

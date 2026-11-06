@@ -44,10 +44,10 @@ pub struct TerritorialCharter {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SubnationalDefinition {
     pub charters: Vec<TerritorialCharter>,
-    pub grant_review_days: u32,
-    pub cooldown_days: u32,
+    pub grant_review_days: DaySpan,
+    pub cooldown_days: DaySpan,
     pub administration_cost_bps: i64,
-    pub absorption_days: u32,
+    pub absorption_days: DaySpan,
     pub source: String,
     pub source_version: String,
 }
@@ -64,10 +64,10 @@ impl SubnationalDefinition {
             .find(|mandate| &mandate.id == region)
     }
     pub fn validate(&self, content: &Content) -> Result<(), String> {
-        if !(1..=90).contains(&self.grant_review_days)
-            || !(30..=365).contains(&self.cooldown_days)
+        if !(1..=90).contains(&self.grant_review_days.units())
+            || !(30..=365).contains(&self.cooldown_days.units())
             || !(1..=100).contains(&self.administration_cost_bps)
-            || !(30..=365).contains(&self.absorption_days)
+            || !(30..=365).contains(&self.absorption_days.units())
             || self.source_version.is_empty()
             || !content
                 .sources
@@ -362,7 +362,7 @@ impl World {
                 }
                 let base =
                     regional_daily_cost(d.gdp, mandate.population_share_bps, local.service_level).0;
-                if local.cash.0 > base.max(1) * i64::from(rules.absorption_days) {
+                if local.cash.0 > base.max(1) * i64::from(rules.absorption_days.units()) {
                     return Err("The local authority's cash mandate does not permit another funded supplement yet".into());
                 }
                 let daily = regional_daily_cost(
@@ -377,7 +377,7 @@ impl World {
                     );
                 }
                 (
-                    rules.grant_review_days,
+                    rules.grant_review_days.units(),
                     Money(daily * i64::from(*days)),
                     Money(daily),
                     Some(*days),
@@ -392,7 +392,7 @@ impl World {
                         "A delegated service level must differ and remain within 0–8".into(),
                     );
                 }
-                (government.consent_days, Money(0), Money(0), None)
+                (government.consent_days.units(), Money(0), Money(0), None)
             }
         };
         let decision_day = self
@@ -447,8 +447,13 @@ impl World {
             .iter_mut()
             .find(|r| &r.id == region)
             .expect("region");
-        local.next_order_day =
-            self.day + content.subnational.as_ref().expect("rules").cooldown_days;
+        local.next_order_day = self.day
+            + content
+                .subnational
+                .as_ref()
+                .expect("rules")
+                .cooldown_days
+                .units();
         state.orders.push(RegionalOrder {
             id: order,
             region: region.clone(),
@@ -559,7 +564,7 @@ impl World {
                     )
                     .0
                     .max(1)
-                        * i64::from(rules.absorption_days)
+                        * i64::from(rules.absorption_days.units())
             {
                 Some("Local cash absorption mandate no longer permits this grant".into())
             } else {
@@ -802,7 +807,7 @@ impl World {
             let clock = match proposals.last() {
                 Some(order) => order
                     .proposed_day
-                    .checked_add(rules.cooldown_days)
+                    .checked_add(rules.cooldown_days.units())
                     .ok_or("Regional order interval date overflow")?,
                 None => start,
             };
@@ -852,7 +857,7 @@ impl World {
                 || proposals.windows(2).any(|pair| {
                     pair[0]
                         .proposed_day
-                        .checked_add(rules.cooldown_days)
+                        .checked_add(rules.cooldown_days.units())
                         .is_none_or(|clock| pair[1].proposed_day < clock)
                 })
                 || [local.cash.0, local.tax_received.0, local.base_spent.0]
@@ -960,11 +965,11 @@ impl World {
                 return Err("Regional baseline differs from delivered service orders".into());
             }
             let delay = match kind {
-                RegionalOrderKind::Grant { .. } => rules.grant_review_days,
-                RegionalOrderKind::Directive { .. } => {
-                    self.governing_rules_at(content, id, command.day)?
-                        .consent_days
-                }
+                RegionalOrderKind::Grant { .. } => rules.grant_review_days.units(),
+                RegionalOrderKind::Directive { .. } => self
+                    .governing_rules_at(content, id, command.day)?
+                    .consent_days
+                    .units(),
             };
             if order.id.0 != command.id.0
                 || order.proposed_day != command.day

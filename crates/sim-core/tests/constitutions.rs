@@ -12,7 +12,8 @@ fn support(world: &mut World, content: &Content) {
     let delay = world
         .preview(content, &world.player, &"coalition".into(), 1)
         .unwrap()
-        .delay;
+        .delay
+        .units();
     world
         .issue(
             content,
@@ -116,7 +117,8 @@ fn lawful_change_and_restoration_switch_real_powers_preserve_debt_and_resume_pen
         world
             .preview_borrowing(&content, &world.player, Money(1000))
             .unwrap()
-            .consent_days,
+            .consent_days
+            .units(),
         21
     );
     world
@@ -306,7 +308,8 @@ fn a_contested_transition_is_a_normal_costly_political_action_with_a_real_power_
         world
             .preview_borrowing(&content, &world.player, Money(1000))
             .unwrap()
-            .consent_days,
+            .consent_days
+            .units(),
         7
     );
     replay(&world, &content);
@@ -346,7 +349,8 @@ fn constitutional_succession_cancels_old_pending_loan_mandates_without_creating_
         world
             .preview_borrowing(&content, &world.player, Money(1000))
             .unwrap()
-            .consent_days,
+            .consent_days
+            .units(),
         0
     );
     replay(&world, &content);
@@ -540,12 +544,15 @@ fn every_configured_form_applies_its_policy_consent_borrowing_and_review_clocks(
             template
                 .government
                 .leadership_review_days
-                .map(|days| world.day + days)
+                .map(|days| world.day + days.units())
         );
         let preview = world
             .preview(&content, &world.player, &"energy".into(), 1)
             .unwrap();
-        assert_eq!(preview.consent_delay, template.government.consent_days);
+        assert_eq!(
+            preview.consent_delay.units(),
+            template.government.consent_days.units()
+        );
         world
             .issue(
                 &content,
@@ -557,13 +564,13 @@ fn every_configured_form_applies_its_policy_consent_borrowing_and_review_clocks(
             .unwrap();
         assert_eq!(
             world.player_country().projects[0].consent_day,
-            world.day + template.government.consent_days
+            world.day + template.government.consent_days.units()
         );
         let borrowing = world
             .preview_borrowing(&content, &world.player, Money(1))
             .unwrap();
         assert_eq!(
-            borrowing.consent_days,
+            borrowing.consent_days.units(),
             content
                 .finance
                 .as_ref()
@@ -571,6 +578,7 @@ fn every_configured_form_applies_its_policy_consent_borrowing_and_review_clocks(
                 .authority(&template.government.route)
                 .unwrap()
                 .consent_days
+                .units()
         );
         world
             .issue(&content, Action::Borrow { amount: Money(1) })
@@ -578,7 +586,7 @@ fn every_configured_form_applies_its_policy_consent_borrowing_and_review_clocks(
         world
             .advance(
                 &content,
-                sim_core::DaySpan::new(borrowing.consent_days.max(1)),
+                sim_core::DaySpan::new(borrowing.consent_days.units().max(1)),
             )
             .unwrap();
         assert!(

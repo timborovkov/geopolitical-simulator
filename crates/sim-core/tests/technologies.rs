@@ -71,7 +71,8 @@ fn date_restriction_rejects_without_payment_then_commissions_through_normal_fund
         w.player_country().committed_cash.0,
         p.cost.0 - p.upfront_payment.0
     );
-    w.advance(&c, sim_core::DaySpan::new(p.delay - 1)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(p.delay.units() - 1))
+        .unwrap();
     assert_eq!(w.player_country().energy_capacity, capacity);
     w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(w.player_country().energy_capacity, capacity + 15);

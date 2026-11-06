@@ -19,7 +19,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World) -> Option<Action> {
             .map_or_else(|| "None within the playable calendar".into(), date)
     ));
     ui.label(format!("Government early-poll powers apply in: {}. Current authority/backing must also permit the request.",mandate.snap_forms.iter().map(|form|format!("{form:?}")).collect::<Vec<_>>().join(", ")));
-    ui.label(format!("Independent review {} days · campaign {} days · minimum request/poll interval {} days · regular term {} calendar years. Next request permitted after {}.",rules.decision_days,rules.campaign_days,rules.minimum_interval_days,rules.regular_term_years,date(state.next_request_day)));
+    ui.label(format!("Independent review {} days · campaign {} days · minimum request/poll interval {} days · regular term {} calendar years. Next request permitted after {}.",rules.decision_days.units(),rules.campaign_days.units(),rules.minimum_interval_days.units(),rules.regular_term_years,date(state.next_request_day)));
     if let Some(case) = state.pending() {
         ui.label(format!("Pending request #{} · paid {}m administration · decision {} · proposed poll {}. The prior poll date remains in force until approval.",case.id.0,case.paid.0,date(case.decision_day),date(case.vote_day)));
         if ui

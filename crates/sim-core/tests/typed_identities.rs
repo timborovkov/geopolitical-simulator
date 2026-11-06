@@ -99,7 +99,8 @@ fn renaming_and_reordering_rosters_preserve_identity_and_names_cannot_issue_comm
     let delay = world
         .preview(&content, &world.player, &policy, 30)
         .unwrap()
-        .delay;
+        .delay
+        .units();
     world
         .issue(
             &content,

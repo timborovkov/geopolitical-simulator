@@ -34,7 +34,7 @@ impl Panel {
         }
         for template in &rules.templates {
             egui::CollapsingHeader::new(&template.name).id_salt(("undertaking",&template.id)).show(ui,|ui| {
-                ui.label(format!("Review {} days · deliver within {} days after review · minimum credibility {} · elite {}, council {}. Declaration interval {} days for this kind.",template.review_days,template.deadline_days,template.minimum_credibility,template.elite_threshold,template.council_threshold,rules.cooldown_days));
+                ui.label(format!("Review {} days · deliver within {} days after review · minimum credibility {} · elite {}, council {}. Declaration interval {} days for this kind.",template.review_days.units(),template.deadline_days.units(),template.minimum_credibility,template.elite_threshold,template.council_threshold,rules.cooldown_days.units()));
                 ui.label(format!("On acceptance: {}. On breach or accepted withdrawal: {}.",effect_label(&template.acceptance),effect_label(&template.breach)));
                 let project=self.projects.entry(template.id.clone()).or_default();
                 if template.kind==UndertakingKind::ProjectDeadline {

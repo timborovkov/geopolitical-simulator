@@ -150,7 +150,7 @@ impl Panel {
                 ui.label(reason);
                 match world.preview(content, &world.player, &policy, value) {
                     Ok(preview) => {
-                        ui.label(format!("One option to compare: {} · {}m implementation cost · {} days to scheduled operation. A proposal would pay {}m upfront; remaining funding and authority still matter.",content.policy(&policy).unwrap().name,preview.cost.0,preview.delay,preview.upfront_payment.0));
+                        ui.label(format!("One option to compare: {} · {}m implementation cost · {} days to scheduled operation. A proposal would pay {}m upfront; remaining funding and authority still matter.",content.policy(&policy).unwrap().name,preview.cost.0,preview.delay.units(),preview.upfront_payment.0));
                     }
                     Err(reason) => {
                         ui.label(format!("This option is currently blocked: {reason}. Inspect the standard decision screen to see its requirements."));

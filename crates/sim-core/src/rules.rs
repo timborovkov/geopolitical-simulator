@@ -79,24 +79,27 @@ impl World {
             ));
         }
         let consent_delay = if policy == "coalition" || consent_satisfied {
-            0
+            DaySpan::ZERO
         } else {
             government.consent_days
         };
-        let upfront_payment = if consent_delay == 0 {
+        let upfront_payment = if consent_delay == DaySpan::ZERO {
             cost
         } else {
             Money((cost.0 / 10).max(1))
         };
         let preparation = self.policy_preparation_days(content, country, policy);
+        let delay = consent_delay
+            .checked_add(p.days)
+            .and_then(|days| days.checked_add(DaySpan::new((100 - c.administration) as u32 / 2)))
+            .and_then(|days| days.checked_add(preparation))
+            .ok_or("Implementation duration overflow")?;
         let (annual, household_impacts) =
             policy_forecast(d, c, policy, value, content.income_taxes.as_ref());
         if content.commitments.is_some()
             && self
                 .day
-                .checked_add(
-                    consent_delay + p.days + (100 - c.administration) as u32 / 2 + preparation,
-                )
+                .checked_add(delay.units())
                 .is_none_or(|day| day > MAX_DAY)
         {
             return Err("Implementation would exceed the campaign calendar".into());
@@ -115,7 +118,7 @@ impl World {
         };
         Ok(PolicyPreview {
             cost,
-            delay: consent_delay + p.days + (100 - c.administration) as u32 / 2 + preparation,
+            delay,
             annual_budget_change: annual,
             route: government.label(),
             consent_delay,
@@ -293,12 +296,12 @@ impl World {
                     id: request,
                     policy: policy.clone(),
                     value: *value,
-                    start_day: self.day + preview.consent_delay,
-                    consent_day: self.day + preview.consent_delay,
-                    due_day: self.day + preview.delay,
+                    start_day: self.day + preview.consent_delay.units(),
+                    consent_day: self.day + preview.consent_delay.units(),
+                    due_day: self.day + preview.delay.units(),
                     cost: preview.cost,
                     reserved,
-                    stage: if preview.consent_delay == 0 {
+                    stage: if preview.consent_delay.units() == 0 {
                         PolicyStage::Implementing
                     } else {
                         PolicyStage::AwaitingConsent
@@ -306,7 +309,7 @@ impl World {
                 });
                 self.record_proposal(&id, command.id);
                 self.next_project = next_project;
-                self.event_for_commitment(&id,request,CommitmentStage::Proposed,format!("Proposed {} via {}. Paid {}m upfront, reserved {}m; consent {} and operating due {}.",content.policy(policy).expect("policy").name,preview.route,preview.upfront_payment.0,reserved.0,date(self.day+preview.consent_delay),date(self.day+preview.delay)));
+                self.event_for_commitment(&id,request,CommitmentStage::Proposed,format!("Proposed {} via {}. Paid {}m upfront, reserved {}m; consent {} and operating due {}.",content.policy(policy).expect("policy").name,preview.route,preview.upfront_payment.0,reserved.0,date(self.day+preview.consent_delay.units()),date(self.day+preview.delay.units())));
             }
             Action::Borrow { amount } => {
                 if content.finance.is_some() {
@@ -1132,7 +1135,7 @@ impl World {
         if leadership_review {
             c.next_leadership_review = government
                 .leadership_review_days
-                .map(|days| self.day + days);
+                .map(|days| self.day + days.units());
         }
         let mut transition = None;
         if c.next_election.is_some_and(|day| day <= self.day) {
@@ -1290,7 +1293,7 @@ impl World {
                 .finance
                 .as_ref()
                 .and_then(|rules| rules.authority(&government.route))
-                .map_or(30, |authority| authority.consent_days + 30);
+                .map_or(30, |authority| authority.consent_days.units() + 30);
             state
                 .principal_due_through(self.day.saturating_add(notice))
                 .0
@@ -1392,7 +1395,7 @@ pub(crate) fn policy_forecast(
                 .iter()
                 .map(|h| h.daily_disposable_change.0)
                 .sum::<i64>()
-                * i64::from(taxes.annualisation_days),
+                * i64::from(taxes.annualisation_days.units()),
         );
         return (annual, impacts);
     }

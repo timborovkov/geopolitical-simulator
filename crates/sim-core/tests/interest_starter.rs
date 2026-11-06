@@ -16,7 +16,7 @@ fn preserved_interest_preserves_the_previous_roster_and_resolves_all_sixteen_pac
         finance.interest_accrual,
         Some(InterestAccrualRule::Actual365Carry)
     );
-    assert_eq!(finance.maturity_days, Some(365));
+    assert_eq!(finance.maturity_days, Some(DaySpan::new(365)));
     assert!(
         current
             .sources

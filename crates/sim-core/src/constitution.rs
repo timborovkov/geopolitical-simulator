@@ -16,7 +16,7 @@ pub struct RegimeTemplate {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TransitionRoute {
-    pub days: u32,
+    pub days: DaySpan,
     pub cost_bps: i64,
     pub upfront_bps: i64,
     pub legislative_threshold: i32,
@@ -33,7 +33,7 @@ pub struct ConstitutionDefinition {
     pub templates: Vec<RegimeTemplate>,
     pub lawful: TransitionRoute,
     pub contested: Option<TransitionRoute>,
-    pub cooldown_days: u32,
+    pub cooldown_days: DaySpan,
     /// Fictional scenario preferences, not a universal historical trajectory.
     pub ai_targets: BTreeMap<CountryId, Regime>,
     pub source: String,
@@ -61,7 +61,7 @@ impl ConstitutionDefinition {
                 .sources
                 .iter()
                 .any(|source| source.id == self.source)
-            || !(30..=730).contains(&self.cooldown_days)
+            || !(30..=730).contains(&self.cooldown_days.units())
             || self
                 .ai_targets
                 .keys()
@@ -77,17 +77,17 @@ impl ConstitutionDefinition {
                     .any(|other| other.regime == template.regime)
                 || !(1..=100).contains(&rules.threshold)
                 || !(0..=100).contains(&rules.council_threshold)
-                || rules.consent_days > 180
+                || rules.consent_days.units() > 180
                 || rules
                     .leadership_review_days
-                    .is_some_and(|days| !(30..=1827).contains(&days))
+                    .is_some_and(|days| !(30..=1827).contains(&days.units()))
                 || template.regime.competitive() != (rules.route == DecisionRoute::Legislature)
             {
                 return Err("Invalid constitution template or governing route".into());
             }
         }
         for route in std::iter::once(&self.lawful).chain(self.contested.iter()) {
-            if !(1..=365).contains(&route.days)
+            if !(1..=365).contains(&route.days.units())
                 || !(1..=1000).contains(&route.cost_bps)
                 || !(1..=10000).contains(&route.upfront_bps)
                 || [
@@ -186,7 +186,10 @@ impl Constitution {
                 || contested != change.contested
                 || change.to == current
                 || rules.template(target).is_none()
-                || command.day.checked_add(rules.route(contested)?.days) != Some(change.day)
+                || command
+                    .day
+                    .checked_add(rules.route(contested)?.days.units())
+                    != Some(change.day)
                 || change.day < previous_day
                 || change.day > world.day
                 || change.government_number <= previous_government
@@ -211,7 +214,7 @@ impl Constitution {
                 || request.target == self.regime
                 || rules.template(&request.target).is_none()
                 || request.proposed_day != command.day
-                || command.day.checked_add(route.days) != Some(request.decision_day)
+                || command.day.checked_add(route.days.units()) != Some(request.decision_day)
                 || request.decision_day <= world.day
                 || request.decision_day > MAX_DAY
                 || request.sponsor_government == crate::GovernmentId(0)
@@ -232,7 +235,7 @@ impl Constitution {
             entry
                 .command
                 .day
-                .checked_add(rules.cooldown_days)
+                .checked_add(rules.cooldown_days.units())
                 .ok_or("Constitution cooldown overflow")
         })?;
         if self.next_request_day != expected {
@@ -398,7 +401,7 @@ impl World {
         let route = rules.route(contested)?;
         let decision_day = self
             .day
-            .checked_add(route.days)
+            .checked_add(route.days.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("No time remains for the constitutional decision")?;
         let cost = Money(
@@ -432,7 +435,14 @@ impl World {
         let preview = self.preview_constitution(content, id, target, contested)?;
         let next_request_day = self
             .day
-            .checked_add(content.constitutions.as_ref().expect("rules").cooldown_days)
+            .checked_add(
+                content
+                    .constitutions
+                    .as_ref()
+                    .expect("rules")
+                    .cooldown_days
+                    .units(),
+            )
             .ok_or("Constitution cooldown overflow")?;
         self.pay(
             id,
@@ -533,7 +543,7 @@ impl World {
         country.next_leadership_review = template
             .government
             .leadership_review_days
-            .map(|days| self.day + days);
+            .map(|days| self.day + days.units());
         country.executive = format!(
             "Generated transitional {} #{}",
             template.title, next_government

@@ -109,12 +109,8 @@ fn starting_eligibility_grants_no_resources_or_free_delivery_across_all_fifteen_
                     },
                 )
                 .unwrap();
-            current
-                .advance(&content, sim_core::DaySpan::new(support.delay))
-                .unwrap();
-            prior
-                .advance(&old, sim_core::DaySpan::new(support.delay))
-                .unwrap();
+            current.advance(&content, support.delay).unwrap();
+            prior.advance(&old, support.delay).unwrap();
         }
         let preview = current
             .preview(&content, &current.player, &"energy".into(), 1)
@@ -123,8 +119,12 @@ fn starting_eligibility_grants_no_resources_or_free_delivery_across_all_fifteen_
             .preview(&old, &prior.player, &"energy".into(), 1)
             .unwrap();
         assert_eq!(
-            (preview.cost, preview.delay, preview.upfront_payment),
-            (baseline.cost, baseline.delay, baseline.upfront_payment)
+            (preview.cost, preview.delay.units(), preview.upfront_payment),
+            (
+                baseline.cost,
+                baseline.delay.units(),
+                baseline.upfront_payment
+            )
         );
         current
             .issue(
@@ -145,10 +145,10 @@ fn starting_eligibility_grants_no_resources_or_free_delivery_across_all_fifteen_
             )
             .unwrap();
         current
-            .advance(&content, sim_core::DaySpan::new(preview.delay + 30))
+            .advance(&content, sim_core::DaySpan::new(preview.delay.units() + 30))
             .unwrap();
         prior
-            .advance(&old, sim_core::DaySpan::new(baseline.delay + 30))
+            .advance(&old, sim_core::DaySpan::new(baseline.delay.units() + 30))
             .unwrap();
         current.validate(&content).unwrap();
         prior.validate(&old).unwrap();

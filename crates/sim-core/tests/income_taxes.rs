@@ -175,7 +175,8 @@ fn policy_delivery_changes_the_standard_rate_and_forecasts_share_the_collection_
     )
     .unwrap();
     check(&c, &w);
-    w.advance(&c, sim_core::DaySpan::new(p.delay - 1)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(p.delay.units() - 1))
+        .unwrap();
     assert_eq!(
         w.player_country()
             .income_tax_report
@@ -249,7 +250,8 @@ fn funded_collection_capacity_improves_withholding_only_when_it_operates() {
         },
     )
     .unwrap();
-    w.advance(&c, sim_core::DaySpan::new(p.delay - 1)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(p.delay.units() - 1))
+        .unwrap();
     assert_eq!(
         w.player_country()
             .income_tax_report

@@ -9,8 +9,8 @@ fn preserved_cash_management_preserves_the_complete_prior_roster_and_resolves_fi
     assert_eq!(
         (
             rules.max_target_bps,
-            rules.max_days,
-            rules.cooldown_days,
+            rules.max_days.units(),
+            rules.cooldown_days.units(),
             rules.approval_cost
         ),
         (100, 90, 90, 3)

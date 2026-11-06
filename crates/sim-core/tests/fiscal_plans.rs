@@ -31,7 +31,7 @@ fn backing(c: &Content, w: &mut World) {
             },
         )
         .unwrap();
-        w.advance(c, sim_core::DaySpan::new(p.delay)).unwrap();
+        w.advance(c, p.delay).unwrap();
     }
 }
 fn bill(w: &World) -> &BudgetBill {
@@ -529,8 +529,8 @@ fn constitutional_review_clocks_are_honored_once_and_survive_later_history() {
         .iter_mut()
         .find(|t| t.regime == Regime::Military)
         .unwrap();
-    military.government.consent_days = 180;
-    military.government.leadership_review_days = Some(1827);
+    military.government.consent_days = DaySpan::new(180);
+    military.government.leadership_review_days = Some(DaySpan::new(1827));
     c.validate().unwrap();
     let mut w = World::new(&c, CountryId("AUR".into()), 17).unwrap();
     backing(&c, &mut w);

@@ -226,13 +226,13 @@ fn amending_or_withdrawing_the_attached_project_does_not_move_its_promised_targe
 #[test]
 fn delivery_during_review_is_recognized_when_the_undertaking_is_accepted() {
     let mut c = content();
-    c.cabinet.as_mut().unwrap().vacancy_preparation_days = 1;
+    c.cabinet.as_mut().unwrap().vacancy_preparation_days = DaySpan::new(1);
     c.policies
         .iter_mut()
         .find(|p| p.id == "energy")
         .unwrap()
-        .days = 1;
-    c.undertakings.as_mut().unwrap().templates[0].review_days = 30;
+        .days = DaySpan::new(1);
+    c.undertakings.as_mut().unwrap().templates[0].review_days = DaySpan::new(30);
     let mut w = start(&c, "COR");
     let id = declare(&mut w, &c, "energy-pledge", None);
     let source = enact(&mut w, &c, "energy", 1);
@@ -253,7 +253,7 @@ fn delivery_during_review_is_recognized_when_the_undertaking_is_accepted() {
 fn review_rechecks_backing_after_another_accepted_agreement_is_withdrawn() {
     let mut c = content();
     let templates = &mut c.undertakings.as_mut().unwrap().templates;
-    templates[1].review_days = 1;
+    templates[1].review_days = DaySpan::new(1);
     templates[0].elite_threshold = 70;
     let mut w = start(&c, "AUR");
     let support = declare(&mut w, &c, "service-agreement", None);
@@ -289,7 +289,7 @@ fn successor_cabinets_close_pending_and_active_undertakings_while_policy_project
         .unwrap();
     route.elite_threshold = 50;
     route.council_threshold = 40;
-    c.undertakings.as_mut().unwrap().templates[1].review_days = 30;
+    c.undertakings.as_mut().unwrap().templates[1].review_days = DaySpan::new(30);
     let mut w = start(&c, "AUR");
     let source = enact(&mut w, &c, "energy", 1);
     w.advance(&c, sim_core::DaySpan::new(14)).unwrap(); // Existing capital is funded before succession.
@@ -406,7 +406,11 @@ fn a_morning_constitutional_successor_closes_a_pledge_before_a_funded_project_de
     let mut c = content();
     let mut w = start(&c, "AUR");
     // Use source-defined timing so the two real processes meet on one day.
-    let due = w.preview(&c, &w.player, &"energy".into(), 1).unwrap().delay;
+    let due = w
+        .preview(&c, &w.player, &"energy".into(), 1)
+        .unwrap()
+        .delay
+        .units();
     let route = c
         .constitutions
         .as_mut()
@@ -414,7 +418,7 @@ fn a_morning_constitutional_successor_closes_a_pledge_before_a_funded_project_de
         .contested
         .as_mut()
         .unwrap();
-    route.days = due;
+    route.days = DaySpan::new(due);
     route.elite_threshold = 50;
     route.council_threshold = 40;
     w = start(&c, "AUR");

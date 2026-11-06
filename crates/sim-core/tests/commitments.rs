@@ -306,7 +306,7 @@ fn funded_withdrawal_requires_current_power_and_unapproved_programmes_cannot_ame
 fn immediate_route_after_regime_change_funds_an_amendment_without_a_stale_pending_date() {
     let mut c = fixture();
     let rules = c.constitutions.as_mut().unwrap();
-    rules.lawful.days = 1;
+    rules.lawful.days = DaySpan::new(1);
     rules.lawful.legislative_threshold = 51;
     rules.lawful.elite_threshold = 0;
     rules.lawful.council_threshold = 0;

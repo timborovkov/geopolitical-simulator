@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 pub struct BudgetBillId(pub u64);
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct FiscalPlanDefinition {
-    pub review_days: u32,
-    pub cooldown_days: u32,
-    pub annual_window_days: u32,
+    pub review_days: DaySpan,
+    pub cooldown_days: DaySpan,
+    pub annual_window_days: DaySpan,
     pub administration_cost_bps: i64,
     pub source: String,
     pub source_version: String,
@@ -17,9 +17,9 @@ pub struct FiscalPlanDefinition {
 impl FiscalPlanDefinition {
     pub fn validate(&self, content: &Content) -> Result<(), String> {
         if content.commitments.is_none()
-            || !(1..=90).contains(&self.review_days)
-            || !(1..=365).contains(&self.cooldown_days)
-            || !(90..=365).contains(&self.annual_window_days)
+            || !(1..=90).contains(&self.review_days.units())
+            || !(1..=365).contains(&self.cooldown_days.units())
+            || !(90..=365).contains(&self.annual_window_days.units())
             || !(1..=100).contains(&self.administration_cost_bps)
             || self.source_version.is_empty()
             || !content.sources.iter().any(|s| s.id == self.source)
@@ -228,7 +228,7 @@ impl World {
             self.day
         } else if fiscal_year == current_year + 1 && fiscal_year <= 2099 {
             let start = year_start(fiscal_year)?;
-            if start - self.day > rules.annual_window_days {
+            if start - self.day > rules.annual_window_days.units() {
                 return Err(
                     "Next-year budgets open only in the configured annual preparation window"
                         .into(),
@@ -258,7 +258,7 @@ impl World {
         let g = self.governing_rules(content, id)?;
         let review_day = self
             .day
-            .checked_add(rules.review_days.max(g.consent_days))
+            .checked_add(rules.review_days.max(g.consent_days).units())
             .filter(|d| *d <= MAX_DAY)
             .ok_or("Budget review exceeds the campaign calendar")?;
         if review_day >= year_start(fiscal_year + 1)? {
@@ -268,7 +268,13 @@ impl World {
         for (p, v) in changed {
             let preview = self.preview(content, id, &p, v)?;
             let delivery = review_day
-                .checked_add(preview.delay - preview.consent_delay)
+                .checked_add(
+                    preview
+                        .delay
+                        .checked_sub(preview.consent_delay)
+                        .expect("implementation includes consent")
+                        .units(),
+                )
                 .map(|d| d.max(effective_day))
                 .filter(|d| *d <= MAX_DAY)
                 .ok_or("Budget programme delivery exceeds the campaign calendar")?;
@@ -336,8 +342,13 @@ impl World {
         let baseline = FiscalTargets::current(c);
         let sponsor = c.government_number;
         let state = c.fiscal_plans.as_mut().expect("fiscal plans");
-        state.next_proposal =
-            self.day + content.fiscal_plans.as_ref().expect("rules").cooldown_days;
+        state.next_proposal = self.day
+            + content
+                .fiscal_plans
+                .as_ref()
+                .expect("rules")
+                .cooldown_days
+                .units();
         state.bills.push(BudgetBill {
             id: bill,
             year: fiscal_year,
@@ -514,8 +525,12 @@ impl World {
             return Err("Programme is not authorized by this enacted budget".into());
         }
         let mut p = self.preview_policy(content, id, policy, value, true)?;
-        p.delay = (p.delay - p.consent_delay).max(b.effective_day.saturating_sub(self.day));
-        p.consent_delay = 0;
+        p.delay = p
+            .delay
+            .checked_sub(p.consent_delay)
+            .expect("implementation includes consent")
+            .max(DaySpan::new(b.effective_day.saturating_sub(self.day)));
+        p.consent_delay = DaySpan::ZERO;
         p.route = format!(
             "Enacted budget #{} (institutional consent satisfied)",
             bill.0
@@ -654,7 +669,7 @@ impl World {
                 > 1
             || Some(state.next_proposal)
                 != state.bills.last().map_or(Some(content.start_day()?), |b| {
-                    b.proposed_day.checked_add(rules.cooldown_days)
+                    b.proposed_day.checked_add(rules.cooldown_days.units())
                 })
         {
             return Err("Fiscal-plan journal, interval or pending count mismatch".into());
@@ -693,7 +708,11 @@ impl World {
                 })
                 .and_then(|h| content.constitutions.as_ref()?.template(&h.to))
                 .map_or(opening, |t| &t.government);
-            let expected_review = b.proposed_day + rules.review_days.max(government.consent_days);
+            let expected_review = b.proposed_day
+                + rules
+                    .review_days
+                    .units()
+                    .max(government.consent_days.units());
             let changed = b.targets.changed(&b.baseline);
             if b.id.0 != e.command.id.0
                 || b.proposed_day != e.command.day
@@ -705,7 +724,7 @@ impl World {
                 || b.year > 2099
                 || (!annual && b.year != year(b.proposed_day))
                 || b.effective_day != expected_effective
-                || (annual && b.effective_day - b.proposed_day > rules.annual_window_days)
+                || (annual && b.effective_day - b.proposed_day > rules.annual_window_days.units())
                 || b.proposed_day < previous_next
                 || b.fee != fee
                 || b.implementation_cost != programme_cost(content, id, &b.targets, &b.baseline)
@@ -724,7 +743,7 @@ impl World {
                     technologies.check_at(id, &policy, b.proposed_day)?;
                 }
             }
-            previous_next = b.proposed_day + rules.cooldown_days;
+            previous_next = b.proposed_day + rules.cooldown_days.units();
             for f in [&b.baseline_forecast, &b.planned_forecast] {
                 if !f.valid() || (content.rules >= 17) != f.interest_accrual.is_some() {
                     return Err("Invalid budget forecast assumptions".into());

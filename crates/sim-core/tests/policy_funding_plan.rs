@@ -29,7 +29,7 @@ fn planning_quotes_full_requirements_without_treating_a_target_or_retained_cash_
         ),
         (Money(20), Money(0), Money(0), Money(20))
     );
-    assert_eq!(plan.preview.consent_delay, 14);
+    assert_eq!(plan.preview.consent_delay.units(), 14);
     assert_eq!(w, before);
     assert!(
         w.issue(

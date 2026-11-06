@@ -20,14 +20,14 @@ pub struct RequisitionRule {
     pub legislative_cost: i32,
     pub elite_cost: i32,
     pub council_cost: i32,
-    pub cooldown_days: u32,
+    pub cooldown_days: DaySpan,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TerritorialDefinition {
     pub templates: Vec<TerritorialTemplate>,
     pub lawful: TransitionRoute,
     pub contested: Option<TransitionRoute>,
-    pub cooldown_days: u32,
+    pub cooldown_days: DaySpan,
     pub local_consent_approval: i32,
     pub compensation_bps: i64,
     pub requisition: Option<RequisitionRule>,
@@ -53,7 +53,7 @@ impl TerritorialDefinition {
             || self.templates.len() != 3
             || self.source_version.is_empty()
             || !content.sources.iter().any(|s| s.id == self.source)
-            || !(30..=730).contains(&self.cooldown_days)
+            || !(30..=730).contains(&self.cooldown_days.units())
             || !(0..=100).contains(&self.local_consent_approval)
             || !(1..=1000).contains(&self.compensation_bps)
             || self
@@ -75,7 +75,7 @@ impl TerritorialDefinition {
             }
         }
         for route in std::iter::once(&self.lawful).chain(self.contested.iter()) {
-            if !(1..=365).contains(&route.days)
+            if !(1..=365).contains(&route.days.units())
                 || !(1..=1000).contains(&route.cost_bps)
                 || !(1..=10000).contains(&route.upfront_bps)
                 || [
@@ -96,7 +96,7 @@ impl TerritorialDefinition {
         }
         if let Some(rule) = &self.requisition
             && (!(1..=1000).contains(&rule.administration_cost_bps)
-                || !(30..=730).contains(&rule.cooldown_days)
+                || !(30..=730).contains(&rule.cooldown_days.units())
                 || [
                     rule.elite_threshold,
                     rule.council_threshold,
@@ -511,7 +511,7 @@ impl World {
         self.check_local_charter_consent(content, id, &rights_lost, contested)?;
         let decision_day = self
             .day
-            .checked_add(route.days)
+            .checked_add(route.days.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Territorial review exceeds the campaign calendar")?;
         let admin_cost =
@@ -619,8 +619,13 @@ impl World {
         c.budget.capital.0 += preview.upfront.0;
         c.committed_cash.0 += preview.reserved.0;
         let state = c.territorial.as_mut().expect("territorial");
-        state.next_reform_day =
-            self.day + content.territorial.as_ref().expect("rules").cooldown_days;
+        state.next_reform_day = self.day
+            + content
+                .territorial
+                .as_ref()
+                .expect("rules")
+                .cooldown_days
+                .units();
         state.reforms.push(TerritorialReform {
             id: request,
             from: preview.from,
@@ -848,7 +853,7 @@ impl World {
         let c = self.countries.get_mut(id).expect("country");
         c.budget.capital.0 += paid;
         let state = c.territorial.as_mut().expect("state");
-        state.next_requisition_day = self.day + rule.cooldown_days;
+        state.next_requisition_day = self.day + rule.cooldown_days.units();
         state.requisitions.push(RegionalRequisition {
             id: request,
             day: self.day,
@@ -866,7 +871,7 @@ impl World {
             rule.elite_cost,
             rule.council_cost,
         );
-        self.event(id,true,format!("Contested requisition #{} violated {}'s local mandate: {}m of existing base funds reclassified to national discretion; {}m administration paid. No consolidated principal was created. Accepted service grants and escrow remain protected. Political costs: approval -{}, legislature -{}, elite -{}, council -{}; requisition interval {} days.",request.0,region.0,amount.0,preview.fee.0,rule.approval_cost,rule.legislative_cost,rule.elite_cost,rule.council_cost,rule.cooldown_days));
+        self.event(id,true,format!("Contested requisition #{} violated {}'s local mandate: {}m of existing base funds reclassified to national discretion; {}m administration paid. No consolidated principal was created. Accepted service grants and escrow remain protected. Political costs: approval -{}, legislature -{}, elite -{}, council -{}; requisition interval {} days.",request.0,region.0,amount.0,preview.fee.0,rule.approval_cost,rule.legislative_cost,rule.elite_cost,rule.council_cost,rule.cooldown_days.units()));
         Ok(())
     }
     pub(crate) fn ai_territorial_turn(&mut self, content: &Content, id: &CountryId) {
@@ -1026,7 +1031,7 @@ impl World {
             Some(entry) => entry
                 .command
                 .day
-                .checked_add(rules.cooldown_days)
+                .checked_add(rules.cooldown_days.units())
                 .ok_or("Territorial interval overflow")?,
             None => start,
         };
@@ -1039,7 +1044,8 @@ impl World {
                         .requisition
                         .as_ref()
                         .ok_or("Requisition journal without procedures")?
-                        .cooldown_days,
+                        .cooldown_days
+                        .units(),
                 )
                 .ok_or("Requisition interval overflow")?,
             None => start,
@@ -1075,7 +1081,7 @@ impl World {
             if !matches
                 || record.id.0 != command.id.0
                 || record.proposed_day != command.day
-                || command.day.checked_add(route.days) != Some(record.decision_day)
+                || command.day.checked_add(route.days.units()) != Some(record.decision_day)
                 || record.decision_day > MAX_DAY
                 || record.from != self.territorial_form_at(content, id, command.day)?
                 || record.admin_cost != cost
@@ -1156,7 +1162,7 @@ impl World {
         for pair in state.reforms.windows(2) {
             if pair[0]
                 .proposed_day
-                .checked_add(rules.cooldown_days)
+                .checked_add(rules.cooldown_days.units())
                 .is_none_or(|day| pair[1].proposed_day < day)
                 || pair[0]
                     .resolved_day
@@ -1241,7 +1247,7 @@ impl World {
             && state.requisitions.windows(2).any(|pair| {
                 pair[0]
                     .day
-                    .checked_add(rule.cooldown_days)
+                    .checked_add(rule.cooldown_days.units())
                     .is_none_or(|day| pair[1].day < day)
             })
         {
