@@ -1864,9 +1864,18 @@ impl GameApp {
     }
 }
 impl GameApp {
-    fn process_shortcuts(&mut self, ctx: &egui::Context) {
-        if !ctx.wants_keyboard_input() && !egui::Popup::is_any_open(ctx) && self.recovery.is_empty()
-        {
+    fn process_shortcuts(&mut self, ctx: &egui::Context, keyboard_owned_at_start: bool) {
+        // Enter can surrender focus before shortcuts run. Include editors that
+        // claimed and released input during this frame, as well as prior focus.
+        let keyboard_owned = keyboard_owned_at_start
+            || ctx.wants_keyboard_input()
+            || ctx.output(|output| {
+                output
+                    .events
+                    .iter()
+                    .any(|event| event.widget_info().typ == egui::WidgetType::TextEdit)
+            });
+        if !keyboard_owned && !egui::Popup::is_any_open(ctx) && self.recovery.is_empty() {
             if ctx.input_mut(|input| input.consume_key(egui::Modifiers::ALT, egui::Key::ArrowLeft))
             {
                 self.navigate_history(false);
@@ -1876,7 +1885,9 @@ impl GameApp {
                 self.navigate_history(true);
             }
         }
-        if settings::shortcut(ctx, self.preferences.active.pause) && self.world.is_some() {
+        if settings::shortcut(ctx, self.preferences.active.pause, keyboard_owned)
+            && self.world.is_some()
+        {
             if self.speed > 0 || self.pending.is_some() {
                 self.pause();
             } else {
@@ -1884,17 +1895,17 @@ impl GameApp {
             }
             self.last_tick = Instant::now();
         }
-        if settings::shortcut(ctx, self.preferences.active.save) {
+        if settings::shortcut(ctx, self.preferences.active.save, keyboard_owned) {
             self.save();
         }
-        if settings::shortcut(ctx, self.preferences.active.load) {
+        if settings::shortcut(ctx, self.preferences.active.load, keyboard_owned) {
             self.load();
         }
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::F1)) {
             self.pause();
             self.tab = Tab::Settings;
         }
-        if settings::shortcut(ctx, self.preferences.active.next_event) {
+        if settings::shortcut(ctx, self.preferences.active.next_event, keyboard_owned) {
             self.next_event();
         }
         if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
@@ -1907,6 +1918,7 @@ impl GameApp {
         }
     }
     fn render(&mut self, ctx: &egui::Context) {
+        let keyboard_owned_at_start = ctx.wants_keyboard_input();
         self.navigation.observe(self.inspection());
         self.poll_advance();
         if self.preferences.active.pause_on_focus_loss
@@ -2004,7 +2016,7 @@ impl GameApp {
         let setup_open = self.new_setup.is_some();
         self.new_campaign_dialog(ctx);
         if !setup_open {
-            self.process_shortcuts(ctx);
+            self.process_shortcuts(ctx, keyboard_owned_at_start);
         }
         self.navigation.observe(self.inspection());
         if self.speed > 0 || self.pending.is_some() {
@@ -2105,6 +2117,266 @@ fn main() -> eframe::Result {
 #[cfg(test)]
 mod interface_tests {
     use super::*;
+    fn editor_shortcut_frame(
+        ctx: &egui::Context,
+        app: &mut GameApp,
+        scale: f32,
+        events: Vec<egui::Event>,
+    ) -> egui::FullOutput {
+        ctx.run(
+            egui::RawInput {
+                focused: true,
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1440. / scale, 940. / scale),
+                )),
+                events,
+                ..Default::default()
+            },
+            |ctx| app.render(ctx),
+        )
+    }
+    fn editor_shortcut_point(output: &egui::FullOutput, label: &str) -> egui::Pos2 {
+        output
+            .shapes
+            .iter()
+            .find_map(|shape| match &shape.shape {
+                egui::Shape::Text(text) if text.galley.text() == label => {
+                    let point = text.pos + text.galley.size() / 2.;
+                    shape.clip_rect.contains(point).then_some(point)
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("Visible editor text missing: {label}"))
+    }
+    fn editor_shortcut_focus(ctx: &egui::Context, app: &mut GameApp, scale: f32, label: &str) {
+        let output = editor_shortcut_frame(ctx, app, scale, vec![]);
+        let point = editor_shortcut_point(&output, label);
+        for pressed in [true, false] {
+            editor_shortcut_frame(
+                ctx,
+                app,
+                scale,
+                vec![
+                    egui::Event::PointerMoved(point),
+                    egui::Event::PointerButton {
+                        pos: point,
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ],
+            );
+        }
+        assert!(ctx.wants_keyboard_input());
+    }
+    fn editor_shortcut_keys(key: egui::Key, text: Option<&str>, enter: bool) -> Vec<egui::Event> {
+        let key_event = |key, pressed| egui::Event::Key {
+            key,
+            physical_key: None,
+            pressed,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        };
+        let mut events = vec![key_event(key, true)];
+        if let Some(text) = text {
+            events.push(egui::Event::Text(text.into()));
+        }
+        events.push(key_event(key, false));
+        if enter {
+            events.push(key_event(egui::Key::Enter, true));
+            events.push(key_event(egui::Key::Enter, false));
+        }
+        events
+    }
+    #[test]
+    fn ending_or_newly_claiming_an_editor_cannot_seek_pause_or_navigate_at_two_scales() {
+        let content =
+            Content::from_json(include_str!("../../../data/synthetic-test.json")).unwrap();
+        let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+        world.advance(&content, DaySpan::new(61)).unwrap();
+        let before = persistence::encode(&world, &content).unwrap();
+        for scale in [1., 1.4] {
+            let ctx = egui::Context::default();
+            let mut app =
+                GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            app.world = Some(world.clone());
+            app.selected = world.player.clone();
+            app.save_path = "n".into();
+            app.target_date = "date".into();
+            editor_shortcut_frame(&ctx, &mut app, scale, vec![]);
+            editor_shortcut_frame(&ctx, &mut app, scale, vec![]);
+            app.tab = Tab::Society;
+            let output = editor_shortcut_frame(&ctx, &mut app, scale, vec![]);
+            assert!(!ctx.wants_keyboard_input());
+            let point = editor_shortcut_point(&output, "n");
+            let mut events = vec![egui::Event::PointerMoved(point)];
+            for pressed in [true, false] {
+                events.push(egui::Event::PointerButton {
+                    pos: point,
+                    button: egui::PointerButton::Primary,
+                    pressed,
+                    modifiers: egui::Modifiers::NONE,
+                });
+            }
+            events.extend(editor_shortcut_keys(egui::Key::N, Some("n"), true));
+            editor_shortcut_frame(&ctx, &mut app, scale, events);
+            assert_eq!(app.save_path, "nn");
+            assert!(
+                !ctx.wants_keyboard_input(),
+                "Enter may finish the edit without releasing its keys to the game"
+            );
+            assert!(
+                app.pending.is_none(),
+                "Click/type/Enter in one frame must not start event advancement"
+            );
+            assert_eq!(app.speed, 0);
+            let path = app.save_path.clone();
+            editor_shortcut_focus(&ctx, &mut app, scale, &path);
+            editor_shortcut_frame(
+                &ctx,
+                &mut app,
+                scale,
+                editor_shortcut_keys(egui::Key::N, None, true),
+            );
+            assert!(
+                app.pending.is_none(),
+                "An editor focused at frame start still owns its confirmation frame"
+            );
+            editor_shortcut_focus(&ctx, &mut app, scale, "date");
+            editor_shortcut_frame(
+                &ctx,
+                &mut app,
+                scale,
+                editor_shortcut_keys(egui::Key::Space, Some(" "), true),
+            );
+            assert_eq!(
+                app.speed, 0,
+                "Space in an ending editor must not start automatic time"
+            );
+            let target = app.target_date.clone();
+            editor_shortcut_focus(&ctx, &mut app, scale, &target);
+            let mut events = vec![egui::Event::Key {
+                key: egui::Key::ArrowLeft,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::ALT,
+            }];
+            events.extend(editor_shortcut_keys(egui::Key::Enter, None, false));
+            editor_shortcut_frame(&ctx, &mut app, scale, events);
+            assert!(app.tab == Tab::Society, "Editing must not also invoke Back");
+            // Ordinary shortcuts work on the following frame, even with the OS's text event.
+            app.last_tick = Instant::now();
+            editor_shortcut_frame(
+                &ctx,
+                &mut app,
+                scale,
+                editor_shortcut_keys(egui::Key::Space, Some(" "), false),
+            );
+            assert_eq!(app.speed, 1);
+            app.last_tick = Instant::now();
+            editor_shortcut_frame(
+                &ctx,
+                &mut app,
+                scale,
+                editor_shortcut_keys(egui::Key::Space, Some(" "), false),
+            );
+            assert_eq!(app.speed, 0);
+            assert_eq!(
+                persistence::encode(app.world.as_ref().unwrap(), &content).unwrap(),
+                before
+            );
+        }
+    }
+    #[test]
+    fn rebound_letters_do_not_save_or_load_from_editors_but_function_keys_still_work_at_two_scales()
+    {
+        let content =
+            Content::from_json(include_str!("../../../data/synthetic-test.json")).unwrap();
+        let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+        world.advance(&content, DaySpan::new(61)).unwrap();
+        let other = World::new(&content, world.player.clone(), 18).unwrap();
+        let before = persistence::encode(&world, &content).unwrap();
+        let dir =
+            std::env::temp_dir().join(format!("geosim-editor-shortcuts-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let other_path = dir.join("other.json");
+        std::fs::write(&other_path, persistence::encode(&other, &content).unwrap()).unwrap();
+        for scale in [1., 1.4] {
+            let ctx = egui::Context::default();
+            let mut app =
+                GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            app.world = Some(world.clone());
+            app.selected = world.player.clone();
+            app.tab = Tab::Society;
+            app.target_date = "date".into();
+            app.preferences.active.save = egui::Key::S;
+            app.preferences.active.load = egui::Key::L;
+            let path = dir.join(format!("ignored-{scale}.json"));
+            app.save_path = path.to_string_lossy().into_owned();
+            editor_shortcut_frame(&ctx, &mut app, scale, vec![]);
+            editor_shortcut_frame(&ctx, &mut app, scale, vec![]);
+            editor_shortcut_focus(&ctx, &mut app, scale, "date");
+            editor_shortcut_frame(
+                &ctx,
+                &mut app,
+                scale,
+                editor_shortcut_keys(egui::Key::S, Some("s"), true),
+            );
+            assert!(
+                !path.exists(),
+                "A rebound letter inside text must not write a snapshot"
+            );
+            app.save_path = other_path.to_string_lossy().into_owned();
+            app.target_date = "date".into();
+            editor_shortcut_focus(&ctx, &mut app, scale, "date");
+            editor_shortcut_frame(
+                &ctx,
+                &mut app,
+                scale,
+                editor_shortcut_keys(egui::Key::L, Some("l"), true),
+            );
+            assert_eq!(
+                persistence::encode(app.world.as_ref().unwrap(), &content).unwrap(),
+                before,
+                "A rebound letter inside text must not replace the active campaign"
+            );
+            app.preferences.active.save = egui::Key::F5;
+            app.preferences.active.load = egui::Key::F9;
+            let explicit = dir.join(format!("explicit-{scale}.json"));
+            app.save_path = explicit.to_string_lossy().into_owned();
+            app.target_date = "date".into();
+            editor_shortcut_focus(&ctx, &mut app, scale, "date");
+            editor_shortcut_frame(
+                &ctx,
+                &mut app,
+                scale,
+                editor_shortcut_keys(egui::Key::F5, None, false),
+            );
+            assert_eq!(
+                persistence::load(&explicit, &content).unwrap(),
+                world,
+                "Explicit function-key save stays available during editing"
+            );
+            assert!(ctx.wants_keyboard_input());
+            app.save_path = other_path.to_string_lossy().into_owned();
+            editor_shortcut_frame(
+                &ctx,
+                &mut app,
+                scale,
+                editor_shortcut_keys(egui::Key::F9, None, false),
+            );
+            assert_eq!(
+                app.world.as_ref(),
+                Some(&other),
+                "Explicit function-key load stays available during editing"
+            );
+        }
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 
     #[test]
     fn chronicle_links_open_exact_pending_and_historical_programmes_at_both_scales_without_orders()
@@ -2648,7 +2920,9 @@ mod interface_tests {
             }],
             ..Default::default()
         };
-        let _ = ctx.run(input, |ctx| app.process_shortcuts(ctx));
+        let _ = ctx.run(input, |ctx| {
+            app.process_shortcuts(ctx, ctx.wants_keyboard_input())
+        });
         assert_eq!(app.speed, 0);
         assert!(app.playback_label().starts_with("Searching for next event"));
         let job = app
@@ -3026,7 +3300,7 @@ mod interface_tests {
                 }],
                 ..Default::default()
             },
-            |ctx| app.process_shortcuts(ctx),
+            |ctx| app.process_shortcuts(ctx, ctx.wants_keyboard_input()),
         );
         assert!(app.pending.as_ref().unwrap().is_stopping());
         assert_eq!(app.playback_label(), "Stopping at next day boundary");

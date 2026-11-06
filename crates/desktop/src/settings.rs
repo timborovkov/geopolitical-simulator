@@ -100,12 +100,12 @@ impl Settings {
         std::fs::rename(temp, path).map_err(|e| e.to_string())
     }
 }
-pub fn shortcut(ctx: &egui::Context, key: Key) -> bool {
+pub fn shortcut(ctx: &egui::Context, key: Key, keyboard_owned: bool) -> bool {
     let function_key = key
         .name()
         .strip_prefix('F')
         .is_some_and(|name| name.parse::<u8>().is_ok());
-    if ctx.wants_keyboard_input() && !function_key {
+    if (keyboard_owned || ctx.wants_keyboard_input()) && !function_key {
         return false;
     }
     ctx.input_mut(|input| input.consume_key(egui::Modifiers::NONE, key))
