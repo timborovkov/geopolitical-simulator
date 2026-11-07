@@ -3,6 +3,9 @@ use sim_core::*;
 
 #[derive(Default)]
 pub struct Panel {
+    command_reference: String,
+    command_selected: Option<CommandId>,
+    command_error: Option<String>,
     reference: String,
     selected: Option<EventId>,
     error: Option<String>,
@@ -21,6 +24,42 @@ impl Panel {
             ui.label("Your chronicle begins with a mandate.");
             return None;
         };
+        if content.governing_institutions.is_some() {
+            egui::CollapsingHeader::new("Command governing context").show(ui, |ui| {
+                ui.label("Inspect an accepted command from your government. This records context when submitted; consent or approval may happen later.");
+                ui.horizontal_wrapped(|ui| {
+                    ui.label("Command ID");
+                    ui.add(egui::TextEdit::singleline(&mut self.command_reference).desired_width(100.0).char_limit(20));
+                    if ui.button("Find command").clicked() {
+                        match self.command_reference.trim().parse::<u64>().ok().filter(|id| *id > 0) {
+                            Some(id) => { self.command_selected = Some(CommandId(id)); self.command_error = None; },
+                            None => { self.command_selected = None; self.command_error = Some("Enter a positive command ID".into()); },
+                        }
+                    }
+                });
+                if let Some(error) = &self.command_error { ui.colored_label(egui::Color32::LIGHT_YELLOW, error); }
+                if let Some(command) = self.command_selected {
+                    match world.command_governing_context(content, Viewer::Government(world.player.clone()), command) {
+                        Ok(Some(context)) => {
+                            ui.label(format!("Command #{} · government #{} · {:?}", command.0, context.government, context.route));
+                            if let Some(definition) = &content.governing_institutions {
+                                if let Some(primary) = definition.institution(&context.primary) { ui.strong(&primary.name); }
+                                ui.small(&context.primary.0);
+                                if let Some(council) = context.council.and_then(|id| definition.institution(&id)) { ui.label(format!("Consultative context: {}", council.name)); }
+                            }
+                        },
+                        Ok(None) => { ui.label("No governing context available for this command."); },
+                        Err(reason) => { ui.colored_label(egui::Color32::LIGHT_YELLOW, reason); },
+                    }
+                }
+                ui.small("Recent accepted command IDs");
+                ui.horizontal_wrapped(|ui| {
+                    for entry in world.journal.iter().rev().filter(|e| e.command.issuer == world.player && e.governing_context.is_some()).take(8) {
+                        if ui.button(format!("#{}", entry.command.id.0)).clicked() { self.command_selected = Some(entry.command.id); self.command_reference = entry.command.id.0.to_string(); self.command_error = None; }
+                    }
+                });
+            });
+        }
         if world.event_sequences.is_some() {
             ui.label("References belong to this campaign. Only your government's retained entries are available; older entries may have expired.");
             ui.horizontal_wrapped(|ui| {
@@ -247,6 +286,88 @@ mod tests {
             assert!(!visible.contains("Referenced event"));
             assert!(!visible.contains(&format!("Reference {foreign}")));
             assert_eq!(world.hash(), before);
+        }
+    }
+}
+
+#[cfg(test)]
+mod context_tests {
+    use super::*;
+    #[test]
+    fn owner_can_open_and_inspect_recent_command_context_without_issuing_orders() {
+        let content = Content::governing_institutions_bundled().unwrap();
+        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        world
+            .issue(&content, Action::Repay { amount: Money(1) })
+            .unwrap();
+        let before = world.clone();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            ctx.style_mut(|style| style.animation_time = 0.0);
+            let mut panel = Panel::default();
+            let mut frame = |events| {
+                ctx.run(
+                    egui::RawInput {
+                        focused: true,
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(1440.0 / scale, 940.0 / scale),
+                        )),
+                        events,
+                        ..Default::default()
+                    },
+                    |ctx| {
+                        egui::CentralPanel::default().show(ctx, |ui| {
+                            panel.show(ui, &content, Some(&world));
+                        });
+                    },
+                )
+            };
+            let locate = |output: &egui::FullOutput, label: &str| {
+                output
+                    .shapes
+                    .iter()
+                    .find_map(|shape| match &shape.shape {
+                        egui::Shape::Text(text) if text.galley.text() == label => {
+                            let rect = egui::Rect::from_min_size(text.pos, text.galley.size());
+                            shape.clip_rect.contains_rect(rect).then_some(rect.center())
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| panic!("Visible control missing: {label}"))
+            };
+            frame(vec![]);
+            for label in ["Command governing context", "#1"] {
+                let point = locate(&frame(vec![]), label);
+                for pressed in [true, false] {
+                    frame(vec![
+                        egui::Event::PointerMoved(point),
+                        egui::Event::PointerButton {
+                            pos: point,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ]);
+                }
+            }
+            let output = frame(vec![]);
+            let labels = output
+                .shapes
+                .iter()
+                .filter_map(|s| match &s.shape {
+                    egui::Shape::Text(t) => Some(t.galley.text()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            assert!(
+                labels.contains("Command #1 · government #1 · Legislature"),
+                "{labels}"
+            );
+            assert!(labels.contains("Modeled national legislature"), "{labels}");
+            assert_eq!(world, before);
         }
     }
 }

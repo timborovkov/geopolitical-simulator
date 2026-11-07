@@ -190,6 +190,11 @@ impl World {
         if !ai && command.issuer != self.player {
             return Err("You do not control this government".into());
         }
+        let governing_context = if developer {
+            None
+        } else {
+            self.capture_governing_context(content, &command.issuer)?
+        };
         let c = self
             .countries
             .get(&command.issuer)
@@ -406,6 +411,7 @@ impl World {
             return Err("Command did not record an outcome event".into());
         }
         self.journal.push(JournalEntry {
+            governing_context,
             command,
             ai,
             developer,

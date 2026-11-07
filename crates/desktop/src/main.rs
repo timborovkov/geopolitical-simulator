@@ -15,6 +15,7 @@ mod financing;
 mod fiscal_plans;
 mod funding;
 mod geometry;
+mod governing_institutions;
 mod help;
 mod hydrology;
 mod income_taxes;
@@ -1654,6 +1655,7 @@ impl GameApp {
         }
 
         if let Some(world) = &self.world {
+            governing_institutions::show(ui, &self.content, world);
             executive_identity::show(ui, &self.content, world);
         }
         if let Some(world) = &self.world
@@ -3566,6 +3568,50 @@ mod interface_tests {
                 assert_eq!(labels.contains("Executive authority"), own, "{labels}");
                 assert_eq!(
                     labels.contains("Executive history (1 retained mandates)"),
+                    own,
+                    "{labels}"
+                );
+                assert_eq!(app.world.as_ref().unwrap(), &world);
+            }
+        }
+    }
+
+    #[test]
+    fn modeled_institution_views_are_owner_only_at_two_scales() {
+        let content = Content::governing_institutions_bundled().unwrap();
+        let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let mut app =
+                GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+            app.world = Some(world.clone());
+            app.tab = Tab::Politics;
+            assert!(!app.developer_mode);
+            for (country, own) in [("GBR", true), ("CHN", false)] {
+                app.selected = CountryId(country.into());
+                let output = ctx.run(
+                    egui::RawInput {
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(1440.0 / scale, 940.0 / scale),
+                        )),
+                        ..Default::default()
+                    },
+                    |ctx| app.render(ctx),
+                );
+                let labels = output
+                    .shapes
+                    .iter()
+                    .filter_map(|shape| match &shape.shape {
+                        egui::Shape::Text(text) => Some(text.galley.text()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                assert_eq!(labels.contains("Governing institutions"), own, "{labels}");
+                assert_eq!(
+                    labels.contains("Modeled national legislature"),
                     own,
                     "{labels}"
                 );

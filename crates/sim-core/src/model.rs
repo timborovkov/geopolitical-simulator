@@ -380,6 +380,8 @@ pub struct Event {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct JournalEntry {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub governing_context: Option<crate::GoverningContext>,
     pub command: Command,
     pub ai: bool,
     #[serde(default, skip_serializing_if = "crate::developer::is_false")]
@@ -784,6 +786,7 @@ impl World {
         self.validate_event_references(content)?;
         let mut previous_day = start_day;
         for (index, entry) in self.journal.iter().enumerate() {
+            self.validate_governing_context(content, entry)?;
             let command = &entry.command;
             let valid_action = match &command.action {
                 Action::ProposeLaw { law } => content
