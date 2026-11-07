@@ -392,6 +392,7 @@ impl World {
                 self.event(target, true, format!("DEVELOPER EDIT: {} changed from {before} to {}. Policy costs and delays were bypassed; this campaign is marked developer-modified.", edit.field.name(), edit.value));
             }
         }
+        self.sync_executive_identity(content, &id)?;
         if let Some(reason) = &self.event_error {
             return Err(reason.clone());
         }
@@ -471,7 +472,8 @@ impl World {
                 self.notice_technology_dates(content, id);
                 self.notice_legislation_dates(content, id);
                 self.resolve_cash_hold(id);
-                self.resolve_constitution(content, id);
+                self.resolve_constitution(content, id)?;
+                self.sync_executive_identity(content, id)?;
                 self.resolve_legislation(content, id);
                 self.resolve_cash_hold(id);
                 self.undertaking_succession(id);
@@ -512,6 +514,7 @@ impl World {
                 self.regional_succession(content, id);
                 self.cabinet_succession(id);
                 self.budget_succession(id);
+                self.sync_executive_identity(content, id)?;
                 self.resolve_legislation(content, id);
                 self.resolve_cash_hold(id);
             }
@@ -1195,14 +1198,21 @@ impl World {
                         .government_number
                         .checked_add(1)
                         .ok_or("Government identity exhausted")?;
-                    c.executive = format!("{} cabinet {}", successor.name, next_government);
+                    c.government_number = next_government;
+                    c.replace_generated_executive(
+                        content,
+                        format!("{} cabinet {}", successor.name, next_government),
+                        ExecutiveBodyKind::Cabinet,
+                        Some(successor.id.clone()),
+                        None,
+                        self.day,
+                    )?;
                     // Opposition parties agree a government; named historical leaders are not kept alive forever.
                     c.legislative_support = i32::from(rest);
                     c.approval = 55;
                     for h in &mut c.households {
                         h.approval = 55;
                     }
-                    c.government_number = next_government;
                     transition = Some(format!(
                         "Election: {votes}% for the outgoing {outgoing}. {} forms a generated successor cabinet. Country play continues under its mandate.",
                         successor.name
@@ -1223,7 +1233,14 @@ impl World {
                 .government_number
                 .checked_add(1)
                 .ok_or("Government identity exhausted")?;
-            c.executive = format!("Generated leadership council {}", c.government_number);
+            c.replace_generated_executive(
+                content,
+                format!("Generated leadership council {}", c.government_number),
+                ExecutiveBodyKind::LeadershipCouncil,
+                None,
+                None,
+                self.day,
+            )?;
             c.elite_support = 65;
             c.council_support = 65;
             transition=Some("Elite coalition replaced the leadership after sustained loss of backing. Institutional route remains in force; country play continues.".into());

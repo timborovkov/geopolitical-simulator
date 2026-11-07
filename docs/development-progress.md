@@ -4,6 +4,16 @@ The goal is the full documented game. The current implementation is a playable f
 
 Current audited register: **9 complete, 94 partial and 238 proposed**. Completion applies to the stated scope of an individual requirement; the overall kernel and full roadmap remain incomplete.
 
+## Live executive continuity
+
+The optional rules/content-27 starter adds separately identified live holders and simulated successor bodies in snapshot format 28. All 15 historical opening executives resolve to existing person/office references; the 37 people, 49 offices, 34 parties and economic calibration remain unchanged. The fictional fixture explicitly authors person, unknown and collective holders, and an explicit-vacancy variant verifies that unknown does not mean vacant. Future reference terms never appoint a campaign holder.
+
+Existing elections, elite replacements and constitutional reforms record generated cabinets, leadership councils and transitional authorities with body keys independent of display labels and governmental mandates. The default retains 128 closed mandates plus the current one; pruned tenure history never reassigns a governing-body identity. The owner profile and normal terminal `executive` query expose immutable history and provenance. Earlier campaigns receive no reconstructed live identities. P01-02/P02 remain partial: broader actor, agreement, asset and person/office succession coverage is still unfinished. No requirement status changes in this slice.
+
+Thirty focused core checks and all 89 desktop checks pass, including body-name collisions, all three replacement routes, source-term independence, bounded retention, malformed records, actual allocator exhaustion rollback, exact resume/replay and normal foreign-profile privacy. An 800-day historical crisis comparison removes only the added identity state and version/hash metadata, then compares the entire remaining world against the preceding statutory rules. A strengthened funded statutory regression reaches actual event-reference exhaustion after an eligible paid proposal and verifies full-state rollback; it replaces a weaker counter block whose depleted treasury could reject earlier.
+
+Native Linux/software-Vulkan play at 100%/140% verified Tony Blair's opening profile and a simulated successor Conservative Party cabinet on 2000-10-28 (day 301), retaining both mandates through day 800. Seven native saves match three independently replayed terminal states byte for byte, including reloads; three terminal profile/replay queries preserve those saves. Normal foreign Institutions remains a public report. Seven preceding production saves remain byte-identical. Scale and important-event pause were restored, and the owned client/display were closed. Native evidence applies to the exercised Linux client. Full `python3 scripts/validate.py` passed all 513 Rust checks (including 39 compile-fail contracts), 10 Python checks, strict workspace lints, Rust documentation, release builds and 834 recovery campaigns in 4869.193 measured seconds. All 804 preceding recovery hashes are unchanged, and all 30 new cases match the independent preflight. The 155 Rust sources, four validation/scenario assets and all 60 preceding JSON data files retained their frozen hashes. Hosted results for this new source follow publication.
+
 ## Audited complete requirements
 
 | Requirement | Verified scope | Evidence |
@@ -20,7 +30,7 @@ Current audited register: **9 complete, 94 partial and 238 proposed**. Completio
 
 ## Current evidence
 
-- Hosted [run 42327917273](https://github.com/timborovkov/geopolitical-simulator/actions/runs/42327917273) passed the preceding campaign-clock checkpoint on macOS, Linux and Windows. Those hosted results cover the published clock checkpoint; hosted checks for this combined source tree follow its publication.
+- Hosted [run 42335205664](https://github.com/timborovkov/geopolitical-simulator/actions/runs/42335205664) passed the published statutory/replay checkpoint `97a4cb8` on macOS, Linux and Windows. The preceding [campaign-clock run 42327917273](https://github.com/timborovkov/geopolitical-simulator/actions/runs/42327917273) also passed all three platforms. These results cover those published checkpoints; hosted checks for live executive continuity follow its publication.
 
 - The optional authored statutory-authority scenario adds content/rules 26 and snapshot format 27 while preserving the rules-25 default, every previous pack and the fifteen-country/party roster. Its legal definitions have stable IDs, source/version labels, country scope and proposal availability dates. New services targets of 14% of opening GDP or higher require an enacted High-service appropriation authority; existing operating services are retained. This is an authored institutional prototype, not historical legal text. This advances law definitions (P02), governing authority (P08), shared-command AI (P12) and pending-legislation timelines (P13). Those priorities remain partial for their broader institutional, agent and interface requirements.
 

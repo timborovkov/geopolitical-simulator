@@ -501,14 +501,18 @@ impl World {
         self.event(id, true, format!("Withdrew constitutional request #{}. Released {}m of reserved cash; {}m administration cost remains spent. Constitutional cooldown remains in force.", request.0, pending.reserved.0, pending.upfront.0));
         Ok(())
     }
-    pub(crate) fn resolve_constitution(&mut self, content: &Content, id: &CountryId) {
+    pub(crate) fn resolve_constitution(
+        &mut self,
+        content: &Content,
+        id: &CountryId,
+    ) -> Result<(), String> {
         let request = self.countries[id]
             .constitution
             .as_ref()
             .and_then(|state| state.pending.clone());
         let Some(request) = request.filter(|request| request.decision_day <= self.day.units())
         else {
-            return;
+            return Ok(());
         };
         let result = if self.countries[id].government_number != request.sponsor_government {
             Err("Sponsoring cabinet changed; its constitutional mandate expired".into())
@@ -528,7 +532,7 @@ impl World {
             Ok(number) => number,
             Err(reason) => {
                 self.event(id, true, format!("Constitutional request #{} refused at decision: {reason}. Released {}m reserved cash; administration costs remain spent.", request.id.0, request.reserved.0));
-                return;
+                return Ok(());
             }
         };
         self.pay(
@@ -553,10 +557,17 @@ impl World {
             .government
             .leadership_review_days
             .map(|days| self.day.units() + days.units());
-        country.executive = format!(
-            "Generated transitional {} #{}",
-            template.title, next_government
-        );
+        country.replace_generated_executive(
+            content,
+            format!(
+                "Generated transitional {} #{}",
+                template.title, next_government
+            ),
+            ExecutiveBodyKind::TransitionalAuthority,
+            None,
+            Some(request.target.clone()),
+            self.day,
+        )?;
         country.approval = (country.approval - costs.approval_cost).max(0);
         for household in &mut country.households {
             household.approval = (household.approval - costs.approval_cost).max(0);
@@ -583,5 +594,6 @@ impl World {
         if let Some(loan) = cancelled_loan {
             self.event(id, true, format!("Pending loan #{} cancelled after constitutional succession. No principal was disbursed; the new government must seek its own borrowing mandate.", loan.id.0));
         }
+        Ok(())
     }
 }

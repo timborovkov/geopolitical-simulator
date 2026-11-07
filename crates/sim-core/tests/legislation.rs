@@ -243,40 +243,6 @@ fn programme_budget_and_amendment_paths_cannot_bypass_statutory_permission_or_ac
             .contains("actual uncommitted cash")
     );
     assert_eq!(empty.hash(), before);
-    let (_, mut exhausted, _) = fixture();
-    while exhausted.events.len() < 400 {
-        exhausted.advance(&content, DaySpan::new(30)).unwrap();
-    }
-    let count = exhausted
-        .events
-        .iter()
-        .filter(|e| e.country == exhausted.player)
-        .count() as u64;
-    for (index, event) in exhausted
-        .events
-        .iter_mut()
-        .filter(|e| e.country == exhausted.player)
-        .enumerate()
-    {
-        event.id = Some(EventId {
-            country: exhausted.player.clone(),
-            sequence: u64::MAX - count + index as u64,
-        });
-    }
-    exhausted
-        .event_sequences
-        .as_mut()
-        .unwrap()
-        .insert(exhausted.player.clone(), u64::MAX);
-    exhausted.validate(&content).unwrap();
-    let before = exhausted.hash();
-    assert!(
-        exhausted
-            .issue(&content, Action::ProposeLaw { law })
-            .is_err()
-    );
-    assert_eq!(exhausted.hash(), before);
-    exhausted.validate(&content).unwrap();
 }
 
 #[test]
@@ -455,4 +421,53 @@ fn configured_ai_statutes_use_shared_paid_commands_and_legal_definitions_validat
     let mut bad = content.clone();
     bad.legislation.as_mut().unwrap().cost_bps = BasisPoints::new(u32::MAX);
     assert!(bad.validate().is_err());
+}
+
+#[test]
+fn funded_drafting_rolls_back_after_actual_event_reference_exhaustion() {
+    let (content, mut world, _) = fixture();
+    let template = world
+        .events
+        .iter()
+        .find(|e| e.country == world.player)
+        .unwrap()
+        .clone();
+    world.events = (0..400).map(|_| template.clone()).collect();
+    for value in world.event_sequences.as_mut().unwrap().values_mut() {
+        *value = 1;
+    }
+    let law = LawId("high_service_authority".into());
+    let preview = world
+        .preview_law(&content, &world.player, &law)
+        .expect("Paid proposal must be eligible before exhausting references");
+    let count = world
+        .events
+        .iter()
+        .filter(|e| e.country == world.player)
+        .count() as u64;
+    for (index, event) in world
+        .events
+        .iter_mut()
+        .filter(|e| e.country == world.player)
+        .enumerate()
+    {
+        event.id = Some(EventId {
+            country: world.player.clone(),
+            sequence: u64::MAX - count + index as u64,
+        });
+    }
+    world
+        .event_sequences
+        .as_mut()
+        .unwrap()
+        .insert(world.player.clone(), u64::MAX);
+    world.validate(&content).unwrap();
+    let before = world.clone();
+    let error = world
+        .issue(&content, Action::ProposeLaw { law })
+        .unwrap_err();
+    assert!(error.contains("reference space exhausted"), "{error}");
+    assert_eq!(world, before);
+    world.validate(&content).unwrap();
+    assert_eq!((preview.upfront, preview.reserved), (Money(5), Money(15)));
 }

@@ -164,6 +164,8 @@ pub struct Content {
     pub reserves: Option<crate::ReserveDefinition>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub legislation: Option<crate::LegislationDefinition>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub executive_identities: Option<crate::ExecutiveIdentityDefinition>,
     pub schema: u32,
     #[serde(
         default = "crate::markets::legacy_rules",
@@ -213,6 +215,12 @@ pub struct Content {
 impl Content {
     pub fn bundled() -> Result<Self, String> {
         Self::statistical_history_bundled()
+    }
+    /// Live reference identities and generated executives; historical terms do not force campaign outcomes.
+    pub fn executive_identities_bundled() -> Result<Self, String> {
+        Self::from_json(include_str!(
+            "../../../data/initial-2000-executive-identities.json"
+        ))
     }
     /// Authored statutory workflow; this does not claim historical legal accuracy.
     pub fn legislation_bundled() -> Result<Self, String> {
@@ -344,6 +352,7 @@ impl Content {
         for pack in [
             Self::bundled()?,
             Self::legislation_bundled()?,
+            Self::executive_identities_bundled()?,
             Self::bookmark_identities_bundled()?,
             Self::stable_elections_bundled()?,
             Self::programme_events_bundled()?,
@@ -379,8 +388,8 @@ impl Content {
     pub fn from_json(json: &str) -> Result<Self, String> {
         let header: serde_json::Value =
             serde_json::from_str(json).map_err(|e| format!("Content JSON: {e}"))?;
-        if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2..=26)) {
-            return Err("Unsupported content schema: expected version 2 through 26".into());
+        if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2..=27)) {
+            return Err("Unsupported content schema: expected version 2 through 27".into());
         }
         let mut content: Self =
             serde_json::from_str(json).map_err(|e| format!("Content JSON: {e}"))?;
@@ -434,7 +443,7 @@ impl Content {
             .map_err(|_| "Bookmark must permit a five-year review no later than 2100-01-01".into())
     }
     pub fn validate(&self) -> Result<(), String> {
-        if !matches!(self.schema, 2..=26) || self.countries.is_empty() {
+        if !matches!(self.schema, 2..=27) || self.countries.is_empty() {
             return Err("Unsupported content schema, bookmark or empty roster".into());
         }
         self.start_day()?;
@@ -445,79 +454,84 @@ impl Content {
             (4, Some(markets), Some(finance), None) if self.schema == 4 => {
                 markets.validate(self)?; finance.validate(self)?;
             }
-            (5..=26, Some(markets), Some(finance), Some(constitutions)) if self.schema == self.rules => {
+            (5..=27, Some(markets), Some(finance), Some(constitutions)) if self.schema == self.rules => {
                 markets.validate(self)?; finance.validate(self)?; constitutions.validate(self)?;
             }
-            _ => return Err("Supported rules/content definitions are 2 (fixed prices), 3 (markets), 4 (financing authority), 5 (constitutional transitions), 6 (commitment lifecycle), 7 (ministerial appointments), 8 (electoral authorities), 9 (subnational mandates), 10 (territorial reforms), 11 (delivery undertakings), 12 (fiscal plans), 13 (private-income bands), 14 (national fiscal AI), 15 (dated loan principal), 16 (temporary cash retention), 17 (carried daily interest), 18 (dated technology eligibility), 19 (bookmark sovereignty references), 20 (party policy preferences), 21 (national commodity reserves), 22 (stable event references), 23 (linked programme outcomes), 24 (stable political selection), 25 (archived review statistics), and 26 (statutory authority)".into()),
+            _ => return Err("Supported rules/content definitions are 2 (fixed prices), 3 (markets), 4 (financing authority), 5 (constitutional transitions), 6 (commitment lifecycle), 7 (ministerial appointments), 8 (electoral authorities), 9 (subnational mandates), 10 (territorial reforms), 11 (delivery undertakings), 12 (fiscal plans), 13 (private-income bands), 14 (national fiscal AI), 15 (dated loan principal), 16 (temporary cash retention), 17 (carried daily interest), 18 (dated technology eligibility), 19 (bookmark sovereignty references), 20 (party policy preferences), 21 (national commodity reserves), 22 (stable event references), 23 (linked programme outcomes), 24 (stable political selection), 25 (archived review statistics), 26 (statutory authority), and 27 (live executive identities)".into()),
+        }
+        match (&self.executive_identities, self.rules) {
+            (Some(definition), 27) => definition.validate(self)?,
+            (None, 2..=26) => {}
+            _ => return Err("Live executive identities require rules/content 27".into()),
         }
         match (&self.legislation, self.rules) {
-            (Some(rules), 26) => rules.validate(self)?,
+            (Some(rules), 26..=27) => rules.validate(self)?,
             (None, 2..=25) => {}
             _ => return Err("Statutory legislation requires rules/content 26".into()),
         }
         match (&self.reserves, self.rules) {
-            (Some(rules), 21..=26) => rules.validate(self)?,
+            (Some(rules), 21..=27) => rules.validate(self)?,
             (None, 2..=20) => {}
             _ => return Err("National reserves require rules/content 21".into()),
         }
         match (&self.party_preferences, self.rules) {
-            (Some(rules), 20..=26) => rules.validate(self)?,
+            (Some(rules), 20..=27) => rules.validate(self)?,
             (None, 2..=19) => {}
             _ => return Err("Party policy preferences require rules/content 20".into()),
         }
         match (&self.sovereignty, self.rules) {
-            (Some(catalogue), 19..=26) => catalogue.validate(self)?,
+            (Some(catalogue), 19..=27) => catalogue.validate(self)?,
             // Later rule sets may leave unrelated reference geography unknown.
-            (None, 2..=18 | 20..=26) => {}
+            (None, 2..=18 | 20..=27) => {}
             _ => return Err("Bookmark sovereignty references require rules/content 19".into()),
         }
         match (&self.technologies, self.rules) {
-            (Some(rules), 18..=26) => rules.validate(self)?,
+            (Some(rules), 18..=27) => rules.validate(self)?,
             (None, 2..=17) => {}
             _ => return Err("Dated technology eligibility requires rules/content 18".into()),
         }
         match (&self.cash_management, self.rules) {
-            (Some(rules), 16..=26) => rules.validate(self)?,
+            (Some(rules), 16..=27) => rules.validate(self)?,
             (None, 2..=15) => {}
             _ => return Err("Temporary cash retention requires rules/content 16".into()),
         }
         match (&self.commitments, self.rules) {
-            (Some(rules), 6..=26) => rules.validate(self)?,
+            (Some(rules), 6..=27) => rules.validate(self)?,
             (None, 2..=5) => {}
             _ => return Err("Commitment lifecycle requires rules/content 6".into()),
         }
         match (&self.cabinet, self.rules) {
-            (Some(rules), 7..=26) => rules.validate(self)?,
+            (Some(rules), 7..=27) => rules.validate(self)?,
             (None, 2..=6) => {}
             _ => return Err("Ministerial appointments require rules/content 7".into()),
         }
         match (&self.elections, self.rules) {
-            (Some(rules), 8..=26) => rules.validate(self)?,
+            (Some(rules), 8..=27) => rules.validate(self)?,
             (None, 2..=7) => {}
             _ => return Err("Electoral authority workflow requires rules/content 8".into()),
         }
         match (&self.subnational, self.rules) {
-            (Some(rules), 9..=26) => rules.validate(self)?,
+            (Some(rules), 9..=27) => rules.validate(self)?,
             (None, 2..=8) => {}
             _ => return Err("Subnational mandates require rules/content 9".into()),
         }
         match (&self.territorial, self.rules) {
-            (Some(rules), 10..=26) => rules.validate(self)?,
+            (Some(rules), 10..=27) => rules.validate(self)?,
             (None, 2..=9) => {}
             _ => return Err("Territorial reform requires rules/content 10".into()),
         }
         match (&self.income_taxes, self.rules) {
-            (Some(rules), 13..=26) => rules.validate(self)?,
+            (Some(rules), 13..=27) => rules.validate(self)?,
             (None, 2..=12) => {}
             _ => return Err("Private-income bands require rules/content 13".into()),
         }
         match (&self.fiscal_plans, self.rules) {
-            (Some(rules), 12..=26) => rules.validate(self)?,
+            (Some(rules), 12..=27) => rules.validate(self)?,
             (None, 2..=11) => {}
             _ => return Err("Fiscal plans require rules/content 12".into()),
         }
         match (&self.undertakings, self.rules) {
-            (Some(rules), 11..=26) => rules.validate(self)?,
+            (Some(rules), 11..=27) => rules.validate(self)?,
             (None, 2..=10) => {}
             _ => return Err("Delivery undertakings require rules/content 11".into()),
         }

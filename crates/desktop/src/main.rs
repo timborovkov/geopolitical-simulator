@@ -10,6 +10,7 @@ mod chronicle;
 mod commitments;
 mod constitutions;
 mod elections;
+mod executive_identity;
 mod financing;
 mod fiscal_plans;
 mod funding;
@@ -1652,6 +1653,9 @@ impl GameApp {
             return;
         }
 
+        if let Some(world) = &self.world {
+            executive_identity::show(ui, &self.content, world);
+        }
         if let Some(world) = &self.world
             && let Some(action) = legislation::show(ui, &self.content, world)
         {
@@ -3526,6 +3530,50 @@ mod interface_tests {
         );
         assert_eq!(app.world.unwrap().hash(), hash);
     }
+    #[test]
+    fn normal_foreign_institutions_do_not_expose_live_executive_profiles() {
+        let content = Content::executive_identities_bundled().unwrap();
+        let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let mut app =
+                GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+            app.world = Some(world.clone());
+            app.tab = Tab::Politics;
+            assert!(!app.developer_mode);
+            for (country, own) in [("GBR", true), ("CHN", false)] {
+                app.selected = CountryId(country.into());
+                let output = ctx.run(
+                    egui::RawInput {
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(1440.0 / scale, 940.0 / scale),
+                        )),
+                        ..Default::default()
+                    },
+                    |ctx| app.render(ctx),
+                );
+                let labels = output
+                    .shapes
+                    .iter()
+                    .filter_map(|shape| match &shape.shape {
+                        egui::Shape::Text(text) => Some(text.galley.text()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                assert_eq!(labels.contains("Executive authority"), own, "{labels}");
+                assert_eq!(
+                    labels.contains("Executive history (1 retained mandates)"),
+                    own,
+                    "{labels}"
+                );
+                assert_eq!(app.world.as_ref().unwrap(), &world);
+            }
+        }
+    }
+
     #[test]
     fn every_screen_renders_at_compact_and_scaled_sizes_without_mutating_campaign() {
         for (content, own, foreign) in [

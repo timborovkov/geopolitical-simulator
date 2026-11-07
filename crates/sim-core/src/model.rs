@@ -131,6 +131,8 @@ pub struct Observation {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Country {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub executive_identity: Option<ExecutiveIdentityState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub legislation: Option<LegislationState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reserves: Option<NationalReserves>,
@@ -469,6 +471,7 @@ impl World {
                 (
                     d.id.clone(),
                     Country {
+                        executive_identity: None,
                         legislation: content
                             .legislation
                             .as_ref()
@@ -613,6 +616,7 @@ impl World {
             ledger: Vec::new(),
             milestone_reported: false,
         };
+        world.seed_executive_identities(content)?;
         for (id, country) in &mut world.countries {
             country.budget.forecast = country.forecast(
                 content.country(id).expect("definition"),
@@ -1000,6 +1004,7 @@ impl World {
                 (Some(financing), Some(_)) => financing.validate(self, content, id)?,
                 _ => return Err("Country financing differs from campaign rules/content".into()),
             }
+            self.validate_executive_identity(content, id)?;
             self.validate_legislation(content, id)?;
             self.validate_reserves(content, id)?;
             self.validate_cash_management(content, id)?;
