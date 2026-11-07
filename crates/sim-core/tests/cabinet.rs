@@ -473,7 +473,7 @@ fn appointment_cannot_spend_reserved_capital_or_schedule_past_the_campaign_limit
     check(&w, &c);
     let later = c.at_bookmark("2095-01-01").unwrap();
     let mut w = start(&later, "COR");
-    w.advance(&later, sim_core::DaySpan::new(MAX_DAY - w.day - 10))
+    w.advance(&later, sim_core::DaySpan::new(MAX_DAY - w.day.units() - 10))
         .unwrap();
     let hash = w.hash();
     assert!(

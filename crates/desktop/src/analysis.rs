@@ -154,7 +154,7 @@ impl Analysis {
                     if self.metric == Metric::Treasury && id != &world.player { continue; }
                     if let Ok(report) = world.public_report(content, id) {
                         for summary in report.archived_reviews.unwrap_or_default() {
-                            if summary.last_day.saturating_add(self.horizon) >= world.day {
+                            if summary.last_day.saturating_add(self.horizon) >= world.day.units() {
                                 ui.label(format!("{} · {}: {} review sample{}, {} through {}", report.name, summary.year, summary.samples, if summary.samples == 1 { "" } else { "s" }, sim_core::date(summary.first_day), sim_core::date(summary.last_day)));
                             }
                         }

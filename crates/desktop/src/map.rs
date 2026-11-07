@@ -893,7 +893,7 @@ mod tests {
                         .iter()
                         .any(|text| text.contains("fixed opening annual GDP"))
                 );
-                let expected = if world.day == 0 {
+                let expected = if world.day.units() == 0 {
                     "No statistical release yet · 0/15"
                 } else {
                     "Published 2000-01-31 · 15/15"
@@ -950,13 +950,13 @@ mod tests {
                     vec![],
                 );
                 let labels = texts(&expanded);
-                let expected = if world.day == 0 {
+                let expected = if world.day.units() == 0 {
                     "No release"
                 } else {
                     "1 day"
                 };
                 assert!(labels.iter().any(|text| text == expected), "{labels:?}");
-                if world.day == 0 {
+                if world.day.units() == 0 {
                     assert!(labels.iter().any(|text| text == "Unknown"));
                 }
                 let pos = position(&expanded, "BRA Brazil");

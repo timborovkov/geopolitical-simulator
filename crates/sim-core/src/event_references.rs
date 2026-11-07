@@ -107,7 +107,7 @@ impl World {
         let mut previous = start;
         for event in &self.events {
             if event.day < previous
-                || event.day > self.day
+                || event.day > self.day.units()
                 || event.text.is_empty()
                 || event.text.len() > 65536
                 || !self.countries.contains_key(&event.country)

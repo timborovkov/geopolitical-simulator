@@ -481,7 +481,7 @@ impl World {
             .territorial
             .as_ref()
             .ok_or("Missing territorial history")?;
-        if self.day < state.next_reform_day {
+        if self.day.units() < state.next_reform_day {
             return Err(format!(
                 "Territorial reform interval lasts until {}",
                 date(state.next_reform_day)
@@ -502,19 +502,20 @@ impl World {
         let future = rules.apply_template(base, target)?;
         let mut differs = false;
         for next in &future {
-            let previous = self.regional_mandate_at(content, id, &next.id, self.day)?;
+            let previous = self.regional_mandate_at(content, id, &next.id, self.day.units())?;
             differs |= next.autonomous_services != previous.autonomous_services
                 || next.tax_entitlement_bps.units_i64() != previous.tax_entitlement_bps.units_i64();
         }
-        let from = self.territorial_form_at(content, id, self.day)?;
+        let from = self.territorial_form_at(content, id, self.day.units())?;
         if !differs && from == *target {
             return Err("This territorial settlement is already in force".into());
         }
         let (rights_lost, compensations) =
-            self.territorial_compensations(content, id, target, contested, self.day)?;
+            self.territorial_compensations(content, id, target, contested, self.day.units())?;
         self.check_local_charter_consent(content, id, &rights_lost, contested)?;
         let decision_day = self
             .day
+            .units()
             .checked_add(route.days.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Territorial review exceeds the campaign calendar")?;
@@ -564,7 +565,7 @@ impl World {
             .territorial
             .as_ref()
             .ok_or("Missing territorial history")?;
-        if self.day < state.next_requisition_day {
+        if self.day.units() < state.next_requisition_day {
             return Err(format!(
                 "Contested requisition interval lasts until {}",
                 date(state.next_requisition_day)
@@ -625,7 +626,7 @@ impl World {
         c.budget.capital.0 += preview.upfront.0;
         c.committed_cash.0 += preview.reserved.0;
         let state = c.territorial.as_mut().expect("territorial");
-        state.next_reform_day = self.day
+        state.next_reform_day = self.day.units()
             + content
                 .territorial
                 .as_ref()
@@ -637,7 +638,7 @@ impl World {
             from: preview.from,
             target: preview.target,
             contested,
-            proposed_day: self.day,
+            proposed_day: self.day.units(),
             decision_day: preview.decision_day,
             sponsor: c.government_number,
             admin_cost: preview.admin_cost,
@@ -667,7 +668,7 @@ impl World {
         c.committed_cash.0 -= record.reserved.0;
         record.reserved = Money(0);
         record.status = TerritorialReformStatus::Withdrawn;
-        record.resolved_day = Some(self.day);
+        record.resolved_day = Some(self.day.units());
         self.event(id,true,format!("Territorial request #{} withdrawn. Remaining reservations released; paid administration and the reform interval remain.",request.0));
         Ok(())
     }
@@ -684,7 +685,7 @@ impl World {
                 c.committed_cash.0 -= record.reserved.0;
                 record.reserved = Money(0);
                 record.status = TerritorialReformStatus::Superseded;
-                record.resolved_day = Some(self.day);
+                record.resolved_day = Some(self.day.units());
                 changed = true;
             }
         }
@@ -719,14 +720,22 @@ impl World {
             .expect("state")
             .reforms
             .iter()
-            .find(|r| r.status == TerritorialReformStatus::Pending && r.decision_day <= self.day)
+            .find(|r| {
+                r.status == TerritorialReformStatus::Pending && r.decision_day <= self.day.units()
+            })
             .cloned()
         else {
             return;
         };
         let route = rules.route(record.contested).expect("route");
         let (losses, _) = self
-            .territorial_compensations(content, id, &record.target, record.contested, self.day)
+            .territorial_compensations(
+                content,
+                id,
+                &record.target,
+                record.contested,
+                self.day.units(),
+            )
             .expect("rights");
         let decision = if record.sponsor != self.countries[id].government_number {
             Err("The sponsoring cabinet changed".into())
@@ -747,7 +756,7 @@ impl World {
             .find(|r| r.id == record.id)
             .expect("record");
         pending.reserved = Money(0);
-        pending.resolved_day = Some(self.day);
+        pending.resolved_day = Some(self.day.units());
         if let Err(reason) = decision {
             pending.status = TerritorialReformStatus::Refused {
                 reason: reason.clone(),
@@ -807,7 +816,7 @@ impl World {
             request: record.id,
             from: record.from,
             to: record.target.clone(),
-            day: self.day,
+            day: self.day.units(),
             contested: record.contested,
             compensations: record.compensations.clone(),
         });
@@ -859,10 +868,10 @@ impl World {
         let c = self.countries.get_mut(id).expect("country");
         c.budget.capital.0 += paid;
         let state = c.territorial.as_mut().expect("state");
-        state.next_requisition_day = self.day + rule.cooldown_days.units();
+        state.next_requisition_day = self.day.units() + rule.cooldown_days.units();
         state.requisitions.push(RegionalRequisition {
             id: request,
-            day: self.day,
+            day: self.day.units(),
             region: region.clone(),
             amount,
             fee: preview.fee,
@@ -884,7 +893,7 @@ impl World {
         let Some(rules) = &content.territorial else {
             return;
         };
-        if !self.day.is_multiple_of(180) {
+        if !self.day.units().is_multiple_of(180) {
             return;
         }
         if self.countries[id]
@@ -983,7 +992,9 @@ impl World {
         content.territorial.as_ref()?;
         let state = self.countries.get(id)?.territorial.as_ref()?;
         Some(TerritorialReport {
-            form: self.territorial_form_at(content, id, self.day).ok()?,
+            form: self
+                .territorial_form_at(content, id, self.day.units())
+                .ok()?,
             last_change: state
                 .history
                 .last()
@@ -1122,19 +1133,19 @@ impl World {
                 return Err("Territorial withdrawal differs from accepted commands".into());
             }
             let final_day = record.resolved_day.is_some_and(|day| {
-                day >= record.proposed_day && day <= record.decision_day && day <= self.day
+                day >= record.proposed_day && day <= record.decision_day && day <= self.day.units()
             });
             let valid = match &record.status {
                 TerritorialReformStatus::Pending => {
                     record.resolved_day.is_none()
-                        && record.decision_day > self.day
+                        && record.decision_day > self.day.units()
                         && record.sponsor == c.government_number
                         && record.paid_admin == upfront
                         && record.reserved == reservation
                 }
                 TerritorialReformStatus::Enacted => {
                     record.resolved_day == Some(record.decision_day)
-                        && record.decision_day <= self.day
+                        && record.decision_day <= self.day.units()
                         && record.paid_admin == cost
                         && record.reserved.0 == 0
                 }
@@ -1149,7 +1160,7 @@ impl World {
                 TerritorialReformStatus::Refused { reason } => {
                     !reason.is_empty()
                         && record.resolved_day == Some(record.decision_day)
-                        && record.decision_day <= self.day
+                        && record.decision_day <= self.day.units()
                         && record.paid_admin == upfront
                         && record.reserved.0 == 0
                 }
@@ -1276,7 +1287,7 @@ impl World {
                 state
                     .requisitions
                     .iter()
-                    .filter(|claim| claim.day == self.day && &claim.region == region)
+                    .filter(|claim| claim.day == self.day.units() && &claim.region == region)
                     .map(|claim| i128::from(claim.amount.0))
                     .sum::<i128>()
             })

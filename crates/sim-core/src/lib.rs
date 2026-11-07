@@ -2,6 +2,7 @@
 mod budget;
 mod cabinet;
 mod calendar;
+mod campaign_clock;
 mod cash_management;
 mod command_receipts;
 mod commitments;
@@ -41,6 +42,7 @@ mod units;
 pub use budget::*;
 pub use cabinet::*;
 pub use calendar::*;
+pub use campaign_clock::*;
 pub use cash_management::*;
 pub use command_receipts::*;
 pub use commitments::*;

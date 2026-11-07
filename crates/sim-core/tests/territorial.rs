@@ -59,7 +59,7 @@ fn lawful_devolution_changes_real_powers_and_tax_rights_without_changing_the_cab
     check(&w, &c);
     w.advance(&c, sim_core::DaySpan::new(90)).unwrap();
     assert_eq!(
-        w.territorial_form_at(&c, &w.player, w.day).unwrap(),
+        w.territorial_form_at(&c, &w.player, w.day.units()).unwrap(),
         TerritorialForm::Federation
     );
     assert_eq!(w.player_country().government_number, GovernmentId(1));
@@ -204,7 +204,7 @@ fn contested_change_has_explicit_power_gate_and_accepted_grants_survive_new_char
     assert_eq!(s.orders[0].status, RegionalOrderStatus::Implementing);
     assert_eq!(s.orders[0].spent, Money(7));
     assert_eq!(
-        w.territorial_form_at(&c, &w.player, w.day).unwrap(),
+        w.territorial_form_at(&c, &w.player, w.day.units()).unwrap(),
         TerritorialForm::DelegatedUnitary
     );
     check(&w, &c);
@@ -366,7 +366,7 @@ fn national_succession_releases_pending_territorial_reservations() {
     );
     assert_eq!(w.player_country().committed_cash, Money(0));
     assert_eq!(
-        w.territorial_form_at(&c, &w.player, w.day).unwrap(),
+        w.territorial_form_at(&c, &w.player, w.day.units()).unwrap(),
         TerritorialForm::DelegatedUnitary
     );
     check(&w, &c);
@@ -387,7 +387,7 @@ fn a_delivered_historical_directive_remains_valid_after_the_authority_becomes_au
     reform(&mut w, &c, TerritorialForm::Federation, false);
     w.advance(&c, sim_core::DaySpan::new(90)).unwrap();
     assert!(
-        w.regional_mandate_at(&c, &w.player, &region("COR", "city"), w.day)
+        w.regional_mandate_at(&c, &w.player, &region("COR", "city"), w.day.units())
             .unwrap()
             .autonomous_services
     );

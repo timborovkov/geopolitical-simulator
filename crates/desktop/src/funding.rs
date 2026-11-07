@@ -24,8 +24,10 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, amount: i64, chart: &
                 })
         });
     let horizon = loan
-        .map_or(90, |loan| (loan.decision_day - world.day + 30).max(90))
-        .min(MAX_DAY - world.day)
+        .map_or(90, |loan| {
+            (loan.decision_day - world.day.units() + 30).max(90)
+        })
+        .min(MAX_DAY - world.day.units())
         .min(365);
     let outlook = match world.funding_outlook(content, horizon, loan) {
         Ok(outlook) => outlook,

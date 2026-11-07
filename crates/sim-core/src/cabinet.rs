@@ -252,7 +252,7 @@ impl World {
         if cabinet
             .next_request_day
             .get(office)
-            .is_none_or(|day| *day > self.day)
+            .is_none_or(|day| *day > self.day.units())
         {
             return Err("This portfolio's appointment cooldown has not elapsed".into());
         }
@@ -269,10 +269,12 @@ impl World {
         }
         let decision_day = self
             .day
+            .units()
             .checked_add(government.consent_days.units())
             .filter(|d| *d <= MAX_DAY)
             .ok_or("Appointment would exceed the campaign calendar")?;
         self.day
+            .units()
             .checked_add(rules.cooldown_days.units())
             .filter(|d| *d <= MAX_DAY)
             .ok_or("Appointment cooldown would exceed the campaign calendar")?;
@@ -310,7 +312,7 @@ impl World {
         let cabinet = c.cabinet.as_mut().expect("cabinet");
         cabinet.next_request_day.insert(
             office.clone(),
-            self.day
+            self.day.units()
                 + content
                     .cabinet
                     .as_ref()
@@ -322,7 +324,7 @@ impl World {
             id: request,
             office: office.clone(),
             person: person.clone(),
-            proposed_day: self.day,
+            proposed_day: self.day.units(),
             decision_day: preview.decision_day,
             sponsor: c.government_number,
             paid: preview.fee,
@@ -371,6 +373,7 @@ impl World {
         self.governing_rules(content, id)?
             .check(c, "appointments", 1)?;
         self.day
+            .units()
             .checked_add(rules.cooldown_days.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Dismissal cooldown would exceed the campaign calendar")?;
@@ -405,10 +408,10 @@ impl World {
             .terms
             .iter_mut()
             .filter(|t| &t.office == office && t.until.is_none())
-            .for_each(|t| t.until = Some(self.day));
+            .for_each(|t| t.until = Some(self.day.units()));
         cabinet.next_request_day.insert(
             office.clone(),
-            self.day
+            self.day.units()
                 + content
                     .cabinet
                     .as_ref()
@@ -429,7 +432,7 @@ impl World {
             .expect("cabinet")
             .pending
             .iter()
-            .filter(|p| p.decision_day <= self.day)
+            .filter(|p| p.decision_day <= self.day.units())
             .cloned()
             .collect();
         for p in requests {
@@ -460,12 +463,12 @@ impl World {
                 .terms
                 .iter_mut()
                 .filter(|t| t.office == p.office && t.until.is_none())
-                .for_each(|t| t.until = Some(self.day));
+                .for_each(|t| t.until = Some(self.day.units()));
             cabinet.terms.push(MinisterialTerm {
                 appointment: p.id,
                 office: p.office.clone(),
                 person: p.person.clone(),
-                since: self.day,
+                since: self.day.units(),
                 until: None,
                 government: c.government_number,
             });
@@ -485,15 +488,15 @@ impl World {
             return;
         }
         cabinet.government = c.government_number;
-        cabinet.since = self.day;
+        cabinet.since = self.day.units();
         cabinet
             .terms
             .iter_mut()
             .filter(|t| t.until.is_none())
-            .for_each(|t| t.until = Some(self.day));
+            .for_each(|t| t.until = Some(self.day.units()));
         cabinet.pending.clear();
         for day in cabinet.next_request_day.values_mut() {
-            *day = self.day;
+            *day = self.day.units();
         }
         self.event(id,true,"Successor cabinet ended prior ministerial terms and cancelled unapproved appointments. Administration remains spent; the new government may appoint its own ministers. Permanent civil service handles new preparation until appointments complete.");
     }
@@ -556,7 +559,7 @@ impl World {
             .collect();
         if state.government != country.government_number
             || state.since < start
-            || state.since > self.day
+            || state.since > self.day.units()
             || state.government == crate::GovernmentId(1) && state.since != start
             || state.next_request_day.keys().collect::<BTreeSet<_>>() != offices
             || state
@@ -595,10 +598,10 @@ impl World {
                 .units();
             if !ids.insert(term.appointment.0)
                 || origin.day.checked_add(delay) != Some(term.since)
-                || term.since > self.day
+                || term.since > self.day.units()
                 || term
                     .until
-                    .is_some_and(|day| day < term.since || day > self.day)
+                    .is_some_and(|day| day < term.since || day > self.day.units())
                 || term.government == crate::GovernmentId(0)
                 || term.government > state.government
                 || term.until.is_none()
@@ -631,7 +634,7 @@ impl World {
                 || !pending.insert(&p.office)
                 || p.proposed_day != origin.day
                 || origin.day.checked_add(delay) != Some(p.decision_day)
-                || p.decision_day <= self.day
+                || p.decision_day <= self.day.units()
                 || p.decision_day > MAX_DAY
                 || p.sponsor != state.government
                 || p.proposed_day < state.since

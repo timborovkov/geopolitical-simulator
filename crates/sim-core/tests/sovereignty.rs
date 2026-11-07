@@ -229,7 +229,7 @@ fn public_reports_freeze_bookmark_references_without_private_state_or_future_tra
     changed
         .advance(
             &c,
-            sim_core::DaySpan::new(preview.decision_day - changed.day),
+            sim_core::DaySpan::new(preview.decision_day - changed.day.units()),
         )
         .unwrap();
     assert_eq!(

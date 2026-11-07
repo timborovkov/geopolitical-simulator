@@ -61,7 +61,7 @@ fn proposal_is_paid_reserved_and_delayed_then_deliveries_reconcile_cash_and_spar
         0
     );
     let mut paid = 0;
-    while w.day < 60 {
+    while w.day.units() < 60 {
         w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
         w.validate(&c).unwrap();
         let player = w.player_country();
@@ -72,7 +72,7 @@ fn proposal_is_paid_reserved_and_delayed_then_deliveries_reconcile_cash_and_spar
             .ledger
             .iter()
             .filter(|e| {
-                e.day == w.day
+                e.day == w.day.units()
                     && e.country == id()
                     && e.reason == "National reserve commodity procurement"
             })
@@ -136,7 +136,7 @@ fn reserves_reduce_actual_post_import_shortfall_and_do_not_create_output_before_
     let s = w.player_country().reserves.as_ref().unwrap();
     assert!(s.energy.last.as_ref().unwrap().released.units() > 0);
     assert!(w.events.iter().any(|e| e.country == id()
-        && e.day == w.day
+        && e.day == w.day.units()
         && e.important
         && e.text.contains("National reserves are covering")));
     assert_eq!(
@@ -447,8 +447,8 @@ fn zero_delay_royal_consent_still_waits_for_settlement_and_has_exact_delivery_wi
     let p = w
         .preview_reserve(&c, &w.player, GoodKind::Energy, NeedDays::new(1))
         .unwrap();
-    assert_eq!(p.review_day, w.day);
-    assert_eq!(p.earliest_delivery_day, w.day + 1);
+    assert_eq!(p.review_day, w.day.units());
+    assert_eq!(p.earliest_delivery_day, w.day.units() + 1);
     assert_eq!(
         p.expiry_day,
         p.earliest_delivery_day + c.reserves.as_ref().unwrap().order_days.units() - 1

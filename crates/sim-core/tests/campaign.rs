@@ -360,6 +360,6 @@ fn ten_year_campaigns_across_the_roster_preserve_invariants() {
             .unwrap();
         world.validate(&content).unwrap();
         assert!(world.countries.values().all(|c| c.history.len() <= 120));
-        assert!(world.ledger.iter().all(|e| e.day + 30 >= world.day));
+        assert!(world.ledger.iter().all(|e| e.day + 30 >= world.day.units()));
     }
 }

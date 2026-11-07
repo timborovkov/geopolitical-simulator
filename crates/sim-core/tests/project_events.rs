@@ -70,7 +70,8 @@ fn exact_same_day_decisions_delivery_and_review_resolve_owned_programmes() {
     w.advance(&c, sim_core::DaySpan::new(consent)).unwrap();
     linked(&w, request, CommitmentStage::Implementing);
     let due = w.player_country().project(&request).unwrap().due_day;
-    w.advance(&c, sim_core::DaySpan::new(due - w.day)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due - w.day.units()))
+        .unwrap();
     assert_eq!(w.player_country().tax, 32);
     linked(&w, request, CommitmentStage::Operating);
     let review = w
@@ -79,7 +80,7 @@ fn exact_same_day_decisions_delivery_and_review_resolve_owned_programmes() {
         .unwrap()
         .review_due
         .unwrap();
-    w.advance(&c, sim_core::DaySpan::new(review - w.day))
+    w.advance(&c, sim_core::DaySpan::new(review - w.day.units()))
         .unwrap();
     let event = linked(&w, request, CommitmentStage::Evaluated);
     assert_eq!(

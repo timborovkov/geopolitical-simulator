@@ -17,7 +17,7 @@ fn malformed_journals_are_rejected_before_encoding_or_replay() {
         let mut bad = world.clone();
         match variant {
             0 => bad.journal[0].command.id = CommandId(99),
-            1 => bad.journal[0].command.day = world.day + 1,
+            1 => bad.journal[0].command.day = world.day.units() + 1,
             2 => bad.journal[0].command.issuer = CountryId("absent".into()),
             3 => bad.journal[0].ai = true,
             4 => {
@@ -86,7 +86,7 @@ fn next_event_reaches_a_leap_year_fiscal_boundary_after_365_quiet_days() {
     let opening = World::new(&content, CountryId("AUR".into()), 0).unwrap();
     let mut world = opening.clone();
     assert_eq!(world.advance_to_event(&content).unwrap(), DaySpan::new(366));
-    assert_eq!(date(world.day), "2001-01-01");
+    assert_eq!(date(world.day.units()), "2001-01-01");
     assert!(world.events.iter().any(|e| e.country == world.player
         && e.day == 366
         && e.important
@@ -103,12 +103,12 @@ fn next_event_reaches_a_leap_year_fiscal_boundary_after_365_quiet_days() {
 fn next_event_stops_cleanly_at_the_campaign_limit() {
     let (content, mut world) = fixture();
     // A boundary fixture isolates clock behavior without a century-long soak.
-    world.day = MAX_DAY - 1;
+    world.day = sim_core::CampaignDay::new(MAX_DAY - 1);
     assert_eq!(world.advance_to_event(&content).unwrap(), DaySpan::new(1));
-    assert_eq!(world.day, MAX_DAY);
+    assert_eq!(world.day.units(), MAX_DAY);
     let before = world.hash();
     assert_eq!(world.advance_to_event(&content).unwrap(), DaySpan::new(0));
     assert_eq!(world.hash(), before);
-    world.day = MAX_DAY + 1;
+    world.day = sim_core::CampaignDay::new(MAX_DAY + 1);
     assert!(world.advance_to_event(&content).is_err());
 }

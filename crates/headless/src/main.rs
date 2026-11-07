@@ -59,7 +59,7 @@ fn status(world: &World, content: &Content) {
     }
     println!(
         "{} | {} | {} | hash {:016x}",
-        date(world.day),
+        date(world.day.units()),
         d.name,
         c.executive,
         world.hash()
@@ -88,7 +88,7 @@ fn status(world: &World, content: &Content) {
         c.food_capacity,
         c.administration
     );
-    if world.day == content.start_day().expect("validated bookmark") {
+    if world.day.units() == content.start_day().expect("validated bookmark") {
         println!("Opening state: advance one day for realized fiscal and supply flows.");
     } else {
         println!(
@@ -298,11 +298,11 @@ fn play(
                 }
                 "until" => {
                     let target = parse_date(words.get(1).ok_or("Missing date YYYY-MM-DD")?)?;
-                    if target < world.day {
+                    if target < world.day.units() {
                         return Err("Cannot rewind; load an earlier snapshot".into());
                     }
-                    while world.day < target {
-                        world.advance(content, sim_core::DaySpan::new((target - world.day).min(3660)))?;
+                    while world.day.units() < target {
+                        world.advance(content, sim_core::DaySpan::new((target - world.day.units()).min(3660)))?;
                     }
                     status(world, content);
                 }
@@ -417,7 +417,7 @@ fn play(
                         .ok_or("No territorial reform workflow")?;
                     println!(
                         "Current settlement {:?}",
-                        world.territorial_form_at(content, &world.player, world.day)?
+                        world.territorial_form_at(content, &world.player, world.day.units())?
                     );
                     println!(
                         "{}",
@@ -520,7 +520,7 @@ fn play(
                                 content,
                                 &world.player,
                                 &original.id,
-                                world.day
+                                world.day.units()
                             )?
                         );
                     }
@@ -763,7 +763,7 @@ fn play(
                     let horizon = if words.len() > 1 {
                         number(words.get(1))?
                     } else {
-                        90_u32.min(MAX_DAY - world.day)
+                        90_u32.min(MAX_DAY - world.day.units())
                     };
                     let loan = world
                         .player_country()
@@ -796,8 +796,8 @@ fn play(
                         println!("Dated principal within horizon: {}m; conditional total {}m. Subtracts full due principal (existing overdue principal from tomorrow); recurring interest is held fixed after repayment, conservatively overstating it. No automatic refinancing.",plan.principal_due.0,plan.conditional_principal_due.0);
                     }
                     for point in plan.points.iter().filter(|point| {
-                        point.day == world.day
-                            || point.day == world.day + horizon
+                        point.day == world.day.units()
+                            || point.day == world.day.units() + horizon
                             || loan.is_some_and(|loan| point.day == loan.decision_day)
                     }) {
                         println!(
@@ -869,7 +869,7 @@ fn play(
                                 request.id.0
                             );
                         }
-                        println!("Principal due/overdue now {}m; including next 30 days {}m. Outstanding matured principal remains debt, not duplicated operating arrears.",financing.principal_due_through(world.day).0,financing.principal_due_through(world.day.saturating_add(30)).0);
+                        println!("Principal due/overdue now {}m; including next 30 days {}m. Outstanding matured principal remains debt, not duplicated operating arrears.",financing.principal_due_through(world.day.units()).0,financing.principal_due_through(world.day.units().saturating_add(30)).0);
                         for loan in &financing.instruments {
                             println!(
                                 "Debt #{} · {} · {:?} · original {}m · outstanding {}m · recognized/issued {} · fixed 4% annual, voluntary FIFO redemption · {:?}",
@@ -882,7 +882,7 @@ fn play(
                                 loan.origin
                             );
                             if let Some(day) = loan.maturity_day {
-                                println!("  Principal due {} · automatic repayment {}m · remaining {}m{}",date(day),loan.maturity_repaid.unwrap_or(Money(0)).0,loan.outstanding.0,if day <= world.day && loan.outstanding.0 > 0 {" OVERDUE"} else {""});
+                                println!("  Principal due {} · automatic repayment {}m · remaining {}m{}",date(day),loan.maturity_repaid.unwrap_or(Money(0)).0,loan.outstanding.0,if day <= world.day.units() && loan.outstanding.0 > 0 {" OVERDUE"} else {""});
                             } else {println!("  Perpetual principal, no mandatory maturity date.");}
                         }
                         println!(
@@ -995,7 +995,7 @@ fn play(
                 "households" => {
                     let c = world.player_country();
                     let d = content.country(&world.player).expect("country");
-                    if world.day == content.start_day()? {
+                    if world.day.units() == content.start_day()? {
                         println!(
                             "Opening state: advance one day for realized income and basket indicators."
                         );
@@ -1004,7 +1004,7 @@ fn play(
                         let total = indicators.population.0.max(1) as f64;
                         println!(
                             "{} · population in groups with income below basket {:.1}% · population in groups with food below 90% {:.1}% · group-mean income Gini (0–1) {}",
-                            date(world.day),
+                            date(world.day.units()),
                             indicators.income_below_basket.0 as f64 * 100.0 / total,
                             indicators.food_below_target.0 as f64 * 100.0 / total,
                             indicators.group_mean_gini_bps.map_or_else(
@@ -1045,7 +1045,7 @@ fn play(
                     println!(
                         "Revenue {}m vs {}m forecast to date; payments {}m, capital {}m, financing {}m, reconciled cash {}m; reserved {}m",
                         p.revenue.0,
-                        p.expected_revenue(world.day),
+                        p.expected_revenue(world.day.units()),
                         p.payments.0,
                         p.capital.0,
                         p.borrowing.0 - p.principal_repaid.0,

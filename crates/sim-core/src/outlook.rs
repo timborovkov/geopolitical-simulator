@@ -94,6 +94,7 @@ impl World {
         if horizon > 365
             || self
                 .day
+                .units()
                 .checked_add(horizon)
                 .is_none_or(|day| day > MAX_DAY)
         {
@@ -123,7 +124,7 @@ impl World {
         if let Some(assumption) = loan {
             if assumption.amount.0 <= 0
                 || assumption.amount.0 > definition.gdp / 10
-                || assumption.decision_day < self.day
+                || assumption.decision_day < self.day.units()
                 || assumption.decision_day > MAX_DAY
             {
                 return Err("Invalid hypothetical loan amount or decision date".into());
@@ -144,7 +145,7 @@ impl World {
                 - forecast.daily_interest.0;
         }
         let principal_due = country.financing.as_ref().map_or(Money(0), |state| {
-            state.principal_due_through(self.day + horizon)
+            state.principal_due_through(self.day.units() + horizon)
         });
         let assumed_maturity = loan.and_then(|assumption| {
             content
@@ -159,13 +160,15 @@ impl World {
         let conditional_principal_due = Money(
             principal_due.0
                 + loan
-                    .filter(|_| assumed_maturity.is_some_and(|day| day <= self.day + horizon))
+                    .filter(|_| {
+                        assumed_maturity.is_some_and(|day| day <= self.day.units() + horizon)
+                    })
                     .map_or(0, |assumption| assumption.amount.0),
         );
         let mut points = Vec::with_capacity(horizon as usize + 1);
         let mut final_interest = (Money(0), Money(0));
         for offset in 0..=horizon {
-            let day = self.day + offset;
+            let day = self.day.units() + offset;
             let due = if offset == 0 {
                 0
             } else {
@@ -187,8 +190,8 @@ impl World {
             if let Some(assumption) = loan.filter(|assumption| day >= assumption.decision_day) {
                 // A future approval precedes that day's settlement/interest;
                 // an immediate manual draw is after today's settlement.
-                let interest_days =
-                    day - assumption.decision_day + u32::from(assumption.decision_day > self.day);
+                let interest_days = day - assumption.decision_day
+                    + u32::from(assumption.decision_day > self.day.units());
                 if let Some(interest) = &forecast.interest_accrual {
                     final_interest.1 =
                         interest.due_with_addition(offset, assumption.amount, interest_days)?;
@@ -234,7 +237,7 @@ impl World {
                 points
                     .iter()
                     .find(|p| p.without_loan.0 < 0)
-                    .map(|p| u64::from((p.day - self.day).saturating_sub(1)))
+                    .map(|p| u64::from((p.day - self.day.units()).saturating_sub(1)))
             } else {
                 (balance < 0).then(|| (i128::from(available) / -i128::from(balance)) as u64)
             },

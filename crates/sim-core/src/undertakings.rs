@@ -323,7 +323,7 @@ impl World {
             .as_ref()
             .ok_or("Missing undertaking history")?;
         self.undertaking_backing(id, t)?;
-        if self.day < state.next_declaration[&t.kind] {
+        if self.day.units() < state.next_declaration[&t.kind] {
             return Err(format!(
                 "This undertaking interval lasts until {}",
                 date(state.next_declaration[&t.kind])
@@ -395,6 +395,7 @@ impl World {
         };
         let review_day = self
             .day
+            .units()
             .checked_add(t.review_days.units())
             .ok_or("Undertaking review overflow")?;
         let deadline_day = review_day
@@ -426,7 +427,7 @@ impl World {
             } else {
                 goal.target
             };
-            match self.preview(content,id,&goal.policy,value){Ok(p)=>(self.day.checked_add(p.delay.units()),Some("Indicative date for a separate policy order issued now under current backing and resources; no policy has been ordered".into())),Err(reason)=>(None,Some(reason))}
+            match self.preview(content,id,&goal.policy,value){Ok(p)=>(self.day.units().checked_add(p.delay.units()),Some("Indicative date for a separate policy order issued now under current backing and resources; no policy has been ordered".into())),Err(reason)=>(None,Some(reason))}
         };
         Ok(UndertakingPreview {
             kind: t.kind,
@@ -512,7 +513,7 @@ impl World {
         let state = c.undertakings.as_mut().expect("undertakings");
         state
             .next_declaration
-            .insert(preview.kind, self.day + rules.cooldown_days.units());
+            .insert(preview.kind, self.day.units() + rules.cooldown_days.units());
         let mut record = UndertakingRecord {
             id: request,
             template: template.into(),
@@ -520,7 +521,7 @@ impl World {
             goal: preview.goal.clone(),
             baseline,
             linked_project: project,
-            declared_day: self.day,
+            declared_day: self.day.units(),
             review_day: preview.review_day,
             deadline_day: preview.deadline_day,
             sponsor: c.government_number,
@@ -530,7 +531,7 @@ impl World {
             status: UndertakingStatus::Pending,
             milestones: Vec::new(),
         };
-        record.mark(self.day, CommitmentStage::Proposed);
+        record.mark(self.day.units(), CommitmentStage::Proposed);
         state.records.push(record);
         self.event(id,true,format!("Undertaking #{} submitted: {}. Paid {}m administration; review {}, delivery deadline {}. This does not order the policy or reserve its implementation resources. Withdrawal/refusal retains paid administration and the undertaking interval.",request.0,preview.goal.description(content),preview.fee.0,date(preview.review_day),date(preview.deadline_day)));
         Ok(())
@@ -572,8 +573,8 @@ impl World {
             .find(|r| r.id == request)
             .expect("record");
         r.status = UndertakingStatus::Withdrawn;
-        r.resolved_day = Some(self.day);
-        r.mark(self.day, CommitmentStage::Withdrawn);
+        r.resolved_day = Some(self.day.units());
+        r.mark(self.day.units(), CommitmentStage::Withdrawn);
         state.refresh_credibility();
         self.event(id,true,format!("Undertaking #{} withdrawn. Paid administration and the interval remain. {}",request.0,if record.accepted_day.is_some(){"An accepted promise was broken: the published political costs and credibility loss apply."}else{"The proposed undertaking had not been accepted; no breach effect applies."}));
         Ok(())
@@ -587,8 +588,8 @@ impl World {
         for r in &mut state.records {
             if r.status.open() && r.sponsor != c.government_number {
                 r.status = UndertakingStatus::Superseded;
-                r.resolved_day = Some(self.day);
-                r.mark(self.day, CommitmentStage::Withdrawn);
+                r.resolved_day = Some(self.day.units());
+                r.mark(self.day.units(), CommitmentStage::Withdrawn);
                 changed = true;
             }
         }
@@ -607,7 +608,7 @@ impl World {
             .expect("state")
             .records
             .iter()
-            .filter(|r| r.status == UndertakingStatus::Pending && r.review_day <= self.day)
+            .filter(|r| r.status == UndertakingStatus::Pending && r.review_day <= self.day.units())
             .cloned()
             .collect();
         for record in due {
@@ -627,10 +628,10 @@ impl World {
                 .expect("record");
             match decision {
                 Ok(()) => {
-                    r.accepted_day = Some(self.day);
+                    r.accepted_day = Some(self.day.units());
                     r.status = UndertakingStatus::Active;
-                    r.mark(self.day, CommitmentStage::Approved);
-                    r.mark(self.day, CommitmentStage::Operating);
+                    r.mark(self.day.units(), CommitmentStage::Approved);
+                    r.mark(self.day.units(), CommitmentStage::Operating);
                     self.undertaking_effect(id, &t.acceptance);
                     self.event(id,true,format!("Undertaking #{} accepted: {} by {}. Political acceptance effects now apply; the promised policy still requires its own consent, cash and delivery. Missing or withdrawing the accepted target incurs the stated breach effects.",record.id.0,record.goal.description(content),date(record.deadline_day)));
                 }
@@ -638,8 +639,8 @@ impl World {
                     r.status = UndertakingStatus::Refused {
                         reason: reason.clone(),
                     };
-                    r.resolved_day = Some(self.day);
-                    r.mark(self.day, CommitmentStage::Refused);
+                    r.resolved_day = Some(self.day.units());
+                    r.mark(self.day.units(), CommitmentStage::Refused);
                     self.event(id,true,format!("Undertaking #{} refused: {reason}. Administration and declaration interval remain.",record.id.0));
                 }
             }
@@ -659,8 +660,8 @@ impl World {
             .cloned()
             .collect();
         for record in active {
-            let evidence = self.undertaking_evidence(id, &record, self.day);
-            if evidence.is_none() && self.day < record.deadline_day {
+            let evidence = self.undertaking_evidence(id, &record, self.day.units());
+            if evidence.is_none() && self.day.units() < record.deadline_day {
                 continue;
             }
             let status = if let Some((evidence, _)) = evidence {
@@ -687,8 +688,8 @@ impl World {
                 .find(|r| r.id == record.id)
                 .expect("record");
             r.status = status;
-            r.resolved_day = Some(self.day);
-            r.mark(self.day, CommitmentStage::Evaluated);
+            r.resolved_day = Some(self.day.units());
+            r.mark(self.day.units(), CommitmentStage::Evaluated);
             state.refresh_credibility();
             if let Some((evidence, _)) = evidence {
                 self.event(id,true,format!("Undertaking #{} fulfilled by actual policy commitment #{}. This records a delivered setting/capacity target, not a claim that household outcomes were caused by the promise. Credibility updated.",record.id.0,evidence.0));
@@ -701,7 +702,7 @@ impl World {
         let Some(rules) = &content.undertakings else {
             return;
         };
-        if !self.day.is_multiple_of(90) {
+        if !self.day.units().is_multiple_of(90) {
             return;
         }
         for template in &rules.templates {
@@ -1001,10 +1002,10 @@ impl World {
             {
                 return Err("Undertaking withdrawal differs from commands".into());
             }
-            let accepted = r.accepted_day == Some(r.review_day) && r.review_day <= self.day;
+            let accepted = r.accepted_day == Some(r.review_day) && r.review_day <= self.day.units();
             let final_day = r
                 .resolved_day
-                .is_some_and(|d| d >= r.declared_day && d <= self.day);
+                .is_some_and(|d| d >= r.declared_day && d <= self.day.units());
             // Constitutional succession runs before today's policy deliveries.
             // A funded project can deliver later on the same calendar day after
             // the former cabinet's undertaking has already been closed.
@@ -1014,18 +1015,18 @@ impl World {
                         && r.sponsor.checked_add(1) == Some(change.government_number)
                 })
             });
-            let evidence = self.undertaking_evidence(id, r, self.day);
+            let evidence = self.undertaking_evidence(id, r, self.day.units());
             let valid = match &r.status {
                 UndertakingStatus::Pending => {
                     r.accepted_day.is_none()
                         && r.resolved_day.is_none()
-                        && r.review_day > self.day
+                        && r.review_day > self.day.units()
                         && r.sponsor == c.government_number
                 }
                 UndertakingStatus::Active => {
                     accepted
                         && r.resolved_day.is_none()
-                        && r.deadline_day > self.day
+                        && r.deadline_day > self.day.units()
                         && r.sponsor == c.government_number
                         && evidence.is_none()
                 }
@@ -1038,14 +1039,14 @@ impl World {
                 UndertakingStatus::Breached => {
                     accepted
                         && r.resolved_day == Some(r.deadline_day)
-                        && r.deadline_day <= self.day
+                        && r.deadline_day <= self.day.units()
                         && evidence.is_none()
                 }
                 UndertakingStatus::Refused { reason } => {
                     !reason.is_empty()
                         && r.accepted_day.is_none()
                         && r.resolved_day == Some(r.review_day)
-                        && r.review_day <= self.day
+                        && r.review_day <= self.day.units()
                 }
                 UndertakingStatus::Withdrawn => {
                     final_day

@@ -106,7 +106,7 @@ impl World {
         if state.active().is_some() {
             return Err("Release the active retention before creating another".into());
         }
-        if self.day < state.next_allowed_day {
+        if self.day.units() < state.next_allowed_day {
             return Err(format!(
                 "Cash retention may be used again on {}",
                 date(state.next_allowed_day)
@@ -123,11 +123,13 @@ impl World {
         }
         let expiry_day = self
             .day
+            .units()
             .checked_add(days.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Retention exceeds the campaign calendar")?;
         let next_allowed_day = self
             .day
+            .units()
             .checked_add(rules.cooldown_days.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Retention cooldown exceeds the campaign calendar")?;
@@ -153,10 +155,10 @@ impl World {
         state.records.push(CashHoldRecord {
             id: request,
             target,
-            start_day: self.day,
+            start_day: self.day.units(),
             expiry_day: preview.expiry_day,
             sponsor_government: c.government_number,
-            funded_notice_day: (preview.retained_now == target).then_some(self.day),
+            funded_notice_day: (preview.retained_now == target).then_some(self.day.units()),
             ended: None,
         });
         state.next_allowed_day = preview.next_allowed_day;
@@ -196,7 +198,7 @@ impl World {
             .cash_management
             .as_mut()
             .expect("cash management");
-        state.records.last_mut().expect("active").ended = Some((self.day, reason));
+        state.records.last_mut().expect("active").ended = Some((self.day.units(), reason));
         state.retained = Money(0);
     }
     pub(crate) fn resolve_cash_hold(&mut self, id: &CountryId) {
@@ -206,7 +208,7 @@ impl World {
         };
         let reason = if active.sponsor_government != c.government_number {
             Some(CashHoldEnd::GovernmentChanged)
-        } else if self.day >= active.expiry_day {
+        } else if self.day.units() >= active.expiry_day {
             Some(CashHoldEnd::Expired)
         } else {
             None
@@ -244,7 +246,7 @@ impl World {
                 .records
                 .last_mut()
                 .expect("active")
-                .funded_notice_day = Some(self.day);
+                .funded_notice_day = Some(self.day.units());
             self.event(id, true, format!("Retention target funded with {}m actual cash. Release it before proposing your decision; ordinary costs and authority still apply. Retention expires automatically.", target.0));
         }
     }
@@ -425,7 +427,7 @@ impl World {
                 || record.sponsor_government == crate::GovernmentId(0)
                 || record.sponsor_government > c.government_number
                 || record.funded_notice_day.is_some_and(|day| {
-                    day < record.start_day || day >= record.expiry_day || day > self.day
+                    day < record.start_day || day >= record.expiry_day || day > self.day.units()
                 })
             {
                 return Err("Invalid cash retention terms, sponsor or chronology".into());
@@ -437,14 +439,14 @@ impl World {
                 .ok_or("Invalid cash retention cooldown")?;
             match &record.ended {
                 None if index + 1 == state.records.len()
-                    && self.day < record.expiry_day
+                    && self.day.units() < record.expiry_day
                     && record.sponsor_government == c.government_number =>
                 {
-                    previous_end = self.day;
+                    previous_end = self.day.units();
                 }
                 Some((day, reason))
                     if *day >= record.start_day
-                        && *day <= self.day
+                        && *day <= self.day.units()
                         && record.funded_notice_day.is_none_or(|notice| notice <= *day) =>
                 {
                     match reason {
@@ -505,7 +507,7 @@ mod tests {
                 .active()
                 .is_some(),
             "day {} cash {:?} projects {:?} fiscal {:?} state {:?}; events {:?}",
-            world.day,
+            world.day.units(),
             world.countries[&foreign].available_cash(),
             world.countries[&foreign].projects,
             world.countries[&foreign].fiscal_plans,

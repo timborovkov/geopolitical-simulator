@@ -51,7 +51,7 @@ fn date_restriction_rejects_without_payment_then_commissions_through_normal_fund
     assert!(w.preview(&c, &w.player, &"energy".into(), 1).is_err());
     let capacity = w.player_country().energy_capacity;
     assert_eq!(w.advance_to_event(&c).unwrap(), DaySpan::new(1));
-    assert_eq!(w.day, 30);
+    assert_eq!(w.day.units(), 30);
     assert_eq!(w.player_country().energy_capacity, capacity);
     let p = w.preview(&c, &w.player, &"energy".into(), 1).unwrap();
     let treasury = w.player_country().accounts.treasury;
@@ -80,7 +80,7 @@ fn date_restriction_rejects_without_payment_then_commissions_through_normal_fund
     let mut incompatible = c.clone();
     incompatible.technologies.as_mut().unwrap().definitions[0].available_from =
         "2000-03-01".parse().unwrap();
-    assert!(w.day >= 60);
+    assert!(w.day.units() >= 60);
     let mut forged = w.clone();
     forged.content_hash = incompatible.hash();
     assert!(

@@ -191,7 +191,7 @@ impl Constitution {
                     .checked_add(rules.route(contested)?.days.units())
                     != Some(change.day)
                 || change.day < previous_day
-                || change.day > world.day
+                || change.day > world.day.units()
                 || change.government_number <= previous_government
                 || change.government_number > country.government_number
             {
@@ -215,7 +215,7 @@ impl Constitution {
                 || rules.template(&request.target).is_none()
                 || request.proposed_day != command.day
                 || command.day.checked_add(route.days.units()) != Some(request.decision_day)
-                || request.decision_day <= world.day
+                || request.decision_day <= world.day.units()
                 || request.decision_day > MAX_DAY
                 || request.sponsor_government == crate::GovernmentId(0)
                 || request.sponsor_government > country.government_number
@@ -289,7 +289,7 @@ impl World {
         content: &'a Content,
         id: &CountryId,
     ) -> Result<&'a GovernmentDefinition, String> {
-        self.governing_rules_at(content, id, self.day)
+        self.governing_rules_at(content, id, self.day.units())
     }
     pub(crate) fn governing_rules_at<'a>(
         &'a self,
@@ -388,7 +388,7 @@ impl World {
         if state.pending.is_some() {
             return Err("A constitutional decision is already pending".into());
         }
-        if self.day < state.next_request_day {
+        if self.day.units() < state.next_request_day {
             return Err(format!(
                 "Constitutional inertia: next request after {}",
                 date(state.next_request_day)
@@ -401,6 +401,7 @@ impl World {
         let route = rules.route(contested)?;
         let decision_day = self
             .day
+            .units()
             .checked_add(route.days.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("No time remains for the constitutional decision")?;
@@ -437,6 +438,7 @@ impl World {
         let preview = self.preview_constitution(content, id, target, contested)?;
         let next_request_day = self
             .day
+            .units()
             .checked_add(
                 content
                     .constitutions
@@ -462,7 +464,7 @@ impl World {
             from: state.regime.clone(),
             target: target.clone(),
             contested,
-            proposed_day: self.day,
+            proposed_day: self.day.units(),
             decision_day: preview.decision_day,
             sponsor_government: country.government_number,
             cost: preview.cost,
@@ -503,7 +505,8 @@ impl World {
             .constitution
             .as_ref()
             .and_then(|state| state.pending.clone());
-        let Some(request) = request.filter(|request| request.decision_day <= self.day) else {
+        let Some(request) = request.filter(|request| request.decision_day <= self.day.units())
+        else {
             return;
         };
         let result = if self.countries[id].government_number != request.sponsor_government {
@@ -541,11 +544,14 @@ impl World {
         country.budget.capital.0 += request.reserved.0;
         country.government_number = next_government;
         country.confidence_crises = 0;
-        country.next_election = request.target.competitive().then_some(self.day + 365);
+        country.next_election = request
+            .target
+            .competitive()
+            .then_some(self.day.units() + 365);
         country.next_leadership_review = template
             .government
             .leadership_review_days
-            .map(|days| self.day + days.units());
+            .map(|days| self.day.units() + days.units());
         country.executive = format!(
             "Generated transitional {} #{}",
             template.title, next_government
@@ -559,12 +565,12 @@ impl World {
         country.council_support = (country.council_support - costs.council_cost).max(0);
         let state = country.constitution.as_mut().expect("constitution");
         state.regime = request.target.clone();
-        state.since = self.day;
+        state.since = self.day.units();
         state.history.push(ConstitutionChange {
             request: request.id,
             from: request.from.clone(),
             to: request.target.clone(),
-            day: self.day,
+            day: self.day.units(),
             contested: request.contested,
             government_number: next_government,
         });

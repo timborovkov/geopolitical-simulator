@@ -106,7 +106,7 @@ impl World {
         c.households[index].cash.0 -= paid;
         if paid > 0 {
             self.ledger.push(LedgerEntry {
-                day: self.day,
+                day: self.day.units(),
                 country: id.clone(),
                 from: Account::Households,
                 to,

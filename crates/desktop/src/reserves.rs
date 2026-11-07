@@ -107,7 +107,7 @@ fn show_order(
         let next = order
             .review_day
             .max(order.proposed_day + 1)
-            .max(world.day + 1);
+            .max(world.day.units() + 1);
         let remaining = if next <= order.expiry_day {
             order.expiry_day - next + 1
         } else {

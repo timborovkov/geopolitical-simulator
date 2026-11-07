@@ -21,7 +21,7 @@ impl Briefing {
             .iter()
             .rev()
             .filter(|event| {
-                event.important && event.country == world.player && event.day == world.day
+                event.important && event.country == world.player && event.day == world.day.units()
             })
             .collect();
         if events.is_empty() {
@@ -31,7 +31,7 @@ impl Briefing {
             content: world.content_hash,
             seed: world.seed,
             player: world.player.clone(),
-            day: world.day,
+            day: world.day.units(),
             events: events.iter().map(|event| event.text.clone()).collect(),
         };
         if self.dismissed.as_ref() == Some(&key) {
@@ -41,7 +41,7 @@ impl Briefing {
         let mut dismiss = false;
         egui::TopBottomPanel::top("government_event_brief").min_height(90.0).show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
-                ui.strong(format!("Your government · {} · {}", world.player.0, date(world.day)));
+                ui.strong(format!("Your government · {} · {}", world.player.0, date(world.day.units())));
                 ui.label(format!("{} important event{} today", events.len(), if events.len() == 1 { "" } else { "s" }));
                 open = ui.button("Open chronicle").clicked();
                 dismiss = ui.button("Dismiss brief").on_hover_text("Hide this brief until a new important event. The chronicle keeps the original records.").clicked();

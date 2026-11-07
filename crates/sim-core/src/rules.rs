@@ -99,6 +99,7 @@ impl World {
         if content.commitments.is_some()
             && self
                 .day
+                .units()
                 .checked_add(delay.units())
                 .is_none_or(|day| day > MAX_DAY)
         {
@@ -164,7 +165,7 @@ impl World {
         if self.content_hash != content.hash() {
             return Err("Command content pack differs from campaign".into());
         }
-        if command.id != self.next_command || command.day != self.day {
+        if command.id != self.next_command || command.day != self.day.units() {
             return Err("Stale or duplicate command: refresh the current state".into());
         }
         let next_command = self
@@ -296,9 +297,9 @@ impl World {
                     id: request,
                     policy: policy.clone(),
                     value: *value,
-                    start_day: self.day + preview.consent_delay.units(),
-                    consent_day: self.day + preview.consent_delay.units(),
-                    due_day: self.day + preview.delay.units(),
+                    start_day: self.day.units() + preview.consent_delay.units(),
+                    consent_day: self.day.units() + preview.consent_delay.units(),
+                    due_day: self.day.units() + preview.delay.units(),
                     cost: preview.cost,
                     reserved,
                     stage: if preview.consent_delay.units() == 0 {
@@ -309,7 +310,7 @@ impl World {
                 });
                 self.record_proposal(&id, command.id);
                 self.next_project = next_project;
-                self.event_for_commitment(&id,request,CommitmentStage::Proposed,format!("Proposed {} via {}. Paid {}m upfront, reserved {}m; consent {} and operating due {}.",content.policy(policy).expect("policy").name,preview.route,preview.upfront_payment.0,reserved.0,date(self.day+preview.consent_delay.units()),date(self.day+preview.delay.units())));
+                self.event_for_commitment(&id,request,CommitmentStage::Proposed,format!("Proposed {} via {}. Paid {}m upfront, reserved {}m; consent {} and operating due {}.",content.policy(policy).expect("policy").name,preview.route,preview.upfront_payment.0,reserved.0,date(self.day.units()+preview.consent_delay.units()),date(self.day.units()+preview.delay.units())));
             }
             Action::Borrow { amount } => {
                 if content.finance.is_some() {
@@ -427,7 +428,7 @@ impl World {
         if self.content_hash != content_hash {
             return Err("Campaign content differs from loaded pack".into());
         }
-        if days > 3660 || self.day.saturating_add(days) > MAX_DAY {
+        if days > 3660 || self.day.units().saturating_add(days) > MAX_DAY {
             return Err("Advance 0..3660 days within the 100-year campaign limit".into());
         }
         self.validate_event_references_for_content(content, content_hash)?;
@@ -442,7 +443,7 @@ impl World {
         if self.content_hash != content.hash() {
             return Err("Campaign content differs from loaded pack".into());
         }
-        if days > 3660 || self.day.saturating_add(days) > MAX_DAY {
+        if days > 3660 || self.day.units().saturating_add(days) > MAX_DAY {
             return Err("Advance 0..3660 days within the 100-year campaign limit".into());
         }
         self.advance_days(content, days)
@@ -452,7 +453,10 @@ impl World {
         let review_day = content.review_day()?;
         let ids: Vec<_> = self.countries.keys().cloned().collect();
         for _ in 0..days {
-            self.day += 1;
+            self.day = self
+                .day
+                .checked_add(DaySpan::new(1))
+                .ok_or("Campaign clock overflow")?;
             for id in &ids {
                 // Fiscal-plan campaigns close the prior calendar year before any
                 // January decisions, delivery payments or recurring settlement.
@@ -484,11 +488,11 @@ impl World {
                 if content.fiscal_plans.is_none() {
                     self.review_budget(content, id);
                 }
-                let election_due = self.countries[id].next_election == Some(self.day);
+                let election_due = self.countries[id].next_election == Some(self.day.units());
                 let previous_government = self.countries[id].government_number;
-                if self.day.is_multiple_of(30)
+                if self.day.units().is_multiple_of(30)
                     || election_due
-                    || self.countries[id].next_leadership_review == Some(self.day)
+                    || self.countries[id].next_leadership_review == Some(self.day.units())
                 {
                     self.politics(content, id)?;
                     if election_due {
@@ -503,15 +507,15 @@ impl World {
                 self.budget_succession(id);
                 self.resolve_cash_hold(id);
             }
-            if self.day.is_multiple_of(30) {
+            if self.day.units().is_multiple_of(30) {
                 for id in &ids {
                     if id != &self.player {
                         self.ai_turn(content, id);
                     }
                 }
             }
-            self.ledger.retain(|e| e.day + 30 >= self.day);
-            if self.day >= review_day && !self.milestone_reported {
+            self.ledger.retain(|e| e.day + 30 >= self.day.units());
+            if self.day.units() >= review_day && !self.milestone_reported {
                 let c = self.player_country();
                 let won = c.report.food_coverage >= 90
                     && c.report.energy_coverage >= 90
@@ -519,7 +523,7 @@ impl World {
                     && c.arrears.0 == 0
                     && c.financing
                         .as_ref()
-                        .is_none_or(|state| state.principal_due_through(self.day).0 == 0)
+                        .is_none_or(|state| state.principal_due_through(self.day.units()).0 == 0)
                     && c.debt.0 <= content.country(&self.player).expect("player").gdp;
                 let message = if self.is_developer_modified() {
                     if won {
@@ -549,23 +553,26 @@ impl World {
     pub fn advance_to_event(&mut self, content: &Content) -> Result<DaySpan, String> {
         self.advance(content, crate::DaySpan::new(0))?;
         let start = self.day;
-        for _ in 0..MAX_DAY.saturating_sub(self.day) {
+        for _ in 0..MAX_DAY.saturating_sub(self.day.units()) {
             self.advance(content, crate::DaySpan::new(1))?;
             if self
                 .events
                 .iter()
-                .any(|e| e.day == self.day && e.country == self.player && e.important)
+                .any(|e| e.day == self.day.units() && e.country == self.player && e.important)
             {
                 break;
             }
         }
-        Ok(DaySpan::new(self.day - start))
+        Ok(self
+            .day
+            .elapsed_since(start)
+            .expect("Ordered campaign clock"))
     }
     fn complete_projects(&mut self, content: &Content, id: &CountryId) {
         let c = self.countries.get_mut(id).expect("country");
         let mut completed = Vec::new();
         c.projects.retain(|p| {
-            if p.stage == PolicyStage::Implementing && p.due_day <= self.day {
+            if p.stage == PolicyStage::Implementing && p.due_day <= self.day.units() {
                 completed.push(p.clone());
                 false
             } else {
@@ -614,14 +621,14 @@ impl World {
             h.consumption = Money(0);
         }
         self.begin_reserve_day(id);
-        let quarter = (self.day - 1) / 90;
+        let quarter = (self.day.units() - 1) / 90;
         let sample = crate::random::supply_sample_v2(self.seed, id, quarter);
-        let shock = if (self.day - 1) % 90 < 20 && sample.is_multiple_of(3) {
+        let shock = if (self.day.units() - 1) % 90 < 20 && sample.is_multiple_of(3) {
             10 + (sample % 16) as i32
         } else {
             0
         };
-        if (self.day - 1).is_multiple_of(90) && shock > 0 {
+        if (self.day.units() - 1).is_multiple_of(90) && shock > 0 {
             self.event(id,true,format!("Supply disruption: domestic food and energy capacity down {shock} points for 20 days. Imports require cash and have quantity limits."));
         }
         let c = &self.countries[id];
@@ -794,7 +801,7 @@ impl World {
             .get_mut(id)
             .expect("country")
             .income_tax_report = content.income_taxes.as_ref().map(|_| IncomeTaxReport {
-            day: self.day,
+            day: self.day.units(),
             standard_rate,
             administration,
             groups: withholding,
@@ -990,7 +997,7 @@ impl World {
         };
         if let Some(markets) = &mut c.markets {
             markets.energy.last = Some(MarketSettlement {
-                day: self.day,
+                day: self.day.units(),
                 price_bps: BasisPoints::new(energy_price),
                 physical_need: energy_demand,
                 requested_use: energy_demand,
@@ -1004,7 +1011,7 @@ impl World {
                 closing_stock: c.energy_stock,
             });
             markets.food.last = Some(MarketSettlement {
-                day: self.day,
+                day: self.day.units(),
                 price_bps: BasisPoints::new(food_price),
                 physical_need: food_demand,
                 requested_use: food_requested,
@@ -1112,7 +1119,7 @@ impl World {
             })
         .clamp(5, 95);
         c.elite_support += (elite_target - c.elite_support).signum();
-        if regime.competitive() && self.day.is_multiple_of(30) {
+        if regime.competitive() && self.day.units().is_multiple_of(30) {
             let base: i32 = c.coalition.iter().map(|id| i32::from(c.seats[id])).sum();
             let target = (base + (c.approval - 50) / 5
                 - if government.route == DecisionRoute::Legislature {
@@ -1130,20 +1137,20 @@ impl World {
             if c.confidence_crises >= 3 && regime == Regime::Parliamentary {
                 // An independent authority must conduct the poll already due today.
                 // Earlier rule packs keep their published confidence timing.
-                if content.elections.is_none() || c.next_election != Some(self.day) {
-                    c.next_election = Some(self.day + 1);
+                if content.elections.is_none() || c.next_election != Some(self.day.units()) {
+                    c.next_election = Some(self.day.units() + 1);
                 }
                 c.confidence_crises = 0;
             }
         }
-        let leadership_review = c.next_leadership_review == Some(self.day);
+        let leadership_review = c.next_leadership_review == Some(self.day.units());
         if leadership_review {
             c.next_leadership_review = government
                 .leadership_review_days
-                .map(|days| self.day + days.units());
+                .map(|days| self.day.units() + days.units());
         }
         let mut transition = None;
-        if c.next_election.is_some_and(|day| day <= self.day) {
+        if c.next_election.is_some_and(|day| day <= self.day.units()) {
             let current = c.ruling_party.clone();
             let outgoing = if self.rules >= 24 {
                 "governing party"
@@ -1199,7 +1206,7 @@ impl World {
                     ));
                 }
             }
-            c.next_election = Some(self.day + 1460);
+            c.next_election = Some(self.day.units() + 1460);
         } else if !regime.competitive()
             && (c.elite_support < 40
                 || leadership_review && c.council_support < government.council_threshold.max(45))
@@ -1214,7 +1221,7 @@ impl World {
             transition=Some("Elite coalition replaced the leadership after sustained loss of backing. Institutional route remains in force; country play continues.".into());
         }
         c.history.push(Observation {
-            day: self.day,
+            day: self.day.units(),
             treasury: c.accounts.treasury,
             debt: c.debt,
             approval: c.approval,
@@ -1300,7 +1307,7 @@ impl World {
                 .and_then(|rules| rules.authority(&government.route))
                 .map_or(30, |authority| authority.consent_days.units() + 30);
             state
-                .principal_due_through(self.day.saturating_add(notice))
+                .principal_due_through(self.day.units().saturating_add(notice))
                 .0
         });
         let candidate = if c.available_cash().0 < d.gdp / 100

@@ -39,7 +39,7 @@ pub fn series(
             .player_country()
             .history
             .iter()
-            .filter(|o| o.day + horizon >= world.day)
+            .filter(|o| o.day + horizon >= world.day.units())
             .map(|o| (o.day, o.treasury.0 as f64))
             .collect()
     } else {
@@ -48,7 +48,7 @@ pub fn series(
             .ok()?
             .history
             .iter()
-            .filter(|o| o.day + horizon >= world.day)
+            .filter(|o| o.day + horizon >= world.day.units())
             .map(|o| {
                 (
                     o.day,
@@ -88,7 +88,7 @@ pub fn archived_series(
             .as_ref()?
             .years
             .iter()
-            .filter(|summary| summary.last_day.saturating_add(horizon) >= world.day)
+            .filter(|summary| summary.last_day.saturating_add(horizon) >= world.day.units())
             .filter_map(|summary| {
                 summary
                     .mean()
@@ -101,7 +101,7 @@ pub fn archived_series(
             .ok()?
             .archived_reviews?
             .iter()
-            .filter(|summary| summary.last_day.saturating_add(horizon) >= world.day)
+            .filter(|summary| summary.last_day.saturating_add(horizon) >= world.day.units())
             .map(|summary| {
                 (
                     summary.last_day,

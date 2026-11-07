@@ -26,7 +26,7 @@ impl Panel {
         ui.heading("Subnational powers & public funds");
         ui.label(
             match world
-                .territorial_form_at(content, &world.player, world.day)
+                .territorial_form_at(content, &world.player, world.day.units())
                 .ok()?
             {
                 TerritorialForm::Federation => "Federal territorial charter",
@@ -45,7 +45,7 @@ impl Panel {
         }
         for original in &charter.regions {
             let mandate = world
-                .regional_mandate_at(content, &world.player, &original.id, world.day)
+                .regional_mandate_at(content, &world.player, &original.id, world.day.units())
                 .ok()?;
             let local = state
                 .regions

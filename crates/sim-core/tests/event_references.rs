@@ -263,7 +263,7 @@ fn malformed_or_legacy_reference_metadata_is_rejected_before_encoding() {
             3 => w.events[0].id = None,
             4 => w.events[0].id.as_mut().unwrap().sequence = 0,
             5 => w.events[0].id.as_mut().unwrap().country = CountryId("BOR".into()),
-            6 => w.events[0].day = w.day + 1,
+            6 => w.events[0].day = w.day.units() + 1,
             7 => {
                 w.events.pop();
             }

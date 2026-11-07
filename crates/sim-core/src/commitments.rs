@@ -177,6 +177,7 @@ impl World {
         }
         let consent_day = self
             .day
+            .units()
             .checked_add(government.consent_days.units())
             .ok_or("Consent date overflow")?;
         let preparation_days = self.policy_preparation_days(content, id, &p.policy);
@@ -270,7 +271,7 @@ impl World {
         r.paid.0 += preview.fee.0;
         r.amendments += 1;
         r.project = p.clone();
-        r.mark(self.day, CommitmentStage::Amended);
+        r.mark(self.day.units(), CommitmentStage::Amended);
         // An intervening constitutional change may now permit immediate consent.
         self.resolve_consents(content, id);
         self.event_for_commitment(id, request, CommitmentStage::Amended, format!("Commitment #{} amended to {value}. Paid {}m administration; consent {} and operating due {}. Existing capital reservation is unchanged.",request.0,preview.fee.0,date(preview.consent_day),date(preview.due_day)));
@@ -294,7 +295,7 @@ impl World {
             .find(|r| r.id == request)
             .expect("record");
         r.project.reserved = Money(0);
-        r.mark(self.day, CommitmentStage::Withdrawn);
+        r.mark(self.day.units(), CommitmentStage::Withdrawn);
         self.event_for_commitment(id, request, CommitmentStage::Withdrawn, format!("Commitment #{} withdrawn. Released {}m reserved cash; {}m already paid remains spent. No operating effect was delivered.", request.0,preview.released.0,preview.sunk.0));
         Ok(())
     }
@@ -317,14 +318,14 @@ impl World {
             approval_at_delivery: None,
             evaluation: None,
         };
-        r.mark(self.day, CommitmentStage::Proposed);
+        r.mark(self.day.units(), CommitmentStage::Proposed);
         if r.project.stage == PolicyStage::Implementing {
             for stage in [
                 CommitmentStage::Approved,
                 CommitmentStage::Funded,
                 CommitmentStage::Implementing,
             ] {
-                r.mark(self.day, stage);
+                r.mark(self.day.units(), stage);
             }
         }
         records.push(r);
@@ -352,10 +353,10 @@ impl World {
                 CommitmentStage::Funded,
                 CommitmentStage::Implementing,
             ] {
-                r.mark(self.day, stage);
+                r.mark(self.day.units(), stage);
             }
         } else {
-            r.mark(self.day, CommitmentStage::Refused);
+            r.mark(self.day.units(), CommitmentStage::Refused);
         }
     }
     pub(crate) fn record_delivery(
@@ -398,7 +399,7 @@ impl World {
                         CommitmentStage::Operating | CommitmentStage::Evaluated
                     )
             }) {
-                r.mark(self.day, CommitmentStage::Repealed);
+                r.mark(self.day.units(), CommitmentStage::Repealed);
                 r.review_due = None;
             }
         }
@@ -415,11 +416,12 @@ impl World {
                 after,
             })
             .collect();
-        r.baseline =
-            (self.day > content.start_day().expect("start") + 1).then(|| before.report.clone());
+        r.baseline = (self.day.units() > content.start_day().expect("start") + 1)
+            .then(|| before.report.clone());
         r.approval_at_delivery = Some(before.approval);
         r.review_due = self
             .day
+            .units()
             .checked_add(
                 content
                     .commitments
@@ -429,14 +431,17 @@ impl World {
                     .units(),
             )
             .filter(|day| *day <= MAX_DAY);
-        r.mark(self.day, CommitmentStage::Operating);
+        r.mark(self.day.units(), CommitmentStage::Operating);
     }
     pub(crate) fn evaluate_commitments(&mut self, id: &CountryId) {
         let c = self.countries.get_mut(id).expect("country");
         let Some(records) = &mut c.commitments else {
             return;
         };
-        if !records.iter().any(|r| r.review_due == Some(self.day)) {
+        if !records
+            .iter()
+            .any(|r| r.review_due == Some(self.day.units()))
+        {
             return;
         }
         let deliveries: Vec<_> = records
@@ -448,7 +453,7 @@ impl World {
         let mut evaluated = Vec::new();
         for r in records
             .iter_mut()
-            .filter(|r| r.review_due == Some(self.day))
+            .filter(|r| r.review_due == Some(self.day.units()))
         {
             let delivery = r
                 .milestones
@@ -457,19 +462,19 @@ impl World {
                 .expect("delivery")
                 .day;
             r.evaluation = Some(CommitmentEvaluation {
-                day: self.day,
+                day: self.day.units(),
                 before: r.baseline.clone(),
                 after: c.report.clone(),
                 approval_before: r.approval_at_delivery.expect("approval"),
                 approval_after: c.approval,
                 other_deliveries: deliveries
                     .iter()
-                    .filter(|day| **day >= delivery && **day <= self.day)
+                    .filter(|day| **day >= delivery && **day <= self.day.units())
                     .count()
                     .saturating_sub(1) as u32,
             });
             r.review_due = None;
-            r.mark(self.day, CommitmentStage::Evaluated);
+            r.mark(self.day.units(), CommitmentStage::Evaluated);
             evaluated.push(r.id);
         }
         for request in evaluated {
@@ -539,7 +544,8 @@ impl World {
                     })
                 || r.milestones.windows(2).any(|m| m[0].day > m[1].day)
                 || r.milestones.iter().any(|m| {
-                    m.day > self.day || !(definition.min..=definition.max).contains(&m.value)
+                    m.day > self.day.units()
+                        || !(definition.min..=definition.max).contains(&m.value)
                 })
                 || r.milestones.last().expect("milestone").value != r.project.value
             {
@@ -622,7 +628,7 @@ impl World {
                 expected.push(CommitmentStage::Evaluated);
                 if operating.and_then(|m| m.day.checked_add(rules.evaluation_days.units()))
                     != Some(e.day)
-                    || e.day > self.day
+                    || e.day > self.day.units()
                     || e.before != r.baseline
                     || Some(e.approval_before) != r.approval_at_delivery
                     || !(0..=100).contains(&e.approval_after)
@@ -676,7 +682,9 @@ impl World {
             } else {
                 None
             };
-            if r.review_due != expected_review || r.review_due.is_some_and(|day| day <= self.day) {
+            if r.review_due != expected_review
+                || r.review_due.is_some_and(|day| day <= self.day.units())
+            {
                 return Err("Invalid pending commitment review".into());
             }
         }

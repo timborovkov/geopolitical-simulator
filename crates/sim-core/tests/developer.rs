@@ -140,7 +140,7 @@ fn successful_developer_campaign_never_receives_normal_mandate_certification() {
     world
         .advance(
             &content,
-            sim_core::DaySpan::new(content.review_day().unwrap() - world.day - 1),
+            sim_core::DaySpan::new(content.review_day().unwrap() - world.day.units() - 1),
         )
         .unwrap();
     world

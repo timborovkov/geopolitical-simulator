@@ -378,7 +378,7 @@ fn inspect_candidates(
     .map(|(path, kind)| {
         let (day, schema, content_id, rules, error) = match resolve(&path) {
             Ok((id, save)) => (
-                Some(save.world.day),
+                Some(save.world.day.units()),
                 Some(save.schema),
                 Some(id),
                 Some(save.world.rules),
@@ -514,7 +514,7 @@ pub fn replay(original: &World, content: &Content) -> Result<World, String> {
         .iter()
         .filter(|e| !e.ai && e.budget_bill.is_none())
     {
-        while world.day < entry.command.day {
+        while world.day.units() < entry.command.day {
             world.advance(content, crate::DaySpan::new(1))?;
             verify_journal(original, &world, &mut verified)?;
         }
@@ -537,7 +537,7 @@ pub fn replay(original: &World, content: &Content) -> Result<World, String> {
             })?;
         verify_journal(original, &world, &mut verified)?;
     }
-    while world.day < original.day {
+    while world.day.units() < original.day.units() {
         world.advance(content, crate::DaySpan::new(1))?;
         verify_journal(original, &world, &mut verified)?;
     }
@@ -559,7 +559,7 @@ pub fn replay(original: &World, content: &Content) -> Result<World, String> {
             .unwrap_or_default();
         return Err(format!(
             "Replay diverged at final snapshot {}: expected {:016x}, got {:016x}{detail}",
-            crate::date(original.day),
+            crate::date(original.day.units()),
             original.hash(),
             world.hash()
         ));

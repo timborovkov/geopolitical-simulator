@@ -30,8 +30,11 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
         .and_then(|rules| rules.maturity_days)
     {
         ui.label(format!("New loans: fixed 4% annual interest; principal due {term} days after actual disbursement. Repayment uses uncommitted national cash after protected local claims, before interest and national purchases. Refinancing requires a separately approved loan."));
-        let due = state.principal_due_through(world.day).0;
-        let upcoming = state.principal_due_through(world.day.saturating_add(30)).0 - due;
+        let due = state.principal_due_through(world.day.units()).0;
+        let upcoming = state
+            .principal_due_through(world.day.units().saturating_add(30))
+            .0
+            - due;
         ui.colored_label(if due > 0 {Color32::LIGHT_RED} else {Color32::LIGHT_YELLOW},format!("Overdue/due principal {due}m · additional principal due in next 30 days {upcoming}m. Unpaid principal stays in debt; operating arrears are separate."));
     }
     if let Some(request) = &state.pending {
@@ -117,7 +120,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
                 DebtOrigin::AcceptedRequest { contested: false } => "Authorized borrowing",
                 DebtOrigin::AcceptedRequest { contested: true } => "Contested borrowing",
             };
-            let maturity = loan.maturity_day.map_or_else(||"perpetual".into(), |day| format!("principal due {} · automatically repaid {}m{}",date(day),loan.maturity_repaid.unwrap_or(Money(0)).0,if day<=world.day && loan.outstanding.0>0 {" · OVERDUE"}else{""}));
+            let maturity = loan.maturity_day.map_or_else(||"perpetual".into(), |day| format!("principal due {} · automatically repaid {}m{}",date(day),loan.maturity_repaid.unwrap_or(Money(0)).0,if day<=world.day.units() && loan.outstanding.0>0 {" · OVERDUE"}else{""}));
             ui.label(format!("#{} · {origin} · outstanding {}m / original {}m · {} · creditor {}", loan.id.0, loan.outstanding.0, loan.original_principal.0, date(loan.issued_day), loan.creditor.0));
             ui.small(maturity);
         }

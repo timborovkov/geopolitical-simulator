@@ -389,7 +389,7 @@ fn ai_declares_costed_undertakings_through_shared_commands_and_replays() {
 fn promises_cannot_cross_the_campaign_calendar() {
     let c = content().at_bookmark("2095-01-01").unwrap();
     let mut w = start(&c, "AUR");
-    w.advance(&c, sim_core::DaySpan::new(MAX_DAY - w.day - 1))
+    w.advance(&c, sim_core::DaySpan::new(MAX_DAY - w.day.units() - 1))
         .unwrap();
     let hash = w.hash();
     assert!(

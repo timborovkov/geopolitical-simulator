@@ -172,7 +172,7 @@ fn unfunded_maturity_stays_outstanding_retries_and_does_not_create_duplicate_ope
             .financing
             .as_ref()
             .unwrap()
-            .principal_due_through(w.day)
+            .principal_due_through(w.day.units())
             .0,
         10000 - paid
     );

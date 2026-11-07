@@ -29,10 +29,10 @@ fn typed_event_elapsed_time_and_follow_on_steps_keep_pre_change_campaign_hashes(
     let before = persistence::encode(&world, &content).unwrap();
     world.advance(&content, DaySpan::ZERO).unwrap();
     assert_eq!(persistence::encode(&world, &content).unwrap(), before);
-    let start = world.day;
+    let start = world.day.units();
     let elapsed: DaySpan = world.advance_to_event(&content).unwrap();
     assert_eq!(elapsed, DaySpan::new(14));
-    assert_eq!(world.day - start, elapsed.units());
+    assert_eq!(world.day.units() - start, elapsed.units());
     assert_eq!(world.hash(), 0xbf9cebfd31a16e85);
     let resumed =
         persistence::decode(&persistence::encode(&world, &content).unwrap(), &content).unwrap();

@@ -172,7 +172,7 @@ impl World {
         let Some(rules) = &content.technologies else {
             return Ok(Vec::new());
         };
-        rules.eligibility(country, policy, self.day)
+        rules.eligibility(country, policy, self.day.units())
     }
     pub(crate) fn check_policy_technologies(
         &self,
@@ -192,7 +192,7 @@ impl World {
         let Some(rules) = &content.technologies else {
             return;
         };
-        let today: CivilDate = date(self.day).parse().expect("campaign date");
+        let today: CivilDate = date(self.day.units()).parse().expect("campaign date");
         for technology in rules
             .definitions
             .iter()

@@ -58,7 +58,7 @@ fn play(
             {
                 world.advance(
                     content,
-                    sim_core::DaySpan::new(pending.decision_day - world.day),
+                    sim_core::DaySpan::new(pending.decision_day - world.day.units()),
                 )?;
             }
             let preview = world.preview(content, &world.player, &"coalition".into(), 1)?;
@@ -115,15 +115,17 @@ fn play(
             "{country}: {:?} to {:?} through a costed contested route; country continues on {} without developer edits",
             definition.regime,
             target,
-            date(world.day)
+            date(world.day.units())
         );
     }
     let review_day = content.review_day()?;
-    while world.day < review_day {
+    while world.day.units() < review_day {
         let c = world.player_country();
         let gap = -world.funding_outlook(content, 0, None)?.daily_balance.0;
         let upcoming_principal = c.financing.as_ref().map_or(0, |state| {
-            state.principal_due_through(world.day.saturating_add(90)).0
+            state
+                .principal_due_through(world.day.units().saturating_add(90))
+                .0
         });
         if c.available_cash().0 < gap.max(1) * 90 + upcoming_principal {
             let amount = Money(definition.gdp / 10);
@@ -213,7 +215,7 @@ fn play(
         }
         world.advance(
             content,
-            sim_core::DaySpan::new((review_day - world.day).min(30)),
+            sim_core::DaySpan::new((review_day - world.day.units()).min(30)),
         )?;
     }
     world.validate(content)?;
@@ -225,7 +227,7 @@ fn play(
         || c.arrears.0 != 0
         || c.financing
             .as_ref()
-            .is_some_and(|state| state.principal_due_through(world.day).0 > 0)
+            .is_some_and(|state| state.principal_due_through(world.day.units()).0 > 0)
         || c.debt.0 > definition.gdp
     {
         return Err(format!(

@@ -319,7 +319,8 @@ fn a_budget_delivers_its_tax_rate_and_fulfils_a_nominal_standard_rate_undertakin
         .find(|p| p.id == source)
         .unwrap()
         .due_day;
-    w.advance(&c, sim_core::DaySpan::new(due - w.day)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due - w.day.units()))
+        .unwrap();
     assert_eq!(
         w.player_country()
             .income_tax_report

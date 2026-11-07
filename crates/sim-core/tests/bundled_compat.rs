@@ -521,7 +521,7 @@ fn default_early_poll_preserves_a_retained_cabinet_and_its_commissioned_programm
     );
     assert_eq!(world.player_country().energy_capacity, 90);
     world
-        .advance(&content, sim_core::DaySpan::new(due - world.day))
+        .advance(&content, sim_core::DaySpan::new(due - world.day.units()))
         .unwrap();
     assert_eq!(world.player_country().energy_capacity, 105);
     persistence::replay(&world, &content).unwrap();

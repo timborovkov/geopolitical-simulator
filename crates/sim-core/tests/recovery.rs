@@ -99,7 +99,7 @@ fn interrupted_backup_is_visible_and_can_be_archived_by_explicit_recovery() {
             .any(|r| r.kind == persistence::RecoveryKind::PendingBackup && r.error.is_some())
     );
     let restored = persistence::restore(&path, &path, &c).unwrap();
-    assert_eq!(restored.day, 0);
+    assert_eq!(restored.day.units(), 0);
     assert!(!path.with_extension("json.backup.tmp").exists());
     persistence::save(&path, &w, &c).unwrap();
     std::fs::remove_dir_all(dir).unwrap();

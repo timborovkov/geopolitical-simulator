@@ -321,9 +321,12 @@ fn successor_government_must_seek_its_own_financing_mandate() {
         .unwrap();
     world.advance(&content, sim_core::DaySpan::new(61)).unwrap();
     let election = world.player_country().next_election.unwrap();
-    assert!(election > world.day);
+    assert!(election > world.day.units());
     world
-        .advance(&content, sim_core::DaySpan::new(election - world.day - 1))
+        .advance(
+            &content,
+            sim_core::DaySpan::new(election - world.day.units() - 1),
+        )
         .unwrap();
     world
         .issue_developer(
@@ -389,9 +392,12 @@ fn a_cash_constrained_ai_borrows_through_authority_and_waits_for_cash() {
         .unwrap();
     let request = request.clone();
     let decision = request.command.day + 14;
-    if decision > world.day {
+    if decision > world.day.units() {
         world
-            .advance(&content, sim_core::DaySpan::new(decision - world.day))
+            .advance(
+                &content,
+                sim_core::DaySpan::new(decision - world.day.units()),
+            )
             .unwrap();
     }
     let state = world.countries[&issuer].financing.as_ref().unwrap();

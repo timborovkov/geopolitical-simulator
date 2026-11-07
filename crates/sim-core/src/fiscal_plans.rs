@@ -216,7 +216,7 @@ impl World {
         if state.pending() {
             return Err("Withdraw or resolve the pending budget before submitting another".into());
         }
-        if self.day < state.next_proposal {
+        if self.day.units() < state.next_proposal {
             return Err(format!(
                 "Budget preparation interval ends {}",
                 date(state.next_proposal)
@@ -225,12 +225,12 @@ impl World {
         if !targets.valid(content) {
             return Err("Budget targets exceed permitted policy levels".into());
         }
-        let current_year = year(self.day);
+        let current_year = year(self.day.units());
         let effective_day = if fiscal_year == current_year {
-            self.day
+            self.day.units()
         } else if fiscal_year == current_year + 1 && fiscal_year <= 2099 {
             let start = year_start(fiscal_year)?;
-            if start - self.day > rules.annual_window_days.units() {
+            if start - self.day.units() > rules.annual_window_days.units() {
                 return Err(
                     "Next-year budgets open only in the configured annual preparation window"
                         .into(),
@@ -260,6 +260,7 @@ impl World {
         let g = self.governing_rules(content, id)?;
         let review_day = self
             .day
+            .units()
             .checked_add(rules.review_days.max(g.consent_days).units())
             .filter(|d| *d <= MAX_DAY)
             .ok_or("Budget review exceeds the campaign calendar")?;
@@ -344,7 +345,7 @@ impl World {
         let baseline = FiscalTargets::current(c);
         let sponsor = c.government_number;
         let state = c.fiscal_plans.as_mut().expect("fiscal plans");
-        state.next_proposal = self.day
+        state.next_proposal = self.day.units()
             + content
                 .fiscal_plans
                 .as_ref()
@@ -354,7 +355,7 @@ impl World {
         state.bills.push(BudgetBill {
             id: bill,
             year: fiscal_year,
-            proposed_day: self.day,
+            proposed_day: self.day.units(),
             review_day: p.review_day,
             effective_day: p.effective_day,
             sponsor,
@@ -387,7 +388,7 @@ impl World {
         }
         c.committed_cash.0 -= b.implementation_cost.0;
         b.status = BudgetBillStatus::Withdrawn;
-        b.resolved_day = Some(self.day);
+        b.resolved_day = Some(self.day.units());
         self.event(id,true,format!("Budget #{} withdrawn. Implementation reservation released; administration and preparation interval retained.",bill.0));
         Ok(())
     }
@@ -404,7 +405,7 @@ impl World {
         {
             c.committed_cash.0 -= b.implementation_cost.0;
             b.status = BudgetBillStatus::Superseded;
-            b.resolved_day = Some(self.day);
+            b.resolved_day = Some(self.day.units());
             closed.push(b.id.0);
         }
         for b in closed {
@@ -417,9 +418,9 @@ impl World {
             .fiscal_plans
             .as_ref()
             .and_then(|s| {
-                s.bills
-                    .iter()
-                    .find(|b| b.status == BudgetBillStatus::Pending && b.review_day == self.day)
+                s.bills.iter().find(|b| {
+                    b.status == BudgetBillStatus::Pending && b.review_day == self.day.units()
+                })
             })
             .cloned()
         else {
@@ -438,7 +439,7 @@ impl World {
             .find(|x| x.id == b.id)
             .expect("bill");
         stored.status = BudgetBillStatus::Enacted;
-        stored.resolved_day = Some(self.day);
+        stored.resolved_day = Some(self.day.units());
         let result = (|| -> Result<(), String> {
             if FiscalTargets::current(&trial.countries[id]) != b.baseline {
                 return Err("Operating fiscal settings changed during review".into());
@@ -450,7 +451,7 @@ impl World {
                     content,
                     Command {
                         id: command,
-                        day: trial.day,
+                        day: trial.day.units(),
                         issuer: id.clone(),
                         action: Action::Enact {
                             policy: policy.clone(),
@@ -498,7 +499,7 @@ impl World {
                 b.status = BudgetBillStatus::Refused {
                     reason: reason.clone(),
                 };
-                b.resolved_day = Some(self.day);
+                b.resolved_day = Some(self.day.units());
                 self.event(id,true,format!("Budget review refused: {reason}. Implementation reservation released; proposal administration retained."));
             }
         }
@@ -517,7 +518,7 @@ impl World {
             .and_then(|s| s.bills.iter().find(|b| b.id == bill))
             .ok_or("Unknown budget dispatch")?;
         if b.status != BudgetBillStatus::Enacted
-            || b.resolved_day != Some(self.day)
+            || b.resolved_day != Some(self.day.units())
             || !b
                 .targets
                 .changed(&b.baseline)
@@ -531,7 +532,9 @@ impl World {
             .delay
             .checked_sub(p.consent_delay)
             .expect("implementation includes consent")
-            .max(DaySpan::new(b.effective_day.saturating_sub(self.day)));
+            .max(DaySpan::new(
+                b.effective_day.saturating_sub(self.day.units()),
+            ));
         p.consent_delay = DaySpan::ZERO;
         p.route = format!(
             "Enacted budget #{} (institutional consent satisfied)",
@@ -622,7 +625,7 @@ impl World {
             services: c.services.saturating_sub(1).max(4),
             welfare: c.welfare.saturating_sub(1).max(0),
         };
-        let fiscal_year = year(self.day);
+        let fiscal_year = year(self.day.units());
         if self
             .preview_budget(content, id, fiscal_year, &targets)
             .is_ok()
@@ -631,7 +634,7 @@ impl World {
                 content,
                 Command {
                     id: self.next_command,
-                    day: self.day,
+                    day: self.day.units(),
                     issuer: id.clone(),
                     action: Action::ProposeBudget {
                         year: fiscal_year,
@@ -759,7 +762,7 @@ impl World {
             }
             if b.status == BudgetBillStatus::Pending {
                 if b.resolved_day.is_some()
-                    || b.review_day <= self.day
+                    || b.review_day <= self.day.units()
                     || b.sponsor != c.government_number
                     || !b.programmes.is_empty()
                     || c.projects
@@ -774,7 +777,10 @@ impl World {
                 let resolved = b
                     .resolved_day
                     .ok_or("Closed budget lacks a resolution date")?;
-                if resolved < b.proposed_day || resolved > self.day || resolved > b.review_day {
+                if resolved < b.proposed_day
+                    || resolved > self.day.units()
+                    || resolved > b.review_day
+                {
                     return Err("Invalid budget resolution date".into());
                 }
                 if matches!(

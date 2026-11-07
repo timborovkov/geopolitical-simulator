@@ -284,9 +284,10 @@ impl World {
         }
         let review_day = self
             .day
+            .units()
             .checked_add(government.consent_days.units())
             .ok_or("Invalid review date")?;
-        let earliest_delivery_day = review_day.max(self.day + 1);
+        let earliest_delivery_day = review_day.max(self.day.units() + 1);
         let expiry_day = earliest_delivery_day
             .checked_add(rules.order_days.units() - 1)
             .filter(|day| *day <= MAX_DAY)
@@ -326,7 +327,7 @@ impl World {
             && let Some(index) = state
                 .orders
                 .iter()
-                .position(|o| !o.status.open() && o.last_fill_day != Some(self.day))
+                .position(|o| !o.status.open() && o.last_fill_day != Some(self.day.units()))
         {
             state.orders.remove(index);
         }
@@ -343,11 +344,11 @@ impl World {
             paid: Money(0),
             reserved: p.cost,
             fee: p.fee,
-            proposed_day: self.day,
+            proposed_day: self.day.units(),
             review_day: p.review_day,
             expiry_day: p.expiry_day,
             sponsor: c.government_number,
-            status: if p.review_day == self.day {
+            status: if p.review_day == self.day.units() {
                 ReserveStatus::Active
             } else {
                 ReserveStatus::Pending
@@ -371,7 +372,7 @@ impl World {
         let released = order.reserved.0;
         order.reserved = Money(0);
         order.status = status.clone();
-        order.resolved_day = Some(self.day);
+        order.resolved_day = Some(self.day.units());
         self.event(id,true,format!("Reserve contract #{} {:?}; released {}m unspent cash. Delivered stocks and paid administration remain; no delivered-goods refund.",request.0,status,released));
     }
     pub fn preview_cancel_reserve(
@@ -418,7 +419,7 @@ impl World {
             if o.status == ReserveStatus::Pending {
                 let result = if o.sponsor != self.countries[id].government_number {
                     Err("sponsoring government changed".into())
-                } else if self.day >= o.review_day {
+                } else if self.day.units() >= o.review_day {
                     self.governing_rules(content, id)
                         .expect("government")
                         .check(&self.countries[id], "reserve", 1)
@@ -442,7 +443,7 @@ impl World {
                     .status = ReserveStatus::Active;
                 self.event(id,true,format!("Reserve contract #{} received consent; procurement may now fill from spare import capacity. It grants no immediate stocks.",o.id.0));
             }
-            if self.day > o.expiry_day {
+            if self.day.units() > o.expiry_day {
                 self.close_reserve(id, o.id, ReserveStatus::Expired);
             }
         }
@@ -450,7 +451,7 @@ impl World {
     pub(crate) fn begin_reserve_day(&mut self, id: &CountryId) {
         if let Some(state) = self.countries.get_mut(id).unwrap().reserves.as_mut() {
             state.energy.last = Some(ReserveFlow {
-                day: self.day,
+                day: self.day.units(),
                 opening: state.energy.stored,
                 purchased: Energy::ZERO,
                 released: Energy::ZERO,
@@ -458,7 +459,7 @@ impl World {
                 closing: state.energy.stored,
             });
             state.food.last = Some(ReserveFlow {
-                day: self.day,
+                day: self.day.units(),
                 opening: state.food.stored,
                 purchased: Food::ZERO,
                 released: Food::ZERO,
@@ -479,9 +480,9 @@ impl World {
         let amount = s.stored(good).min(shortfall);
         let notice = amount > 0
             && s.last_release_day
-                .is_none_or(|day| day.saturating_add(1) < self.day);
+                .is_none_or(|day| day.saturating_add(1) < self.day.units());
         if amount > 0 {
-            s.last_release_day = Some(self.day);
+            s.last_release_day = Some(self.day.units());
         }
         match good {
             GoodKind::Energy => {
@@ -557,7 +558,7 @@ impl World {
             let s = c.reserves.as_mut().unwrap();
             let r = s.orders.iter_mut().find(|r| r.id == o.id).unwrap();
             r.filled += quantity;
-            r.last_fill_day = Some(self.day);
+            r.last_fill_day = Some(self.day.units());
             r.last_fill_quantity = quantity;
             r.paid.0 += paid;
             r.reserved.0 -= paid;
@@ -727,10 +728,10 @@ impl World {
                 .is_some_and(|f| f.released.units() > 0);
         if state
             .last_release_day
-            .is_some_and(|day| day <= content.start_day().unwrap() || day > self.day)
+            .is_some_and(|day| day <= content.start_day().unwrap() || day > self.day.units())
             || (state.energy.released.units() > 0 || state.food.released.units() > 0)
                 != state.last_release_day.is_some()
-            || released_today != (state.last_release_day == Some(self.day))
+            || released_today != (state.last_release_day == Some(self.day.units()))
         {
             return Err("Invalid national reserve release notice date".into());
         }
@@ -776,10 +777,10 @@ impl World {
                         0
                     }
                 || o.resolved_day
-                    .is_some_and(|x| x < o.proposed_day || x > self.day)
+                    .is_some_and(|x| x < o.proposed_day || x > self.day.units())
                 || o.status.open() != o.resolved_day.is_none()
                 || o.last_fill_day
-                    .is_some_and(|x| x < o.review_day || x > self.day || x > o.expiry_day)
+                    .is_some_and(|x| x < o.review_day || x > self.day.units() || x > o.expiry_day)
                 || (o.filled == 0) != (o.last_fill_day.is_none())
                 || o.last_fill_quantity < 0
                 || o.last_fill_quantity > o.filled
@@ -799,7 +800,7 @@ impl World {
             }
             match &o.status {
                 ReserveStatus::Pending if o.filled!=0=>return Err("Pending reserve contract already received goods".into()),
-                ReserveStatus::Active if o.review_day>self.day||self.day>o.expiry_day||o.filled==o.quantity=>return Err("Invalid active reserve contract".into()),
+                ReserveStatus::Active if o.review_day>self.day.units()||self.day.units()>o.expiry_day||o.filled==o.quantity=>return Err("Invalid active reserve contract".into()),
                 ReserveStatus::Completed if o.filled!=o.quantity||o.resolved_day!=o.last_fill_day=>return Err("Invalid completed reserve contract".into()),
                 ReserveStatus::Expired if o.resolved_day!=Some(o.expiry_day+1)=>return Err("Invalid reserve expiry".into()),
                 ReserveStatus::Refused{reason} if o.filled!=0||reason.trim().is_empty()=>return Err("Invalid reserve refusal".into()),
@@ -812,7 +813,7 @@ impl World {
             state
                 .orders
                 .iter()
-                .filter(|o| o.good == good && o.last_fill_day == Some(self.day))
+                .filter(|o| o.good == good && o.last_fill_day == Some(self.day.units()))
                 .map(|o| o.last_fill_quantity)
                 .sum()
         };
@@ -825,7 +826,7 @@ impl World {
             Energy::units,
             need,
             rules,
-            self.day,
+            self.day.units(),
             content.start_day()?,
             0,
             c.report.energy_imported.units(),
@@ -838,7 +839,7 @@ impl World {
             Food::units,
             need,
             rules,
-            self.day,
+            self.day.units(),
             content.start_day()?,
             f.loss_bps.units(),
             c.report.food_imported.units(),

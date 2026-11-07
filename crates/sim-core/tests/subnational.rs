@@ -420,8 +420,11 @@ fn territorial_provenance_private_cash_calendar_and_saved_state_are_validated() 
     check(&w, &c);
     let later = c.at_bookmark("2095-01-01").unwrap();
     let mut late = start(&later, "AUR");
-    late.advance(&later, sim_core::DaySpan::new(MAX_DAY - late.day - 5))
-        .unwrap();
+    late.advance(
+        &later,
+        sim_core::DaySpan::new(MAX_DAY - late.day.units() - 5),
+    )
+    .unwrap();
     assert!(
         late.preview_regional_order(&later, &late.player, &region("AUR", "city"), &grant())
             .unwrap_err()
@@ -474,7 +477,7 @@ fn a_local_absorption_mandate_can_refuse_a_grant_even_when_national_backing_rema
         .0
         < 538
     {
-        assert!(w.day < 1000);
+        assert!(w.day.units() < 1000);
         w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     }
     w.issue(

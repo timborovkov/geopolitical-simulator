@@ -262,7 +262,7 @@ impl Financing {
                     }
                 || instrument.maturity_day.is_some_and(|day| day > MAX_DAY)
                 || instrument.issued_day < previous_issue
-                || instrument.issued_day > world.day
+                || instrument.issued_day > world.day.units()
             {
                 return Err("Invalid debt terms, chronology, creditor or principal".into());
             }
@@ -272,7 +272,7 @@ impl Financing {
                 || scheduled > instrument.original_principal.0
                 || (scheduled > 0) != instrument.last_maturity_payment_day.is_some()
                 || instrument.last_maturity_payment_day.is_some_and(|day| {
-                    day > world.day || instrument.maturity_day.is_none_or(|due| day < due)
+                    day > world.day.units() || instrument.maturity_day.is_none_or(|due| day < due)
                 })
             {
                 return Err("Invalid dated principal repayment history".into());
@@ -361,7 +361,7 @@ impl Financing {
                     != request
                         .requested_day
                         .checked_add(authority.consent_days.units())
-                || request.decision_day <= world.day
+                || request.decision_day <= world.day.units()
                 || request.decision_day > MAX_DAY
                 || request.requested_day < start
                 || request.sponsor_government == crate::GovernmentId(0)
@@ -432,6 +432,7 @@ impl World {
             .and_then(|r| r.maturity_days)
             .is_some_and(|term| {
                 self.day
+                    .units()
                     .checked_add(term.units())
                     .is_none_or(|day| day > MAX_DAY)
             })
@@ -487,6 +488,7 @@ impl World {
         government.check(country, "borrow", 0)?;
         let decision_day = self
             .day
+            .units()
             .checked_add(authority.consent_days.units())
             .filter(|day| *day <= MAX_DAY)
             .ok_or("No time remains for institutional loan approval")?;
@@ -522,7 +524,7 @@ impl World {
             .financing
             .as_ref()
             .ok_or("Missing financing state")?;
-        if self.day < financing.next_emergency_day {
+        if self.day.units() < financing.next_emergency_day {
             return Err(format!(
                 "Emergency financing is on cooldown until {}",
                 date(financing.next_emergency_day)
@@ -569,13 +571,13 @@ impl World {
                 currency: ReportingCurrency::Constant2000Credit,
                 original_principal: amount,
                 outstanding: amount,
-                issued_day: self.day,
+                issued_day: self.day.units(),
                 annual_rate_bps: BasisPoints::new(400),
                 maturity_day: content
                     .finance
                     .as_ref()
                     .and_then(|r| r.maturity_days)
-                    .map(|days| self.day + days.units()),
+                    .map(|days| self.day.units() + days.units()),
                 maturity_repaid: content
                     .finance
                     .as_ref()
@@ -590,7 +592,7 @@ impl World {
             .and_then(|r| r.maturity_days)
             .map_or_else(
                 || "voluntary principal repayment".into(),
-                |days| format!("principal due {}", date(self.day + days.units())),
+                |days| format!("principal due {}", date(self.day.units() + days.units())),
             );
         self.event(id, true, format!("Loan #{} disbursed: {}m from the finite external creditor at 4% annual interest, with {terms}.{}", loan.0, amount.0, if contested { " Constitutional borrowing consent was bypassed through an explicit contested act." } else { " Institutional authority and financing were checked at disbursement." }));
     }
@@ -605,7 +607,8 @@ impl World {
                         .instruments
                         .iter()
                         .filter(|loan| {
-                            loan.outstanding.0 > 0 && loan.maturity_day == self.day.checked_add(30)
+                            loan.outstanding.0 > 0
+                                && loan.maturity_day == self.day.units().checked_add(30)
                         })
                         .map(|loan| (loan.id, loan.outstanding.0, loan.maturity_day.unwrap()))
                         .collect()
@@ -622,7 +625,7 @@ impl World {
                     .iter()
                     .filter(|loan| {
                         loan.outstanding.0 > 0
-                            && loan.maturity_day.is_some_and(|day| day <= self.day)
+                            && loan.maturity_day.is_some_and(|day| day <= self.day.units())
                     })
                     .map(|loan| (loan.id, loan.outstanding.0, loan.maturity_day.unwrap()))
                     .collect()
@@ -649,9 +652,9 @@ impl World {
                     .unwrap();
                 record.outstanding.0 -= paid;
                 record.maturity_repaid.as_mut().unwrap().0 += paid;
-                record.last_maturity_payment_day = Some(self.day);
+                record.last_maturity_payment_day = Some(self.day.units());
             }
-            if self.day == maturity || paid == outstanding {
+            if self.day.units() == maturity || paid == outstanding {
                 self.event(id, true, format!("Loan #{} principal due {}: paid {paid}m; {}m remains overdue principal. Overdue principal remains in debt and is not counted again as operating arrears. Refinancing requires a separately authorized loan; no automatic rollover.",loan.0,date(maturity),outstanding-paid));
             }
         }
@@ -671,7 +674,7 @@ impl World {
             country.financing.as_mut().expect("financing state").pending = Some(BorrowingRequest {
                 id: loan,
                 amount,
-                requested_day: self.day,
+                requested_day: self.day.units(),
                 decision_day: preview.decision_day,
                 authority: preview.authority,
                 sponsor_government: country.government_number,
@@ -696,6 +699,7 @@ impl World {
             .ok_or("Emergency counter exhausted")?;
         let next = self
             .day
+            .units()
             .checked_add(rule.cooldown_days.units())
             .ok_or("Emergency cooldown overflow")?;
         financing.emergency_count = count;
@@ -740,7 +744,8 @@ impl World {
             .financing
             .as_ref()
             .and_then(|state| state.pending.clone());
-        let Some(request) = request.filter(|request| request.decision_day <= self.day) else {
+        let Some(request) = request.filter(|request| request.decision_day <= self.day.units())
+        else {
             return;
         };
         let result = if self.countries[id].government_number != request.sponsor_government {

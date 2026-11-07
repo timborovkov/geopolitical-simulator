@@ -376,7 +376,16 @@ pub struct World {
     pub content_hash: u64,
     pub seed: u64,
     pub scenario: Scenario,
-    pub day: u32,
+    /// The authoritative absolute clock is distinct from elapsed requests.
+    /// ```compile_fail
+    /// use sim_core::{DaySpan, World};
+    /// fn cannot_assign_elapsed_time(world: &mut World) { world.day = DaySpan::new(30); }
+    /// ```
+    /// ```compile_fail
+    /// use sim_core::World;
+    /// fn cannot_assign_a_raw_count(world: &mut World) { world.day = 30; }
+    /// ```
+    pub day: CampaignDay,
     pub player: CountryId,
     pub countries: BTreeMap<CountryId, Country>,
     pub next_command: CommandId,
@@ -569,7 +578,7 @@ impl World {
             content_hash: content.hash(),
             seed,
             scenario,
-            day: start_day,
+            day: CampaignDay::new(start_day),
             player: player.clone(),
             countries,
             event_sequences: (content.rules >= 22).then(|| {
@@ -608,7 +617,7 @@ impl World {
     pub fn command(&self, issuer: CountryId, action: Action) -> Command {
         Command {
             id: self.next_command,
-            day: self.day,
+            day: self.day.units(),
             issuer,
             action,
         }
@@ -643,7 +652,7 @@ impl World {
         self.events.push(Event {
             context: (self.rules >= 23).then_some(context),
             id,
-            day: self.day,
+            day: self.day.units(),
             country: country.clone(),
             important,
             text: text.into(),
@@ -698,7 +707,7 @@ impl World {
         }
         if paid > 0 {
             self.ledger.push(LedgerEntry {
-                day: self.day,
+                day: self.day.units(),
                 country: country.clone(),
                 from,
                 to,
@@ -723,8 +732,8 @@ impl World {
             return Err("Rules or content pack mismatch".into());
         }
         let start_day = content.start_day()?;
-        if self.day < start_day
-            || self.day > MAX_DAY
+        if self.day.units() < start_day
+            || self.day.units() > MAX_DAY
             || !self.countries.contains_key(&self.player)
             || self.countries.len() != content.countries.len()
             || self.next_command.0 != self.journal.len() as u64 + 1
@@ -914,7 +923,7 @@ impl World {
             };
             if command.id.0 != index as u64 + 1
                 || command.day < previous_day
-                || command.day > self.day
+                || command.day > self.day.units()
                 || !self.countries.contains_key(&command.issuer)
                 || entry.ai == (command.issuer == self.player)
                 || (entry.ai && entry.developer)
@@ -944,7 +953,7 @@ impl World {
             match (&c.markets, &content.markets) {
                 (None, None) => {}
                 (Some(markets), Some(definition)) => {
-                    markets.validate(definition, c, self.day, start_day)?
+                    markets.validate(definition, c, self.day.units(), start_day)?
                 }
                 _ => return Err("Country markets differ from the campaign rules/content".into()),
             }
@@ -1038,7 +1047,7 @@ impl World {
                     .len()
                     != c.coalition.len()
                 || c.next_election
-                    .is_some_and(|day| day <= self.day || day > MAX_DAY + 1460)
+                    .is_some_and(|day| day <= self.day.units() || day > MAX_DAY + 1460)
             {
                 return Err(format!(
                     "Invalid country balances, institutions or ranges: {}",
@@ -1120,8 +1129,8 @@ impl World {
                     )
                     != i128::from(c.committed_cash.0)
                 || c.budget.start_day < start_day
-                || c.budget.start_day > self.day
-                || c.budget.end_day <= self.day
+                || c.budget.start_day > self.day.units()
+                || c.budget.end_day <= self.day.units()
                 || c.budget.end_day > MAX_DAY + 366
                 || c.budget.opening_day_settled
                     != content
@@ -1143,7 +1152,8 @@ impl World {
                         || r.period.expected_cash() != r.closing_cash.0
                 })
                 || c.budget_reviews.len() > 10
-                || c.next_leadership_review.is_some_and(|day| day <= self.day)
+                || c.next_leadership_review
+                    .is_some_and(|day| day <= self.day.units())
             {
                 return Err(format!(
                     "Invalid household, commitment or budget reconciliation: {}",
@@ -1152,7 +1162,7 @@ impl World {
             }
             if c.history.iter().any(|o| {
                 o.day < start_day
-                    || o.day > self.day
+                    || o.day > self.day.units()
                     || !(0..=100).contains(&o.approval)
                     || !(0..=100).contains(&o.needs)
                     || [o.treasury.0, o.debt.0, o.output.0]
@@ -1171,9 +1181,9 @@ impl World {
                     || project.id.0 >= self.next_project
                     || project.reserved.0 < 0
                     || (project.stage == PolicyStage::AwaitingConsent
-                        && project.consent_day <= self.day)
+                        && project.consent_day <= self.day.units())
                     || (project.stage == PolicyStage::Implementing && project.reserved.0 != 0)
-                    || project.due_day <= self.day
+                    || project.due_day <= self.day.units()
                     || project.due_day > MAX_DAY + 1000
                     || !(p.min..=p.max).contains(&project.value)
                 {

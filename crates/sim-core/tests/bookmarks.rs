@@ -36,7 +36,7 @@ fn a_midyear_bookmark_initializes_clocks_fiscal_periods_and_pending_saves() {
     let content = content_at("2001-07-15").unwrap();
     let start = parse_date("2001-07-15").unwrap();
     let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
-    assert_eq!(world.day, start);
+    assert_eq!(world.day.units(), start);
     assert_eq!(world.player_country().budget.start_day, start);
     assert_eq!(
         world.player_country().budget.end_day,
@@ -55,7 +55,7 @@ fn a_midyear_bookmark_initializes_clocks_fiscal_periods_and_pending_saves() {
     world.advance(&content, sim_core::DaySpan::new(7)).unwrap();
     let mut restored =
         persistence::decode(&persistence::encode(&world, &content).unwrap(), &content).unwrap();
-    let remaining = parse_date("2002-01-01").unwrap() - world.day;
+    let remaining = parse_date("2002-01-01").unwrap() - world.day.units();
     restored
         .advance(&content, sim_core::DaySpan::new(remaining))
         .unwrap();
@@ -68,7 +68,7 @@ fn a_midyear_bookmark_initializes_clocks_fiscal_periods_and_pending_saves() {
         world.player_country().budget_reviews[0].period.start_day,
         start
     );
-    assert_eq!(world.player_country().budget.start_day, world.day);
+    assert_eq!(world.player_country().budget.start_day, world.day.units());
     persistence::replay(&world, &content).unwrap();
 }
 
@@ -87,7 +87,7 @@ fn a_later_bookmark_receives_five_calendar_years_before_its_review() {
     world
         .advance(
             &content,
-            sim_core::DaySpan::new(content.review_day().unwrap() - world.day - 1),
+            sim_core::DaySpan::new(content.review_day().unwrap() - world.day.units() - 1),
         )
         .unwrap();
     assert!(!world.milestone_reported);
@@ -97,7 +97,8 @@ fn a_later_bookmark_receives_five_calendar_years_before_its_review() {
         world
             .events
             .iter()
-            .any(|event| event.day == world.day && event.text.starts_with("Five-year review:"))
+            .any(|event| event.day == world.day.units()
+                && event.text.starts_with("Five-year review:"))
     );
     world.validate(&content).unwrap();
     persistence::replay(&world, &content).unwrap();

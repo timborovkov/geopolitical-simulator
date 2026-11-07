@@ -95,7 +95,8 @@ fn a_supplementary_budget_reserves_then_funds_actual_programmes_and_replays_disp
         .map(|p| p.due_day)
         .max()
         .unwrap();
-    w.advance(&c, sim_core::DaySpan::new(due - w.day)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due - w.day.units()))
+        .unwrap();
     assert_eq!(FiscalTargets::current(w.player_country()), target());
     assert!(bill(&w).programmes.iter().all(|p| {
         w.player_country()
@@ -155,7 +156,7 @@ fn annual_plans_never_operate_before_january_and_preserve_year_end_execution() {
     let review = bill(&w).review_day;
     let jan = parse_date("2001-01-01").unwrap();
     let original = w.player_country().tax;
-    w.advance(&c, sim_core::DaySpan::new(review - w.day))
+    w.advance(&c, sim_core::DaySpan::new(review - w.day.units()))
         .unwrap();
     assert_eq!(bill(&w).status, BudgetBillStatus::Enacted);
     assert_eq!(
@@ -168,7 +169,7 @@ fn annual_plans_never_operate_before_january_and_preserve_year_end_execution() {
         jan
     );
     check(&c, &w);
-    w.advance(&c, sim_core::DaySpan::new(jan - 1 - w.day))
+    w.advance(&c, sim_core::DaySpan::new(jan - 1 - w.day.units()))
         .unwrap();
     assert_eq!(w.player_country().tax, original);
     check(&c, &w);
@@ -199,7 +200,7 @@ fn successor_closes_pending_bills_but_keeps_enacted_funded_projects() {
     backing(&c, &mut w);
     propose(&c, &mut w, 2000, target());
     let review = bill(&w).review_day;
-    w.advance(&c, sim_core::DaySpan::new(review - w.day))
+    w.advance(&c, sim_core::DaySpan::new(review - w.day.units()))
         .unwrap();
     w.issue(
         &c,
@@ -420,7 +421,8 @@ fn budget_delivery_can_fulfil_support_without_fabricating_an_extra_programme() {
         .find(|p| p.id == service)
         .unwrap()
         .due_day;
-    w.advance(&c, sim_core::DaySpan::new(due - w.day)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(due - w.day.units()))
+        .unwrap();
     assert!(
         w.player_country()
             .undertakings
@@ -438,7 +440,7 @@ fn funded_annual_programmes_keep_their_dates_and_ordinary_withdrawal_is_sunk() {
     w.advance(&c, sim_core::DaySpan::new(200)).unwrap();
     let id = propose(&c, &mut w, 2001, target());
     let review = bill(&w).review_day;
-    w.advance(&c, sim_core::DaySpan::new(review - w.day))
+    w.advance(&c, sim_core::DaySpan::new(review - w.day.units()))
         .unwrap();
     let p = bill(&w).programmes[0].project;
     assert!(w.preview_amendment(&c, &w.player, p, 29).is_err());
@@ -504,7 +506,7 @@ fn proposals_near_campaign_end_reject_without_overflow_or_partial_costs() {
     c.start = "2094-01-01".into();
     c = c.at_bookmark("2094-01-01").unwrap();
     let mut w = World::new(&c, CountryId("AUR".into()), 17).unwrap();
-    w.day = MAX_DAY - 1;
+    w.day = sim_core::CampaignDay::new(MAX_DAY - 1);
     let hash = w.hash();
     assert!(
         w.issue(
@@ -544,7 +546,7 @@ fn constitutional_review_clocks_are_honored_once_and_survive_later_history() {
     .unwrap();
     w.advance(&c, sim_core::DaySpan::new(14)).unwrap();
     let p = w.preview_budget(&c, &w.player, 2000, &target()).unwrap();
-    assert_eq!(p.review_day, w.day + 180);
+    assert_eq!(p.review_day, w.day.units() + 180);
     propose(&c, &mut w, 2000, target());
     check(&c, &w);
     w.advance(&c, sim_core::DaySpan::new(180)).unwrap();
@@ -555,8 +557,8 @@ fn constitutional_review_clocks_are_honored_once_and_survive_later_history() {
         .iter()
         .find(|p| p.policy == "income_tax")
         .unwrap();
-    assert_eq!(tax.consent_day, w.day);
-    assert!(tax.due_day - w.day < 180);
+    assert_eq!(tax.consent_day, w.day.units());
+    assert!(tax.due_day - w.day.units() < 180);
     check(&c, &w);
 }
 #[test]
@@ -565,7 +567,7 @@ fn january_delivery_and_settlement_belong_to_the_new_fiscal_year() {
     w.advance(&c, sim_core::DaySpan::new(200)).unwrap();
     propose(&c, &mut w, 2001, target());
     let jan = parse_date("2001-01-01").unwrap();
-    w.advance(&c, sim_core::DaySpan::new(jan - 1 - w.day))
+    w.advance(&c, sim_core::DaySpan::new(jan - 1 - w.day.units()))
         .unwrap();
     let previous = w.player_country().budget.clone();
     let closing_cash = w.player_country().accounts.treasury;

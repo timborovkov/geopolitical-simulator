@@ -96,7 +96,9 @@ impl World {
         let due: Vec<_> = self.countries[id]
             .projects
             .iter()
-            .filter(|p| p.stage == PolicyStage::AwaitingConsent && p.consent_day <= self.day)
+            .filter(|p| {
+                p.stage == PolicyStage::AwaitingConsent && p.consent_day <= self.day.units()
+            })
             .cloned()
             .collect();
         for project in due {

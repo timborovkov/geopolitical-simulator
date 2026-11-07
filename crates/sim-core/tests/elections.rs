@@ -182,7 +182,7 @@ fn an_earlier_mandatory_confidence_poll_supersedes_an_announced_poll() {
     assert_eq!(w.player_country().next_election, Some(247));
     check(&w, &c);
     w.advance(&c, sim_core::DaySpan::new(113)).unwrap();
-    assert_eq!(w.day, 180);
+    assert_eq!(w.day.units(), 180);
     assert_eq!(w.player_country().next_election, Some(181));
     assert_eq!(
         w.player_country()
@@ -298,8 +298,11 @@ fn request_cash_calendar_and_existing_poll_deadlines_are_enforced() {
     );
     let later = c.at_bookmark("2095-01-01").unwrap();
     let mut near = start(&later, "AUR");
-    near.advance(&later, sim_core::DaySpan::new(MAX_DAY - near.day - 10))
-        .unwrap();
+    near.advance(
+        &later,
+        sim_core::DaySpan::new(MAX_DAY - near.day.units() - 10),
+    )
+    .unwrap();
     assert!(
         near.preview_election(&later, &near.player)
             .unwrap_err()

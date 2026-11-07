@@ -221,7 +221,7 @@ pub(crate) fn next_fiscal_end(day: u32) -> u32 {
 }
 impl World {
     pub(crate) fn review_budget(&mut self, content: &Content, id: &CountryId) {
-        if self.countries[id].budget.end_day != self.day {
+        if self.countries[id].budget.end_day != self.day.units() {
             return;
         }
         let c = self.countries.get_mut(id).expect("country");
@@ -234,7 +234,7 @@ impl World {
         if c.budget_reviews.len() > 10 {
             c.budget_reviews.remove(0);
         }
-        let variance = c.budget.revenue.0 - c.budget.expected_revenue(self.day);
+        let variance = c.budget.revenue.0 - c.budget.expected_revenue(self.day.units());
         let message = format!(
             "Fiscal year closed: revenue {}m ({variance:+}m against opening forecast), payments {}m, capital {}m, closing cash {}m, arrears {}m. Variance reflects supply, collection, cash-constrained wages and policy changes; financing is shown separately.",
             c.budget.revenue.0,
@@ -244,8 +244,8 @@ impl World {
             c.arrears.0
         );
         c.budget = BudgetPeriod {
-            start_day: self.day,
-            end_day: next_fiscal_end(self.day),
+            start_day: self.day.units(),
+            end_day: next_fiscal_end(self.day.units()),
             opening_cash: c.accounts.treasury,
             opening_day_settled: content.fiscal_plans.as_ref().map(|_| true),
             forecast: c.forecast(d, content.income_taxes.as_ref()),

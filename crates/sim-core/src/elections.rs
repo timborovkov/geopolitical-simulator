@@ -214,7 +214,7 @@ impl World {
         if state.pending().is_some() || state.announced().is_some() {
             return Err("An election request or announced poll is already active".into());
         }
-        if self.day < state.next_request_day {
+        if self.day.units() < state.next_request_day {
             return Err(format!(
                 "The electoral authority's minimum interval runs until {}",
                 date(state.next_request_day)
@@ -222,6 +222,7 @@ impl World {
         }
         let decision_day = self
             .day
+            .units()
             .checked_add(rules.decision_days.units())
             .ok_or("Election decision date overflow")?;
         let vote_day = decision_day
@@ -268,7 +269,7 @@ impl World {
         let c = self.countries.get_mut(id).expect("country");
         c.budget.capital.0 += preview.fee.0;
         let state = c.electoral_authority.as_mut().expect("authority");
-        state.next_request_day = self.day
+        state.next_request_day = self.day.units()
             + content
                 .elections
                 .as_ref()
@@ -277,7 +278,7 @@ impl World {
                 .units();
         state.cases.push(ElectionCase {
             id: request,
-            proposed_day: self.day,
+            proposed_day: self.day.units(),
             decision_day: preview.decision_day,
             vote_day: preview.vote_day,
             sponsor: c.government_number,
@@ -308,7 +309,7 @@ impl World {
             return Err("Only an unapproved request can be withdrawn; an announced poll cannot be cancelled by government order".into());
         }
         case.status = ElectionCaseStatus::Withdrawn;
-        case.resolved_day = Some(self.day);
+        case.resolved_day = Some(self.day.units());
         self.event(id,true,format!("Early-election request #{} withdrawn before approval. Administration remains spent and the electoral interval remains in force.",request.0));
         Ok(())
     }
@@ -333,7 +334,7 @@ impl World {
                 || (changed || earlier) && case.status == ElectionCaseStatus::Announced
             {
                 case.status = ElectionCaseStatus::Superseded;
-                case.resolved_day = Some(self.day);
+                case.resolved_day = Some(self.day.units());
                 cancelled = true;
             }
         }
@@ -342,7 +343,7 @@ impl World {
         if changed {
             state.next_request_day = state
                 .next_request_day
-                .max(self.day + rules.minimum_interval_days.units());
+                .max(self.day.units() + rules.minimum_interval_days.units());
         }
         if cancelled {
             self.event(id,true,if earlier { "An earlier mandatory confidence poll superseded the announced election. The authority retains the earlier legal date; paid administration remains spent." } else { "Electoral mandate or sponsoring cabinet changed. Superseded requests and polls remain in history; paid administration remains spent. A government order alone cannot cancel an announced poll." });
@@ -357,7 +358,7 @@ impl World {
             .as_ref()
             .expect("authority")
             .pending()
-            .filter(|c| c.decision_day <= self.day)
+            .filter(|c| c.decision_day <= self.day.units())
             .cloned()
         else {
             return;
@@ -381,7 +382,7 @@ impl World {
             .iter_mut()
             .find(|r| r.id == case.id)
             .expect("request");
-        request.resolved_day = Some(self.day);
+        request.resolved_day = Some(self.day.units());
         if let Some(reason) = reason {
             request.status = ElectionCaseStatus::Refused {
                 reason: reason.clone(),
@@ -407,10 +408,10 @@ impl World {
         let case = state
             .cases
             .iter_mut()
-            .find(|r| r.status == ElectionCaseStatus::Announced && r.vote_day == self.day);
+            .find(|r| r.status == ElectionCaseStatus::Announced && r.vote_day == self.day.units());
         let request = case.map(|r| {
             r.status = ElectionCaseStatus::Conducted;
-            r.resolved_day = Some(self.day);
+            r.resolved_day = Some(self.day.units());
             r.id
         });
         for pending in state
@@ -419,10 +420,10 @@ impl World {
             .filter(|c| c.status == ElectionCaseStatus::Pending)
         {
             pending.status = ElectionCaseStatus::Superseded;
-            pending.resolved_day = Some(self.day);
+            pending.resolved_day = Some(self.day.units());
         }
         state.polls.push(ElectoralPoll {
-            day: self.day,
+            day: self.day.units(),
             request,
             government_before,
             government_after: c.government_number,
@@ -432,22 +433,22 @@ impl World {
         });
         state.next_request_day = state
             .next_request_day
-            .max(self.day + rules.minimum_interval_days.units());
-        c.next_election = date(self.day)
+            .max(self.day.units() + rules.minimum_interval_days.units());
+        c.next_election = date(self.day.units())
             .parse::<CivilDate>()
             .expect("date")
             .anniversary(rules.regular_term_years)
             .and_then(CivilDate::campaign_day)
             .ok();
-        self.event(id,true,format!("Electoral authority recorded the {} modeled poll and its 100-seat allocation. Next regular poll {}. This scenario does not model turnout, electoral districts or electoral-integrity certification.",date(self.day),self.countries[id].next_election.map_or_else(||"falls outside the playable calendar".into(),date)));
+        self.event(id,true,format!("Electoral authority recorded the {} modeled poll and its 100-seat allocation. Next regular poll {}. This scenario does not model turnout, electoral districts or electoral-integrity certification.",date(self.day.units()),self.countries[id].next_election.map_or_else(||"falls outside the playable calendar".into(),date)));
     }
     pub(crate) fn ai_election_request(&mut self, content: &Content, id: &CountryId) {
         if content.elections.is_none()
-            || !self.day.is_multiple_of(90)
+            || !self.day.units().is_multiple_of(90)
             || self.countries[id].approval < 70
             || self.countries[id]
                 .next_election
-                .is_some_and(|day| day.saturating_sub(self.day) <= 365)
+                .is_some_and(|day| day.saturating_sub(self.day.units()) <= 365)
         {
             return;
         }
@@ -554,14 +555,14 @@ impl World {
             let valid = match &case.status {
                 ElectionCaseStatus::Pending => {
                     resolved.is_none()
-                        && case.decision_day > self.day
+                        && case.decision_day > self.day.units()
                         && case.sponsor == state.government
                         && case.form == state.regime
                 }
                 ElectionCaseStatus::Announced => {
                     resolved == Some(case.decision_day)
-                        && case.decision_day <= self.day
-                        && case.vote_day > self.day
+                        && case.decision_day <= self.day.units()
+                        && case.vote_day > self.day.units()
                         && country.next_election == Some(case.vote_day)
                         && case.form == state.regime
                 }
@@ -573,16 +574,16 @@ impl World {
                             .any(|p| p.request == Some(case.id) && p.day == case.vote_day)
                 }
                 ElectionCaseStatus::Withdrawn => resolved.is_some_and(|day| {
-                    day >= case.proposed_day && day < case.decision_day && day <= self.day
+                    day >= case.proposed_day && day < case.decision_day && day <= self.day.units()
                 }),
                 ElectionCaseStatus::Refused { reason } => {
                     !reason.is_empty()
                         && resolved == Some(case.decision_day)
-                        && case.decision_day <= self.day
+                        && case.decision_day <= self.day.units()
                 }
                 ElectionCaseStatus::Superseded => resolved.is_some_and(|day| {
                     day >= case.proposed_day
-                        && day <= self.day
+                        && day <= self.day.units()
                         && (case.sponsor < state.government
                             || country
                                 .next_election
@@ -599,7 +600,7 @@ impl World {
         }
         for poll in &state.polls {
             if poll.day < start
-                || poll.day > self.day
+                || poll.day > self.day.units()
                 || poll.government_before == crate::GovernmentId(0)
                 || poll.government_after < poll.government_before
                 || poll.government_after > country.government_number

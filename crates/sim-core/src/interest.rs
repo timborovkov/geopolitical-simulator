@@ -162,7 +162,7 @@ impl AccruedInterest {
         id: &CountryId,
     ) -> Result<(), String> {
         let c = &world.countries[id];
-        let days = world.day - content.start_day()?;
+        let days = world.day.units() - content.start_day()?;
         let numerator = i128::from(self.principal_days) * i128::from(INTEREST_RATE_BPS);
         let whole = numerator / i128::from(INTEREST_DENOMINATOR);
         if i128::from(self.principal_days) > i128::from(days) * i128::from(MAX_PRINCIPAL)
@@ -193,7 +193,7 @@ impl AccruedInterest {
         let repayments: i128 = world
             .journal
             .iter()
-            .filter(|e| e.command.issuer == *id && e.command.day == world.day)
+            .filter(|e| e.command.issuer == *id && e.command.day == world.day.units())
             .filter_map(|e| match e.command.action {
                 Action::Repay { amount } => Some(i128::from(amount.0)),
                 _ => None,
@@ -207,15 +207,15 @@ impl AccruedInterest {
             .iter()
             .filter(|loan| {
                 loan.id.0 > 0
-                    && loan.issued_day == world.day
+                    && loan.issued_day == world.day.units()
                     && world
                         .journal
                         .get(loan.id.0 as usize - 1)
-                        .is_some_and(|e| e.command.day == world.day)
+                        .is_some_and(|e| e.command.day == world.day.units())
             })
             .map(|loan| i128::from(loan.original_principal.0))
             .sum();
-        if last.day != world.day
+        if last.day != world.day.units()
             || i128::from(last.principal.0) != i128::from(c.debt.0) + repayments - issued_after
             || self.principal_days < last.principal.0 as u64
             || u64::from(last.opening_remainder)
@@ -239,7 +239,7 @@ impl World {
             .as_mut()
             .and_then(|f| f.interest_accrual.as_mut())
         {
-            state.assess(c.debt, self.day)
+            state.assess(c.debt, self.day.units())
         } else {
             minimum_daily_interest(c.debt)
         }

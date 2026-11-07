@@ -26,14 +26,14 @@ impl AdvanceJob {
         important: bool,
     ) -> Result<Self, String> {
         let days = elapsed.units();
-        if world.day > MAX_DAY || days > MAX_DAY.saturating_sub(world.day) {
+        if world.day.units() > MAX_DAY || days > MAX_DAY.saturating_sub(world.day.units()) {
             return Err("Requested date exceeds the 100-year campaign limit".into());
         }
         if world.content_hash != content.hash() {
             return Err("Campaign content mismatch".into());
         }
         world.validate(&content)?;
-        let start_day = world.day;
+        let start_day = world.day.units();
         let (sender, receiver) = mpsc::channel();
         let stop = Arc::new(AtomicBool::new(false));
         let completed = Arc::new(AtomicU32::new(0));
@@ -50,12 +50,11 @@ impl AdvanceJob {
                     error = Some(reason);
                     break;
                 }
-                progress.store(world.day - start_day, Ordering::Relaxed);
+                progress.store(world.day.units() - start_day, Ordering::Relaxed);
                 if important
-                    && world
-                        .events
-                        .iter()
-                        .any(|e| e.day == world.day && e.country == world.player && e.important)
+                    && world.events.iter().any(|e| {
+                        e.day == world.day.units() && e.country == world.player && e.important
+                    })
                 {
                     stopped_for_event = true;
                     break;
@@ -119,13 +118,13 @@ mod tests {
             .recv_timeout(std::time::Duration::from_secs(10))
             .unwrap();
         assert!(outcome.error.is_none());
-        assert!(outcome.world.day <= 14);
+        assert!(outcome.world.day.units() <= 14);
         assert!(
             outcome
                 .world
                 .events
                 .iter()
-                .any(|e| e.day == outcome.world.day
+                .any(|e| e.day == outcome.world.day.units()
                     && e.country == outcome.world.player
                     && e.important)
         );
@@ -173,7 +172,7 @@ mod tests {
             .receiver
             .recv_timeout(std::time::Duration::from_secs(10))
             .unwrap();
-        assert_eq!(result.world.day, 30);
+        assert_eq!(result.world.day.units(), 30);
         assert!(result.stopped_for_event);
     }
     #[test]
@@ -181,7 +180,7 @@ mod tests {
         let c =
             Content::from_json(include_str!("../../../data/synthetic-dated-test.json")).unwrap();
         let mut expected = World::new(&c, CountryId("AUR".into()), 17).unwrap();
-        let start = expected.day;
+        let start = expected.day.units();
         assert!(start > 0);
         let elapsed = DaySpan::new(3);
         let job = AdvanceJob::start(expected.clone(), c.clone(), elapsed, false).unwrap();
@@ -192,7 +191,7 @@ mod tests {
             .recv_timeout(std::time::Duration::from_secs(10))
             .unwrap();
         assert!(outcome.error.is_none());
-        assert_eq!(outcome.world.day, start + elapsed.units());
+        assert_eq!(outcome.world.day.units(), start + elapsed.units());
         assert_eq!(job.completed.load(Ordering::Relaxed), elapsed.units());
         expected.advance(&c, elapsed).unwrap();
         assert_eq!(
@@ -216,9 +215,12 @@ mod tests {
             .unwrap();
         let mut expected = w;
         expected
-            .advance(&c, DaySpan::new(result.world.day - expected.day))
+            .advance(
+                &c,
+                DaySpan::new(result.world.day.units() - expected.day.units()),
+            )
             .unwrap();
-        assert!(result.world.day < 1000);
+        assert!(result.world.day.units() < 1000);
         assert_eq!(result.world.hash(), expected.hash());
     }
 }

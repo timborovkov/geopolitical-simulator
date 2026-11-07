@@ -276,7 +276,7 @@ fn outlook_shares_existing_fraction_with_a_new_loan_and_times_the_first_cash_gap
             10,
             Some(LoanAssumption {
                 amount: Money(300),
-                decision_day: w.day,
+                decision_day: w.day.units(),
             }),
         )
         .unwrap();

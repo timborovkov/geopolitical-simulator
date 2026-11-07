@@ -57,7 +57,10 @@ fn quarter_boundary_samples_survive_snapshot_replay_and_chunked_advancement() {
     let mut resumed = World::new(&content, CountryId("GBR".into()), 0).unwrap();
     for target in [89, 90, 91, 110, 111] {
         resumed
-            .advance(&content, sim_core::DaySpan::new(target - resumed.day))
+            .advance(
+                &content,
+                sim_core::DaySpan::new(target - resumed.day.units()),
+            )
             .unwrap();
         let bytes = persistence::encode(&resumed, &content).unwrap();
         resumed = persistence::decode(&bytes, &content).unwrap();

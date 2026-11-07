@@ -46,7 +46,8 @@ impl Panel {
                 &mut self.annual,
                 "Next-year annual budget (otherwise current-year supplementary)",
             );
-            let year = date(world.day)[..4].parse::<u32>().expect("year") + u32::from(self.annual);
+            let year =
+                date(world.day.units())[..4].parse::<u32>().expect("year") + u32::from(self.annual);
             match world.preview_budget(content, &world.player, year, targets) {
                 Ok(p) => {
                     ui.label(format!("Fiscal year {year} · {} · review {} · legal start {}. Pay {}m administration now; reserve {}m implementation cash.",p.route,date(p.review_day),date(p.effective_day),p.fee.0,p.implementation_cost.0));

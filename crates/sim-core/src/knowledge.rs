@@ -161,7 +161,7 @@ impl World {
         }
         Ok(PlayerView {
             own_events,
-            day: self.day,
+            day: self.day.units(),
             rules: self.rules,
             content_hash: self.content_hash,
             developer_modified: self.is_developer_modified(),

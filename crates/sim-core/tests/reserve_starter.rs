@@ -94,7 +94,7 @@ fn dated_supply_feedback_explains_both_physical_shortfalls_and_quota_bottlenecks
             .reserve_supply(&content, &world.player, good)
             .unwrap()
             .unwrap();
-        assert_eq!(s.day, world.day);
+        assert_eq!(s.day, world.day.units());
         assert!(s.civilian_supply < s.physical_need);
         assert!(s.explanation().contains("physical needs were not covered"));
         assert_eq!(

@@ -54,13 +54,13 @@ fn amendment_pays_restarts_consent_and_preserves_direct_and_observed_history() {
     assert_eq!(w.player_country().accounts.treasury.0, before.0 - 2);
     assert_eq!(w.player_country().committed_cash, Money(18));
     check(&w, &c);
-    w.advance(&c, sim_core::DaySpan::new(p.consent_day - w.day))
+    w.advance(&c, sim_core::DaySpan::new(p.consent_day - w.day.units()))
         .unwrap();
     let r = &w.player_country().commitments.as_ref().unwrap()[0];
     assert_eq!(r.stage(), CommitmentStage::Implementing);
     assert_eq!(r.paid, Money(22));
     check(&w, &c);
-    w.advance(&c, sim_core::DaySpan::new(p.due_day - w.day))
+    w.advance(&c, sim_core::DaySpan::new(p.due_day - w.day.units()))
         .unwrap();
     assert_eq!(w.player_country().tax, 32);
     assert!(w.player_country().projects.is_empty());
@@ -117,7 +117,7 @@ fn withdrawal_releases_only_reservations_and_cannot_cancel_a_finished_programme(
     assert_eq!(w.player_country().accounts, before);
     check(&w, &c);
     let id = enact(&mut w, &c, "income_tax", 28);
-    let delay = w.player_country().projects[0].due_day - w.day;
+    let delay = w.player_country().projects[0].due_day - w.day.units();
     w.advance(&c, sim_core::DaySpan::new(delay)).unwrap();
     let hash = w.hash();
     assert!(
@@ -397,7 +397,7 @@ fn legacy_rules_keep_hashes_and_reject_lifecycle_orders_and_malformed_state() {
             .unwrap()
             .contains("proposal_command")
     );
-    w.day = MAX_DAY;
+    w.day = sim_core::CampaignDay::new(MAX_DAY);
     let hash = w.hash();
     assert!(
         w.issue(

@@ -35,7 +35,7 @@ impl Inspector {
         ui.label(format!(
             "{} · {} · rules {} · snapshot writer format {}",
             content.country(target).expect("country").name,
-            date(world.day),
+            date(world.day.units()),
             world.rules,
             persistence::snapshot_schema(world)
         ));

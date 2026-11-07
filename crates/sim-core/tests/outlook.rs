@@ -52,7 +52,7 @@ fn immediate_manual_borrowing_adds_cash_now_and_interest_from_the_next_settlemen
     let (content, world) = setup();
     let loan = LoanAssumption {
         amount: Money(10000),
-        decision_day: world.day,
+        decision_day: world.day.units(),
     };
     let plan = world.funding_outlook(&content, 1, Some(loan)).unwrap();
     assert_eq!(
@@ -157,7 +157,7 @@ fn unsafe_horizons_dates_inputs_and_overflow_fail_without_state_changes() {
     }
     assert_eq!(world.hash(), before);
     let mut ending = world.clone();
-    ending.day = MAX_DAY;
+    ending.day = CampaignDay::new(MAX_DAY);
     assert!(ending.funding_outlook(&content, 1, None).is_err());
     assert_eq!(
         ending

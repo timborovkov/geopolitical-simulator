@@ -29,11 +29,9 @@ fn summarize(world: &World, country: &CountryId, first: u32) -> Result<Summary, 
         .ok_or("Unknown cash-flow country")?;
     let closing = ACCOUNTS.map(|account| state.accounts.balance(account));
     let mut amounts = [[0_i128; 4]; 4];
-    for entry in world
-        .ledger
-        .iter()
-        .filter(|entry| &entry.country == country && entry.day >= first && entry.day <= world.day)
-    {
+    for entry in world.ledger.iter().filter(|entry| {
+        &entry.country == country && entry.day >= first && entry.day <= world.day.units()
+    }) {
         if entry.amount.0 < 0 {
             return Err("Invalid negative cash transfer".into());
         }
@@ -93,8 +91,8 @@ impl CashFlows {
                 ui.selectable_value(&mut self.days, 30, "Last 30 days");
                 if ui.button("All routes").clicked() { self.route = None; }
             });
-            let first = world.day.saturating_sub(self.days - 1).max(content.start_day().expect("validated bookmark"));
-            ui.label(format!("{} through {} inclusive · millions of constant-2000 USD-equivalent game credits", date(first), date(world.day)));
+            let first = world.day.units().saturating_sub(self.days - 1).max(content.start_day().expect("validated bookmark"));
+            ui.label(format!("{} through {} inclusive · millions of constant-2000 USD-equivalent game credits", date(first), date(world.day.units())));
             ui.label("Rows pay columns. Select an amount to inspect its recorded transactions. Reservations and unpaid obligations are separate from these cash transfers; transfer totals are not GDP or net public expenditure.");
             let summary = match summarize(world, country, first) { Ok(summary) => summary, Err(error) => { ui.colored_label(egui::Color32::LIGHT_YELLOW, error); return; } };
             let max = summary.transfers.iter().flatten().copied().max().unwrap_or(0).max(1) as f32;
@@ -124,7 +122,7 @@ impl CashFlows {
                 ui.monospace(format!("{name}: {}m {:+}m = {}m", summary.opening[i], summary.closing[i] - summary.opening[i], summary.closing[i]));
             }
             ui.small("Opening cash is reconstructed immediately before this period's recorded transfers. Sector totals include only this country's finite external counterpart; the model does not claim a full global financial network.");
-            let entries: Vec<_> = world.ledger.iter().rev().filter(|entry| &entry.country == country && entry.day >= first && entry.day <= world.day
+            let entries: Vec<_> = world.ledger.iter().rev().filter(|entry| &entry.country == country && entry.day >= first && entry.day <= world.day.units()
                 && self.route.is_none_or(|(from, to)| index(entry.from) == from && index(entry.to) == to)).collect();
             let route = self.route.map_or_else(|| "All routes".into(), |(from, to)| format!("{} to {}", NAMES[from], NAMES[to]));
             ui.strong(format!("{route} · {} transactions · latest 80 shown", entries.len()));
@@ -148,7 +146,7 @@ mod tests {
         ] {
             let content = Content::from_json(fixture).unwrap();
             let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
-            let start = world.day;
+            let start = world.day.units();
             let initial = ACCOUNTS.map(|account| world.player_country().accounts.balance(account));
             world
                 .issue(

@@ -68,8 +68,11 @@ fn the_seeded_fiscal_roster_preserves_all_prior_data_and_each_country_can_delive
             w.player_country().committed_cash,
             preview.implementation_cost
         );
-        w.advance(&c, sim_core::DaySpan::new(preview.review_day - w.day))
-            .unwrap();
+        w.advance(
+            &c,
+            sim_core::DaySpan::new(preview.review_day - w.day.units()),
+        )
+        .unwrap();
         let bill = w
             .player_country()
             .fiscal_plans
@@ -88,7 +91,8 @@ fn the_seeded_fiscal_roster_preserves_all_prior_data_and_each_country_can_delive
             .map(|p| p.due_day)
             .max()
             .unwrap();
-        w.advance(&c, sim_core::DaySpan::new(due - w.day)).unwrap();
+        w.advance(&c, sim_core::DaySpan::new(due - w.day.units()))
+            .unwrap();
         assert_eq!(
             FiscalTargets::current(w.player_country()),
             t,

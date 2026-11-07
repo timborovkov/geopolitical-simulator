@@ -99,8 +99,8 @@ fn each_seeded_government_can_issue_a_dated_loan_through_its_ordinary_authority_
             .iter()
             .find(|loan| loan.id == id)
             .unwrap();
-        assert_eq!(loan.issued_day, world.day);
-        assert_eq!(loan.maturity_day, Some(world.day + 365));
+        assert_eq!(loan.issued_day, world.day.units());
+        assert_eq!(loan.maturity_day, Some(world.day.units() + 365));
         assert_eq!(loan.maturity_repaid, Some(Money(0)));
         assert!(
             world

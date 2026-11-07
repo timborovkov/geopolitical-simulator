@@ -503,7 +503,7 @@ fn misalignment_can_block_authority_and_costed_support_restores_it_without_free_
             .penalty,
         20
     );
-    while world.player_country().legislative_support >= 51 && world.day < 360 {
+    while world.player_country().legislative_support >= 51 && world.day.units() < 360 {
         world.advance(&content, sim_core::DaySpan::new(30)).unwrap();
     }
     assert!(world.player_country().legislative_support < 51);
@@ -535,7 +535,7 @@ fn misalignment_can_block_authority_and_costed_support_restores_it_without_free_
         .unwrap()
         .due_day;
     world
-        .advance(&content, sim_core::DaySpan::new(due - world.day))
+        .advance(&content, sim_core::DaySpan::new(due - world.day.units()))
         .unwrap();
     assert!(world.player_country().legislative_support >= 51);
     assert!(
