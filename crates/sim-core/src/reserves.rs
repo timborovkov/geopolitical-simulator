@@ -5,19 +5,19 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ReserveDefinition {
-    pub capacity_days: u32,
+    pub capacity_days: NeedDays,
     pub order_days: DaySpan,
     pub fee_bps: BasisPoints,
-    pub ai_target_days: u32,
+    pub ai_target_days: NeedDays,
     pub source: String,
     pub source_version: String,
 }
 impl ReserveDefinition {
     pub fn validate(&self, content: &Content) -> Result<(), String> {
-        if !(1..=10).contains(&self.capacity_days)
+        if !(1..=10).contains(&self.capacity_days.units())
             || !(30..=365).contains(&self.order_days.units())
             || !(1..=10).contains(&self.fee_bps.units())
-            || !(1..=self.capacity_days).contains(&self.ai_target_days)
+            || !(1..=self.capacity_days.units()).contains(&self.ai_target_days.units())
             || self.source_version.trim().is_empty()
             || self.source_version.len() > 128
             || !content.sources.iter().any(|s| s.id == self.source)
@@ -48,7 +48,7 @@ impl ReserveStatus {
 pub struct ReserveOrder {
     pub id: ReserveOrderId,
     pub good: GoodKind,
-    pub days: u32,
+    pub days: NeedDays,
     pub quantity: i64,
     pub filled: i64,
     pub price_bps: BasisPoints,
@@ -229,7 +229,7 @@ impl World {
         content: &Content,
         id: &CountryId,
         good: GoodKind,
-        days: u32,
+        days: NeedDays,
     ) -> Result<ReservePreview, String> {
         if self.content_hash != content.hash() || self.rules != content.rules {
             return Err("Reserve procurement requires the campaign's exact content".into());
@@ -244,14 +244,14 @@ impl World {
             .reserves
             .as_ref()
             .ok_or("Missing national reserve state")?;
-        if !(1..=rules.capacity_days).contains(&days) {
+        if !(1..=rules.capacity_days.units()).contains(&days.units()) {
             return Err(format!(
                 "Choose 1..{} days of baseline physical need",
                 rules.capacity_days
             ));
         }
         let need = (c.population.0 / 1000) as i64;
-        let quantity = need * i64::from(days);
+        let quantity = need * i64::from(days.units());
         if state
             .orders
             .iter()
@@ -259,7 +259,7 @@ impl World {
         {
             return Err("This commodity already has an open procurement contract".into());
         }
-        if state.stored(good) + quantity > need * i64::from(rules.capacity_days) {
+        if state.stored(good) + quantity > need * i64::from(rules.capacity_days.units()) {
             return Err("The order would exceed national storage capacity".into());
         }
         let government = self.governing_rules(content, id)?;
@@ -308,7 +308,7 @@ impl World {
         id: &CountryId,
         request: ReserveOrderId,
         good: GoodKind,
-        days: u32,
+        days: NeedDays,
     ) -> Result<(), String> {
         let p = self.preview_reserve(content, id, good, days)?;
         self.pay(
@@ -662,7 +662,7 @@ fn validate_stock<Q: Copy>(
     let purchased = units(s.purchased);
     let released = units(s.released);
     let lost = units(s.lost);
-    if !(0..=need * i64::from(rules.capacity_days)).contains(&stored)
+    if !(0..=need * i64::from(rules.capacity_days.units())).contains(&stored)
         || [purchased, released, lost]
             .iter()
             .any(|v| !(0..=1_000_000_000_000_000).contains(v))
@@ -686,7 +686,7 @@ fn validate_stock<Q: Copy>(
         || [opening, bought, used, loss]
             .iter()
             .any(|v| !(0..=1_000_000_000).contains(v))
-        || opening > need * i64::from(rules.capacity_days)
+        || opening > need * i64::from(rules.capacity_days.units())
         || used > opening.min(need)
         || used != opening.min((need - (supply - used)).max(0))
         || bought != purchased_today
@@ -754,8 +754,8 @@ impl World {
                 || command.command.issuer != *id
                 || command.command.day != o.proposed_day
                 || !matches!(command.command.action,Action::ProcureReserve{good,days} if good==o.good&&days==o.days)
-                || !(1..=rules.capacity_days).contains(&o.days)
-                || o.quantity != need * i64::from(o.days)
+                || !(1..=rules.capacity_days.units()).contains(&o.days.units())
+                || o.quantity != need * i64::from(o.days.units())
                 || !(0..=o.quantity).contains(&o.filled)
                 || !(market.minimum_price_bps.units()..=market.maximum_price_bps.units())
                     .contains(&o.price_bps.units())

@@ -648,7 +648,7 @@ impl World {
             .min(
                 energy_demand
                     .scaled(
-                        i64::from(energy_rule.map_or(3, |rule| rule.storage_days)),
+                        i64::from(energy_rule.map_or(3, |rule| rule.storage_days.units())),
                         1,
                     )
                     .expect("bounded demand")
@@ -659,7 +659,10 @@ impl World {
             .expect("bounded capacity")
             .min(
                 food_demand
-                    .scaled(i64::from(food_rule.map_or(11, |rule| rule.storage_days)), 1)
+                    .scaled(
+                        i64::from(food_rule.map_or(11, |rule| rule.storage_days.units())),
+                        1,
+                    )
                     .expect("bounded demand")
                     .saturating_sub(c.food_stock),
             );

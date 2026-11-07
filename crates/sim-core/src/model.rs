@@ -216,9 +216,16 @@ impl Country {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
+    /// A purchased stock quantity cannot be supplied as elapsed time.
+    /// ```compile_fail
+    /// use sim_core::{Action, DaySpan, GoodKind};
+    /// fn cannot_buy_a_wait_duration() {
+    ///     let action = Action::ProcureReserve { good: GoodKind::Energy, days: DaySpan::new(1) };
+    /// }
+    /// ```
     ProcureReserve {
         good: GoodKind,
-        days: u32,
+        days: NeedDays,
     },
     CancelReserve {
         request: ReserveOrderId,
@@ -732,7 +739,7 @@ impl World {
                 Action::ProcureReserve { days, .. } => content
                     .reserves
                     .as_ref()
-                    .is_some_and(|r| (1..=r.capacity_days).contains(days)),
+                    .is_some_and(|r| (1..=r.capacity_days.units()).contains(&days.units())),
                 Action::CancelReserve { request } => {
                     content.reserves.is_some()
                         && request.0 > 0

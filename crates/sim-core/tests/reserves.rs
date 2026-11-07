@@ -22,8 +22,14 @@ fn world(c: &Content) -> World {
 }
 fn issue(w: &mut World, c: &Content, g: GoodKind, days: u32) -> ReserveOrderId {
     let request = ReserveOrderId(w.next_command.0);
-    w.issue(c, Action::ProcureReserve { good: g, days })
-        .unwrap();
+    w.issue(
+        c,
+        Action::ProcureReserve {
+            good: g,
+            days: sim_core::NeedDays::new(days),
+        },
+    )
+    .unwrap();
     request
 }
 fn verify(w: &World, c: &Content) {
@@ -35,7 +41,9 @@ fn proposal_is_paid_reserved_and_delayed_then_deliveries_reconcile_cash_and_spar
     let c = content();
     let mut w = world(&c);
     let opening = w.player_country().accounts.clone();
-    let p = w.preview_reserve(&c, &id(), GoodKind::Energy, 1).unwrap();
+    let p = w
+        .preview_reserve(&c, &id(), GoodKind::Energy, NeedDays::new(1))
+        .unwrap();
     let r = issue(&mut w, &c, GoodKind::Energy, 1);
     assert_eq!(
         w.player_country().reserves.as_ref().unwrap().energy.stored,
@@ -179,7 +187,9 @@ fn unfed_civilian_physical_needs_prevent_national_procurement_and_expiry_release
         d.food = 40;
     }
     let mut w = world(&c);
-    let p = w.preview_reserve(&c, &id(), GoodKind::Energy, 1).unwrap();
+    let p = w
+        .preview_reserve(&c, &id(), GoodKind::Energy, NeedDays::new(1))
+        .unwrap();
     issue(&mut w, &c, GoodKind::Energy, 1);
     w.advance(&c, sim_core::DaySpan::new(p.expiry_day + 1))
         .unwrap();
@@ -242,7 +252,9 @@ fn support_is_rechecked_at_consent_and_refusal_does_not_deliver_goods() {
     }
     c.validate().unwrap();
     let mut w = world(&c);
-    let p = w.preview_reserve(&c, &id(), GoodKind::Energy, 1).unwrap();
+    let p = w
+        .preview_reserve(&c, &id(), GoodKind::Energy, NeedDays::new(1))
+        .unwrap();
     issue(&mut w, &c, GoodKind::Energy, 1);
     w.advance(&c, sim_core::DaySpan::new(p.review_day)).unwrap();
     let o = &w.player_country().reserves.as_ref().unwrap().orders[0];
@@ -327,7 +339,7 @@ fn bad_definitions_requests_and_private_foreign_projections_fail_without_mutatio
                 &c,
                 Action::ProcureReserve {
                     good: GoodKind::Energy,
-                    days
+                    days: sim_core::NeedDays::new(days)
                 }
             )
             .is_err()
@@ -337,7 +349,7 @@ fn bad_definitions_requests_and_private_foreign_projections_fail_without_mutatio
     let mut other = c.clone();
     other.reserves.as_mut().unwrap().fee_bps = BasisPoints::new(2);
     assert!(
-        w.preview_reserve(&other, &id(), GoodKind::Energy, 1)
+        w.preview_reserve(&other, &id(), GoodKind::Energy, NeedDays::new(1))
             .is_err()
     );
     assert_eq!(w.hash(), h);
@@ -348,7 +360,7 @@ fn bad_definitions_requests_and_private_foreign_projections_fail_without_mutatio
             &c,
             Action::ProcureReserve {
                 good: GoodKind::Energy,
-                days: 1
+                days: sim_core::NeedDays::new(1)
             }
         )
         .is_err()
@@ -433,7 +445,7 @@ fn zero_delay_royal_consent_still_waits_for_settlement_and_has_exact_delivery_wi
     }
     let mut w = World::new(&c, CountryId("COR".into()), seed()).unwrap();
     let p = w
-        .preview_reserve(&c, &w.player, GoodKind::Energy, 1)
+        .preview_reserve(&c, &w.player, GoodKind::Energy, NeedDays::new(1))
         .unwrap();
     assert_eq!(p.review_day, w.day);
     assert_eq!(p.earliest_delivery_day, w.day + 1);
@@ -445,7 +457,7 @@ fn zero_delay_royal_consent_still_waits_for_settlement_and_has_exact_delivery_wi
         &c,
         Action::ProcureReserve {
             good: GoodKind::Energy,
-            days: 1,
+            days: sim_core::NeedDays::new(1),
         },
     )
     .unwrap();
@@ -476,7 +488,9 @@ fn procurement_spending_and_pending_reservations_cross_fiscal_years_without_rebo
     c.start = "2000-12-31".into();
     c.validate().unwrap();
     let mut w = world(&c);
-    let p = w.preview_reserve(&c, &id(), GoodKind::Energy, 1).unwrap();
+    let p = w
+        .preview_reserve(&c, &id(), GoodKind::Energy, NeedDays::new(1))
+        .unwrap();
     issue(&mut w, &c, GoodKind::Energy, 1);
     w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(
@@ -545,7 +559,7 @@ fn reserve_purchases_preserve_policy_capital_local_funds_and_temporary_cash_rete
             &c,
             Action::ProcureReserve {
                 good: GoodKind::Food,
-                days: 3
+                days: sim_core::NeedDays::new(3)
             }
         )
         .is_err()

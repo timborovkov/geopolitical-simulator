@@ -53,7 +53,7 @@ fn typed_receipts_and_cash_release_keep_the_pre_change_campaign_and_numeric_wire
         },
         Action::ProcureReserve {
             good: GoodKind::Food,
-            days: 1,
+            days: sim_core::NeedDays::new(1),
         },
     ] {
         world.issue(&content, action).unwrap();

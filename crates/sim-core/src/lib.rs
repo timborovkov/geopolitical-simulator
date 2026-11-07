@@ -32,6 +32,7 @@ mod reserves;
 mod rules;
 mod sovereignty;
 mod statistical_history;
+mod stock_cover;
 mod subnational;
 mod technologies;
 mod territorial;
@@ -67,6 +68,7 @@ pub use rates::*;
 pub use reserves::*;
 pub use sovereignty::*;
 pub use statistical_history::*;
+pub use stock_cover::*;
 pub use units::*;
 
 /// FNV-1a, fixed byte order. A reproducibility checksum, not a security primitive.

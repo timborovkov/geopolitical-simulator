@@ -24,7 +24,8 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Actio
                 GoodKind::Energy=>{if let Some(f)=&state.energy.last {ui.label(format!("{}: opening {} · purchased {} · released {} · loss {} · closing {}",date(f.day),f.opening,f.purchased,f.released,f.loss,f.closing));}},
                 GoodKind::Food=>{if let Some(f)=&state.food.last {ui.label(format!("{}: opening {} · purchased {} · released {} · loss {} · closing {}",date(f.day),f.opening,f.purchased,f.released,f.loss,f.closing));}},
             }
-            for days in 1..=rules.capacity_days {
+            for count in 1..=rules.capacity_days.units() {
+                let days = NeedDays::new(count);
                 match world.preview_reserve(content,&world.player,good,days) {
                     Ok(p)=>{
                         ui.label(format!("{days} day(s), {} units: pay {}m administration now; reserve {}m purchase cash. Review {}; earliest delivery {}; expires {}. Quoted price index {:.4}. {}",p.quantity,p.fee.0,p.cost.0,date(p.review_day),date(p.earliest_delivery_day),date(p.expiry_day),f64::from(p.price_bps.units())/10000.0,p.route));
@@ -148,7 +149,7 @@ mod tests {
                 &content,
                 Action::ProcureReserve {
                     good: GoodKind::Energy,
-                    days: 1,
+                    days: sim_core::NeedDays::new(1),
                 },
             )
             .unwrap();
@@ -160,7 +161,7 @@ mod tests {
                     &content,
                     Action::ProcureReserve {
                         good: GoodKind::Food,
-                        days: 1,
+                        days: sim_core::NeedDays::new(1),
                     },
                 )
                 .unwrap();

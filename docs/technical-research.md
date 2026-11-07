@@ -79,6 +79,12 @@ Temporary cash-retention and regional service-grant requests carry `DaySpan` in 
 
 Numeric JSON, debug output, paid administration, escrow, daily payments and all published campaign formats remain unchanged. [Requested-duration checks](../crates/sim-core/tests/action_durations.rs) protect atomic refusal of invalid spans, protected cash, grant payments and captured day-0/day-14/day-44 hashes through exact resume/replay. Compile-fail contracts distinguish a date or basis-point rate from the requested period. Stock coverage retains its separate physical-quantity meaning; broader percentage, calendar and physical/currency coverage remains unfinished under P01-03.
 
+### Physical stock coverage
+
+`NeedDays` represents multiples of a commodity's baseline daily physical requirement. It now types working-inventory ceilings, national reserve capacity and AI targets, retained order quantities and `Action::ProcureReserve` requests, including reserve preview/authority boundaries. Native controls and terminal inputs construct that quantity explicitly. Consent and contract periods carry `DaySpan`; a quoted stock quantity preserves its existing delivery schedule and finite import/cash constraints.
+
+Explicit count extraction at physical multiplication and range-check boundaries preserves all preceding bounds and integer rounding. Transparent numeric JSON, numeric diagnostics and every existing content/snapshot format remain unchanged. [Stock-coverage checks](../crates/sim-core/tests/stock_coverage.rs) protect invalid input, atomic quantity refusal, actual fees/reservations/stock and captured pending/partial/completed hashes through exact resume/replay. Compile-fail contracts distinguish inventory coverage from elapsed time and basis-point rates. Percentage settings, calendar indices and broader physical/currency coverage remain unfinished under P01-03.
+
 ### Basis-point fields and ratios
 
 Basis-point configuration and live records now retain `BasisPoints` rather than bare signed/unsigned counts. This includes authored GDP costs, fees, financing rates, tax-band thresholds/multipliers, market indices and limits, regional shares/entitlements and reserve prices. Reported preference distances/coverage and group-mean Gini use the same normalized ratio unit; unknown values stay absent. Public marginal-tax and next-market-price calculations carry that unit across their boundaries. Percent counts and calendar days cannot silently become basis-point fields.

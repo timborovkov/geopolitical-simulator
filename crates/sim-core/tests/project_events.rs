@@ -299,7 +299,7 @@ fn expired_event_links_do_not_expire_programme_history_or_reuse_event_ids() {
             &c,
             Action::ProcureReserve {
                 good: GoodKind::Food,
-                days: 1,
+                days: sim_core::NeedDays::new(1),
             },
         )
         .unwrap();

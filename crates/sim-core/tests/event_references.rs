@@ -23,7 +23,7 @@ fn with_pruned_history(c: &Content) -> World {
             c,
             Action::ProcureReserve {
                 good: GoodKind::Food,
-                days: 1,
+                days: sim_core::NeedDays::new(1),
             },
         )
         .unwrap();
@@ -165,7 +165,7 @@ fn format_23_resumes_pending_programmes_and_keeps_all_earlier_rules_and_hashes()
         &c,
         Action::ProcureReserve {
             good: GoodKind::Energy,
-            days: 1,
+            days: sim_core::NeedDays::new(1),
         },
     )
     .unwrap();
@@ -216,7 +216,7 @@ fn retention_never_reuses_references_and_retained_entries_survive_filtering_and_
         &c,
         Action::ProcureReserve {
             good: GoodKind::Energy,
-            days: 1,
+            days: sim_core::NeedDays::new(1),
         },
     )
     .unwrap();
@@ -315,7 +315,7 @@ fn exhausted_reference_space_rolls_back_paid_commands_and_incomplete_daily_steps
             &c,
             Action::ProcureReserve {
                 good: GoodKind::Energy,
-                days: 1,
+                days: sim_core::NeedDays::new(1),
             },
         )
         .unwrap_err();

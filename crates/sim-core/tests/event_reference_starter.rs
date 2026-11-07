@@ -188,7 +188,7 @@ fn mixed_formats_23_and_22_preserve_reference_identity_and_exact_original_recove
             &content,
             Action::ProcureReserve {
                 good: GoodKind::Energy,
-                days: 1,
+                days: sim_core::NeedDays::new(1),
             },
         )
         .unwrap();

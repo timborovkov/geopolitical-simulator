@@ -1151,7 +1151,7 @@ fn play(
                 }
                 "preview-reserve" | "procure-reserve" => {
                     let good=match words.get(1).copied() { Some("energy")=>GoodKind::Energy,Some("food")=>GoodKind::Food,_=>return Err("Choose energy or food".into()) };
-                    let days=number(words.get(2))?;
+                    let days=NeedDays::new(number(words.get(2))?);
                     if words[0]=="preview-reserve" {println!("{:?}",world.preview_reserve(content,&world.player,good,days)?);} else {issue(world, content,Action::ProcureReserve{good,days})?;}
                 }
                 "cancel-reserve" => { issue(world, content,Action::CancelReserve{request:ReserveOrderId(number(words.get(1))?)})?; }

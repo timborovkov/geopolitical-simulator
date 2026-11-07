@@ -13,10 +13,10 @@ fn seeded_reserves_preserve_all_prior_definitions_and_grant_no_opening_resources
     let rules = content.reserves.as_ref().unwrap();
     assert_eq!(
         (
-            rules.capacity_days,
+            rules.capacity_days.units(),
             rules.order_days.units(),
             rules.fee_bps.units(),
-            rules.ai_target_days
+            rules.ai_target_days.units()
         ),
         (3, 90, 1, 1)
     );
@@ -83,7 +83,7 @@ fn dated_supply_feedback_explains_both_physical_shortfalls_and_quota_bottlenecks
             &content,
             Action::ProcureReserve {
                 good: GoodKind::Energy,
-                days: 1,
+                days: sim_core::NeedDays::new(1),
             },
         )
         .unwrap();
@@ -172,7 +172,7 @@ fn new_reserve_contract_and_preserved_party_save_recover_together_without_rewrit
             &content,
             Action::ProcureReserve {
                 good: GoodKind::Energy,
-                days: 1,
+                days: sim_core::NeedDays::new(1),
             },
         )
         .unwrap();

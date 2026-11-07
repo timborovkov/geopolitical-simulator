@@ -1,5 +1,5 @@
 //! Rules-3 relative prices, with physical quantities kept dimensionally distinct.
-use crate::{BasisPoints, Content, Energy, Food};
+use crate::{BasisPoints, Content, Energy, Food, NeedDays};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -24,7 +24,14 @@ pub struct GoodDefinition {
     /// Maximum relative daily price movement, in basis points.
     pub adjustment_bps: BasisPoints,
     pub import_limit_bps: BasisPoints,
-    pub storage_days: u32,
+    /// Working inventory capacity in multiples of baseline daily need.
+    /// ```compile_fail
+    /// use sim_core::{BasisPoints, GoodDefinition};
+    /// fn cannot_use_a_rate_as_storage_capacity(good: &mut GoodDefinition) {
+    ///     good.storage_days = BasisPoints::new(300);
+    /// }
+    /// ```
+    pub storage_days: NeedDays,
     pub loss_bps: BasisPoints,
 }
 
@@ -64,7 +71,7 @@ impl MarketDefinition {
                 || !(10000..=100000).contains(&good.maximum_price_bps.units())
                 || !(1..=1000).contains(&good.adjustment_bps.units())
                 || good.import_limit_bps.units() > 10000
-                || !(1..=30).contains(&good.storage_days)
+                || !(1..=30).contains(&good.storage_days.units())
                 || good.loss_bps.units() > 10000
             {
                 return Err(format!("Invalid good ranges or identity: {}", good.id.0));
@@ -233,7 +240,7 @@ fn validate_quote<Q: Copy>(
         || loss != (supply - delivered) * i64::from(rule.loss_bps.units()) / 10000
         || closing != supply - delivered - loss
         || closing != stored
-        || closing > need * i64::from(rule.storage_days)
+        || closing > need * i64::from(rule.storage_days.units())
         || report != [produced, imported, delivered, loss]
         || next_market_price(last.price_bps, supply, affordable, rule)? != quote.next_price_bps
     {

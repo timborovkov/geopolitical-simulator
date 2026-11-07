@@ -21,7 +21,7 @@ fn typed_event_elapsed_time_and_follow_on_steps_keep_pre_change_campaign_hashes(
         },
         Action::ProcureReserve {
             good: GoodKind::Food,
-            days: 1,
+            days: sim_core::NeedDays::new(1),
         },
     ] {
         world.issue(&content, action).unwrap();
