@@ -507,13 +507,11 @@ impl World {
                         next_leadership_review: (d
                             .government
                             .leadership_review_days
-                            .map(|days| start_day + days.units()))
+                            .map(|days| (start_day).units() + days.units()))
                         .map(crate::CampaignDay::new),
                         budget: BudgetPeriod {
-                            start_day: crate::CampaignDay::new(start_day),
-                            end_day: crate::CampaignDay::new(crate::budget::next_fiscal_end(
-                                start_day,
-                            )),
+                            start_day,
+                            end_day: crate::budget::next_fiscal_end(start_day),
                             opening_cash: accounts.treasury,
                             opening_day_settled: content.fiscal_plans.as_ref().map(|_| false),
                             forecast: BudgetForecast {
@@ -570,7 +568,7 @@ impl World {
                         next_election: d
                             .regime
                             .competitive()
-                            .then_some(crate::CampaignDay::new(start_day + 730)),
+                            .then_some(crate::CampaignDay::new((start_day).units() + 730)),
                         government_number: crate::GovernmentId(1),
                         projects: Vec::new(),
                         commitments: content.commitments.as_ref().map(|_| Vec::new()),
@@ -626,7 +624,7 @@ impl World {
             content_hash: content.hash(),
             seed,
             scenario,
-            day: CampaignDay::new(start_day),
+            day: start_day,
             player: player.clone(),
             countries,
             event_sequences: (content.rules >= 22).then(|| {
@@ -781,7 +779,7 @@ impl World {
             return Err("Rules or content pack mismatch".into());
         }
         let start_day = content.start_day()?;
-        if self.day.units() < start_day
+        if self.day.units() < (start_day).units()
             || self.day.units() > MAX_DAY
             || !self.countries.contains_key(&self.player)
             || self.countries.len() != content.countries.len()
@@ -988,7 +986,7 @@ impl World {
                 }
             };
             if command.id.0 != index as u64 + 1
-                || command.day < crate::CampaignDay::new(previous_day)
+                || command.day < previous_day
                 || command.day > self.day
                 || !self.countries.contains_key(&command.issuer)
                 || entry.ai == (command.issuer == self.player)
@@ -1005,9 +1003,9 @@ impl World {
             if let (Some(technologies), Action::Enact { policy, .. }) =
                 (&content.technologies, &command.action)
             {
-                technologies.check_at(&command.issuer, policy, command.day.units())?;
+                technologies.check_at(&command.issuer, policy, command.day)?;
             }
-            previous_day = command.day.units();
+            previous_day = command.day;
         }
         for (id, c) in &self.countries {
             match (&c.statistical_archive, self.rules >= 25) {
@@ -1019,7 +1017,7 @@ impl World {
             match (&c.markets, &content.markets) {
                 (None, None) => {}
                 (Some(markets), Some(definition)) => {
-                    markets.validate(definition, c, self.day.units(), start_day)?
+                    markets.validate(definition, c, self.day, start_day)?
                 }
                 _ => return Err("Country markets differ from the campaign rules/content".into()),
             }
@@ -1207,7 +1205,7 @@ impl World {
                             .0,
                     )
                     != i128::from(c.committed_cash.0)
-                || c.budget.start_day < crate::CampaignDay::new(start_day)
+                || c.budget.start_day < start_day
                 || c.budget.start_day > self.day
                 || c.budget.end_day <= self.day
                 || c.budget.end_day > crate::CampaignDay::new(MAX_DAY + 366)
@@ -1215,17 +1213,17 @@ impl World {
                     != content
                         .fiscal_plans
                         .as_ref()
-                        .map(|_| c.budget.start_day != crate::CampaignDay::new(start_day))
+                        .map(|_| c.budget.start_day != start_day)
                 || (content.rules >= 17) != c.budget.forecast.interest_accrual.is_some()
                 || !c.budget.valid_ranges()
                 || c.budget.expected_cash() != c.accounts.treasury.0
                 || c.budget_reviews.iter().any(|r| {
-                    r.period.start_day < crate::CampaignDay::new(start_day)
+                    r.period.start_day < start_day
                         || r.period.opening_day_settled
                             != content
                                 .fiscal_plans
                                 .as_ref()
-                                .map(|_| r.period.start_day != crate::CampaignDay::new(start_day))
+                                .map(|_| r.period.start_day != start_day)
                         || (content.rules >= 17) != r.period.forecast.interest_accrual.is_some()
                         || !r.period.valid_ranges()
                         || r.period.expected_cash() != r.closing_cash.0
@@ -1239,7 +1237,7 @@ impl World {
                 ));
             }
             if c.history.iter().any(|o| {
-                o.day < crate::CampaignDay::new(start_day)
+                o.day < start_day
                     || o.day > self.day
                     || !(0..=100).contains(&o.approval)
                     || !(0..=100).contains(&o.needs)
@@ -1273,7 +1271,13 @@ impl World {
     }
 }
 /// Gregorian calendar from the fixed bookmark, including century leap-year rules.
-pub fn date(day: u32) -> String {
+/// A duration has no calendar date:
+/// ```compile_fail
+/// use sim_core::{date, DaySpan};
+/// date(DaySpan::new(30));
+/// ```
+pub fn date(day: crate::CampaignDay) -> String {
+    let day = day.units();
     let mut year = 2000;
     let mut remainder = day;
     loop {
@@ -1307,6 +1311,11 @@ pub fn date(day: u32) -> String {
 }
 
 /// Strict Gregorian date input for the supported bookmark/campaign range.
-pub fn parse_date(input: &str) -> Result<u32, String> {
+/// Parsing retains the absolute-date unit:
+/// ```compile_fail
+/// use sim_core::parse_date;
+/// let raw_day: u32 = parse_date("2000-02-29").unwrap();
+/// ```
+pub fn parse_date(input: &str) -> Result<crate::CampaignDay, String> {
     input.parse::<CivilDate>()?.campaign_day()
 }

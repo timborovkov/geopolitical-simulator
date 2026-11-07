@@ -320,7 +320,7 @@ impl World {
                 "This statute is unavailable to that country in the loaded scenario".into(),
             );
         }
-        let today: CivilDate = date(self.day.units()).parse()?;
+        let today: CivilDate = date(self.day).parse()?;
         if today < definition.available_from {
             return Err(format!(
                 "This statutory proposal becomes available on {}",
@@ -424,7 +424,7 @@ impl World {
             explanation: "Paid drafting; awaiting governing consent".into(),
         });
         state.prune();
-        self.event(country, true, format!("Statutory bill #{} proposed: {}. Paid {}m drafting; reserved {}m actual implementation cash. Consent {}; earliest enactment {}. Acceptance grants no legal permission, services or capacity.",id.0,content.legislation.as_ref().expect("rules").law(law).expect("law").name,p.upfront.0,p.reserved.0,date(p.review_day.units()),date(p.enactment_day.units())));
+        self.event(country, true, format!("Statutory bill #{} proposed: {}. Paid {}m drafting; reserved {}m actual implementation cash. Consent {}; earliest enactment {}. Acceptance grants no legal permission, services or capacity.",id.0,content.legislation.as_ref().expect("rules").law(law).expect("law").name,p.upfront.0,p.reserved.0,date(p.review_day),date(p.enactment_day)));
         self.resolve_legislation(content, country);
         Ok(())
     }
@@ -510,7 +510,7 @@ impl World {
                 record.status = LawBillStatus::Implementing;
                 record.explanation =
                     "Consent obtained; funded statutory implementation is pending".into();
-                self.event(country,true,format!("Statutory bill #{} received governing consent. {}m remains protected for implementation on {}; no statutory permission is granted yet.",bill.id.0,bill.reserved.0,date(bill.enactment_day.units())));
+                self.event(country,true,format!("Statutory bill #{} received governing consent. {}m remains protected for implementation on {}; no statutory permission is granted yet.",bill.id.0,bill.reserved.0,date(bill.enactment_day)));
             }
             let implementing = self.countries[country]
                 .legislation
@@ -575,7 +575,7 @@ impl World {
         let Some(rules) = &content.legislation else {
             return;
         };
-        let today: CivilDate = date(self.day.units()).parse().expect("campaign date");
+        let today: CivilDate = date(self.day).parse().expect("campaign date");
         for law in rules
             .definitions
             .iter()
@@ -643,7 +643,7 @@ impl World {
                     || content.constitutions.as_ref().is_some_and(|r| {
                         r.templates.iter().any(|t| t.government == bill.authority)
                     });
-            let available: CivilDate = date(bill.proposed_day.units()).parse()?;
+            let available: CivilDate = date(bill.proposed_day).parse()?;
             if !ids.insert(bill.id)
                 || !matches!(&command.command.action,Action::ProposeLaw{law}if law==&bill.law)
                 || &command.command.issuer != country
@@ -654,7 +654,7 @@ impl World {
                 || !law.eligible_countries.contains(country)
                 || available < law.available_from
                 || bill.proposed_day > self.day
-                || bill.proposed_day.units() < content.start_day()?
+                || bill.proposed_day.units() < (content.start_day()?).units()
                 || bill.proposed_day.checked_add(bill.authority.consent_days)
                     != Some(bill.review_day)
                 || bill.review_day.checked_add(rules.implementation_days)
@@ -706,13 +706,9 @@ impl World {
             .filter(|entry| &entry.command.issuer == country)
         {
             match &entry.command.action {
-                Action::Enact { policy, value } => self.check_policy_laws_at(
-                    content,
-                    country,
-                    policy,
-                    *value,
-                    CampaignDay::new(entry.command.day.units()),
-                )?,
+                Action::Enact { policy, value } => {
+                    self.check_policy_laws_at(content, country, policy, *value, entry.command.day)?
+                }
                 Action::AmendCommitment { request, value } => {
                     let record = c
                         .commitment(request)
@@ -722,7 +718,7 @@ impl World {
                         country,
                         &record.project.policy,
                         *value,
-                        CampaignDay::new(entry.command.day.units()),
+                        entry.command.day,
                     )?;
                 }
                 _ => {}
@@ -743,7 +739,9 @@ impl World {
                     != rules
                         .costs(content.country(country).expect("country").gdp)?
                         .0
-                || CampaignDay::new(command.command.day.units())
+                || command
+                    .command
+                    .day
                     .checked_add(entry.authority.consent_days)
                     .and_then(|day| day.checked_add(rules.implementation_days))
                     != Some(entry.day)

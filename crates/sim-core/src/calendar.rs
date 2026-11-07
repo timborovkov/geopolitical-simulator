@@ -54,7 +54,12 @@ impl CivilDate {
                 .min(month_days(year, self.month).expect("validated month")),
         )
     }
-    pub fn campaign_day(self) -> Result<u32, String> {
+    /// Convert a supported civil date to its absolute campaign stamp.
+    /// ```compile_fail
+    /// use sim_core::{CivilDate, DaySpan};
+    /// let elapsed: DaySpan = CivilDate::new(2000, 2, 29).unwrap().campaign_day().unwrap();
+    /// ```
+    pub fn campaign_day(self) -> Result<crate::CampaignDay, String> {
         if !(2000..=2100).contains(&self.year) {
             return Err("Date must fall within the 2000–2100 campaign range".into());
         }
@@ -70,7 +75,7 @@ impl CivilDate {
         if day > crate::MAX_DAY {
             return Err("Date exceeds 2100-01-01".into());
         }
-        Ok(day)
+        Ok(crate::CampaignDay::new(day))
     }
 }
 impl std::str::FromStr for CivilDate {

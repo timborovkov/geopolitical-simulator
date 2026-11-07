@@ -59,7 +59,7 @@ fn future_reference_terms_do_not_force_campaign_successions_or_currency_changes(
     let content = content();
     let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
     world.advance(&content, sim_core::DaySpan::new(1)).unwrap();
-    assert_eq!(date(world.day.units()), "2001-07-16");
+    assert_eq!(date(world.day), "2001-07-16");
     assert_eq!(world.player_country().executive, "Fictional Steward B");
     assert_eq!(aurora(&content).currency, "AUT");
     world.validate(&content).unwrap();

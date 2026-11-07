@@ -324,7 +324,7 @@ impl World {
                 });
                 self.record_proposal(&id, command.id);
                 self.next_project = next_project;
-                self.event_for_commitment(&id,request,CommitmentStage::Proposed,format!("Proposed {} via {}. Paid {}m upfront, reserved {}m; consent {} and operating due {}.",content.policy(policy).expect("policy").name,preview.route,preview.upfront_payment.0,reserved.0,date(self.day.units()+preview.consent_delay.units()),date(self.day.units()+preview.delay.units())));
+                self.event_for_commitment(&id,request,CommitmentStage::Proposed,format!("Proposed {} via {}. Paid {}m upfront, reserved {}m; consent {} and operating due {}.",content.policy(policy).expect("policy").name,preview.route,preview.upfront_payment.0,reserved.0,date(crate::CampaignDay::new(self.day.units()+preview.consent_delay.units())),date(crate::CampaignDay::new(self.day.units()+preview.delay.units()))));
             }
             Action::Borrow { amount } => {
                 if content.finance.is_some() {
@@ -438,7 +438,7 @@ impl World {
     pub fn advance(&mut self, content: &Content, elapsed: DaySpan) -> Result<(), String> {
         let days = elapsed.units();
         if self.rules < 22 {
-            return self.advance_inner(content, days);
+            return self.advance_inner(content, elapsed);
         }
         let content_hash = content.hash();
         if self.content_hash != content_hash {
@@ -450,22 +450,24 @@ impl World {
         self.validate_event_references_for_content(content, content_hash)?;
         for _ in 0..days {
             self.event_transaction_for_content(content, content_hash, |world| {
-                world.advance_days(content, 1)
+                world.advance_days(content, crate::DaySpan::new(1))
             })?;
         }
         Ok(())
     }
-    fn advance_inner(&mut self, content: &Content, days: u32) -> Result<(), String> {
+    fn advance_inner(&mut self, content: &Content, elapsed: crate::DaySpan) -> Result<(), String> {
+        let days = elapsed.units();
         if self.content_hash != content.hash() {
             return Err("Campaign content differs from loaded pack".into());
         }
         if days > 3660 || self.day.units().saturating_add(days) > MAX_DAY {
             return Err("Advance 0..3660 days within the 100-year campaign limit".into());
         }
-        self.advance_days(content, days)
+        self.advance_days(content, elapsed)
     }
     // Content identity and calendar bounds are checked by the public boundary.
-    fn advance_days(&mut self, content: &Content, days: u32) -> Result<(), String> {
+    fn advance_days(&mut self, content: &Content, days: crate::DaySpan) -> Result<(), String> {
+        let days = days.units();
         let review_day = content.review_day()?;
         let ids: Vec<_> = self.countries.keys().cloned().collect();
         for _ in 0..days {
@@ -537,7 +539,7 @@ impl World {
             }
             self.ledger
                 .retain(|e| e.day.units() + 30 >= self.day.units());
-            if self.day.units() >= review_day && !self.milestone_reported {
+            if self.day.units() >= (review_day).units() && !self.milestone_reported {
                 let c = self.player_country();
                 let won = c.report.food_coverage >= 90
                     && c.report.energy_coverage >= 90
@@ -545,7 +547,7 @@ impl World {
                     && c.arrears.0 == 0
                     && c.financing
                         .as_ref()
-                        .is_none_or(|state| state.principal_due_through(self.day.units()).0 == 0)
+                        .is_none_or(|state| state.principal_due_through(self.day).0 == 0)
                     && c.debt.0 <= content.country(&self.player).expect("player").gdp.units();
                 let message = if self.is_developer_modified() {
                     if won {
@@ -1345,7 +1347,9 @@ impl World {
                 .and_then(|rules| rules.authority(&government.route))
                 .map_or(30, |authority| authority.consent_days.units() + 30);
             state
-                .principal_due_through(self.day.units().saturating_add(notice))
+                .principal_due_through(crate::CampaignDay::new(
+                    self.day.units().saturating_add(notice),
+                ))
                 .0
         });
         let candidate = if c.available_cash().0 < d.gdp.units() / 100

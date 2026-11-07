@@ -109,7 +109,7 @@ impl World {
         if self.day.units() < (state.next_allowed_day).units() {
             return Err(format!(
                 "Cash retention may be used again on {}",
-                date((state.next_allowed_day).units())
+                date(state.next_allowed_day)
             ));
         }
         if !(1..=(d.gdp.units() * rules.max_target_bps.units_i64() / 10000).max(1))
@@ -168,7 +168,7 @@ impl World {
         for h in &mut c.households {
             h.approval = (h.approval - preview.approval_cost).max(0);
         }
-        self.event(id, true, format!("Temporary cash retention #{}: target {}m until {}. Approval -{}. Only actual uncommitted national cash is protected; unpaid operating claims remain arrears and dated principal remains due. Release before funding a decision.", request.0, target.0, date((preview.expiry_day).units()), preview.approval_cost));
+        self.event(id, true, format!("Temporary cash retention #{}: target {}m until {}. Approval -{}. Only actual uncommitted national cash is protected; unpaid operating claims remain arrears and dated principal remains due. Release before funding a decision.", request.0, target.0, date(preview.expiry_day), preview.approval_cost));
         Ok(())
     }
     pub(crate) fn release_cash(
@@ -406,7 +406,7 @@ impl World {
             return Err("Retained cash exceeds actual uncommitted national cash or target".into());
         }
         let mut next_allowed = CampaignDay::new(0);
-        let mut previous_end = CampaignDay::new(content.start_day()?);
+        let mut previous_end = content.start_day()?;
         let mut release_count = 0;
         for (index, (record, entry)) in state.records.iter().zip(holds).enumerate() {
             let Action::HoldCash { target, days } = entry.command.action else {

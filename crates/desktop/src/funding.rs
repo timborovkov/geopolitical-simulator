@@ -104,7 +104,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, amount: i64, chart: &
         }
         if let Some(loan) = outlook.loan {
             let rate = outlook.interest_accrual.as_ref().map_or_else(||format!("{}m/day",outlook.additional_daily_interest.0), |i|format!("{:.4}m/day mean",i.additional_daily_numerator as f64 / f64::from(INTEREST_DENOMINATOR)));
-            ui.label(format!("{} {}m if approved on {} · additional interest {rate} after disbursement.", if pending.is_some() { "Pending request:" } else { "Selected ordinary borrowing:" }, loan.amount.0, date((loan.decision_day).units())));
+            ui.label(format!("{} {}m if approved on {} · additional interest {rate} after disbursement.", if pending.is_some() { "Pending request:" } else { "Selected ordinary borrowing:" }, loan.amount.0, date(loan.decision_day)));
             if let Some(before) = outlook.points.iter().find(|point| point.day.units() + 1 == loan.decision_day.units())
                 && before.without_loan.0 < 0 {
                 ui.colored_label(Color32::LIGHT_YELLOW, "The current deficit would exhaust available cash before the borrowing decision. Review spending, revenues or the explicit emergency route and its political costs.");

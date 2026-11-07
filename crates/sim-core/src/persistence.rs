@@ -562,7 +562,7 @@ pub(crate) fn replay_observed(
                 format!(
                     "Replay command #{} on {} was rejected: {reason}",
                     entry.command.id,
-                    crate::date(entry.command.day.units())
+                    crate::date(entry.command.day)
                 )
             })?;
         observe(
@@ -594,7 +594,7 @@ pub(crate) fn replay_observed(
             .unwrap_or_default();
         return Err(format!(
             "Replay diverged at final snapshot {}: expected {:016x}, got {:016x}{detail}",
-            crate::date(original.day.units()),
+            crate::date(original.day),
             original.hash(),
             world.hash()
         ));
@@ -610,7 +610,7 @@ fn verify_journal(original: &World, replayed: &World, verified: &mut usize) -> R
             return Err(format!(
                 "Replay first command divergence at entry {} on {}: expected {:?}, got {:?}",
                 *verified + 1,
-                crate::date(actual.command.day.units()),
+                crate::date(actual.command.day),
                 expected,
                 actual
             ));

@@ -5,7 +5,7 @@ fn dated_bookmark_records_keep_absolute_stamps_through_publication_restore_and_r
     let content =
         Content::from_json(include_str!("../../../data/synthetic-dated-test.json")).unwrap();
     let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
-    let opening = CampaignDay::new(parse_date("2001-07-15").unwrap());
+    let opening = parse_date("2001-07-15").unwrap();
     assert_eq!(world.day, opening);
     world
         .issue(

@@ -160,17 +160,17 @@ pub struct Cabinet {
     pub next_request_day: BTreeMap<OfficeId, crate::CampaignDay>,
 }
 impl Cabinet {
-    pub fn new(rules: &CabinetDefinition, id: &CountryId, day: u32) -> Self {
+    pub fn new(rules: &CabinetDefinition, id: &CountryId, day: crate::CampaignDay) -> Self {
         Self {
             government: crate::GovernmentId(1),
-            since: crate::CampaignDay::new(day),
+            since: day,
             terms: Vec::new(),
             pending: Vec::new(),
             next_request_day: rules
                 .portfolios
                 .iter()
                 .filter(|p| &p.country == id)
-                .map(|p| (p.id.clone(), crate::CampaignDay::new(day)))
+                .map(|p| (p.id.clone(), day))
                 .collect(),
         }
     }
@@ -335,7 +335,7 @@ impl World {
             sponsor: c.government_number,
             paid: preview.fee,
         });
-        self.event(id,true,format!("Appointment #{} proposed: {} to {}. Paid {}m administration; decision {}. Current authority and cabinet sponsorship will be rechecked. Withdrawal/refusal does not refund administration or remove the cooldown.",request.0,content.cabinet.as_ref().expect("rules").candidate(person).expect("candidate").name,content.cabinet.as_ref().expect("rules").office(office).expect("office").title,preview.fee.0,date((preview.decision_day).units())));
+        self.event(id,true,format!("Appointment #{} proposed: {} to {}. Paid {}m administration; decision {}. Current authority and cabinet sponsorship will be rechecked. Withdrawal/refusal does not refund administration or remove the cooldown.",request.0,content.cabinet.as_ref().expect("rules").candidate(person).expect("candidate").name,content.cabinet.as_ref().expect("rules").office(office).expect("office").title,preview.fee.0,date(preview.decision_day)));
         self.resolve_appointments(content, id);
         Ok(())
     }
@@ -567,10 +567,9 @@ impl World {
             .map(|p| &p.id)
             .collect();
         if state.government != country.government_number
-            || state.since < crate::CampaignDay::new(start)
+            || state.since < start
             || state.since > self.day
-            || state.government == crate::GovernmentId(1)
-                && state.since != crate::CampaignDay::new(start)
+            || state.government == crate::GovernmentId(1) && state.since != start
             || state.next_request_day.keys().collect::<BTreeSet<_>>() != offices
             || state
                 .next_request_day
@@ -603,12 +602,11 @@ impl World {
         for term in &state.terms {
             let origin = appointment(term.appointment, &term.office, &term.person)?;
             let delay = self
-                .governing_rules_at(content, id, origin.day.units())?
+                .governing_rules_at(content, id, origin.day)?
                 .consent_days
                 .units();
             if !ids.insert(term.appointment.0)
-                || origin.day.checked_add(crate::DaySpan::new(delay))
-                    != Some(crate::CampaignDay::new((term.since).units()))
+                || origin.day.checked_add(crate::DaySpan::new(delay)) != Some(term.since)
                 || term.since > self.day
                 || term
                     .until
@@ -639,14 +637,13 @@ impl World {
         for p in &state.pending {
             let origin = appointment(p.id, &p.office, &p.person)?;
             let delay = self
-                .governing_rules_at(content, id, origin.day.units())?
+                .governing_rules_at(content, id, origin.day)?
                 .consent_days
                 .units();
             if !ids.insert(p.id.0)
                 || !pending.insert(&p.office)
                 || p.proposed_day != origin.day
-                || origin.day.checked_add(crate::DaySpan::new(delay))
-                    != Some(crate::CampaignDay::new((p.decision_day).units()))
+                || origin.day.checked_add(crate::DaySpan::new(delay)) != Some(p.decision_day)
                 || p.decision_day <= self.day
                 || p.decision_day > crate::CampaignDay::new(MAX_DAY)
                 || p.sponsor != state.government

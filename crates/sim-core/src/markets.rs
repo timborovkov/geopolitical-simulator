@@ -139,14 +139,16 @@ impl Markets {
         &self,
         definition: &MarketDefinition,
         country: &crate::Country,
-        day: u32,
-        start: u32,
+        day: crate::CampaignDay,
+        start: crate::CampaignDay,
     ) -> Result<(), String> {
+        let day = day.units();
+        let start = start.units();
         validate_quote(
             &self.energy,
             definition.good(GoodKind::Energy),
-            day,
-            start,
+            crate::CampaignDay::new(day),
+            crate::CampaignDay::new(start),
             (country.population.0 / 1000) as i64,
             country.energy_stock.units(),
             [
@@ -164,8 +166,8 @@ impl Markets {
         validate_quote(
             &self.food,
             definition.good(GoodKind::Food),
-            day,
-            start,
+            crate::CampaignDay::new(day),
+            crate::CampaignDay::new(start),
             (country.population.0 / 1000) as i64,
             country.food_stock.units(),
             [
@@ -187,14 +189,16 @@ impl Markets {
 fn validate_quote<Q: Copy>(
     quote: &MarketQuote<Q>,
     rule: &GoodDefinition,
-    day: u32,
-    start: u32,
+    day: crate::CampaignDay,
+    start: crate::CampaignDay,
     need: i64,
     stored: i64,
     report: [i64; 4],
     reserve_release: Option<i64>,
     units: impl Fn(Q) -> i64,
 ) -> Result<(), String> {
+    let day = day.units();
+    let start = start.units();
     let invalid = || format!("Invalid market settlement or price for {}", rule.id.0);
     if quote.good != rule.id
         || !(rule.minimum_price_bps.units()..=rule.maximum_price_bps.units())

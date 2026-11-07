@@ -223,9 +223,9 @@ pub struct UndertakingRecord {
     pub milestones: Vec<CommitmentMilestone>,
 }
 impl UndertakingRecord {
-    fn mark(&mut self, day: u32, stage: CommitmentStage) {
+    fn mark(&mut self, day: crate::CampaignDay, stage: CommitmentStage) {
         self.milestones.push(CommitmentMilestone {
-            day: crate::CampaignDay::new(day),
+            day,
             stage,
             value: self.goal.target,
         });
@@ -238,7 +238,7 @@ pub struct Undertakings {
     pub records: Vec<UndertakingRecord>,
 }
 impl Undertakings {
-    pub fn new(start: u32) -> Self {
+    pub fn new(start: crate::CampaignDay) -> Self {
         Self {
             credibility: 60,
             next_declaration: [
@@ -247,7 +247,7 @@ impl Undertakings {
                 UndertakingKind::ProjectDeadline,
             ]
             .into_iter()
-            .map(|k| (k, crate::CampaignDay::new(start)))
+            .map(|k| (k, start))
             .collect(),
             records: Vec::new(),
         }
@@ -326,7 +326,7 @@ impl World {
         if self.day.units() < (state.next_declaration[&t.kind]).units() {
             return Err(format!(
                 "This undertaking interval lasts until {}",
-                date((state.next_declaration[&t.kind]).units())
+                date(state.next_declaration[&t.kind])
             ));
         }
         if state.records.iter().filter(|r| r.status.open()).count() >= rules.maximum_open
@@ -444,8 +444,9 @@ impl World {
         &self,
         id: &CountryId,
         record: &UndertakingRecord,
-        through: u32,
-    ) -> Option<(CommitmentId, u32)> {
+        through: crate::CampaignDay,
+    ) -> Option<(CommitmentId, crate::CampaignDay)> {
+        let through = through.units();
         let accepted = record.accepted_day?;
         if through < (accepted).units() {
             return None;
@@ -467,7 +468,7 @@ impl World {
                     .iter()
                     .find(|m| m.stage == CommitmentStage::Operating)?
                     .day;
-                if delivered < crate::CampaignDay::new((from).units())
+                if delivered < from
                     || delivered
                         > crate::CampaignDay::new(through.min((record.deadline_day).units()))
                     || !policy.direct_effects.iter().any(|e| {
@@ -476,7 +477,7 @@ impl World {
                 {
                     return None;
                 }
-                Some((policy.id, delivered.units()))
+                Some((policy.id, delivered))
             })
             .min_by_key(|(id, day)| (*day, id.0))
     }
@@ -534,9 +535,9 @@ impl World {
             status: UndertakingStatus::Pending,
             milestones: Vec::new(),
         };
-        record.mark(self.day.units(), CommitmentStage::Proposed);
+        record.mark(self.day, CommitmentStage::Proposed);
         state.records.push(record);
-        self.event(id,true,format!("Undertaking #{} submitted: {}. Paid {}m administration; review {}, delivery deadline {}. This does not order the policy or reserve its implementation resources. Withdrawal/refusal retains paid administration and the undertaking interval.",request.0,preview.goal.description(content),preview.fee.0,date((preview.review_day).units()),date((preview.deadline_day).units())));
+        self.event(id,true,format!("Undertaking #{} submitted: {}. Paid {}m administration; review {}, delivery deadline {}. This does not order the policy or reserve its implementation resources. Withdrawal/refusal retains paid administration and the undertaking interval.",request.0,preview.goal.description(content),preview.fee.0,date(preview.review_day),date(preview.deadline_day)));
         Ok(())
     }
     pub(crate) fn withdraw_undertaking(
@@ -577,7 +578,7 @@ impl World {
             .expect("record");
         r.status = UndertakingStatus::Withdrawn;
         r.resolved_day = Some(self.day);
-        r.mark(self.day.units(), CommitmentStage::Withdrawn);
+        r.mark(self.day, CommitmentStage::Withdrawn);
         state.refresh_credibility();
         self.event(id,true,format!("Undertaking #{} withdrawn. Paid administration and the interval remain. {}",request.0,if record.accepted_day.is_some(){"An accepted promise was broken: the published political costs and credibility loss apply."}else{"The proposed undertaking had not been accepted; no breach effect applies."}));
         Ok(())
@@ -592,7 +593,7 @@ impl World {
             if r.status.open() && r.sponsor != c.government_number {
                 r.status = UndertakingStatus::Superseded;
                 r.resolved_day = Some(self.day);
-                r.mark(self.day.units(), CommitmentStage::Withdrawn);
+                r.mark(self.day, CommitmentStage::Withdrawn);
                 changed = true;
             }
         }
@@ -633,17 +634,17 @@ impl World {
                 Ok(()) => {
                     r.accepted_day = Some(self.day);
                     r.status = UndertakingStatus::Active;
-                    r.mark(self.day.units(), CommitmentStage::Approved);
-                    r.mark(self.day.units(), CommitmentStage::Operating);
+                    r.mark(self.day, CommitmentStage::Approved);
+                    r.mark(self.day, CommitmentStage::Operating);
                     self.undertaking_effect(id, &t.acceptance);
-                    self.event(id,true,format!("Undertaking #{} accepted: {} by {}. Political acceptance effects now apply; the promised policy still requires its own consent, cash and delivery. Missing or withdrawing the accepted target incurs the stated breach effects.",record.id.0,record.goal.description(content),date((record.deadline_day).units())));
+                    self.event(id,true,format!("Undertaking #{} accepted: {} by {}. Political acceptance effects now apply; the promised policy still requires its own consent, cash and delivery. Missing or withdrawing the accepted target incurs the stated breach effects.",record.id.0,record.goal.description(content),date(record.deadline_day)));
                 }
                 Err(reason) => {
                     r.status = UndertakingStatus::Refused {
                         reason: reason.clone(),
                     };
                     r.resolved_day = Some(self.day);
-                    r.mark(self.day.units(), CommitmentStage::Refused);
+                    r.mark(self.day, CommitmentStage::Refused);
                     self.event(id,true,format!("Undertaking #{} refused: {reason}. Administration and declaration interval remain.",record.id.0));
                 }
             }
@@ -663,7 +664,7 @@ impl World {
             .cloned()
             .collect();
         for record in active {
-            let evidence = self.undertaking_evidence(id, &record, self.day.units());
+            let evidence = self.undertaking_evidence(id, &record, self.day);
             if evidence.is_none() && self.day.units() < (record.deadline_day).units() {
                 continue;
             }
@@ -692,12 +693,12 @@ impl World {
                 .expect("record");
             r.status = status;
             r.resolved_day = Some(self.day);
-            r.mark(self.day.units(), CommitmentStage::Evaluated);
+            r.mark(self.day, CommitmentStage::Evaluated);
             state.refresh_credibility();
             if let Some((evidence, _)) = evidence {
                 self.event(id,true,format!("Undertaking #{} fulfilled by actual policy commitment #{}. This records a delivered setting/capacity target, not a claim that household outcomes were caused by the promise. Credibility updated.",record.id.0,evidence.0));
             } else {
-                self.event(id,true,format!("Undertaking #{} breached: no qualifying policy delivery met {} by {}. The published political costs apply and credibility falls; pending policy projects continue under their own terms.",record.id.0,record.goal.description(content),date((record.deadline_day).units())));
+                self.event(id,true,format!("Undertaking #{} breached: no qualifying policy delivery met {} by {}. The published political costs apply and credibility falls; pending policy projects continue under their own terms.",record.id.0,record.goal.description(content),date(record.deadline_day)));
             }
         }
     }
@@ -786,9 +787,10 @@ impl World {
         content: &Content,
         id: &CountryId,
         policy: &PolicyId,
-        day: u32,
+        day: crate::CampaignDay,
         before_command: CommandId,
     ) -> Result<i32, String> {
+        let day = day.units();
         let d = content.country(id).ok_or("Unknown country")?;
         let mut level = match policy.as_str() {
             "income_tax" => d.tax.units() as i32,
@@ -903,14 +905,11 @@ impl World {
             UndertakingKind::ProjectDeadline,
         ] {
             let records: Vec<_> = state.records.iter().filter(|r| r.kind == kind).collect();
-            let expected =
-                records
-                    .last()
-                    .map_or(Ok(crate::CampaignDay::new(content.start_day()?)), |r| {
-                        r.declared_day
-                            .checked_add(rules.cooldown_days)
-                            .ok_or("Undertaking interval overflow")
-                    })?;
+            let expected = records.last().map_or(Ok(content.start_day()?), |r| {
+                r.declared_day
+                    .checked_add(rules.cooldown_days)
+                    .ok_or("Undertaking interval overflow")
+            })?;
             if state.next_declaration.get(&kind) != Some(&expected)
                 || records.iter().filter(|r| r.status.open()).count() > 1
             {
@@ -938,8 +937,7 @@ impl World {
                 || r.id.0 != command.id.0
                 || r.kind != t.kind
                 || r.declared_day != command.day
-                || command.day.checked_add(t.review_days)
-                    != Some(crate::CampaignDay::new((r.review_day).units()))
+                || command.day.checked_add(t.review_days) != Some(r.review_day)
                 || r.review_day
                     .checked_add(crate::DaySpan::new(t.deadline_days.units()))
                     != Some(r.deadline_day)
@@ -955,13 +953,7 @@ impl World {
                     )
                 || !target_in_range(content, &r.goal.policy, r.goal.target)
                 || r.baseline
-                    != self.policy_level_at(
-                        content,
-                        id,
-                        &r.goal.policy,
-                        command.day.units(),
-                        command.id,
-                    )?
+                    != self.policy_level_at(content, id, &r.goal.policy, command.day, command.id)?
             {
                 return Err(
                     "Invalid undertaking origin, dates, goal baseline, fee or sponsorship".into(),
@@ -1031,101 +1023,99 @@ impl World {
                         && r.sponsor.checked_add(1) == Some(change.government_number)
                 })
             });
-            let evidence = self.undertaking_evidence(id, r, self.day.units());
-            let valid = match &r.status {
-                UndertakingStatus::Pending => {
-                    r.accepted_day.is_none()
-                        && r.resolved_day.is_none()
-                        && r.review_day > self.day
-                        && r.sponsor == c.government_number
-                }
-                UndertakingStatus::Active => {
-                    accepted
-                        && r.resolved_day.is_none()
-                        && r.deadline_day > self.day
-                        && r.sponsor == c.government_number
-                        && evidence.is_none()
-                }
-                UndertakingStatus::Fulfilled { evidence: source } => {
-                    accepted
-                        && evidence.is_some_and(|(p, day)| {
-                            p == *source
-                                && r.resolved_day
-                                    == Some(crate::CampaignDay::new(
-                                        day.max((r.review_day).units()),
-                                    ))
-                        })
-                }
-                UndertakingStatus::Breached => {
-                    accepted
-                        && r.resolved_day == Some(r.deadline_day)
-                        && r.deadline_day <= self.day
-                        && evidence.is_none()
-                }
-                UndertakingStatus::Refused { reason } => {
-                    !reason.is_empty()
-                        && r.accepted_day.is_none()
-                        && r.resolved_day == Some(r.review_day)
-                        && r.review_day <= self.day
-                }
-                UndertakingStatus::Withdrawn => {
-                    final_day
-                        && if accepted {
-                            r.resolved_day
-                                .is_some_and(|d| d >= r.review_day && d < r.deadline_day)
-                                && self
-                                    .undertaking_evidence(
-                                        id,
-                                        r,
-                                        (r.resolved_day.expect("day")).units(),
-                                    )
-                                    .is_none()
-                        } else {
-                            r.accepted_day.is_none()
-                                && r.resolved_day.is_some_and(|d| d < r.review_day)
-                        }
-                }
-                UndertakingStatus::Superseded => {
-                    final_day
-                        && r.sponsor < c.government_number
-                        && if accepted {
-                            r.resolved_day.is_some_and(|d| {
-                                (if superseded_before_delivery {
-                                    d > r.review_day && d <= r.deadline_day
-                                } else {
-                                    d >= r.review_day && d < r.deadline_day
-                                }) && self
-                                    .undertaking_evidence(
-                                        id,
-                                        r,
-                                        d.units()
-                                            .saturating_sub(u32::from(superseded_before_delivery)),
-                                    )
-                                    .is_none()
+            let evidence = self.undertaking_evidence(id, r, self.day);
+            let valid =
+                match &r.status {
+                    UndertakingStatus::Pending => {
+                        r.accepted_day.is_none()
+                            && r.resolved_day.is_none()
+                            && r.review_day > self.day
+                            && r.sponsor == c.government_number
+                    }
+                    UndertakingStatus::Active => {
+                        accepted
+                            && r.resolved_day.is_none()
+                            && r.deadline_day > self.day
+                            && r.sponsor == c.government_number
+                            && evidence.is_none()
+                    }
+                    UndertakingStatus::Fulfilled { evidence: source } => {
+                        accepted
+                            && evidence.is_some_and(|(p, day)| {
+                                p == *source
+                                    && r.resolved_day
+                                        == Some(crate::CampaignDay::new(
+                                            (day.max(r.review_day)).units(),
+                                        ))
                             })
-                        } else {
-                            r.accepted_day.is_none()
-                                && r.resolved_day.is_some_and(|d| {
-                                    d < r.review_day
-                                        || superseded_before_delivery && d == r.review_day
+                    }
+                    UndertakingStatus::Breached => {
+                        accepted
+                            && r.resolved_day == Some(r.deadline_day)
+                            && r.deadline_day <= self.day
+                            && evidence.is_none()
+                    }
+                    UndertakingStatus::Refused { reason } => {
+                        !reason.is_empty()
+                            && r.accepted_day.is_none()
+                            && r.resolved_day == Some(r.review_day)
+                            && r.review_day <= self.day
+                    }
+                    UndertakingStatus::Withdrawn => {
+                        final_day
+                            && if accepted {
+                                r.resolved_day
+                                    .is_some_and(|d| d >= r.review_day && d < r.deadline_day)
+                                    && self
+                                        .undertaking_evidence(id, r, r.resolved_day.expect("day"))
+                                        .is_none()
+                            } else {
+                                r.accepted_day.is_none()
+                                    && r.resolved_day.is_some_and(|d| d < r.review_day)
+                            }
+                    }
+                    UndertakingStatus::Superseded => {
+                        final_day
+                            && r.sponsor < c.government_number
+                            && if accepted {
+                                r.resolved_day.is_some_and(|d| {
+                                    (if superseded_before_delivery {
+                                        d > r.review_day && d <= r.deadline_day
+                                    } else {
+                                        d >= r.review_day && d < r.deadline_day
+                                    }) && self
+                                        .undertaking_evidence(
+                                            id,
+                                            r,
+                                            crate::CampaignDay::new(d.units().saturating_sub(
+                                                u32::from(superseded_before_delivery),
+                                            )),
+                                        )
+                                        .is_none()
                                 })
-                        }
-                }
-            };
+                            } else {
+                                r.accepted_day.is_none()
+                                    && r.resolved_day.is_some_and(|d| {
+                                        d < r.review_day
+                                            || superseded_before_delivery && d == r.review_day
+                                    })
+                            }
+                    }
+                };
             if !valid {
                 return Err(
                     "Invalid undertaking acceptance, outcome, evidence or resolution date".into(),
                 );
             }
             let mut milestones = vec![CommitmentMilestone {
-                day: crate::CampaignDay::new((r.declared_day).units()),
+                day: r.declared_day,
                 stage: CommitmentStage::Proposed,
                 value: r.goal.target,
             }];
             if accepted {
                 for stage in [CommitmentStage::Approved, CommitmentStage::Operating] {
                     milestones.push(CommitmentMilestone {
-                        day: crate::CampaignDay::new((r.review_day).units()),
+                        day: r.review_day,
                         stage,
                         value: r.goal.target,
                     });
@@ -1140,7 +1130,7 @@ impl World {
                     _ => CommitmentStage::Evaluated,
                 };
                 milestones.push(CommitmentMilestone {
-                    day: crate::CampaignDay::new((day).units()),
+                    day,
                     stage,
                     value: r.goal.target,
                 });

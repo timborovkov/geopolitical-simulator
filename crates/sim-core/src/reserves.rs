@@ -355,7 +355,7 @@ impl World {
             },
             resolved_day: None,
         });
-        self.event(id,true,format!("Reserve contract #{} proposed: {:?}, {} units. Paid {}m administration; {}m reserved at a fixed quoted price. Consent {}; fills use only spare import capacity after civilian needs. Reserved cash is not delivered goods.",request.0,good,p.quantity,p.fee.0,p.cost.0,date((p.review_day).units())));
+        self.event(id,true,format!("Reserve contract #{} proposed: {:?}, {} units. Paid {}m administration; {}m reserved at a fixed quoted price. Consent {}; fills use only spare import capacity after civilian needs. Reserved cash is not delivered goods.",request.0,good,p.quantity,p.fee.0,p.cost.0,date(p.review_day)));
         Ok(())
     }
     fn close_reserve(&mut self, id: &CountryId, request: ReserveOrderId, status: ReserveStatus) {
@@ -651,14 +651,16 @@ fn validate_stock<Q: Copy>(
     units: impl Fn(Q) -> i64,
     need: i64,
     rules: &ReserveDefinition,
-    day: u32,
-    start: u32,
+    day: crate::CampaignDay,
+    start: crate::CampaignDay,
     loss_bps: u32,
     imports: i64,
     supply: i64,
     import_bps: u32,
     purchased_today: i64,
 ) -> Result<(), String> {
+    let day = day.units();
+    let start = start.units();
     let stored = units(s.stored);
     let purchased = units(s.purchased);
     let released = units(s.released);
@@ -726,10 +728,11 @@ impl World {
                 .last
                 .as_ref()
                 .is_some_and(|f| f.released.units() > 0);
-        if state.last_release_day.is_some_and(|day| {
-            day <= crate::CampaignDay::new(content.start_day().unwrap()) || day > self.day
-        }) || (state.energy.released.units() > 0 || state.food.released.units() > 0)
-            != state.last_release_day.is_some()
+        if state
+            .last_release_day
+            .is_some_and(|day| day <= content.start_day().unwrap() || day > self.day)
+            || (state.energy.released.units() > 0 || state.food.released.units() > 0)
+                != state.last_release_day.is_some()
             || released_today != (state.last_release_day == Some(self.day))
         {
             return Err("Invalid national reserve release notice date".into());
@@ -752,7 +755,7 @@ impl World {
             let market = content.markets.as_ref().unwrap().good(o.good);
             if o.id.0 <= previous
                 || command.command.issuer != *id
-                || command.command.day != crate::CampaignDay::new((o.proposed_day).units())
+                || command.command.day != o.proposed_day
                 || !matches!(command.command.action,Action::ProcureReserve{good,days} if good==o.good&&days==o.days)
                 || !(1..=rules.capacity_days.units()).contains(&o.days.units())
                 || o.quantity != need * i64::from(o.days.units())
@@ -831,7 +834,7 @@ impl World {
             Energy::units,
             need,
             rules,
-            self.day.units(),
+            self.day,
             content.start_day()?,
             0,
             c.report.energy_imported.units(),
@@ -844,7 +847,7 @@ impl World {
             Food::units,
             need,
             rules,
-            self.day.units(),
+            self.day,
             content.start_day()?,
             f.loss_bps.units(),
             c.report.food_imported.units(),

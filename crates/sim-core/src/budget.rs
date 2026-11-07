@@ -27,10 +27,10 @@ impl BudgetForecast {
         ]
         .iter()
         .all(|v| (0..=1_000_000_000).contains(v))
-            && self
-                .interest_accrual
-                .as_ref()
-                .is_none_or(|p| p.valid() && self.daily_interest == p.due(1).unwrap_or(Money(-1)))
+            && self.interest_accrual.as_ref().is_none_or(|p| {
+                p.valid()
+                    && self.daily_interest == p.due(crate::DaySpan::new(1)).unwrap_or(Money(-1))
+            })
     }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -71,7 +71,8 @@ impl BudgetPeriod {
             - self.capital.0
             - self.principal_repaid.0
     }
-    pub fn expected_revenue(&self, day: u32) -> i64 {
+    pub fn expected_revenue(&self, day: crate::CampaignDay) -> i64 {
+        let day = day.units();
         let days = match self.opening_day_settled {
             None => day
                 .min((self.end_day).units())
@@ -92,7 +93,10 @@ impl BudgetPeriod {
             return self.opening_cash.0
                 + i64::from(days)
                     * (self.forecast.daily_revenue.0 - self.forecast.daily_spending.0)
-                - interest.due(days).expect("validated budget projection").0;
+                - interest
+                    .due(crate::DaySpan::new(days))
+                    .expect("validated budget projection")
+                    .0;
         }
         self.opening_cash.0
             + i64::from(
@@ -200,7 +204,10 @@ impl Country {
         BudgetForecast {
             daily_interest: interest_accrual.as_ref().map_or_else(
                 || crate::interest::minimum_daily_interest(self.debt),
-                |p| p.due(1).expect("bounded daily projection"),
+                |p| {
+                    p.due(crate::DaySpan::new(1))
+                        .expect("bounded daily projection")
+                },
             ),
             interest_accrual,
             daily_revenue: Money(revenue),
@@ -213,17 +220,22 @@ impl Country {
         }
     }
 }
-pub(crate) fn next_fiscal_end(day: u32) -> u32 {
-    let year = date(day)[..4].parse::<u32>().expect("year");
-    (2000..=year)
-        .map(|y| {
-            if y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) {
-                366
-            } else {
-                365
-            }
-        })
-        .sum()
+pub(crate) fn next_fiscal_end(day: crate::CampaignDay) -> crate::CampaignDay {
+    let day = day.units();
+    let year = date(crate::CampaignDay::new(day))[..4]
+        .parse::<u32>()
+        .expect("year");
+    crate::CampaignDay::new(
+        (2000..=year)
+            .map(|y| {
+                if y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) {
+                    366
+                } else {
+                    365
+                }
+            })
+            .sum::<u32>(),
+    )
 }
 impl World {
     pub(crate) fn review_budget(&mut self, content: &Content, id: &CountryId) {
@@ -240,7 +252,7 @@ impl World {
         if c.budget_reviews.len() > 10 {
             c.budget_reviews.remove(0);
         }
-        let variance = c.budget.revenue.0 - c.budget.expected_revenue(self.day.units());
+        let variance = c.budget.revenue.0 - c.budget.expected_revenue(self.day);
         let message = format!(
             "Fiscal year closed: revenue {}m ({variance:+}m against opening forecast), payments {}m, capital {}m, closing cash {}m, arrears {}m. Variance reflects supply, collection, cash-constrained wages and policy changes; financing is shown separately.",
             c.budget.revenue.0,
@@ -251,7 +263,7 @@ impl World {
         );
         c.budget = BudgetPeriod {
             start_day: self.day,
-            end_day: crate::CampaignDay::new(next_fiscal_end(self.day.units())),
+            end_day: next_fiscal_end(self.day),
             opening_cash: c.accounts.treasury,
             opening_day_settled: content.fiscal_plans.as_ref().map(|_| true),
             forecast: c.forecast(d, content.income_taxes.as_ref()),

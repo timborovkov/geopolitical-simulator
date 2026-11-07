@@ -24,9 +24,9 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) {
     };
     ui.label(format!(
         "{kind} · held since {} · government #{} from {}",
-        date(view.holder_since.units()),
+        date(view.holder_since),
         view.government.0,
-        date(view.mandate_since.units())
+        date(view.mandate_since)
     ));
     if matches!(view.holder, ExecutiveHolder::Collective { .. }) {
         if view.members.is_empty() {
@@ -47,7 +47,7 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) {
         .id_salt("executive_history").show(ui, |ui| {
             for entry in view.tenures.iter().rev() {
                 let tenure = &entry.tenure;
-                ui.label(format!("Government #{} · {} · {} to {}", tenure.government.0, entry.name, date(tenure.from_day.units()), tenure.until_day.map(|day| date(day.units())).unwrap_or_else(|| "present".into())));
+                ui.label(format!("Government #{} · {} · {} to {}", tenure.government.0, entry.name, date(tenure.from_day), tenure.until_day.map(date).unwrap_or_else(|| "present".into())));
             }
             ui.small("Older closed mandates may leave this bounded history. Governing-body identities are retained and never reassigned.");
         });

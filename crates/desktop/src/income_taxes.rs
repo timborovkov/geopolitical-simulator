@@ -74,7 +74,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, draft: Option<i32>) -
                 Err(reason) => { ui.label(reason); }
             }
             if let Some(report) = &c.income_tax_report {
-                ui.strong(format!("Realized withholding {} · settled standard {}% · collection capacity {}%", date(report.day.units()), report.standard_rate, report.administration));
+                ui.strong(format!("Realized withholding {} · settled standard {}% · collection capacity {}%", date(report.day), report.standard_rate, report.administration));
                 ui.label(format!("Potential {}m; actually withheld {}m. Uncollected potential is retained by households; it is not cash or a treasury arrears claim.", report.potential().0, report.paid().0));
                 let display: Vec<_> = report.groups.iter().map(|line| (&line.group, &line.assessment, line.paid)).collect();
                 income_table(ui, ("income-tax-actual", draft.is_some()), d, &display, "Paid");

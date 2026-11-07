@@ -13,7 +13,7 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Actio
             ui.strong(format!("{good:?} · national inventory {} units",state.stored(good)));
             match world.reserve_supply(content,&world.player,good) {
                 Ok(Some(s))=>{
-                    ui.label(format!("Observed {}: civilian physical supply {} / need {}; civilian imports {} / capacity {}; spare capacity {} units/day.",date(s.day.units()),s.civilian_supply,s.physical_need,s.civilian_imports,s.import_capacity,s.spare_import_capacity));
+                    ui.label(format!("Observed {}: civilian physical supply {} / need {}; civilian imports {} / capacity {}; spare capacity {} units/day.",date(s.day),s.civilian_supply,s.physical_need,s.civilian_imports,s.import_capacity,s.spare_import_capacity));
                     ui.label(s.explanation());
                     ui.small("This is the last settlement, not a forecast or guaranteed delivery. Future supply, imports and contract consent can change.");
                 },
@@ -21,14 +21,14 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Actio
                 Err(reason)=>{ui.small(reason);},
             }
             match good {
-                GoodKind::Energy=>{if let Some(f)=&state.energy.last {ui.label(format!("{}: opening {} · purchased {} · released {} · loss {} · closing {}",date(f.day.units()),f.opening,f.purchased,f.released,f.loss,f.closing));}},
-                GoodKind::Food=>{if let Some(f)=&state.food.last {ui.label(format!("{}: opening {} · purchased {} · released {} · loss {} · closing {}",date(f.day.units()),f.opening,f.purchased,f.released,f.loss,f.closing));}},
+                GoodKind::Energy=>{if let Some(f)=&state.energy.last {ui.label(format!("{}: opening {} · purchased {} · released {} · loss {} · closing {}",date(f.day),f.opening,f.purchased,f.released,f.loss,f.closing));}},
+                GoodKind::Food=>{if let Some(f)=&state.food.last {ui.label(format!("{}: opening {} · purchased {} · released {} · loss {} · closing {}",date(f.day),f.opening,f.purchased,f.released,f.loss,f.closing));}},
             }
             for count in 1..=rules.capacity_days.units() {
                 let days = NeedDays::new(count);
                 match world.preview_reserve(content,&world.player,good,days) {
                     Ok(p)=>{
-                        ui.label(format!("{days} day(s), {} units: pay {}m administration now; reserve {}m purchase cash. Review {}; earliest delivery {}; expires {}. Quoted price index {:.4}. {}",p.quantity,p.fee.0,p.cost.0,date((p.review_day).units()),date((p.earliest_delivery_day).units()),date((p.expiry_day).units()),f64::from(p.price_bps.units())/10000.0,p.route));
+                        ui.label(format!("{days} day(s), {} units: pay {}m administration now; reserve {}m purchase cash. Review {}; earliest delivery {}; expires {}. Quoted price index {:.4}. {}",p.quantity,p.fee.0,p.cost.0,date(p.review_day),date(p.earliest_delivery_day),date(p.expiry_day),f64::from(p.price_bps.units())/10000.0,p.route));
                         if ui.button(format!("Authorize {good:?} contract · {days} day(s)")).clicked() {action=Some(Action::ProcureReserve{good,days});}
                     }
                     Err(reason)=>{ui.small(format!("{days} day(s): {reason}"));}
@@ -82,15 +82,14 @@ fn show_order(
     ));
     ui.label(format!(
         "Proposed {} · consent review {} · earliest delivery {} · final delivery date {}",
-        date((order.proposed_day).units()),
-        date((order.review_day).units()),
+        date(order.proposed_day),
+        date(order.review_day),
         date(
-            (order
+            order
                 .review_day
-                .max(sim_core::CampaignDay::new((order.proposed_day).units() + 1)))
-            .units()
+                .max(sim_core::CampaignDay::new((order.proposed_day).units() + 1))
         ),
-        date((order.expiry_day).units())
+        date(order.expiry_day)
     ));
     ui.small(format!(
         "Administration paid {}m · fixed quoted price index {:.4} · unfilled quantity {} units",
@@ -101,12 +100,12 @@ fn show_order(
     if let Some(day) = order.last_fill_day {
         ui.label(format!(
             "Last purchase {}: {} units",
-            date((day).units()),
+            date(day),
             order.last_fill_quantity
         ));
     }
     if let Some(day) = order.resolved_day {
-        ui.label(format!("Closed {}. Unspent purchase reservations were released; paid goods and administration were not refunded.",date((day).units())));
+        ui.label(format!("Closed {}. Unspent purchase reservations were released; paid goods and administration were not refunded.",date(day)));
     }
     if order.status.open() {
         let next = order

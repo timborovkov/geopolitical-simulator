@@ -152,7 +152,8 @@ pub struct ElectoralAuthority {
     pub polls: Vec<ElectoralPoll>,
 }
 impl ElectoralAuthority {
-    pub fn new(rules: &ElectionDefinition, regime: Regime, start: u32) -> Self {
+    pub fn new(rules: &ElectionDefinition, regime: Regime, start: crate::CampaignDay) -> Self {
+        let start = start.units();
         Self {
             regime,
             government: crate::GovernmentId(1),
@@ -217,7 +218,7 @@ impl World {
         if self.day.units() < (state.next_request_day).units() {
             return Err(format!(
                 "The electoral authority's minimum interval runs until {}",
-                date((state.next_request_day).units())
+                date(state.next_request_day)
             ));
         }
         let decision_day = self
@@ -292,7 +293,7 @@ impl World {
             status: ElectionCaseStatus::Pending,
             resolved_day: None,
         });
-        self.event(id,true,format!("Early-election request #{} submitted to {}. Paid {}m administration; independent review {}, proposed poll {}. The current poll date remains in force until approval. Administration and request interval remain after withdrawal or refusal.",request.0,preview.authority,preview.fee.0,date((preview.decision_day).units()),date((preview.vote_day).units())));
+        self.event(id,true,format!("Early-election request #{} submitted to {}. Paid {}m administration; independent review {}, proposed poll {}. The current poll date remains in force until approval. Administration and request interval remain after withdrawal or refusal.",request.0,preview.authority,preview.fee.0,date(preview.decision_day),date(preview.vote_day)));
         Ok(())
     }
     pub(crate) fn withdraw_election(
@@ -396,7 +397,7 @@ impl World {
         } else {
             request.status = ElectionCaseStatus::Announced;
             c.next_election = Some(case.vote_day);
-            self.event(id,true,format!("Electoral authority approved request #{} and announced a poll for {}. The government cannot withdraw this announced poll. The modeled allocation follows household opinion and the scenario's 100-seat rule, not a certified national electoral law.",case.id.0,date((case.vote_day).units())));
+            self.event(id,true,format!("Electoral authority approved request #{} and announced a poll for {}. The government cannot withdraw this announced poll. The modeled allocation follows household opinion and the scenario's 100-seat rule, not a certified national electoral law.",case.id.0,date(case.vote_day)));
         }
     }
     pub(crate) fn record_electoral_poll(
@@ -439,14 +440,13 @@ impl World {
         state.next_request_day = state.next_request_day.max(crate::CampaignDay::new(
             self.day.units() + rules.minimum_interval_days.units(),
         ));
-        c.next_election = (date(self.day.units())
+        c.next_election = date(self.day)
             .parse::<CivilDate>()
             .expect("date")
             .anniversary(rules.regular_term_years)
             .and_then(CivilDate::campaign_day)
-            .ok())
-        .map(crate::CampaignDay::new);
-        self.event(id,true,format!("Electoral authority recorded the {} modeled poll and its 100-seat allocation. Next regular poll {}. This scenario does not model turnout, electoral districts or electoral-integrity certification.",date(self.day.units()),self.countries[id].next_election.map_or_else(||"falls outside the playable calendar".into(),|day|date(day.units()))));
+            .ok();
+        self.event(id,true,format!("Electoral authority recorded the {} modeled poll and its 100-seat allocation. Next regular poll {}. This scenario does not model turnout, electoral districts or electoral-integrity certification.",date(self.day),self.countries[id].next_election.map_or_else(||"falls outside the playable calendar".into(),date)));
     }
     pub(crate) fn ai_election_request(&mut self, content: &Content, id: &CountryId) {
         if content.elections.is_none()
@@ -488,7 +488,7 @@ impl World {
         let mandate = rules.mandate(id).ok_or("Missing electoral mandate")?;
         if state.regime != *self.governing_regime(content, id)?
             || state.government != country.government_number
-            || state.next_request_day < crate::CampaignDay::new(start)
+            || state.next_request_day < start
             || state.next_request_day
                 > crate::CampaignDay::new(MAX_DAY + rules.minimum_interval_days.units())
         {
@@ -525,7 +525,7 @@ impl World {
                 / 10000)
                 .max(1),
         );
-        let mut interval = start + rules.minimum_interval_days.units();
+        let mut interval = (start).units() + rules.minimum_interval_days.units();
         for (case, origin) in state.cases.iter().zip(proposals) {
             let command = &origin.command;
             let form = country
@@ -582,10 +582,10 @@ impl World {
                 }
                 ElectionCaseStatus::Conducted => {
                     resolved == Some(case.vote_day)
-                        && state.polls.iter().any(|p| {
-                            p.request == Some(case.id)
-                                && p.day == crate::CampaignDay::new((case.vote_day).units())
-                        })
+                        && state
+                            .polls
+                            .iter()
+                            .any(|p| p.request == Some(case.id) && p.day == case.vote_day)
                 }
                 ElectionCaseStatus::Withdrawn => resolved.is_some_and(|day| {
                     day >= case.proposed_day && day < case.decision_day && day <= self.day
@@ -602,10 +602,10 @@ impl World {
                             || country
                                 .next_election
                                 .is_some_and(|poll| poll <= case.vote_day)
-                            || state.polls.iter().any(|p| {
-                                p.day >= crate::CampaignDay::new((day).units())
-                                    && p.day <= crate::CampaignDay::new((case.vote_day).units())
-                            }))
+                            || state
+                                .polls
+                                .iter()
+                                .any(|p| p.day >= day && p.day <= case.vote_day))
                 }),
             };
             if !valid {
@@ -613,7 +613,7 @@ impl World {
             }
         }
         for poll in &state.polls {
-            if poll.day < crate::CampaignDay::new(start)
+            if poll.day < start
                 || poll.day > self.day
                 || poll.government_before == crate::GovernmentId(0)
                 || poll.government_after < poll.government_before

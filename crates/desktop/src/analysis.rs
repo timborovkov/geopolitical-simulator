@@ -155,7 +155,7 @@ impl Analysis {
                     if let Ok(report) = world.public_report(content, id) {
                         for summary in report.archived_reviews.unwrap_or_default() {
                             if summary.last_day.units().saturating_add(self.horizon) >= world.day.units() {
-                                ui.label(format!("{} · {}: {} review sample{}, {} through {}", report.name, summary.year, summary.samples, if summary.samples == 1 { "" } else { "s" }, sim_core::date(summary.first_day.units()), sim_core::date(summary.last_day.units())));
+                                ui.label(format!("{} · {}: {} review sample{}, {} through {}", report.name, summary.year, summary.samples, if summary.samples == 1 { "" } else { "s" }, sim_core::date(summary.first_day), sim_core::date(summary.last_day)));
                             }
                         }
                     }
@@ -217,10 +217,11 @@ impl Analysis {
                                         .map_or_else(|| "Unknown".into(), |v| v.to_string()),
                                 );
                             }
-                            ui.label(report.latest.map_or_else(
-                                || "No release".into(),
-                                |o| sim_core::date(o.day.units()),
-                            ));
+                            ui.label(
+                                report
+                                    .latest
+                                    .map_or_else(|| "No release".into(), |o| sim_core::date(o.day)),
+                            );
                             ui.end_row();
                         }
                     });

@@ -36,18 +36,15 @@ fn a_midyear_bookmark_initializes_clocks_fiscal_periods_and_pending_saves() {
     let content = content_at("2001-07-15").unwrap();
     let start = parse_date("2001-07-15").unwrap();
     let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
-    assert_eq!(world.day.units(), start);
-    assert_eq!(
-        world.player_country().budget.start_day,
-        sim_core::CampaignDay::new(start)
-    );
+    assert_eq!(world.day, start);
+    assert_eq!(world.player_country().budget.start_day, start);
     assert_eq!(
         world.player_country().budget.end_day,
-        sim_core::CampaignDay::new(parse_date("2002-01-01").unwrap())
+        parse_date("2002-01-01").unwrap()
     );
     assert_eq!(
         world.player_country().next_election,
-        Some(sim_core::CampaignDay::new(start + 730))
+        Some(sim_core::CampaignDay::new((start).units() + 730))
     );
     world
         .issue(
@@ -61,7 +58,7 @@ fn a_midyear_bookmark_initializes_clocks_fiscal_periods_and_pending_saves() {
     world.advance(&content, sim_core::DaySpan::new(7)).unwrap();
     let mut restored =
         persistence::decode(&persistence::encode(&world, &content).unwrap(), &content).unwrap();
-    let remaining = parse_date("2002-01-01").unwrap() - world.day.units();
+    let remaining = (parse_date("2002-01-01").unwrap()).units() - world.day.units();
     restored
         .advance(&content, sim_core::DaySpan::new(remaining))
         .unwrap();
@@ -72,7 +69,7 @@ fn a_midyear_bookmark_initializes_clocks_fiscal_periods_and_pending_saves() {
     assert_eq!(restored.hash(), world.hash());
     assert_eq!(
         world.player_country().budget_reviews[0].period.start_day,
-        sim_core::CampaignDay::new(start)
+        start
     );
     assert_eq!(world.player_country().budget.start_day, world.day);
     persistence::replay(&world, &content).unwrap();
@@ -86,14 +83,14 @@ fn a_later_bookmark_receives_five_calendar_years_before_its_review() {
         parse_date("2006-01-01").unwrap()
     );
     assert_eq!(
-        content.review_day().unwrap() - content.start_day().unwrap(),
+        (content.review_day().unwrap()).units() - (content.start_day().unwrap()).units(),
         1826
     );
     let mut world = World::new(&content, CountryId("AUR".into()), 9).unwrap();
     world
         .advance(
             &content,
-            sim_core::DaySpan::new(content.review_day().unwrap() - world.day.units() - 1),
+            sim_core::DaySpan::new((content.review_day().unwrap()).units() - world.day.units() - 1),
         )
         .unwrap();
     assert!(!world.milestone_reported);

@@ -99,9 +99,9 @@ impl CommitmentRecord {
     pub fn stage(&self) -> CommitmentStage {
         self.milestones.last().expect("record milestone").stage
     }
-    fn mark(&mut self, day: u32, stage: CommitmentStage) {
+    fn mark(&mut self, day: crate::CampaignDay, stage: CommitmentStage) {
         self.milestones.push(CommitmentMilestone {
-            day: crate::CampaignDay::new(day),
+            day,
             stage,
             value: self.project.value,
         });
@@ -272,10 +272,10 @@ impl World {
         r.paid.0 += preview.fee.0;
         r.amendments += 1;
         r.project = p.clone();
-        r.mark(self.day.units(), CommitmentStage::Amended);
+        r.mark(self.day, CommitmentStage::Amended);
         // An intervening constitutional change may now permit immediate consent.
         self.resolve_consents(content, id);
-        self.event_for_commitment(id, request, CommitmentStage::Amended, format!("Commitment #{} amended to {value}. Paid {}m administration; consent {} and operating due {}. Existing capital reservation is unchanged.",request.0,preview.fee.0,date((preview.consent_day).units()),date((preview.due_day).units())));
+        self.event_for_commitment(id, request, CommitmentStage::Amended, format!("Commitment #{} amended to {value}. Paid {}m administration; consent {} and operating due {}. Existing capital reservation is unchanged.",request.0,preview.fee.0,date(preview.consent_day),date(preview.due_day)));
         Ok(())
     }
     pub(crate) fn cancel_commitment(
@@ -296,7 +296,7 @@ impl World {
             .find(|r| r.id == request)
             .expect("record");
         r.project.reserved = Money(0);
-        r.mark(self.day.units(), CommitmentStage::Withdrawn);
+        r.mark(self.day, CommitmentStage::Withdrawn);
         self.event_for_commitment(id, request, CommitmentStage::Withdrawn, format!("Commitment #{} withdrawn. Released {}m reserved cash; {}m already paid remains spent. No operating effect was delivered.", request.0,preview.released.0,preview.sunk.0));
         Ok(())
     }
@@ -319,14 +319,14 @@ impl World {
             approval_at_delivery: None,
             evaluation: None,
         };
-        r.mark(self.day.units(), CommitmentStage::Proposed);
+        r.mark(self.day, CommitmentStage::Proposed);
         if r.project.stage == PolicyStage::Implementing {
             for stage in [
                 CommitmentStage::Approved,
                 CommitmentStage::Funded,
                 CommitmentStage::Implementing,
             ] {
-                r.mark(self.day.units(), stage);
+                r.mark(self.day, stage);
             }
         }
         records.push(r);
@@ -354,10 +354,10 @@ impl World {
                 CommitmentStage::Funded,
                 CommitmentStage::Implementing,
             ] {
-                r.mark(self.day.units(), stage);
+                r.mark(self.day, stage);
             }
         } else {
-            r.mark(self.day.units(), CommitmentStage::Refused);
+            r.mark(self.day, CommitmentStage::Refused);
         }
     }
     pub(crate) fn record_delivery(
@@ -400,7 +400,7 @@ impl World {
                         CommitmentStage::Operating | CommitmentStage::Evaluated
                     )
             }) {
-                r.mark(self.day.units(), CommitmentStage::Repealed);
+                r.mark(self.day, CommitmentStage::Repealed);
                 r.review_due = None;
             }
         }
@@ -417,7 +417,7 @@ impl World {
                 after,
             })
             .collect();
-        r.baseline = (self.day.units() > content.start_day().expect("start") + 1)
+        r.baseline = (self.day.units() > (content.start_day().expect("start")).units() + 1)
             .then(|| before.report.clone());
         r.approval_at_delivery = Some(before.approval);
         r.review_due = (self
@@ -433,7 +433,7 @@ impl World {
             )
             .filter(|day| *day <= MAX_DAY))
         .map(crate::CampaignDay::new);
-        r.mark(self.day.units(), CommitmentStage::Operating);
+        r.mark(self.day, CommitmentStage::Operating);
     }
     pub(crate) fn evaluate_commitments(&mut self, id: &CountryId) {
         let c = self.countries.get_mut(id).expect("country");
@@ -473,7 +473,7 @@ impl World {
                     .saturating_sub(1) as u32,
             });
             r.review_due = None;
-            r.mark(self.day.units(), CommitmentStage::Evaluated);
+            r.mark(self.day, CommitmentStage::Evaluated);
             evaluated.push(r.id);
         }
         for request in evaluated {
@@ -582,7 +582,7 @@ impl World {
             if let Some(m) = operating {
                 expected.push(CommitmentStage::Operating);
                 if !funded
-                    || m.day != crate::CampaignDay::new((r.project.due_day).units())
+                    || m.day != r.project.due_day
                     || r.approval_at_delivery.is_none()
                     || r.direct_effects.is_empty()
                 {

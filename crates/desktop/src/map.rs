@@ -115,11 +115,11 @@ impl ReportTime {
     fn picker(&mut self, ui: &mut egui::Ui, dates: &[u32]) {
         ui.add_enabled_ui(!dates.is_empty(), |ui| {
             egui::ComboBox::from_label("Statistics")
-                .selected_text(match *self { Self::Latest => "Latest releases".into(), Self::Published(day) => format!("As of {}", sim_core::date(day)) })
+                .selected_text(match *self { Self::Latest => "Latest releases".into(), Self::Published(day) => format!("As of {}", sim_core::date(sim_core::CampaignDay::new(day))) })
                 .show_ui(ui, |ui| {
                     ui.selectable_value(self, Self::Latest, "Latest releases");
                     for day in dates.iter().rev() {
-                        ui.selectable_value(self, Self::Published(*day), format!("Published {}", sim_core::date(*day)));
+                        ui.selectable_value(self, Self::Published(*day), format!("Published {}", sim_core::date(sim_core::CampaignDay::new(*day))));
                     }
                 }).response.on_hover_text("Changes the displayed statistical releases. Campaign time follows the time controls.");
         });
@@ -180,22 +180,22 @@ impl Layer {
             .count();
         let dates = match (dates.first(), dates.last()) {
             (Some(first), Some(last)) if first == last => {
-                format!("Published {}", sim_core::date((*first).units()))
+                format!("Published {}", sim_core::date(*first))
             }
             (Some(first), Some(last)) => format!(
                 "Latest release dates {} to {}",
-                sim_core::date((*first).units()),
-                sim_core::date((*last).units())
+                sim_core::date(*first),
+                sim_core::date(*last)
             ),
             _ => "No statistical release yet".into(),
         };
         ui.small(format!(
             "{dates} · {published}/{} countries published · campaign {}",
             view.reports.len(),
-            sim_core::date(view.day.units())
+            sim_core::date(view.day)
         ));
         if let ReportTime::Published(day) = time {
-            ui.small(format!("Statistics cutoff {}. Age uses the campaign date; government labels stay current and reference geography stays fixed.", sim_core::date(day)));
+            ui.small(format!("Statistics cutoff {}. Age uses the campaign date; government labels stay current and reference geography stays fixed.", sim_core::date(sim_core::CampaignDay::new(day))));
         }
         if self == Self::Debt {
             ui.small("Published debt / fixed opening annual GDP. The denominator stays fixed throughout the campaign.");
@@ -225,7 +225,7 @@ impl Layer {
                         );
                         ui.label(time.release(report).map_or_else(
                             || "No release".into(),
-                            |release| sim_core::date(release.day.units()),
+                            |release| sim_core::date(release.day),
                         ));
                         ui.label(time.release(report).map_or_else(
                             || "—".into(),
@@ -707,7 +707,7 @@ impl WorldMap {
                 |o| {
                     format!(
                         "Published {} · needs {}% · approval {}%",
-                        sim_core::date(o.day.units()),
+                        sim_core::date(o.day),
                         o.needs,
                         o.approval
                     )

@@ -184,12 +184,16 @@ fn typed_interest_intervals_retain_fractions_across_conditional_principal() {
     );
     for (total, extra) in [(0, 0), (5, 5), (30, 14), (365, 17), (u32::MAX, u32::MAX)] {
         assert_eq!(
-            projection.due(total).unwrap(),
+            projection.due(sim_core::DaySpan::new(total)).unwrap(),
             projection.due_for(DaySpan::new(total)).unwrap()
         );
         assert_eq!(
             projection
-                .due_with_addition(total, Money(2000), extra)
+                .due_with_addition(
+                    sim_core::DaySpan::new(total),
+                    Money(2000),
+                    sim_core::DaySpan::new(extra)
+                )
                 .unwrap(),
             projection
                 .due_with_addition_for(DaySpan::new(total), Money(2000), DaySpan::new(extra))

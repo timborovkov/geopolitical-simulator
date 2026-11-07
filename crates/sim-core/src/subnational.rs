@@ -234,7 +234,7 @@ pub struct SubnationalState {
     pub orders: Vec<RegionalOrder>,
 }
 impl SubnationalState {
-    pub fn new(charter: &TerritorialCharter, start: u32) -> Self {
+    pub fn new(charter: &TerritorialCharter, start: crate::CampaignDay) -> Self {
         Self {
             regions: charter
                 .regions
@@ -247,7 +247,7 @@ impl SubnationalState {
                     cash: Money(0),
                     tax_received: Money(0),
                     base_spent: Money(0),
-                    next_order_day: crate::CampaignDay::new(start),
+                    next_order_day: start,
                     last: None,
                 })
                 .collect(),
@@ -335,7 +335,7 @@ impl World {
             .subnational
             .as_ref()
             .ok_or("This campaign has no subnational mandate workflow")?;
-        let mandate = self.regional_mandate_at(content, id, region, self.day.units())?;
+        let mandate = self.regional_mandate_at(content, id, region, self.day)?;
         let country = self.countries.get(id).ok_or("Unknown country")?;
         let state = country
             .subnational
@@ -351,7 +351,7 @@ impl World {
         if self.day.units() < (local.next_order_day).units() {
             return Err(format!(
                 "This jurisdiction's order interval lasts until {}",
-                date((local.next_order_day).units())
+                date(local.next_order_day)
             ));
         }
         if state.orders.iter().any(|o| {
@@ -458,7 +458,7 @@ impl World {
             preview.fee.0,
             "Subnational decision administration",
         );
-        let charter_revision = self.territorial_revision(content, id, self.day.units());
+        let charter_revision = self.territorial_revision(content, id, self.day);
         let country = self.countries.get_mut(id).expect("country");
         country.budget.capital.0 += preview.fee.0;
         let state = country.subnational.as_mut().expect("subnational");
@@ -495,7 +495,7 @@ impl World {
             status: RegionalOrderStatus::Pending,
             resolved_day: None,
         });
-        self.event(id,true,format!("Regional order #{} for {} submitted. Paid {}m administration; {}m remains protected in public escrow until review {}. National and local public cash stay consolidated; this is not an external payment. Withdrawal/refusal releases escrow but retains fees and the order interval.",order.0,region.0,preview.fee.0,preview.principal.0,date((preview.decision_day).units())));
+        self.event(id,true,format!("Regional order #{} for {} submitted. Paid {}m administration; {}m remains protected in public escrow until review {}. National and local public cash stay consolidated; this is not an external payment. Withdrawal/refusal releases escrow but retains fees and the order interval.",order.0,region.0,preview.fee.0,preview.principal.0,date(preview.decision_day)));
         if preview.decision_day == self.day {
             self.resolve_regional_orders(content, id);
         }
@@ -522,7 +522,7 @@ impl World {
         Ok(())
     }
     pub(crate) fn regional_succession(&mut self, content: &Content, id: &CountryId) {
-        let revision = self.territorial_revision(content, id, self.day.units());
+        let revision = self.territorial_revision(content, id, self.day);
         let country = self.countries.get_mut(id).expect("country");
         let Some(state) = &mut country.subnational else {
             return;
@@ -611,7 +611,7 @@ impl World {
                     RegionalOrderKind::Grant { .. } => {
                         record.status = RegionalOrderStatus::Implementing;
                         record.remaining = record.principal;
-                        self.event(id,true,format!("Local authority accepted grant #{} for {}. Protected funding purchases {}m/day of additional public-service work through {}. The national government cannot reclaim or redirect accepted funds.",order.id.0,order.region.0,order.daily_supplement.0,date((order.end_day.expect("term")).units())));
+                        self.event(id,true,format!("Local authority accepted grant #{} for {}. Protected funding purchases {}m/day of additional public-service work through {}. The national government cannot reclaim or redirect accepted funds.",order.id.0,order.region.0,order.daily_supplement.0,date(order.end_day.expect("term"))));
                     }
                     RegionalOrderKind::Directive { level } => {
                         record.status = RegionalOrderStatus::Delivered;
@@ -826,7 +826,7 @@ impl World {
         };
         for ((local, mandate), receipt) in state.regions.iter().zip(&charter.regions).zip(receipts)
         {
-            let mandate = self.regional_mandate_at(content, id, &mandate.id, self.day.units())?;
+            let mandate = self.regional_mandate_at(content, id, &mandate.id, self.day)?;
             let proposals: Vec<_> = state
                 .orders
                 .iter()
@@ -837,7 +837,7 @@ impl World {
                     .proposed_day
                     .checked_add(rules.cooldown_days)
                     .ok_or("Regional order interval date overflow")?,
-                None => crate::CampaignDay::new(start),
+                None => start,
             };
             let level = proposals
                 .iter()
@@ -902,11 +902,11 @@ impl World {
                 );
             }
             match &local.last {
-                None if self.day.units() == start
+                None if self.day == start
                     && local.cash.0 == 0
                     && local.tax_received.0 == 0
                     && local.base_spent.0 == 0 => {}
-                Some(last) if self.day.units() > start => {
+                Some(last) if self.day.units() > (start).units() => {
                     let ledger = self
                         .ledger
                         .iter()
@@ -965,8 +965,7 @@ impl World {
         }
         for (order, origin) in state.orders.iter().zip(origins) {
             let command = &origin.command;
-            let mandate =
-                self.regional_mandate_at(content, id, &order.region, command.day.units())?;
+            let mandate = self.regional_mandate_at(content, id, &order.region, command.day)?;
             let kind = match &command.action {
                 Action::RegionalOrder { region, kind }
                     if region == &order.region && kind == &order.kind =>
@@ -998,16 +997,14 @@ impl World {
             let delay = match kind {
                 RegionalOrderKind::Grant { .. } => rules.grant_review_days.units(),
                 RegionalOrderKind::Directive { .. } => self
-                    .governing_rules_at(content, id, command.day.units())?
+                    .governing_rules_at(content, id, command.day)?
                     .consent_days
                     .units(),
             };
             if order.id.0 != command.id.0
                 || order.proposed_day != command.day
-                || order.charter_revision
-                    != self.territorial_revision(content, id, command.day.units())
-                || command.day.checked_add(crate::DaySpan::new(delay))
-                    != Some(crate::CampaignDay::new((order.decision_day).units()))
+                || order.charter_revision != self.territorial_revision(content, id, command.day)
+                || command.day.checked_add(crate::DaySpan::new(delay)) != Some(order.decision_day)
                 || order.decision_day > crate::CampaignDay::new(MAX_DAY)
                 || order.sponsor == crate::GovernmentId(0)
                 || order.sponsor > c.government_number
@@ -1089,7 +1086,7 @@ impl World {
                         && order.spent.0 == 0
                         && order.sponsor == c.government_number
                         && order.charter_revision
-                            == self.territorial_revision(content, id, self.day.units())
+                            == self.territorial_revision(content, id, self.day)
                 }
                 RegionalOrderStatus::Implementing => {
                     matches!(kind, RegionalOrderKind::Grant { .. })
@@ -1136,7 +1133,7 @@ impl World {
                         && (order.sponsor < c.government_number
                             || order.resolved_day.is_some_and(|day| {
                                 order.charter_revision
-                                    != self.territorial_revision(content, id, (day).units())
+                                    != self.territorial_revision(content, id, day)
                             }))
                         && order
                             .resolved_day
@@ -1177,7 +1174,7 @@ impl World {
                     name: mandate.name.clone(),
                     tier: mandate.tier.clone(),
                     autonomous_services: self
-                        .regional_mandate_at(content, id, &mandate.id, self.day.units())
+                        .regional_mandate_at(content, id, &mandate.id, self.day)
                         .expect("regional mandate")
                         .autonomous_services,
                     service_level: state

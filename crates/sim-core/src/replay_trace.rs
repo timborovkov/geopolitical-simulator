@@ -301,7 +301,7 @@ pub fn write_replay_trace(
             seed: original.seed,
             scenario: original.scenario,
             player: original.player.clone(),
-            start_day: CampaignDay::new(content.start_day()?),
+            start_day: content.start_day()?,
             end_day: original.day,
             manual_input_hash: crate::stable_hash(
                 &serde_json::to_vec(&inputs).map_err(|e| e.to_string())?,

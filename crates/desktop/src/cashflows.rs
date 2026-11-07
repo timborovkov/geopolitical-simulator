@@ -93,8 +93,8 @@ impl CashFlows {
                 ui.selectable_value(&mut self.days, 30, "Last 30 days");
                 if ui.button("All routes").clicked() { self.route = None; }
             });
-            let first = world.day.units().saturating_sub(self.days - 1).max(content.start_day().expect("validated bookmark"));
-            ui.label(format!("{} through {} inclusive · millions of constant-2000 USD-equivalent game credits", date(first), date(world.day.units())));
+            let first = world.day.units().saturating_sub(self.days - 1).max((content.start_day().expect("validated bookmark")).units());
+            ui.label(format!("{} through {} inclusive · millions of constant-2000 USD-equivalent game credits", date(sim_core::CampaignDay::new(first)), date(world.day)));
             ui.label("Rows pay columns. Select an amount to inspect its recorded transactions. Reservations and unpaid obligations are separate from these cash transfers; transfer totals are not GDP or net public expenditure.");
             let summary = match summarize(world, country, first) { Ok(summary) => summary, Err(error) => { ui.colored_label(egui::Color32::LIGHT_YELLOW, error); return; } };
             let max = summary.transfers.iter().flatten().copied().max().unwrap_or(0).max(1) as f32;
@@ -130,7 +130,7 @@ impl CashFlows {
             ui.strong(format!("{route} · {} transactions · latest 80 shown", entries.len()));
             if entries.is_empty() { ui.label("No recorded transfers on this route in the selected period."); }
             for entry in entries.into_iter().take(80) {
-                ui.label(format!("{} · {} to {} · {}m · {}", date(entry.day.units()), NAMES[index(entry.from)], NAMES[index(entry.to)], entry.amount.0, entry.reason));
+                ui.label(format!("{} · {} to {} · {}m · {}", date(entry.day), NAMES[index(entry.from)], NAMES[index(entry.to)], entry.amount.0, entry.reason));
             }
         });
     }

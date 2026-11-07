@@ -140,13 +140,13 @@ pub struct Constitution {
     pub next_request_day: crate::CampaignDay,
 }
 impl Constitution {
-    pub fn new(regime: Regime, day: u32) -> Self {
+    pub fn new(regime: Regime, day: crate::CampaignDay) -> Self {
         Self {
             regime,
-            since: crate::CampaignDay::new(day),
+            since: day,
             history: Vec::new(),
             pending: None,
-            next_request_day: crate::CampaignDay::new(day),
+            next_request_day: day,
         }
     }
     pub fn reserved_cash(&self) -> Money {
@@ -187,7 +187,7 @@ impl Constitution {
                 || change.to == current
                 || rules.template(target).is_none()
                 || command.day.checked_add(rules.route(contested)?.days) != Some(change.day)
-                || change.day < crate::CampaignDay::new(previous_day)
+                || change.day < previous_day
                 || change.day > world.day
                 || change.government_number <= previous_government
                 || change.government_number > country.government_number
@@ -195,10 +195,10 @@ impl Constitution {
                 return Err("Constitution history differs from its chronology, government or command origin".into());
             }
             current = change.to.clone();
-            previous_day = change.day.units();
+            previous_day = change.day;
             previous_government = change.government_number;
         }
-        if current != self.regime || self.since != crate::CampaignDay::new(previous_day) {
+        if current != self.regime || self.since != previous_day {
             return Err("Current constitution differs from its accepted history".into());
         }
         if let Some(request) = &self.pending {
@@ -211,8 +211,7 @@ impl Constitution {
                 || request.target == self.regime
                 || rules.template(&request.target).is_none()
                 || request.proposed_day != command.day
-                || command.day.checked_add(route.days)
-                    != Some(crate::CampaignDay::new((request.decision_day).units()))
+                || command.day.checked_add(route.days) != Some(request.decision_day)
                 || request.decision_day <= world.day
                 || request.decision_day > crate::CampaignDay::new(MAX_DAY)
                 || request.sponsor_government == crate::GovernmentId(0)
@@ -229,14 +228,14 @@ impl Constitution {
             &entry.command.issuer == id
                 && matches!(entry.command.action, Action::Reconstitute { .. })
         });
-        let expected = last_request.map_or(Ok(crate::CampaignDay::new(start)), |entry| {
+        let expected = last_request.map_or(Ok(start), |entry| {
             entry
                 .command
                 .day
                 .checked_add(rules.cooldown_days)
                 .ok_or("Constitution cooldown overflow")
         })?;
-        if self.next_request_day != crate::CampaignDay::new(expected.units()) {
+        if self.next_request_day != expected {
             return Err("Constitutional inertia differs from accepted requests".into());
         }
         Ok(())
@@ -287,14 +286,15 @@ impl World {
         content: &'a Content,
         id: &CountryId,
     ) -> Result<&'a GovernmentDefinition, String> {
-        self.governing_rules_at(content, id, self.day.units())
+        self.governing_rules_at(content, id, self.day)
     }
     pub(crate) fn governing_rules_at<'a>(
         &'a self,
         content: &'a Content,
         id: &CountryId,
-        day: u32,
+        day: crate::CampaignDay,
     ) -> Result<&'a GovernmentDefinition, String> {
+        let day = day.units();
         let country = self.countries.get(id).ok_or("Unknown governing country")?;
         if let Some(change) = country.constitution.as_ref().and_then(|state| {
             state
@@ -391,7 +391,7 @@ impl World {
         if self.day.units() < (state.next_request_day).units() {
             return Err(format!(
                 "Constitutional inertia: next request after {}",
-                date((state.next_request_day).units())
+                date(state.next_request_day)
             ));
         }
         if target == &state.regime || rules.template(target).is_none() {
@@ -473,7 +473,7 @@ impl World {
             reserved: preview.reserved,
         });
         state.next_request_day = crate::CampaignDay::new(next_request_day);
-        self.event(id, true, format!("{} constitutional request #{}: {:?}. Paid {}m, reserved {}m. Decision {}; backing and sponsorship will be rechecked. Political costs apply if enacted. Cancellation/refusal retains administration costs and constitutional cooldown.", if contested { "CONTESTED" } else { "Lawful" }, request.0, target, preview.upfront.0, preview.reserved.0, date((preview.decision_day).units())));
+        self.event(id, true, format!("{} constitutional request #{}: {:?}. Paid {}m, reserved {}m. Decision {}; backing and sponsorship will be rechecked. Political costs apply if enacted. Cancellation/refusal retains administration costs and constitutional cooldown.", if contested { "CONTESTED" } else { "Lawful" }, request.0, target, preview.upfront.0, preview.reserved.0, date(preview.decision_day)));
         Ok(())
     }
     pub(crate) fn cancel_constitution(

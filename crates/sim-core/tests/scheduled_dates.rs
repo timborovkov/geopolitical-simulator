@@ -10,7 +10,7 @@ fn nonzero_bookmark_schedules_budget_and_loan_consent_across_new_year_and_replay
     .unwrap();
     let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
     let opening = world.day;
-    let january = CampaignDay::new(parse_date("2001-01-01").unwrap());
+    let january = parse_date("2001-01-01").unwrap();
     assert_eq!(
         world.player_country().cabinet.as_ref().unwrap().since,
         opening

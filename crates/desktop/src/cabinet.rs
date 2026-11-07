@@ -28,13 +28,13 @@ impl Panel {
                 .iter()
                 .find(|p| p.office == office.id)
                 .map_or_else(String::new, |p| {
-                    format!(" · appointment pending {}", date((p.decision_day).units()))
+                    format!(" · appointment pending {}", date(p.decision_day))
                 });
             egui::CollapsingHeader::new(format!("{} · {}{}",office.title,holder.map_or("Permanent civil service",|p|p.name.as_str()),pending_label)).id_salt(&office.id.0).show(ui,|ui| {
                 ui.label(format!("Jurisdiction: {}. Current portfolio preparation: {} days, in addition to consent and construction.",office.policies.iter().filter_map(|p|content.policy(p)).map(|p|p.name.as_str()).collect::<Vec<_>>().join(", "),world.policy_preparation_days(content,&world.player,&office.policies[0])));
                 if let Some(person)=holder {ui.label(format!("Incumbent skill {} · political acceptability {} (authored profiles)",person.skill,person.acceptability));}
                 if let Some(pending)=state.pending.iter().find(|p|p.office==office.id) {
-                    ui.label(format!("Appointment #{} pending to {} · paid {}m administration · sponsor cabinet #{}",pending.id.0,date((pending.decision_day).units()),pending.paid.0,pending.sponsor));
+                    ui.label(format!("Appointment #{} pending to {} · paid {}m administration · sponsor cabinet #{}",pending.id.0,date(pending.decision_day),pending.paid.0,pending.sponsor));
                     if ui.button("Withdraw pending appointment · no refund").clicked() {action=Some(Action::CancelAppointment{request:pending.id});}
                 }
                 let candidates:Vec<_>=rules.candidates.iter().filter(|p|p.office==office.id).collect();
@@ -45,7 +45,7 @@ impl Panel {
                 });
                 match world.preview_appointment(content,&world.player,&office.id,selected) {
                     Ok(preview)=>{
-                        ui.label(format!("Pay {}m now · decision {} · {}",preview.fee.0,date((preview.decision_day).units()),preview.route));
+                        ui.label(format!("Pay {}m now · decision {} · {}",preview.fee.0,date(preview.decision_day),preview.route));
                         ui.label(format!("If approved: portfolio preparation {} days; elite backing -{}, council backing -{} (floor zero). Cooldown {} days from proposal.",preview.preparation_days.units(),preview.elite_cost,preview.council_cost,rules.cooldown_days.units()));
                         ui.small("Authority and sponsoring cabinet are rechecked on the decision date. Administration and cooldown remain after withdrawal or refusal.");
                         if ui.button("Propose this ministerial appointment").clicked() {action=Some(Action::Appoint{office:office.id.clone(),person:selected.clone()});}
@@ -69,9 +69,8 @@ impl Panel {
                     "{} · {} · {} to {} · cabinet #{}",
                     rules.office(&term.office).expect("office").title,
                     rules.candidate(&term.person).expect("candidate").name,
-                    date((term.since).units()),
-                    term.until
-                        .map_or_else(|| "present".into(), |day| date(day.units())),
+                    date(term.since),
+                    term.until.map_or_else(|| "present".into(), date),
                     term.government
                 ));
             }

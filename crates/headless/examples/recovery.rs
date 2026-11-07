@@ -116,16 +116,18 @@ fn play(
             "{country}: {:?} to {:?} through a costed contested route; country continues on {} without developer edits",
             definition.regime,
             target,
-            date(world.day.units())
+            date(world.day)
         );
     }
     let review_day = content.review_day()?;
-    while world.day.units() < review_day {
+    while world.day.units() < (review_day).units() {
         let c = world.player_country();
         let gap = -world.funding_outlook(content, 0, None)?.daily_balance.0;
         let upcoming_principal = c.financing.as_ref().map_or(0, |state| {
             state
-                .principal_due_through(world.day.units().saturating_add(90))
+                .principal_due_through(sim_core::CampaignDay::new(
+                    world.day.units().saturating_add(90),
+                ))
                 .0
         });
         if c.available_cash().0 < gap.max(1) * 90 + upcoming_principal {
@@ -204,10 +206,11 @@ fn play(
         let c = world.player_country();
         // Hold cash for dated principal instead of voluntarily retiring perpetual
         // calibration debt with cash needed for a near-term contractual payment.
-        let scheduled_principal = c
-            .financing
-            .as_ref()
-            .map_or(0, |state| state.principal_due_through(MAX_DAY).0);
+        let scheduled_principal = c.financing.as_ref().map_or(0, |state| {
+            state
+                .principal_due_through(sim_core::CampaignDay::new(MAX_DAY))
+                .0
+        });
         if c.available_cash().0 > definition.gdp.units() / 8 + scheduled_principal
             && c.debt.0 > definition.gdp.units() / 5
         {
@@ -216,7 +219,7 @@ fn play(
         }
         world.advance(
             content,
-            sim_core::DaySpan::new((review_day - world.day.units()).min(30)),
+            sim_core::DaySpan::new(((review_day).units() - world.day.units()).min(30)),
         )?;
     }
     world.validate(content)?;
@@ -228,7 +231,7 @@ fn play(
         || c.arrears.0 != 0
         || c.financing
             .as_ref()
-            .is_some_and(|state| state.principal_due_through(world.day.units()).0 > 0)
+            .is_some_and(|state| state.principal_due_through(world.day).0 > 0)
         || c.debt.0 > definition.gdp.units()
     {
         return Err(format!(

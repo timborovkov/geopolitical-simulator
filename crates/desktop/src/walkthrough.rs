@@ -84,7 +84,7 @@ impl Panel {
         ui.label("Inspect a problem, compare a feasible intervention, follow its delivery, then review observed results. You choose and approve every order on the normal governing screens.");
         let mut navigation = None;
         let country = world.player_country();
-        if world.day.units() == content.start_day().expect("validated bookmark") {
+        if world.day == content.start_day().expect("validated bookmark") {
             ui.strong("1 · Get a settled report");
             ui.label("Opening figures are starting assumptions. Advance one day to see actual receipts, payments and delivered needs.");
             if ui.button("Advance one day for the first report").clicked() {
@@ -104,10 +104,7 @@ impl Panel {
                     })
             })
             .collect();
-        ui.strong(format!(
-            "1 · Read the situation · {}",
-            date(world.day.units())
-        ));
+        ui.strong(format!("1 · Read the situation · {}", date(world.day)));
         ui.label(format!("Energy needs met {}% · food needs met {}% · approval {}%. Last-day receipts {}m; payments and interest {}m.",country.report.energy_coverage,country.report.food_coverage,country.approval,country.report.revenue.0,country.report.spending.0+country.report.interest.0));
         ui.label(format!("Uncommitted national cash {}m · operating arrears {}m. A recurring forecast is not cash available to spend.",country.available_cash().0,country.arrears.0));
         if let Ok(outlook) = world.funding_outlook(content, 0, None) {
@@ -128,7 +125,7 @@ impl Panel {
                 .as_ref()
                 .is_some_and(|rules| rules.maturity_days.is_some())
         {
-            ui.label(format!("Overdue/due principal {}m. The five-year review also requires no overdue principal.",financing.principal_due_through(world.day.units()).0));
+            ui.label(format!("Overdue/due principal {}m. The five-year review also requires no overdue principal.",financing.principal_due_through(world.day).0));
         }
         ui.horizontal_wrapped(|ui| {
             for (label, tab) in [
@@ -263,13 +260,13 @@ impl Panel {
                 ui.label(format!(
                     "{} · consent {} · scheduled operation {} · reserved capital {}m. {note}",
                     project.stage.label(),
-                    date((project.consent_day).units()),
-                    date((project.due_day).units()),
+                    date(project.consent_day),
+                    date(project.due_day),
                     project.reserved.0
                 ));
                 if next > world.day
                     && ui
-                        .button(format!("Advance toward {}", date((next).units())))
+                        .button(format!("Advance toward {}", date(next)))
                         .clicked()
                 {
                     navigation = Some(Navigation::Advance(DaySpan::new(
@@ -281,7 +278,7 @@ impl Panel {
         } else if let Some(operation) = operation {
             ui.label(format!(
                 "Operating since {}. Recorded direct changes:",
-                date(operation.day.units())
+                date(operation.day)
             ));
             for effect in &record.direct_effects {
                 ui.label(format!(
@@ -295,13 +292,15 @@ impl Panel {
                 ui.separator();
                 ui.strong(format!(
                     "4 · Review observed results · {}",
-                    date(evaluation.day.units())
+                    date(evaluation.day)
                 ));
                 if let Some(before) = &evaluation.before {
                     ui.small(format!(
                         "Before delivery: settled {}. Review: settled {}.",
-                        date(operation.day.units().saturating_sub(1)),
-                        date(evaluation.day.units())
+                        date(sim_core::CampaignDay::new(
+                            operation.day.units().saturating_sub(1)
+                        )),
+                        date(evaluation.day)
                     ));
                     egui::ScrollArea::horizontal()
                         .id_salt("guided-review-table-scroll")
@@ -361,13 +360,10 @@ impl Panel {
                 ui.label(format!("{} other programme deliveries occurred during the review window. Prices, other policies and disruptions can also change outcomes; these observed differences do not isolate this programme's causal effect.",evaluation.other_deliveries));
                 ui.strong("You have a complete decision record to review. Use the results to choose your next problem; the five-year mandate is a separate objective.");
             } else if let Some(day) = record.review_due {
-                ui.label(format!("The observed review is due {}. Operation confirms a setting change; it does not yet establish the programme's wider results.",date((day).units())));
+                ui.label(format!("The observed review is due {}. Operation confirms a setting change; it does not yet establish the programme's wider results.",date(day)));
                 if day > world.day
                     && ui
-                        .button(format!(
-                            "Advance toward observed review {}",
-                            date((day).units())
-                        ))
+                        .button(format!("Advance toward observed review {}", date(day)))
                         .clicked()
                 {
                     navigation = Some(Navigation::Advance(DaySpan::new(
@@ -469,10 +465,7 @@ mod tests {
         let project = world.player_country().projects[0].clone();
         for scale in [1.0, 1.4] {
             let text = render(&mut panel, &world, &content, true, scale);
-            assert!(text.contains(&format!(
-                "Advance toward {}",
-                date((project.consent_day).units())
-            )));
+            assert!(text.contains(&format!("Advance toward {}", date(project.consent_day))));
             assert!(text.contains("setting changes only when it actually operates"));
             assert!(!text.contains("Operating since"));
         }
@@ -499,10 +492,7 @@ mod tests {
         for scale in [1.0, 1.4] {
             let text = render(&mut panel, &world, &content, true, scale);
             assert!(text.contains("80 to 95"));
-            assert!(text.contains(&format!(
-                "Advance toward observed review {}",
-                date((review).units())
-            )));
+            assert!(text.contains(&format!("Advance toward observed review {}", date(review))));
             assert!(!text.contains("complete decision record"));
         }
         world

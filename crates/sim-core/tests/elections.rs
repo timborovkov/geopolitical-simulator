@@ -87,17 +87,14 @@ fn authority_announces_and_conducts_a_fixed_poll_that_government_cannot_withdraw
             .sum::<u32>(),
         100
     );
-    let next = date(432)
+    let next = date(sim_core::CampaignDay::new(432))
         .parse::<CivilDate>()
         .unwrap()
         .anniversary(4)
         .unwrap()
         .campaign_day()
         .unwrap();
-    assert_eq!(
-        w.player_country().next_election,
-        Some(sim_core::CampaignDay::new(next))
-    );
+    assert_eq!(w.player_country().next_election, Some(next));
     assert_eq!(
         w.public_report(&c, &w.player)
             .unwrap()

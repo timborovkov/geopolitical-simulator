@@ -27,7 +27,7 @@ fn show_quote<Q: Copy + Display>(ui: &mut egui::Ui, quote: &MarketQuote<Q>, rule
     egui::Frame::group(ui.style()).show(ui, |ui| {
         ui.strong(format!("{} · {}", rule.name, rule.unit));
         if let Some(last) = &quote.last {
-            ui.label(format!("{} settlement price {:.4} · next settlement price {:.4}", date(last.day.units()), f64::from(last.price_bps.units()) / 10000.0, f64::from(quote.next_price_bps.units()) / 10000.0));
+            ui.label(format!("{} settlement price {:.4} · next settlement price {:.4}", date(last.day), f64::from(last.price_bps.units()) / 10000.0, f64::from(quote.next_price_bps.units()) / 10000.0));
             let demand_label = if rule.kind == GoodKind::Food { "affordable food demand" } else { "requested industrial use" };
             ui.label(format!("Physical need {} · {demand_label} {} · supply {} · delivered {}", last.physical_need, last.requested_use, last.supply, last.delivered));
             if let Some(released)=last.reserve_release {

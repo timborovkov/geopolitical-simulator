@@ -16,15 +16,12 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World) -> Option<Action> {
         country
             .next_election
             .filter(|day| *day <= sim_core::CampaignDay::new(MAX_DAY))
-            .map_or_else(
-                || "None within the playable calendar".into(),
-                |day| date(day.units())
-            )
+            .map_or_else(|| "None within the playable calendar".into(), date)
     ));
     ui.label(format!("Government early-poll powers apply in: {}. Current authority/backing must also permit the request.",mandate.snap_forms.iter().map(|form|format!("{form:?}")).collect::<Vec<_>>().join(", ")));
-    ui.label(format!("Independent review {} days · campaign {} days · minimum request/poll interval {} days · regular term {} calendar years. Next request permitted after {}.",rules.decision_days.units(),rules.campaign_days.units(),rules.minimum_interval_days.units(),rules.regular_term_years,date((state.next_request_day).units())));
+    ui.label(format!("Independent review {} days · campaign {} days · minimum request/poll interval {} days · regular term {} calendar years. Next request permitted after {}.",rules.decision_days.units(),rules.campaign_days.units(),rules.minimum_interval_days.units(),rules.regular_term_years,date(state.next_request_day)));
     if let Some(case) = state.pending() {
-        ui.label(format!("Pending request #{} · paid {}m administration · decision {} · proposed poll {}. The prior poll date remains in force until approval.",case.id.0,case.paid.0,date((case.decision_day).units()),date((case.vote_day).units())));
+        ui.label(format!("Pending request #{} · paid {}m administration · decision {} · proposed poll {}. The prior poll date remains in force until approval.",case.id.0,case.paid.0,date(case.decision_day),date(case.vote_day)));
         if ui
             .button("Withdraw unapproved election request · no refund")
             .clicked()
@@ -33,7 +30,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World) -> Option<Action> {
         }
     }
     if let Some(case) = state.announced() {
-        ui.strong(format!("Announced poll: {}", date((case.vote_day).units())));
+        ui.strong(format!("Announced poll: {}", date(case.vote_day)));
         ui.label("The government cannot withdraw an announced poll. An earlier mandatory confidence poll takes precedence; an explicit constitutional change can supersede the mandate.");
     }
     match world.preview_election(content, &world.player) {
@@ -41,12 +38,11 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World) -> Option<Action> {
             ui.label(format!(
                 "Pay {}m administration now · review {} · if approved, poll {} instead of {}.",
                 preview.fee.0,
-                date((preview.decision_day).units()),
-                date((preview.vote_day).units()),
-                preview.previous_vote_day.map_or_else(
-                    || "no poll within the playable calendar".into(),
-                    |day| date(day.units())
-                )
+                date(preview.decision_day),
+                date(preview.vote_day),
+                preview
+                    .previous_vote_day
+                    .map_or_else(|| "no poll within the playable calendar".into(), date)
             ));
             ui.small("Review rechecks jurisdiction, current backing and cabinet sponsorship. The authority cannot postpone an earlier poll. Withdrawal/refusal retains the fee and request interval; approval fixes the announced date.");
             if ui.button("Submit costed early-election request").clicked() {
@@ -66,9 +62,9 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World) -> Option<Action> {
                 "#{} · {:?} · proposed {} · review {} · poll {} · paid {}m",
                 case.id.0,
                 case.status,
-                date((case.proposed_day).units()),
-                date((case.decision_day).units()),
-                date((case.vote_day).units()),
+                date(case.proposed_day),
+                date(case.decision_day),
+                date(case.vote_day),
                 case.paid.0
             ));
         }
@@ -78,7 +74,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World) -> Option<Action> {
         for poll in state.polls.iter().rev() {
             ui.strong(format!(
                 "{} · modeled allocation · governing party {}",
-                date(poll.day.units()),
+                date(poll.day),
                 poll.governing_party
             ));
             if !poll.contested {

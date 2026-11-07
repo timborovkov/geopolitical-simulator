@@ -126,8 +126,9 @@ impl GameApp {
         style.spacing.button_padding = Vec2::new(12.0, 7.0);
         ctx.set_style(style);
         let selected = content.countries[0].id.clone();
-        let target_date =
-            date((content.start_day().expect("validated bookmark") + 30).min(MAX_DAY));
+        let target_date = date(sim_core::CampaignDay::new(
+            ((content.start_day().expect("validated bookmark")).units() + 30).min(MAX_DAY),
+        ));
         ctx.set_zoom_factor(preferences.active.ui_scale);
         let save_path = new_game::default_save_path(&content);
         Self {
@@ -256,7 +257,7 @@ impl GameApp {
                 self.status = outcome.error.unwrap_or_else(|| {
                     format!(
                         "Advanced {days} days to {}{}",
-                        date(self.world.as_ref().expect("world").day.units()),
+                        date(self.world.as_ref().expect("world").day),
                         if interrupted {
                             " · stopped at an event or requested boundary"
                         } else {
@@ -341,7 +342,9 @@ impl GameApp {
             Ok((content, w)) => {
                 self.content = content;
                 self.selected = w.player.clone();
-                self.target_date = date((w.day.units() + 30).min(MAX_DAY));
+                self.target_date = date(sim_core::CampaignDay::new(
+                    (w.day.units() + 30).min(MAX_DAY),
+                ));
                 self.world = Some(w);
                 self.navigation = navigation::History::default();
                 self.undertaking_panel = undertakings::Panel::default();
@@ -426,7 +429,9 @@ impl GameApp {
         self.seed = world.seed;
         self.scenario = world.scenario;
         self.selected = world.player.clone();
-        self.target_date = date((world.day.units() + 30).min(MAX_DAY));
+        self.target_date = date(sim_core::CampaignDay::new(
+            (world.day.units() + 30).min(MAX_DAY),
+        ));
         self.content = setup.content.clone();
         self.world = Some(world);
         self.navigation = navigation::History::default();
@@ -543,7 +548,7 @@ impl GameApp {
             ui.horizontal_wrapped(|ui| {
                 ui.label(RichText::new("STATECRAFT").size(23.0).strong().color(MINT));
                 if let Some(w) = &self.world {
-                    ui.strong(date(w.day.units()));
+                    ui.strong(date(w.day));
                     ui.label(format!("Governing {} · {}", w.player.0, w.scenario.id()));
                     ui.strong(self.playback_label());
                     if ui.button(format!("{} [{}]", if self.speed == 0 && self.pending.is_none() { "Play" } else { "Pause" }, self.preferences.active.pause.name())).clicked() {
@@ -578,8 +583,8 @@ impl GameApp {
                         match parse_date(&self.target_date) {
                             Ok(day) => {
                                 let current = self.world.as_ref().expect("world").day.units();
-                                if day < current { self.status = "Choose a future date; load a save to return to an earlier state.".into(); }
-                                else { self.speed = 0; self.advance(DaySpan::new(day - current)); }
+                                if day < sim_core::CampaignDay::new(current) { self.status = "Choose a future date; load a save to return to an earlier state.".into(); }
+                                else { self.speed = 0; self.advance(DaySpan::new((day).units() - current)); }
                             }
                             Err(error) => self.status = error,
                         }
@@ -837,7 +842,7 @@ impl GameApp {
                 metric(
                     ui,
                     "Energy / food delivered",
-                    if w.day.units() == self.content.start_day().expect("validated bookmark") {
+                    if w.day == self.content.start_day().expect("validated bookmark") {
                         "Awaiting first settlement".into()
                     } else {
                         format!(
@@ -847,7 +852,7 @@ impl GameApp {
                     },
                 );
             });
-            if w.day.units() > self.content.start_day().expect("validated bookmark") {
+            if w.day.units() > (self.content.start_day().expect("validated bookmark")).units() {
                 ui.label(format!(
                     "Last day: output {}m · tax receipts {}m · payments {}m · unpaid {}m",
                     c.report.output.0,
@@ -873,11 +878,11 @@ impl GameApp {
                 c.projects.len(),
                 c.executive,
                 c.next_election
-                    .map(|day| date(day.units()))
+                    .map(date)
                     .unwrap_or_else(|| "Elite backing reviewed monthly".into())
             ));
             if let Some(event) = w.events.iter().rev().find(|e| e.country == self.selected) {
-                ui.label(format!("{}  {}", date(event.day.units()), event.text));
+                ui.label(format!("{}  {}", date(event.day), event.text));
             }
             self.situation(ui);
         }
@@ -887,7 +892,7 @@ impl GameApp {
             return;
         };
         if self.selected != world.player
-            || world.day.units() == self.content.start_day().expect("validated bookmark")
+            || world.day == self.content.start_day().expect("validated bookmark")
         {
             return;
         }
@@ -924,7 +929,7 @@ impl GameApp {
             .as_ref()
             .and_then(|state| state.pending.as_ref())
         {
-            ui.label(format!("Pending {} constitutional decision: {:?}, due {}. Reserved administration {}m; approval is not guaranteed.", if request.contested { "CONTESTED" } else { "lawful" }, request.target, date((request.decision_day).units()), request.reserved.0));
+            ui.label(format!("Pending {} constitutional decision: {:?}, due {}. Reserved administration {}m; approval is not guaranteed.", if request.contested { "CONTESTED" } else { "lawful" }, request.target, date(request.decision_day), request.reserved.0));
             if ui.button("Review constitutional decision").clicked() {
                 self.tab = Tab::Politics;
             }
@@ -938,7 +943,7 @@ impl GameApp {
                 "Borrowing request #{}: {}m, decision {}. Pending funds are not treasury cash.",
                 request.id.0,
                 request.amount.0,
-                date((request.decision_day).units())
+                date(request.decision_day)
             ));
             if ui.button("Review borrowing decision").clicked() {
                 self.tab = Tab::Treasury;
@@ -946,9 +951,11 @@ impl GameApp {
         }
 
         if let Some(financing) = &c.financing {
-            let due = financing.principal_due_through(world.day.units()).0;
+            let due = financing.principal_due_through(world.day).0;
             let upcoming = financing
-                .principal_due_through(world.day.units().saturating_add(30))
+                .principal_due_through(sim_core::CampaignDay::new(
+                    world.day.units().saturating_add(30),
+                ))
                 .0
                 - due;
             if due > 0 || upcoming > 0 {
@@ -1032,21 +1039,20 @@ impl GameApp {
             ui.label(format!(
                 "{} · next poll {}",
                 authority.title,
-                authority.next_poll.map_or_else(
-                    || "None within the playable calendar".into(),
-                    |day| date(day.units())
-                )
+                authority
+                    .next_poll
+                    .map_or_else(|| "None within the playable calendar".into(), date)
             ));
             if let Some(poll) = &authority.last_poll {
                 ui.label(format!(
                     "Last modeled poll: {}. Allocation uses the scenario's 100-seat rule.",
-                    date(poll.day.units())
+                    date(poll.day)
                 ));
             }
         }
         if let Some(plans) = &report.fiscal_plans {
             for (index, p) in plans.iter().enumerate().rev() {
-                ui.label(format!("Fiscal plan {} · approved {}: {} {}%, services {}% GDP, welfare {}% GDP; first scheduled setting change {}.",p.year,date((p.enacted_day).units()),if self.content.income_taxes.is_some(){"standard income-tax rate"}else{"tax"},p.targets.income_tax,p.targets.services,p.targets.welfare,date((p.first_scheduled_delivery).units())));
+                ui.label(format!("Fiscal plan {} · approved {}: {} {}%, services {}% GDP, welfare {}% GDP; first scheduled setting change {}.",p.year,date(p.enacted_day),if self.content.income_taxes.is_some(){"standard income-tax rate"}else{"tax"},p.targets.income_tax,p.targets.services,p.targets.welfare,date(p.first_scheduled_delivery)));
                 fiscal_plans::published_delivery(
                     ui,
                     &self.content,
@@ -1066,7 +1072,7 @@ impl GameApp {
                     "Undertaking #{} · {} by {} · {}",
                     r.id.0,
                     undertakings::goal_label(&self.content, &r.goal),
-                    date((r.deadline_day).units()),
+                    date(r.deadline_day),
                     r.status.label()
                 ));
             }
@@ -1079,14 +1085,14 @@ impl GameApp {
             if let Some(change) = &territory.last_change {
                 ui.label(format!(
                     "Last charter change {} · contested {}",
-                    date(change.day.units()),
+                    date(change.day),
                     change.contested
                 ));
             }
             if let Some(claim) = &territory.last_requisition {
                 ui.label(format!(
                     "Last contested local-fund requisition {} · {} · {}m",
-                    date(claim.day.units()),
+                    date(claim.day),
                     claim.region.0,
                     claim.amount.0
                 ));
@@ -1120,7 +1126,7 @@ impl GameApp {
             }
         }
         if let Some(latest) = report.latest {
-            ui.label(format!("Statistical release {} ({} days old): approval {}%, needs {}%, debt {}m, daily output {}m.",date(latest.day.units()),w.day.units()-latest.day.units(),latest.approval,latest.needs,latest.debt.0,latest.daily_output.0));
+            ui.label(format!("Statistical release {} ({} days old): approval {}%, needs {}%, debt {}m, daily output {}m.",date(latest.day),w.day.units()-latest.day.units(),latest.approval,latest.needs,latest.debt.0,latest.daily_output.0));
         } else {
             ui.label("No statistical release yet. The first report is due at a political/statistical review; missing observations are not zero.");
         }
@@ -1304,13 +1310,13 @@ impl GameApp {
                     project.policy,
                     project.value,
                     project.cost.0,
-                    date((project.due_day).units())
+                    date(project.due_day)
                 ));
                 ui.label(format!(
                     "Stage {:?} · reserved {}m · consent {}",
                     project.stage,
                     project.reserved.0,
-                    date((project.consent_day).units())
+                    date(project.consent_day)
                 ));
                 ui.add(egui::ProgressBar::new(progress).show_percentage());
             }
@@ -1329,14 +1335,14 @@ impl GameApp {
         };
         let c = &w.countries[&self.selected];
         let d = self.content.country(&self.selected).expect("country");
-        if w.day.units() == self.content.start_day().expect("validated bookmark") {
+        if w.day == self.content.start_day().expect("validated bookmark") {
             ui.label("Opening state: advance one day for realized income, baskets and delivery.");
         } else {
             match living_standards(&c.households) {
                 Ok(indicators) => {
                     ui.strong(format!(
                         "Realized household indicators · {} · daily flows",
-                        date(w.day.units())
+                        date(w.day)
                     ));
                     let total = indicators.population.0.max(1) as f64;
                     ui.horizontal_wrapped(|ui| {
@@ -1560,10 +1566,10 @@ impl GameApp {
         let plan = &c.budget;
         ui.strong(format!(
             "Fiscal period {} to {} · opening forecast vs execution",
-            date((plan.start_day).units()),
-            date((plan.end_day).units())
+            date(plan.start_day),
+            date(plan.end_day)
         ));
-        ui.label(format!("Revenue realized {}m / opening forecast {}m to date ({:+}m variance). Payments {}m · capital {}m · net financing {}m.",plan.revenue.0,plan.expected_revenue(w.day.units()),plan.revenue.0-plan.expected_revenue(w.day.units()),plan.payments.0,plan.capital.0,plan.borrowing.0-plan.principal_repaid.0));
+        ui.label(format!("Revenue realized {}m / opening forecast {}m to date ({:+}m variance). Payments {}m · capital {}m · net financing {}m.",plan.revenue.0,plan.expected_revenue(w.day),plan.revenue.0-plan.expected_revenue(w.day),plan.payments.0,plan.capital.0,plan.borrowing.0-plan.principal_repaid.0));
         ui.label(format!(
             "Opening forecast closing cash {}m. Cash reconciliation now {}m = treasury {}m.",
             plan.forecast_closing_cash(),
@@ -1587,7 +1593,7 @@ impl GameApp {
             for review in c.budget_reviews.iter().rev() {
                 ui.label(format!(
                     "{}: revenue {}m, payments {}m, capital {}m, closing cash {}m, arrears {}m",
-                    date((review.period.end_day).units()),
+                    date(review.period.end_day),
                     review.period.revenue.0,
                     review.period.payments.0,
                     review.period.capital.0,
@@ -1631,7 +1637,7 @@ impl GameApp {
             {
                 ui.label(format!(
                     "{} · {:?} → {:?} · {}m · {}",
-                    date(e.day.units()),
+                    date(e.day),
                     e.from,
                     e.to,
                     e.amount.0,
@@ -1693,16 +1699,14 @@ impl GameApp {
                 c.council_support,
                 c.confidence_crises,
                 c.next_leadership_review
-                    .map(|day| date(day.units()))
+                    .map(date)
                     .unwrap_or_else(|| "None scheduled".into())
             ));
             ui.label(format!(
                 "Next election: {}",
-                c.next_election
-                    .map(|day| date(day.units()))
-                    .unwrap_or_else(|| {
-                        "No competitive election; elite coalition reviewed monthly".into()
-                    })
+                c.next_election.map(date).unwrap_or_else(|| {
+                    "No competitive election; elite coalition reviewed monthly".into()
+                })
             ));
         } else {
             ui.label(format!(
@@ -1977,7 +1981,7 @@ impl GameApp {
                 ui.label("Restoration preserves the current file and interrupted writes before replacing the primary. The active campaign changes only after successful recovery.");
                 for candidate in &self.recovery {
                     ui.separator();ui.label(format!("{:?}: {}",candidate.kind,candidate.path.display()));
-                    if let Some(error)=&candidate.error{ui.colored_label(Color32::LIGHT_YELLOW,error);}else if let Some(day)=candidate.day {ui.label(format!("Valid campaign at {} · snapshot format {} · {} · rules {}",date(day.units()),candidate.schema.unwrap_or_default(),candidate.content_id.as_deref().unwrap_or("unknown pack"),candidate.rules.unwrap_or_default()));if ui.add_enabled(self.pending.is_none(),egui::Button::new(format!("Restore {:?} from {}",candidate.kind,date(day.units())))).clicked(){chosen=Some(candidate.path.clone());}}
+                    if let Some(error)=&candidate.error{ui.colored_label(Color32::LIGHT_YELLOW,error);}else if let Some(day)=candidate.day {ui.label(format!("Valid campaign at {} · snapshot format {} · {} · rules {}",date(day),candidate.schema.unwrap_or_default(),candidate.content_id.as_deref().unwrap_or("unknown pack"),candidate.rules.unwrap_or_default()));if ui.add_enabled(self.pending.is_none(),egui::Button::new(format!("Restore {:?} from {}",candidate.kind,date(day)))).clicked(){chosen=Some(candidate.path.clone());}}
                 }
                 close=ui.button("Close without changes").clicked();
             });
@@ -1993,7 +1997,9 @@ impl GameApp {
                     Ok((content, world)) => {
                         self.content = content;
                         self.selected = world.player.clone();
-                        self.target_date = date((world.day.units() + 30).min(MAX_DAY));
+                        self.target_date = date(sim_core::CampaignDay::new(
+                            (world.day.units() + 30).min(MAX_DAY),
+                        ));
                         self.world = Some(world);
                         self.navigation = navigation::History::default();
                         self.undertaking_panel = undertakings::Panel::default();

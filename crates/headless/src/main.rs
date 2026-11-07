@@ -15,9 +15,9 @@ fn issue(world: &mut World, content: &Content, action: Action) -> Result<(), Str
 
 fn print_event(event: &Event) {
     if let Some(id) = &event.id {
-        println!("{id} · {} · {}", date(event.day.units()), event.text);
+        println!("{id} · {} · {}", date(event.day), event.text);
     } else {
-        println!("{} · {}", date(event.day.units()), event.text);
+        println!("{} · {}", date(event.day), event.text);
     }
     if let Some(EventContext::Commitment { request, stage }) = event.context {
         println!("Programme #{request} · recorded stage {stage:?} · inspect: commitment {request}");
@@ -35,7 +35,7 @@ fn status(world: &World, content: &Content) {
         if let (Some(food), Some(energy)) = (&markets.food.last, &markets.energy.last) {
             println!(
                 "Settlement {} prices: food {:.4}, energy {:.4}; next settlement: food {:.4}, energy {:.4}",
-                date(food.day.units()),
+                date(food.day),
                 f64::from(food.price_bps.units()) / 10000.0,
                 f64::from(energy.price_bps.units()) / 10000.0,
                 f64::from(markets.food.next_price_bps.units()) / 10000.0,
@@ -59,7 +59,7 @@ fn status(world: &World, content: &Content) {
     }
     println!(
         "{} | {} | {} | hash {:016x}",
-        date(world.day.units()),
+        date(world.day),
         d.name,
         c.executive,
         world.hash()
@@ -88,7 +88,7 @@ fn status(world: &World, content: &Content) {
         c.food_capacity,
         c.administration
     );
-    if world.day.units() == content.start_day().expect("validated bookmark") {
+    if world.day == content.start_day().expect("validated bookmark") {
         println!("Opening state: advance one day for realized fiscal and supply flows.");
     } else {
         println!(
@@ -123,7 +123,7 @@ fn status(world: &World, content: &Content) {
             p.stage.label(),
             paid,
             p.reserved.0,
-            date((p.due_day).units())
+            date(p.due_day)
         );
     }
 }
@@ -200,13 +200,13 @@ fn play(
                     match world.executive_identity_view(content, &world.player)? {
                         None => println!("This campaign does not track live executive identities. Opening references remain available through data."),
                         Some(view) => {
-                            println!("{} · holder since {} · government #{} from {}", view.name, date(view.holder_since.units()), view.government.0, date(view.mandate_since.units()));
+                            println!("{} · holder since {} · government #{} from {}", view.name, date(view.holder_since), view.government.0, date(view.mandate_since));
                             println!("Holder: {:?} · source {} / {} · {:?}", view.holder, view.source, view.source_version, view.quality);
                             println!("Opening reference: {}. Current powers follow the governing constitution; future reference terms do not appoint live holders.", view.opening_office_title);
                             if let Some(origin) = &view.body_origin { println!("Collective origin: {origin:?}. Unlisted membership is unspecified."); }
                             for entry in view.tenures.iter().rev() {
                                 let tenure = &entry.tenure;
-                                println!("Government #{} · {} · {} to {}", tenure.government.0, entry.name, date(tenure.from_day.units()), tenure.until_day.map(|day| date(day.units())).unwrap_or_else(|| "present".into()));
+                                println!("Government #{} · {} · {} to {}", tenure.government.0, entry.name, date(tenure.from_day), tenure.until_day.map(date).unwrap_or_else(|| "present".into()));
                             }
                         }
                     }
@@ -217,16 +217,16 @@ fn play(
                     println!("Statutory permission for your government · drafting, consent and implementation precede programme commissioning.");
                     for law in &rules.definitions {
                         println!("{} · {} · proposal from {} · {}",law.id.0,law.name,law.available_from,
-                            state.enacted.get(&law.id).map(|entry|format!("enacted {} by bill #{}",date(entry.day.units()),entry.bill.0)).unwrap_or_else(||"not enacted".into()));
+                            state.enacted.get(&law.id).map(|entry|format!("enacted {} by bill #{}",date(entry.day),entry.bill.0)).unwrap_or_else(||"not enacted".into()));
                     }
                     for bill in state.bills.iter().rev() {
-                        println!("Bill #{} · {} · {} · paid {}m / {}m · reserved {}m · consent {} · enactment {} · {}",bill.id.0,bill.law.0,bill.status.label(),bill.paid.0,bill.total_cost.0,bill.reserved.0,date(bill.review_day.units()),date(bill.enactment_day.units()),bill.explanation);
+                        println!("Bill #{} · {} · {} · paid {}m / {}m · reserved {}m · consent {} · enactment {} · {}",bill.id.0,bill.law.0,bill.status.label(),bill.paid.0,bill.total_cost.0,bill.reserved.0,date(bill.review_day),date(bill.enactment_day),bill.explanation);
                     }
                 }
                 "preview-law" => {
                     let law = LawId(words.get(1).ok_or("Missing law ID")?.to_string());
                     let p = world.preview_law(content,&world.player,&law)?;
-                    println!("{} · total {}m: {}m drafting now, {}m protected implementation cash; consent {}; earliest enactment {}. {}. Programme funding and delivery remain separate.",law.0,p.total_cost.0,p.upfront.0,p.reserved.0,date(p.review_day.units()),date(p.enactment_day.units()),p.authority.label());
+                    println!("{} · total {}m: {}m drafting now, {}m protected implementation cash; consent {}; earliest enactment {}. {}. Programme funding and delivery remain separate.",law.0,p.total_cost.0,p.upfront.0,p.reserved.0,date(p.review_day),date(p.enactment_day),p.authority.label());
                 }
                 "propose-law" => { let law=LawId(words.get(1).ok_or("Missing law ID")?.to_string());issue(world,content,Action::ProposeLaw{law})?; }
                 "withdraw-law" => { issue(world,content,Action::WithdrawLaw{request:LawBillId(number(words.get(1))?)})?; }
@@ -399,11 +399,11 @@ fn play(
                 }
                 "until" => {
                     let target = parse_date(words.get(1).ok_or("Missing date YYYY-MM-DD")?)?;
-                    if target < world.day.units() {
+                    if target < world.day {
                         return Err("Cannot rewind; load an earlier snapshot".into());
                     }
-                    while world.day.units() < target {
-                        world.advance(content, sim_core::DaySpan::new((target - world.day.units()).min(3660)))?;
+                    while world.day.units() < (target).units() {
+                        world.advance(content, sim_core::DaySpan::new(((target).units() - world.day.units()).min(3660)))?;
                     }
                     status(world, content);
                 }
@@ -518,7 +518,7 @@ fn play(
                         .ok_or("No territorial reform workflow")?;
                     println!(
                         "Current settlement {:?}",
-                        world.territorial_form_at(content, &world.player, world.day.units())?
+                        world.territorial_form_at(content, &world.player, world.day)?
                     );
                     println!(
                         "{}",
@@ -621,7 +621,7 @@ fn play(
                                 content,
                                 &world.player,
                                 &original.id,
-                                world.day.units()
+                                world.day
                             )?
                         );
                     }
@@ -782,8 +782,8 @@ fn play(
                     println!(
                         "Current {:?} since {} · next request {}",
                         state.regime,
-                        date((state.since).units()),
-                        date((state.next_request_day).units())
+                        date(state.since),
+                        date(state.next_request_day)
                     );
                     for template in &rules.templates {
                         println!(
@@ -802,7 +802,7 @@ fn play(
                             request.id.0,
                             request.target,
                             request.contested,
-                            date((request.decision_day).units()),
+                            date(request.decision_day),
                             request.upfront.0,
                             request.reserved.0
                         );
@@ -810,7 +810,7 @@ fn play(
                     for change in &state.history {
                         println!(
                             "{} · {:?} to {:?} · contested {} · government #{}",
-                            date(change.day.units()),
+                            date(change.day),
                             change.from,
                             change.to,
                             change.contested,
@@ -842,7 +842,7 @@ fn play(
                             "{:?} · contested {} · decision {} · {}m total: {}m upfront, {}m reserved · approval/legislature/elite/council costs {}/{}/{}/{} if enacted. Cancellation/refusal retains paid costs and cooldown.",
                             target,
                             contested,
-                            date((preview.decision_day).units()),
+                            date(preview.decision_day),
                             preview.cost.0,
                             preview.upfront.0,
                             preview.reserved.0,
@@ -899,18 +899,18 @@ fn play(
                     for point in plan.points.iter().filter(|point| {
                         point.day == world.day
                             || point.day == sim_core::CampaignDay::new(world.day.units() + horizon)
-                            || loan.is_some_and(|loan| point.day == sim_core::CampaignDay::new((loan.decision_day).units()))
+                            || loan.is_some_and(|loan| point.day == loan.decision_day)
                     }) {
                         println!(
                             "{}: without borrowing {}m · conditional approval {}m (negative = funding gap)",
-                            date(point.day.units()),
+                            date(point.day),
                             point.without_loan.0,
                             point.if_approved.0
                         );
                     }
                     if let Some(loan) = loan {
                         let rate = plan.interest_accrual.as_ref().map_or_else(|| format!("{}m/day",plan.additional_daily_interest.0), |i| format!("{:.4}m/day mean",i.additional_daily_numerator as f64 / f64::from(INTEREST_DENOMINATOR)));
-                        println!("Pending {}m on {} IF approved · additional interest {rate}",loan.amount.0,date((loan.decision_day).units()));
+                        println!("Pending {}m on {} IF approved · additional interest {rate}",loan.amount.0,date(loan.decision_day));
                     }
                 }
                 "cash-retention" => {
@@ -921,7 +921,7 @@ fn play(
                 }
                 "preview-retention" => {
                     let preview = world.preview_cash_hold(content, &world.player, Money(number(words.get(1))?), DaySpan::new(number(words.get(2))?))?;
-                    println!("Target {}m; actual protected now {}m; approval -{}; expiry {}; reuse {}. Unfilled target is not cash. Wages, welfare and interest may become arrears; matured principal may remain unpaid. Local claims and project reservations remain protected.", preview.target.0, preview.retained_now.0, preview.approval_cost, date((preview.expiry_day).units()), date((preview.next_allowed_day).units()));
+                    println!("Target {}m; actual protected now {}m; approval -{}; expiry {}; reuse {}. Unfilled target is not cash. Wages, welfare and interest may become arrears; matured principal may remain unpaid. Local claims and project reservations remain protected.", preview.target.0, preview.retained_now.0, preview.approval_cost, date(preview.expiry_day), date(preview.next_allowed_day));
                 }
                 "retain-cash" => issue(world, content, Action::HoldCash { target: Money(number(words.get(1))?), days: sim_core::DaySpan::new(number(words.get(2))?)})?,
                 "release-cash" => issue(world, content, Action::ReleaseCash { request: CashHoldId(number(words.get(1))?) })?,
@@ -958,7 +958,7 @@ fn play(
                         println!("Borrowing authority · pending funds are not treasury cash");
                         if let Some(interest) = &financing.interest_accrual {
                             println!("Interest: fixed 4% annual actual/365, no compounding. Whole assessed {}m; actually paid {}m; unpaid whole interest {}m; unsettled fraction {}/{} of 1m. Fraction is a creditor claim, never available cash, and survives principal retirement.",interest.whole_assessed().0,interest.paid.0,world.player_country().arrears_external.0,interest.remainder,INTEREST_DENOMINATOR);
-                            if let Some(last) = &interest.last { println!("Latest assessment {}: principal basis {}m, whole interest due {}m. Later manual finance commands affect tomorrow.",date(last.day.units()),last.principal.0,last.amount_due.0); }
+                            if let Some(last) = &interest.last { println!("Latest assessment {}: principal basis {}m, whole interest due {}m. Later manual finance commands affect tomorrow.",date(last.day),last.principal.0,last.amount_due.0); }
                         }
                         if let Some(request) = &financing.pending {
                             println!(
@@ -966,11 +966,11 @@ fn play(
                                 request.id.0,
                                 request.amount.0,
                                 request.authority.0,
-                                date((request.decision_day).units()),
+                                date(request.decision_day),
                                 request.id.0
                             );
                         }
-                        println!("Principal due/overdue now {}m; including next 30 days {}m. Outstanding matured principal remains debt, not duplicated operating arrears.",financing.principal_due_through(world.day.units()).0,financing.principal_due_through(world.day.units().saturating_add(30)).0);
+                        println!("Principal due/overdue now {}m; including next 30 days {}m. Outstanding matured principal remains debt, not duplicated operating arrears.",financing.principal_due_through(world.day).0,financing.principal_due_through(sim_core::CampaignDay::new(world.day.units().saturating_add(30))).0);
                         for loan in &financing.instruments {
                             println!(
                                 "Debt #{} · {} · {:?} · original {}m · outstanding {}m · recognized/issued {} · fixed 4% annual, voluntary FIFO redemption · {:?}",
@@ -979,17 +979,17 @@ fn play(
                                 loan.currency,
                                 loan.original_principal.0,
                                 loan.outstanding.0,
-                                date((loan.issued_day).units()),
+                                date(loan.issued_day),
                                 loan.origin
                             );
                             if let Some(day) = loan.maturity_day {
-                                println!("  Principal due {} · automatic repayment {}m · remaining {}m{}",date((day).units()),loan.maturity_repaid.unwrap_or(Money(0)).0,loan.outstanding.0,if day <= world.day && loan.outstanding.0 > 0 {" OVERDUE"} else {""});
+                                println!("  Principal due {} · automatic repayment {}m · remaining {}m{}",date(day),loan.maturity_repaid.unwrap_or(Money(0)).0,loan.outstanding.0,if day <= world.day && loan.outstanding.0 > 0 {" OVERDUE"} else {""});
                             } else {println!("  Perpetual principal, no mandatory maturity date.");}
                         }
                         println!(
                             "Emergency acts {} · next eligible {} (backing and credit checks still apply)",
                             financing.emergency_count,
-                            date((financing.next_emergency_day).units())
+                            date(financing.next_emergency_day)
                         );
                     } else {
                         println!(
@@ -1004,7 +1004,7 @@ fn play(
                             "{}m via {} · decision {} · consent {} days · authority and creditor funds rechecked before cash is released",
                             amount.0,
                             preview.route,
-                            date((preview.decision_day).units()),
+                            date(preview.decision_day),
                             preview.consent_days.units()
                         ),
                         Err(reason) => println!("Ordinary borrowing unavailable: {reason}"),
@@ -1070,7 +1070,7 @@ fn play(
                         if let Some(release) = report.latest {
                             println!(
                                 "Published {}: approval {}%, needs {}%, debt {}m, daily output {}m",
-                                date(release.day.units()),
+                                date(release.day),
                                 release.approval,
                                 release.needs,
                                 release.debt.0,
@@ -1085,7 +1085,7 @@ fn play(
                     for e in world.ledger.iter().filter(|e| e.country == world.player) {
                         println!(
                             "{} · {:?} → {:?} · {}m · {}",
-                            date(e.day.units()),
+                            date(e.day),
                             e.from,
                             e.to,
                             e.amount.0,
@@ -1096,7 +1096,7 @@ fn play(
                 "households" => {
                     let c = world.player_country();
                     let d = content.country(&world.player).expect("country");
-                    if world.day.units() == content.start_day()? {
+                    if world.day == content.start_day()? {
                         println!(
                             "Opening state: advance one day for realized income and basket indicators."
                         );
@@ -1105,7 +1105,7 @@ fn play(
                         let total = indicators.population.0.max(1) as f64;
                         println!(
                             "{} · population in groups with income below basket {:.1}% · population in groups with food below 90% {:.1}% · group-mean income Gini (0–1) {}",
-                            date(world.day.units()),
+                            date(world.day),
                             indicators.income_below_basket.0 as f64 * 100.0 / total,
                             indicators.food_below_target.0 as f64 * 100.0 / total,
                             indicators.group_mean_gini_bps.map_or_else(
@@ -1138,15 +1138,15 @@ fn play(
                     let p = &c.budget;
                     println!(
                         "Fiscal period {} → {}: opening cash {}m; forecast closing cash {}m",
-                        date((p.start_day).units()),
-                        date((p.end_day).units()),
+                        date(p.start_day),
+                        date(p.end_day),
                         p.opening_cash.0,
                         p.forecast_closing_cash()
                     );
                     println!(
                         "Revenue {}m vs {}m forecast to date; payments {}m, capital {}m, financing {}m, reconciled cash {}m; reserved {}m",
                         p.revenue.0,
-                        p.expected_revenue(world.day.units()),
+                        p.expected_revenue(world.day),
                         p.payments.0,
                         p.capital.0,
                         p.borrowing.0 - p.principal_repaid.0,
@@ -1156,7 +1156,7 @@ fn play(
                     for review in &c.budget_reviews {
                         println!(
                             "Closed {} · revenue {}m · payments {}m · closing cash {}m · arrears {}m",
-                            date((review.period.end_day).units()),
+                            date(review.period.end_day),
                             review.period.revenue.0,
                             review.period.payments.0,
                             review.closing_cash.0,
@@ -1224,7 +1224,7 @@ fn play(
                         println!("Older archived review-sample means (floor rounded, not annual totals or daily time averages):");
                         for summary in &archive.years {
                             if let Some(mean) = summary.mean() {
-                                println!("{} · {} samples, {} through {} · mean cash {}m · debt {}m · approval {}% · needs {}% · daily output {}m", summary.year, summary.samples, date(summary.first_day.units()), date(summary.last_day.units()), mean.treasury.0, mean.debt.0, mean.approval, mean.needs, mean.output.0);
+                                println!("{} · {} samples, {} through {} · mean cash {}m · debt {}m · approval {}% · needs {}% · daily output {}m", summary.year, summary.samples, date(summary.first_day), date(summary.last_day), mean.treasury.0, mean.debt.0, mean.approval, mean.needs, mean.output.0);
                             }
                         }
                         println!("Recent review point observations:");
@@ -1232,7 +1232,7 @@ fn play(
                     for o in &world.player_country().history {
                         println!(
                             "{} · cash {}m · debt {}m · approval {}% · needs {}%",
-                            date(o.day.units()),
+                            date(o.day),
                             o.treasury.0,
                             o.debt.0,
                             o.approval,
@@ -1243,7 +1243,7 @@ fn play(
                 "reserves" => {
                     for good in [GoodKind::Energy,GoodKind::Food] {
                         match world.reserve_supply(content,&world.player,good)? {
-                            Some(s)=>println!("{good:?} observed {}: civilian supply {}/{}; imports {}/{}; spare {} units/day. {} Last settlement only; future deliveries are conditional.",date(s.day.units()),s.civilian_supply,s.physical_need,s.civilian_imports,s.import_capacity,s.spare_import_capacity,s.explanation()),
+                            Some(s)=>println!("{good:?} observed {}: civilian supply {}/{}; imports {}/{}; spare {} units/day. {} Last settlement only; future deliveries are conditional.",date(s.day),s.civilian_supply,s.physical_need,s.civilian_imports,s.import_capacity,s.spare_import_capacity,s.explanation()),
                             None=>println!("{good:?}: no settled supply observation yet; advance one day."),
                         }
                     }

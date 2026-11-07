@@ -244,7 +244,7 @@ impl Chart {
             painter.text(
                 position + Vec2::new(0.0, 10.0),
                 align,
-                sim_core::date(day),
+                sim_core::date(sim_core::CampaignDay::new(day)),
                 egui::FontId::monospace(11.0),
                 Color32::LIGHT_GRAY,
             );
@@ -306,7 +306,7 @@ impl Chart {
             );
             ui.label(format!(
                 "Inspection date {} · nearest available {} per series",
-                sim_core::date(day),
+                sim_core::date(sim_core::CampaignDay::new(day)),
                 if forecast {
                     "scenario point"
                 } else {
@@ -317,7 +317,11 @@ impl Chart {
                 if let Some((observed, value)) = nearest(&s.points, day) {
                     ui.colored_label(
                         colors[index % colors.len()],
-                        format!("{} · {}: {value:.0}", s.label, sim_core::date(observed)),
+                        format!(
+                            "{} · {}: {value:.0}",
+                            s.label,
+                            sim_core::date(sim_core::CampaignDay::new(observed))
+                        ),
                     );
                 }
             }
@@ -335,7 +339,10 @@ impl Chart {
             for s in series {
                 ui.strong(&s.label);
                 for (day, value) in &s.points {
-                    ui.label(format!("{} · {value:.0}", sim_core::date(*day)));
+                    ui.label(format!(
+                        "{} · {value:.0}",
+                        sim_core::date(sim_core::CampaignDay::new(*day))
+                    ));
                 }
             }
         });

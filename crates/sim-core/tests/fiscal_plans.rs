@@ -168,11 +168,14 @@ fn annual_plans_never_operate_before_january_and_preserve_year_end_execution() {
             .find(|p| p.policy == "income_tax")
             .unwrap()
             .due_day,
-        sim_core::CampaignDay::new(jan)
+        jan
     );
     check(&c, &w);
-    w.advance(&c, sim_core::DaySpan::new(jan - 1 - w.day.units()))
-        .unwrap();
+    w.advance(
+        &c,
+        sim_core::DaySpan::new((jan).units() - 1 - w.day.units()),
+    )
+    .unwrap();
     assert_eq!(w.player_country().tax, original);
     check(&c, &w);
     w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
@@ -573,8 +576,11 @@ fn january_delivery_and_settlement_belong_to_the_new_fiscal_year() {
     w.advance(&c, sim_core::DaySpan::new(200)).unwrap();
     propose(&c, &mut w, 2001, target());
     let jan = parse_date("2001-01-01").unwrap();
-    w.advance(&c, sim_core::DaySpan::new(jan - 1 - w.day.units()))
-        .unwrap();
+    w.advance(
+        &c,
+        sim_core::DaySpan::new((jan).units() - 1 - w.day.units()),
+    )
+    .unwrap();
     let previous = w.player_country().budget.clone();
     let closing_cash = w.player_country().accounts.treasury;
     w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
@@ -597,7 +603,8 @@ fn january_delivery_and_settlement_belong_to_the_new_fiscal_year() {
 fn january_review_charges_new_year_implementation_and_late_supplementary_bills_are_rejected() {
     let (c, mut w) = setup();
     let jan = parse_date("2001-01-01").unwrap();
-    w.advance(&c, sim_core::DaySpan::new(jan - 14)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new((jan).units() - 14))
+        .unwrap();
     let hash = w.hash();
     assert!(
         w.issue(
@@ -632,16 +639,17 @@ fn calendar_forecasts_count_only_the_periods_actual_settlement_days() {
     let initial = w.player_country().budget.clone();
     assert_eq!(initial.opening_day_settled, Some(false));
     assert_eq!(
-        initial.expected_revenue((initial.end_day).units()),
+        initial.expected_revenue(initial.end_day),
         initial.forecast.daily_revenue.0 * 365
     );
     let jan = parse_date("2001-01-01").unwrap();
-    w.advance(&c, sim_core::DaySpan::new(jan)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new((jan).units()))
+        .unwrap();
     let next = &w.player_country().budget;
     assert_eq!(next.opening_day_settled, Some(true));
     assert_eq!(next.expected_revenue(jan), next.forecast.daily_revenue.0);
     assert_eq!(
-        next.expected_revenue((next.end_day).units()),
+        next.expected_revenue(next.end_day),
         next.forecast.daily_revenue.0 * 365
     );
     let mut bad = w.clone();

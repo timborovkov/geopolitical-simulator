@@ -328,7 +328,7 @@ fn deferred_matured_principal_stays_in_debt_and_is_not_operating_arrears() {
             .financing
             .as_ref()
             .unwrap()
-            .principal_due_through(w.day.units()),
+            .principal_due_through(w.day),
         Money(1000)
     );
     assert!(w.player_country().retained_cash().0 > 0);

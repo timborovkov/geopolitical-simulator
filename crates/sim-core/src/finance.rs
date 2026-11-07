@@ -163,7 +163,7 @@ fn creditor(country: &CountryId) -> CreditorId {
     CreditorId(format!("external:{}", country.0))
 }
 impl Financing {
-    pub fn new(country: &CountryDefinition, day: u32) -> Self {
+    pub fn new(country: &CountryDefinition, day: crate::CampaignDay) -> Self {
         Self {
             interest_accrual: None,
             instruments: vec![DebtInstrument {
@@ -172,7 +172,7 @@ impl Financing {
                 currency: ReportingCurrency::Constant2000Credit,
                 original_principal: Money(country.gdp.units() / 3),
                 outstanding: Money(country.gdp.units() / 3),
-                issued_day: crate::CampaignDay::new(day),
+                issued_day: day,
                 annual_rate_bps: BasisPoints::new(400),
                 maturity_day: None,
                 maturity_repaid: None,
@@ -181,10 +181,14 @@ impl Financing {
             }],
             pending: None,
             emergency_count: 0,
-            next_emergency_day: crate::CampaignDay::new(day),
+            next_emergency_day: day,
         }
     }
-    pub fn with_rules(country: &CountryDefinition, day: u32, rules: &FinanceDefinition) -> Self {
+    pub fn with_rules(
+        country: &CountryDefinition,
+        day: crate::CampaignDay,
+        rules: &FinanceDefinition,
+    ) -> Self {
         let mut state = Self::new(country, day);
         state.interest_accrual = rules
             .interest_accrual
@@ -193,14 +197,17 @@ impl Financing {
         state
     }
     /// Principal already due or becoming due by this date; no interest or perpetual debt.
-    pub fn principal_due_through(&self, day: u32) -> Money {
+    /// ```compile_fail
+    /// use sim_core::{DaySpan, Financing};
+    /// fn wrong_horizon(financing: &Financing) {
+    ///     financing.principal_due_through(DaySpan::new(90));
+    /// }
+    /// ```
+    pub fn principal_due_through(&self, day: crate::CampaignDay) -> Money {
         Money(
             self.instruments
                 .iter()
-                .filter(|loan| {
-                    loan.maturity_day
-                        .is_some_and(|due| due <= crate::CampaignDay::new(day))
-                })
+                .filter(|loan| loan.maturity_day.is_some_and(|due| due <= day))
                 .map(|loan| loan.outstanding.0)
                 .sum(),
         )
@@ -268,7 +275,7 @@ impl Financing {
                 || instrument
                     .maturity_day
                     .is_some_and(|day| day > crate::CampaignDay::new(MAX_DAY))
-                || instrument.issued_day < crate::CampaignDay::new(previous_issue)
+                || instrument.issued_day < previous_issue
                 || instrument.issued_day > world.day
             {
                 return Err("Invalid debt terms, chronology, creditor or principal".into());
@@ -291,7 +298,7 @@ impl Financing {
                 );
             }
             repayments -= redeemed;
-            previous_issue = (instrument.issued_day).units();
+            previous_issue = instrument.issued_day;
             total = total
                 .checked_add(instrument.outstanding.0)
                 .ok_or("Debt portfolio overflow")?;
@@ -300,7 +307,7 @@ impl Financing {
                     if index == 0
                         && instrument.id == LoanId(0)
                         && instrument.original_principal.0 == definition.gdp.units() / 3
-                        && instrument.issued_day == crate::CampaignDay::new(start) => {}
+                        && instrument.issued_day == start => {}
                 DebtOrigin::AcceptedRequest { contested }
                     if index > 0
                         && instrument.id.0 > 0
@@ -321,7 +328,7 @@ impl Financing {
                         rules
                             .authority(
                                 &world
-                                    .governing_rules_at(content, id, entry.command.day.units())?
+                                    .governing_rules_at(content, id, entry.command.day)?
                                     .route,
                             )
                             .ok_or("Debt lacks legal authority")?
@@ -331,7 +338,7 @@ impl Financing {
                     if &entry.command.issuer != id
                         || amount != instrument.original_principal
                         || entry.command.day.checked_add(crate::DaySpan::new(delay))
-                            != Some(crate::CampaignDay::new((instrument.issued_day).units()))
+                            != Some(instrument.issued_day)
                     {
                         return Err(
                             "Debt principal, issuer or approval date differs from the journal"
@@ -369,7 +376,7 @@ impl Financing {
                     != request.requested_day.checked_add(authority.consent_days)
                 || request.decision_day <= world.day
                 || request.decision_day > crate::CampaignDay::new(MAX_DAY)
-                || request.requested_day < crate::CampaignDay::new(start)
+                || request.requested_day < start
                 || request.sponsor_government == crate::GovernmentId(0)
                 || request.sponsor_government > country.government_number
                 || &entry.command.issuer != id
@@ -408,10 +415,10 @@ impl Financing {
                 )
                 .ok_or("Emergency deadline overflow")?
         } else {
-            crate::CampaignDay::new(start)
+            start
         };
         if self.emergency_count as usize != emergencies.len()
-            || self.next_emergency_day != crate::CampaignDay::new(expected_next.units())
+            || self.next_emergency_day != expected_next
         {
             return Err("Emergency-financing audit differs from accepted commands".into());
         }
@@ -532,7 +539,7 @@ impl World {
         if self.day.units() < (financing.next_emergency_day).units() {
             return Err(format!(
                 "Emergency financing is on cooldown until {}",
-                date((financing.next_emergency_day).units())
+                date(financing.next_emergency_day)
             ));
         }
         if country.council_support < rule.council_threshold {
@@ -598,7 +605,12 @@ impl World {
             .and_then(|r| r.maturity_days)
             .map_or_else(
                 || "voluntary principal repayment".into(),
-                |days| format!("principal due {}", date(self.day.units() + days.units())),
+                |days| {
+                    format!(
+                        "principal due {}",
+                        date(crate::CampaignDay::new(self.day.units() + days.units()))
+                    )
+                },
             );
         self.event(id, true, format!("Loan #{} disbursed: {}m from the finite external creditor at 4% annual interest, with {terms}.{}", loan.0, amount.0, if contested { " Constitutional borrowing consent was bypassed through an explicit contested act." } else { " Institutional authority and financing were checked at disbursement." }));
     }
@@ -622,7 +634,7 @@ impl World {
                         .collect()
                 });
         for (loan, principal, day) in upcoming {
-            self.event(id,true,format!("Loan #{}: {principal}m principal is due in 30 days on {}. Review the repayment calendar and available cash; borrowing consent and refinancing are not guaranteed.",loan.0,date((day).units())));
+            self.event(id,true,format!("Loan #{}: {principal}m principal is due in 30 days on {}. Review the repayment calendar and available cash; borrowing consent and refinancing are not guaranteed.",loan.0,date(day)));
         }
         let due: Vec<_> = self.countries[id]
             .financing
@@ -663,7 +675,7 @@ impl World {
                 record.last_maturity_payment_day = Some(self.day);
             }
             if self.day == maturity || paid == outstanding {
-                self.event(id, true, format!("Loan #{} principal due {}: paid {paid}m; {}m remains overdue principal. Overdue principal remains in debt and is not counted again as operating arrears. Refinancing requires a separately authorized loan; no automatic rollover.",loan.0,date((maturity).units()),outstanding-paid));
+                self.event(id, true, format!("Loan #{} principal due {}: paid {paid}m; {}m remains overdue principal. Overdue principal remains in debt and is not counted again as operating arrears. Refinancing requires a separately authorized loan; no automatic rollover.",loan.0,date(maturity),outstanding-paid));
             }
         }
     }
@@ -687,7 +699,7 @@ impl World {
                 authority: preview.authority,
                 sponsor_government: country.government_number,
             });
-            self.event(id, true, format!("Requested loan #{}: {}m via {}. Decision due {}; pending funds are not treasury cash. Authority, debt ceiling and creditor cash will be rechecked.", loan.0, amount.0, preview.route, date((preview.decision_day).units())));
+            self.event(id, true, format!("Requested loan #{}: {}m via {}. Decision due {}; pending funds are not treasury cash. Authority, debt ceiling and creditor cash will be rechecked.", loan.0, amount.0, preview.route, date(preview.decision_day)));
         }
         Ok(())
     }
@@ -720,7 +732,7 @@ impl World {
         country.elite_support = (country.elite_support - rule.elite_cost).max(0);
         country.council_support = (country.council_support - rule.council_cost).max(0);
         self.disburse_loan(content, id, loan, amount, true);
-        self.event(id, true, format!("Contested financing costs: approval -{}, legislature -{}, elite -{}, council -{} (floored at zero). Next emergency borrowing is available after {}.", rule.approval_cost, rule.legislative_cost, rule.elite_cost, rule.council_cost, date(next)));
+        self.event(id, true, format!("Contested financing costs: approval -{}, legislature -{}, elite -{}, council -{} (floored at zero). Next emergency borrowing is available after {}.", rule.approval_cost, rule.legislative_cost, rule.elite_cost, rule.council_cost, date(crate::CampaignDay::new(next))));
         Ok(())
     }
     pub(crate) fn cancel_borrowing(&mut self, id: &CountryId, loan: LoanId) -> Result<(), String> {

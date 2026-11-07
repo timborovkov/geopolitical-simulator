@@ -19,8 +19,8 @@ pub struct AnnualReviewSummary {
     pub needs_sum: i64,
     pub daily_output_sum: Money,
 }
-fn year(day: u32) -> Result<u16, String> {
-    if day > crate::MAX_DAY {
+fn year(day: crate::CampaignDay) -> Result<u16, String> {
+    if day > crate::CampaignDay::new(crate::MAX_DAY) {
         return Err("Archived review exceeds the campaign calendar".into());
     }
     Ok(date(day).parse::<CivilDate>()?.year())
@@ -50,8 +50,8 @@ impl AnnualReviewSummary {
                 .last_day
                 .elapsed_since(self.first_day)
                 .is_none_or(|elapsed| self.samples > elapsed.units() + 1)
-            || year(self.first_day.units())? != self.year
-            || year(self.last_day.units())? != self.year
+            || year(self.first_day)? != self.year
+            || year(self.last_day)? != self.year
             || [
                 self.treasury_sum.0,
                 self.debt_sum.0,
@@ -68,7 +68,12 @@ impl AnnualReviewSummary {
     }
 }
 impl StatisticalArchive {
-    pub fn validate(&self, start: u32, recent: &[Observation]) -> Result<(), String> {
+    pub fn validate(
+        &self,
+        start: crate::CampaignDay,
+        recent: &[Observation],
+    ) -> Result<(), String> {
+        let start = start.units();
         if self.years.len() > 101 || (!self.years.is_empty() && recent.len() != 120) {
             return Err("Archived reviews require the bounded recent review window".into());
         }
@@ -91,7 +96,7 @@ impl StatisticalArchive {
     /// Move one retired observation into its calendar-year sample summary.
     /// Validate and allocate on a copy so refusal leaves the archive unchanged.
     pub fn retire(&mut self, point: &Observation) -> Result<(), String> {
-        let point_year = year(point.day.units())?;
+        let point_year = year(point.day)?;
         if [point.treasury.0, point.debt.0, point.output.0]
             .iter()
             .any(|value| !(0..=1_000_000_000_000).contains(value))

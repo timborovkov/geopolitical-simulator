@@ -20,7 +20,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
         ));
         ui.label(format!("Unsettled fraction {}/{} of 1m credits. This is a creditor claim, never available cash; it survives principal retirement until a whole unit becomes due.", interest.remainder, INTEREST_DENOMINATOR));
         if let Some(last) = &interest.last {
-            ui.small(format!("Latest assessment {} · principal basis {}m · whole interest due {}m. Manual borrowing and repayments made afterward affect the next day.", date(last.day.units()), last.principal.0, last.amount_due.0));
+            ui.small(format!("Latest assessment {} · principal basis {}m · whole interest due {}m. Manual borrowing and repayments made afterward affect the next day.", date(last.day), last.principal.0, last.amount_due.0));
         }
     }
     ui.label("Pending borrowing is not available cash. Approval rechecks governing backing, the debt ceiling and the finite creditor's cash.");
@@ -30,9 +30,11 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
         .and_then(|rules| rules.maturity_days)
     {
         ui.label(format!("New loans: fixed 4% annual interest; principal due {term} days after actual disbursement. Repayment uses uncommitted national cash after protected local claims, before interest and national purchases. Refinancing requires a separately approved loan."));
-        let due = state.principal_due_through(world.day.units()).0;
+        let due = state.principal_due_through(world.day).0;
         let upcoming = state
-            .principal_due_through(world.day.units().saturating_add(30))
+            .principal_due_through(sim_core::CampaignDay::new(
+                world.day.units().saturating_add(30),
+            ))
             .0
             - due;
         ui.colored_label(if due > 0 {Color32::LIGHT_RED} else {Color32::LIGHT_YELLOW},format!("Overdue/due principal {due}m · additional principal due in next 30 days {upcoming}m. Unpaid principal stays in debt; operating arrears are separate."));
@@ -42,7 +44,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
             "Pending #{} · {}m · decision {} · {}",
             request.id.0,
             request.amount.0,
-            date((request.decision_day).units()),
+            date(request.decision_day),
             request.authority.0
         ));
         if ui.button("Cancel pending loan").clicked() {
@@ -70,7 +72,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
                 "{} · consent {} days · decision {} · fixed 4% annual interest",
                 preview.route,
                 preview.consent_days.units(),
-                date((preview.decision_day).units())
+                date(preview.decision_day)
             ));
             if let Some(term) = content
                 .finance
@@ -80,7 +82,9 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
                 ui.label(format!(
                     "If approved on schedule: {}m principal due {}.",
                     money,
-                    date((preview.decision_day).units() + term.units())
+                    date(sim_core::CampaignDay::new(
+                        (preview.decision_day).units() + term.units()
+                    ))
                 ));
             }
             if ui
@@ -120,8 +124,8 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
                 DebtOrigin::AcceptedRequest { contested: false } => "Authorized borrowing",
                 DebtOrigin::AcceptedRequest { contested: true } => "Contested borrowing",
             };
-            let maturity = loan.maturity_day.map_or_else(||"perpetual".into(), |day| format!("principal due {} · automatically repaid {}m{}",date((day).units()),loan.maturity_repaid.unwrap_or(Money(0)).0,if day<=world.day && loan.outstanding.0>0 {" · OVERDUE"}else{""}));
-            ui.label(format!("#{} · {origin} · outstanding {}m / original {}m · {} · creditor {}", loan.id.0, loan.outstanding.0, loan.original_principal.0, date((loan.issued_day).units()), loan.creditor.0));
+            let maturity = loan.maturity_day.map_or_else(||"perpetual".into(), |day| format!("principal due {} · automatically repaid {}m{}",date(day),loan.maturity_repaid.unwrap_or(Money(0)).0,if day<=world.day && loan.outstanding.0>0 {" · OVERDUE"}else{""}));
+            ui.label(format!("#{} · {origin} · outstanding {}m / original {}m · {} · creditor {}", loan.id.0, loan.outstanding.0, loan.original_principal.0, date(loan.issued_day), loan.creditor.0));
             ui.small(maturity);
         }
     });

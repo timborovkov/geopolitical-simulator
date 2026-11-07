@@ -25,12 +25,12 @@ fn content_validates_roster_regimes_and_references() {
 }
 #[test]
 fn gregorian_calendar_includes_leap_day() {
-    assert_eq!(date(0), "2000-01-01");
-    assert_eq!(date(59), "2000-02-29");
-    assert_eq!(date(60), "2000-03-01");
-    assert_eq!(date(366), "2001-01-01");
-    assert_eq!(date(1827), "2005-01-01");
-    assert_eq!(date(36525), "2100-01-01");
+    assert_eq!(date(sim_core::CampaignDay::new(0)), "2000-01-01");
+    assert_eq!(date(sim_core::CampaignDay::new(59)), "2000-02-29");
+    assert_eq!(date(sim_core::CampaignDay::new(60)), "2000-03-01");
+    assert_eq!(date(sim_core::CampaignDay::new(366)), "2001-01-01");
+    assert_eq!(date(sim_core::CampaignDay::new(1827)), "2005-01-01");
+    assert_eq!(date(sim_core::CampaignDay::new(36525)), "2100-01-01");
 }
 #[test]
 fn rejected_commands_never_mutate_state() {

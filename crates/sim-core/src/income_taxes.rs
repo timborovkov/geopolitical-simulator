@@ -234,7 +234,7 @@ impl World {
                 Err("Income-band reports require the campaign's income-tax definition".into())
             };
         };
-        if self.day.units() == content.start_day()? {
+        if self.day == content.start_day()? {
             return if c.income_tax_report.is_none() {
                 Ok(())
             } else {
@@ -254,7 +254,7 @@ impl World {
                     content,
                     id,
                     &"income_tax".into(),
-                    self.day.units(),
+                    self.day,
                     CommandId(0),
                 )?
             || report.administration
@@ -262,7 +262,7 @@ impl World {
                     content,
                     id,
                     &"administration".into(),
-                    self.day.units(),
+                    self.day,
                     CommandId(0),
                 )?
         {

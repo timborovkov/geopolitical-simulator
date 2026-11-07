@@ -38,7 +38,7 @@ fn small_principal_follows_nominal_rate_and_carry_survives_principal_retirement(
     assert_eq!(
         InterestProjection::new(Money(1000), 0)
             .unwrap()
-            .due(365)
+            .due(sim_core::DaySpan::new(365))
             .unwrap(),
         Money(40)
     );
@@ -229,7 +229,7 @@ fn opening_budget_uses_exact_interval_interest_including_leap_year() {
         .interest_accrual
         .as_ref()
         .unwrap()
-        .due(365)
+        .due(sim_core::DaySpan::new(365))
         .unwrap();
     assert_eq!(due, Money(1333));
     assert_eq!(
@@ -246,7 +246,7 @@ fn opening_budget_uses_exact_interval_interest_including_leap_year() {
                 .interest_accrual
                 .as_ref()
                 .unwrap()
-                .due(366)
+                .due(sim_core::DaySpan::new(366))
                 .unwrap()
                 .0
     );

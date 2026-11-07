@@ -15,11 +15,11 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Actio
                 ui.label(format!("Required for new {} targets from {}.",content.policy(&requirement.policy).expect("policy").name,requirement.minimum_value));
             }
             if let Some(enacted) = state.enacted.get(&law.id) {
-                ui.colored_label(super::MINT,format!("Enacted {} · bill #{}. Permission is in force; programme funding and implementation remain separate.",date(enacted.day.units()),enacted.bill.0));
+                ui.colored_label(super::MINT,format!("Enacted {} · bill #{}. Permission is in force; programme funding and implementation remain separate.",date(enacted.day),enacted.bill.0));
             } else {
                 match world.preview_law(content,&world.player,&law.id) {
                     Ok(p) => {
-                        ui.label(format!("Total {}m: pay {}m drafting now and protect {}m actual implementation cash. Consent {}; earliest enactment {}.",p.total_cost.0,p.upfront.0,p.reserved.0,date(p.review_day.units()),date(p.enactment_day.units())));
+                        ui.label(format!("Total {}m: pay {}m drafting now and protect {}m actual implementation cash. Consent {}; earliest enactment {}.",p.total_cost.0,p.upfront.0,p.reserved.0,date(p.review_day),date(p.enactment_day)));
                         ui.label(p.authority.label());
                         ui.label("Consent rechecks current governing backing. Withdrawal, refusal or a sponsoring-government change releases unspent reservations; paid work remains spent and the drafting cooldown remains.");
                         if ui.button("Propose funded statutory bill").clicked() { action=Some(Action::ProposeLaw{law:law.id.clone()}); }
@@ -41,8 +41,8 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Actio
                 "Paid {}m · protected {}m · consent {} · earliest enactment {}",
                 bill.paid.0,
                 bill.reserved.0,
-                date(bill.review_day.units()),
-                date(bill.enactment_day.units())
+                date(bill.review_day),
+                date(bill.enactment_day)
             ));
             ui.label(&bill.explanation);
             if ui
@@ -74,7 +74,7 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Actio
                         bill.paid.0,
                         bill.reserved.0,
                         bill.closed_day
-                            .map(|d| date(d.units()))
+                            .map(date)
                             .unwrap_or_else(|| "Unknown".into())
                     ));
                     ui.label(&bill.explanation);

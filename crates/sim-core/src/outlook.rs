@@ -145,7 +145,7 @@ impl World {
                 - forecast.daily_interest.0;
         }
         let principal_due = country.financing.as_ref().map_or(Money(0), |state| {
-            state.principal_due_through(self.day.units() + horizon)
+            state.principal_due_through(crate::CampaignDay::new(self.day.units() + horizon))
         });
         let assumed_maturity = loan.and_then(|assumption| {
             content
@@ -178,15 +178,14 @@ impl World {
             let due = if offset == 0 {
                 0
             } else {
-                country
-                    .financing
-                    .as_ref()
-                    .map_or(0, |state| state.principal_due_through(day).0)
+                country.financing.as_ref().map_or(0, |state| {
+                    state.principal_due_through(crate::CampaignDay::new(day)).0
+                })
             };
             let mut baseline =
                 i128::from(available) + i128::from(balance) * i128::from(offset) - i128::from(due);
             if let Some(interest) = &forecast.interest_accrual {
-                final_interest.0 = interest.due(offset)?;
+                final_interest.0 = interest.due(crate::DaySpan::new(offset))?;
                 final_interest.1 = final_interest.0;
                 baseline = i128::from(available) + i128::from(operating) * i128::from(offset)
                     - i128::from(final_interest.0.0)
@@ -201,8 +200,11 @@ impl World {
                 let interest_days = day - assumption.decision_day.units()
                     + u32::from(assumption.decision_day > self.day);
                 if let Some(interest) = &forecast.interest_accrual {
-                    final_interest.1 =
-                        interest.due_with_addition(offset, assumption.amount, interest_days)?;
+                    final_interest.1 = interest.due_with_addition(
+                        crate::DaySpan::new(offset),
+                        assumption.amount,
+                        crate::DaySpan::new(interest_days),
+                    )?;
                     if_approved += i128::from(assumption.amount.0)
                         - i128::from(final_interest.1.0 - final_interest.0.0);
                 } else {

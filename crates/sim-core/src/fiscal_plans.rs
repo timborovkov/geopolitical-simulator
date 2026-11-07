@@ -118,9 +118,9 @@ pub struct FiscalPlans {
     pub bills: Vec<BudgetBill>,
 }
 impl FiscalPlans {
-    pub fn new(day: u32) -> Self {
+    pub fn new(day: crate::CampaignDay) -> Self {
         Self {
-            next_proposal: crate::CampaignDay::new(day),
+            next_proposal: day,
             bills: Vec::new(),
         }
     }
@@ -176,10 +176,10 @@ pub struct PublishedFiscalPlan {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub delivery: Vec<PublishedFiscalDelivery>,
 }
-fn year(day: u32) -> u32 {
+fn year(day: crate::CampaignDay) -> u32 {
     date(day)[..4].parse().expect("calendar year")
 }
-fn year_start(year: u32) -> Result<u32, String> {
+fn year_start(year: u32) -> Result<crate::CampaignDay, String> {
     parse_date(&format!("{year:04}-01-01"))
 }
 fn programme_cost(
@@ -219,18 +219,18 @@ impl World {
         if self.day.units() < (state.next_proposal).units() {
             return Err(format!(
                 "Budget preparation interval ends {}",
-                date((state.next_proposal).units())
+                date(state.next_proposal)
             ));
         }
         if !targets.valid(content) {
             return Err("Budget targets exceed permitted policy levels".into());
         }
-        let current_year = year(self.day.units());
+        let current_year = year(self.day);
         let effective_day = if fiscal_year == current_year {
-            self.day.units()
+            self.day
         } else if fiscal_year == current_year + 1 && fiscal_year <= 2099 {
             let start = year_start(fiscal_year)?;
-            if start - self.day.units() > rules.annual_window_days.units() {
+            if (start).units() - self.day.units() > rules.annual_window_days.units() {
                 return Err(
                     "Next-year budgets open only in the configured annual preparation window"
                         .into(),
@@ -264,7 +264,7 @@ impl World {
             .checked_add(rules.review_days.max(g.consent_days).units())
             .filter(|d| *d <= MAX_DAY)
             .ok_or("Budget review exceeds the campaign calendar")?;
-        if review_day >= year_start(fiscal_year + 1)? {
+        if review_day >= (year_start(fiscal_year + 1)?).units() {
             return Err("Budget review would occur after the selected fiscal year; choose a next-year annual plan".into());
         }
         let mut programmes = Vec::new();
@@ -278,7 +278,7 @@ impl World {
                         .expect("implementation includes consent")
                         .units(),
                 )
-                .map(|d| d.max(effective_day))
+                .map(|d| d.max(effective_day.units()))
                 .filter(|d| *d <= MAX_DAY)
                 .ok_or("Budget programme delivery exceeds the campaign calendar")?;
             programmes.push((p, v, crate::CampaignDay::new(delivery)));
@@ -313,7 +313,7 @@ impl World {
             fee,
             implementation_cost: cost,
             review_day: crate::CampaignDay::new(review_day),
-            effective_day: crate::CampaignDay::new(effective_day),
+            effective_day,
             programmes,
             baseline_forecast,
             planned_forecast,
@@ -371,7 +371,7 @@ impl World {
             resolved_day: None,
             programmes: Vec::new(),
         });
-        self.event(id,true,format!("Budget #{} proposed for {fiscal_year}. Paid {}m administration; {}m implementation cash reserved. Review {}; no setting changes before actual delivery or {}. Recurring spending still needs daily cash.",bill.0,p.fee.0,p.implementation_cost.0,date((p.review_day).units()),date((p.effective_day).units())));
+        self.event(id,true,format!("Budget #{} proposed for {fiscal_year}. Paid {}m administration; {}m implementation cash reserved. Review {}; no setting changes before actual delivery or {}. Recurring spending still needs daily cash.",bill.0,p.fee.0,p.implementation_cost.0,date(p.review_day),date(p.effective_day)));
         Ok(())
     }
     pub(crate) fn withdraw_budget(
@@ -627,7 +627,7 @@ impl World {
             services: c.services.saturating_sub(1).max(4),
             welfare: c.welfare.saturating_sub(1).max(0),
         };
-        let fiscal_year = year(self.day.units());
+        let fiscal_year = year(self.day);
         if self
             .preview_budget(content, id, fiscal_year, &targets)
             .is_ok()
@@ -675,12 +675,9 @@ impl World {
                 .count()
                 > 1
             || Some(state.next_proposal)
-                != state
-                    .bills
-                    .last()
-                    .map_or(Some(crate::CampaignDay::new(content.start_day()?)), |b| {
-                        b.proposed_day.checked_add(rules.cooldown_days)
-                    })
+                != state.bills.last().map_or(Some(content.start_day()?), |b| {
+                    b.proposed_day.checked_add(rules.cooldown_days)
+                })
         {
             return Err("Fiscal-plan journal, interval or pending count mismatch".into());
         }
@@ -703,21 +700,20 @@ impl World {
             if b.proposed_day != e.command.day || !(2000..=2099).contains(&b.year) {
                 return Err("Invalid fiscal-plan proposal date or year".into());
             }
-            let annual = b.year == year((b.proposed_day).units()) + 1;
+            let annual = b.year == year(b.proposed_day) + 1;
             let expected_effective = if annual {
                 year_start(b.year)?
             } else {
-                (b.proposed_day).units()
+                b.proposed_day
             };
             let opening = &content.country(id).expect("country").government;
             let government = c
                 .constitution
                 .as_ref()
                 .and_then(|s| {
-                    s.history.iter().rfind(|h| {
-                        h.day <= crate::CampaignDay::new((b.proposed_day).units())
-                            && h.government_number <= b.sponsor
-                    })
+                    s.history
+                        .iter()
+                        .rfind(|h| h.day <= b.proposed_day && h.government_number <= b.sponsor)
                 })
                 .and_then(|h| content.constitutions.as_ref()?.template(&h.to))
                 .map_or(opening, |t| &t.government);
@@ -735,39 +731,34 @@ impl World {
                 || !b.baseline.valid(content)
                 || changed.is_empty()
                 || b.year > 2099
-                || (!annual && b.year != year((b.proposed_day).units()))
-                || b.effective_day != crate::CampaignDay::new(expected_effective)
+                || (!annual && b.year != year(b.proposed_day))
+                || b.effective_day != expected_effective
                 || (annual
                     && (b.effective_day).units() - (b.proposed_day).units()
                         > rules.annual_window_days.units())
-                || b.proposed_day < crate::CampaignDay::new(previous_next)
+                || b.proposed_day < previous_next
                 || b.fee != fee
                 || b.implementation_cost != programme_cost(content, id, &b.targets, &b.baseline)
                 || b.sponsor == crate::GovernmentId(0)
                 || b.sponsor > c.government_number
                 || b.review_day != crate::CampaignDay::new(expected_review)
                 || b.review_day > crate::CampaignDay::new(MAX_DAY)
-                || b.review_day >= crate::CampaignDay::new(year_start(b.year + 1)?)
+                || b.review_day >= year_start(b.year + 1)?
             {
                 return Err(
                     "Invalid fiscal-plan identity, targets, cost, sponsor or calendar".into(),
                 );
             }
             for (policy, value) in b.targets.changed(&b.baseline) {
-                self.check_policy_laws_at(
-                    content,
-                    id,
-                    &policy,
-                    value,
-                    CampaignDay::new((b.proposed_day).units()),
-                )?;
+                self.check_policy_laws_at(content, id, &policy, value, b.proposed_day)?;
             }
             if let Some(technologies) = &content.technologies {
                 for (policy, _) in b.targets.changed(&b.baseline) {
-                    technologies.check_at(id, &policy, (b.proposed_day).units())?;
+                    technologies.check_at(id, &policy, b.proposed_day)?;
                 }
             }
-            previous_next = (b.proposed_day).units() + rules.cooldown_days.units();
+            previous_next =
+                crate::CampaignDay::new((b.proposed_day).units() + rules.cooldown_days.units());
             for f in [&b.baseline_forecast, &b.planned_forecast] {
                 if !f.valid() || (content.rules >= 17) != f.interest_accrual.is_some() {
                     return Err("Invalid budget forecast assumptions".into());
@@ -824,7 +815,7 @@ impl World {
                         if p.policy != *policy
                             || entry.budget_bill != Some(b.id)
                             || &entry.command.issuer != id
-                            || entry.command.day != crate::CampaignDay::new((resolved).units())
+                            || entry.command.day != resolved
                             || entry.command.action
                                 != (Action::Enact {
                                     policy: policy.clone(),
@@ -836,10 +827,10 @@ impl World {
                             || p.command.0 <= b.id.0
                             || record.project.consent_day != resolved
                             || record.project.due_day < b.effective_day
-                            || !record.milestones.iter().any(|m| {
-                                m.stage == CommitmentStage::Funded
-                                    && m.day == crate::CampaignDay::new((resolved).units())
-                            })
+                            || !record
+                                .milestones
+                                .iter()
+                                .any(|m| m.stage == CommitmentStage::Funded && m.day == resolved)
                             || record.project.policy != *policy
                         {
                             return Err(

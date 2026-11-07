@@ -106,7 +106,7 @@ fn twelve_year_retention_matches_the_original_campaign_and_independent_retired_s
     for bucket in &archive.years {
         let rows: Vec<_> = retired
             .iter()
-            .filter(|p| date(p.day.units()).parse::<CivilDate>().unwrap().year() == bucket.year)
+            .filter(|p| date(p.day).parse::<CivilDate>().unwrap().year() == bucket.year)
             .collect();
         assert_eq!(bucket.samples as usize, rows.len());
         assert_eq!(bucket.first_day, rows.first().unwrap().day);

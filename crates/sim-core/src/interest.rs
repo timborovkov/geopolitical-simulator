@@ -52,24 +52,26 @@ impl InterestProjection {
             && self.opening_remainder < INTEREST_DENOMINATOR
     }
     /// Whole cash units becoming due over the interval, with no daily minimum.
-    pub fn due(&self, days: u32) -> Result<Money, String> {
-        self.due_for(DaySpan::new(days))
+    /// ```compile_fail
+    /// use sim_core::{CampaignDay, InterestProjection};
+    /// fn wrong_interval(projection: &InterestProjection) {
+    ///     projection.due(CampaignDay::new(365));
+    /// }
+    /// ```
+    pub fn due(&self, days: crate::DaySpan) -> Result<Money, String> {
+        self.due_for(days)
     }
-    /// Typed elapsed-day form of the scalar compatibility API.
+    /// Explicitly named elapsed-day alias; both entry points require a duration.
     pub fn due_for(&self, days: DaySpan) -> Result<Money, String> {
         self.due_with_addition_for(days, Money(0), DaySpan::ZERO)
     }
     pub fn due_with_addition(
         &self,
-        days: u32,
+        days: crate::DaySpan,
         additional: Money,
-        additional_days: u32,
+        additional_days: crate::DaySpan,
     ) -> Result<Money, String> {
-        self.due_with_addition_for(
-            DaySpan::new(days),
-            additional,
-            DaySpan::new(additional_days),
-        )
+        self.due_with_addition_for(days, additional, additional_days)
     }
     pub fn due_with_addition_for(
         &self,
@@ -135,7 +137,7 @@ impl AccruedInterest {
                 / i128::from(INTEREST_DENOMINATOR)) as i64,
         )
     }
-    fn assess(&mut self, principal: Money, day: u32) -> Money {
+    fn assess(&mut self, principal: Money, day: crate::CampaignDay) -> Money {
         let projection = InterestProjection::new(principal, self.remainder)
             .expect("validated principal and interest remainder");
         let amount_due = projection
@@ -146,7 +148,7 @@ impl AccruedInterest {
             .checked_add(principal.0 as u64)
             .expect("bounded campaign principal-days");
         self.last = Some(InterestAssessment {
-            day: crate::CampaignDay::new(day),
+            day,
             principal,
             opening_remainder: self.remainder,
             amount_due,
@@ -162,7 +164,7 @@ impl AccruedInterest {
         id: &CountryId,
     ) -> Result<(), String> {
         let c = &world.countries[id];
-        let days = world.day.units() - content.start_day()?;
+        let days = world.day.units() - content.start_day()?.units();
         let numerator = i128::from(self.principal_days) * i128::from(INTEREST_RATE_BPS);
         let whole = numerator / i128::from(INTEREST_DENOMINATOR);
         if i128::from(self.principal_days) > i128::from(days) * i128::from(MAX_PRINCIPAL)
@@ -239,7 +241,7 @@ impl World {
             .as_mut()
             .and_then(|f| f.interest_accrual.as_mut())
         {
-            state.assess(c.debt, self.day.units())
+            state.assess(c.debt, self.day)
         } else {
             minimum_daily_interest(c.debt)
         }

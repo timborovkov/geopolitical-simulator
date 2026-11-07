@@ -35,7 +35,7 @@ impl Inspector {
         ui.label(format!(
             "{} · {} · rules {} · snapshot writer format {}",
             content.country(target).expect("country").name,
-            date(world.day.units()),
+            date(world.day),
             world.rules,
             persistence::snapshot_schema(world)
         ));
@@ -78,12 +78,12 @@ impl Inspector {
             ui.label(format!("Newest {} of {} accepted automated commands; newest {} of {} retained AI review messages.",
                 log.commands.len(), log.accepted_total, log.reviews.len(), log.reviews_available));
             for entry in log.commands {
-                ui.monospace(format!("{} · #{} · {} · {:?}", date(entry.command.day.units()), entry.command.id,
+                ui.monospace(format!("{} · #{} · {} · {:?}", date(entry.command.day), entry.command.id,
                     if entry.budget_bill.is_some() { "reviewed budget dispatch" } else { "AI" }, entry.command.action));
             }
             ui.separator();
             for event in log.reviews {
-                ui.label(format!("{} · {}", date(event.day.units()), event.text));
+                ui.label(format!("{} · {}", date(event.day), event.text));
             }
         });
         ui.separator();
@@ -123,7 +123,7 @@ impl Inspector {
         ui.collapsing("Command audit · latest 20", |ui| {
             for entry in world.journal.iter().rev().filter(|entry| &entry.command.issuer == target
                 || matches!(&entry.command.action, Action::Developer { target: edited, .. } if edited == target)).take(20) {
-                ui.label(format!("{} · #{} · {} · {:?}", date(entry.command.day.units()), entry.command.id,
+                ui.label(format!("{} · #{} · {} · {:?}", date(entry.command.day), entry.command.id,
                     if entry.developer { "DEVELOPER" } else if entry.ai { "AI" } else { "PLAYER" }, entry.command.action));
             }
         });
@@ -137,7 +137,7 @@ impl Inspector {
             {
                 ui.label(format!(
                     "{} · {:?} to {:?} · {}m · {}",
-                    date(entry.day.units()),
+                    date(entry.day),
                     entry.from,
                     entry.to,
                     entry.amount.0,
@@ -154,13 +154,9 @@ impl Inspector {
                 .take(20)
             {
                 if let Some(id) = &entry.id {
-                    ui.label(format!(
-                        "{id} · {} · {}",
-                        date(entry.day.units()),
-                        entry.text
-                    ));
+                    ui.label(format!("{id} · {} · {}", date(entry.day), entry.text));
                 } else {
-                    ui.label(format!("{} · {}", date(entry.day.units()), entry.text));
+                    ui.label(format!("{} · {}", date(entry.day), entry.text));
                 }
             }
         });

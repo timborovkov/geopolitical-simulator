@@ -571,7 +571,7 @@ impl World {
                 Err("Executive identity state/content mismatch".into())
             };
         };
-        let start = CampaignDay::new(content.start_day()?);
+        let start = content.start_day()?;
         let (office, term) = definition.reference(content, id)?;
         let initial = definition.opening_holder(content, id)?;
         let mandate_count = country

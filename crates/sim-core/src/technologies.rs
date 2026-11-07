@@ -85,12 +85,13 @@ impl TechnologyRules {
         &self,
         country: &CountryId,
         policy: &PolicyId,
-        day: u32,
+        day: crate::CampaignDay,
     ) -> Result<Vec<TechnologyEligibility>, String> {
+        let day = day.units();
         if day > MAX_DAY {
             return Err("Technology eligibility date exceeds the campaign calendar".into());
         }
-        let today: CivilDate = date(day).parse()?;
+        let today: CivilDate = date(crate::CampaignDay::new(day)).parse()?;
         let requirement = self
             .policy_requirements
             .iter()
@@ -116,9 +117,10 @@ impl TechnologyRules {
         &self,
         country: &CountryId,
         policy: &PolicyId,
-        day: u32,
+        day: crate::CampaignDay,
     ) -> Result<(), String> {
-        self.eligibility(country, policy, day)?
+        let day = day.units();
+        self.eligibility(country, policy, crate::CampaignDay::new(day))?
             .iter()
             .try_for_each(TechnologyEligibility::ensure_available)
     }
@@ -172,7 +174,7 @@ impl World {
         let Some(rules) = &content.technologies else {
             return Ok(Vec::new());
         };
-        rules.eligibility(country, policy, self.day.units())
+        rules.eligibility(country, policy, self.day)
     }
     pub(crate) fn check_policy_technologies(
         &self,
@@ -192,7 +194,7 @@ impl World {
         let Some(rules) = &content.technologies else {
             return;
         };
-        let today: CivilDate = date(self.day.units()).parse().expect("campaign date");
+        let today: CivilDate = date(self.day).parse().expect("campaign date");
         for technology in rules
             .definitions
             .iter()

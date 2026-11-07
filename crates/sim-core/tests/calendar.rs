@@ -2,10 +2,19 @@ use sim_core::*;
 #[test]
 fn strict_gregorian_input_roundtrips_the_campaign_calendar() {
     for day in (0..=MAX_DAY).step_by(17) {
-        assert_eq!(parse_date(&date(day)).unwrap(), day);
+        assert_eq!(
+            parse_date(&date(sim_core::CampaignDay::new(day))).unwrap(),
+            sim_core::CampaignDay::new(day)
+        );
     }
-    assert_eq!(parse_date("2000-02-29").unwrap(), 59);
-    assert_eq!(parse_date("2100-01-01").unwrap(), MAX_DAY);
+    assert_eq!(
+        parse_date("2000-02-29").unwrap(),
+        sim_core::CampaignDay::new(59)
+    );
+    assert_eq!(
+        parse_date("2100-01-01").unwrap(),
+        sim_core::CampaignDay::new(MAX_DAY)
+    );
     for bad in [
         "2001-02-29",
         "2000-04-31",

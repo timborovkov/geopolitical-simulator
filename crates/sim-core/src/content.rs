@@ -414,7 +414,14 @@ impl Content {
     pub fn hash(&self) -> u64 {
         crate::stable_hash(&serde_json::to_vec(self).expect("content serialization"))
     }
-    pub fn start_day(&self) -> Result<u32, String> {
+    /// The bookmark is an absolute date, independently of the elapsed campaign age.
+    /// ```compile_fail
+    /// use sim_core::{Content, DaySpan};
+    /// fn wrong_bookmark_unit(content: &Content) {
+    ///     let elapsed: DaySpan = content.start_day().unwrap();
+    /// }
+    /// ```
+    pub fn start_day(&self) -> Result<crate::CampaignDay, String> {
         crate::parse_date(&self.start)
     }
     pub fn at_bookmark(&self, start: &str) -> Result<Self, String> {
@@ -443,7 +450,7 @@ impl Content {
                 identities.offices_at(country, self.start.parse().expect("validated bookmark"))
             })
     }
-    pub fn review_day(&self) -> Result<u32, String> {
+    pub fn review_day(&self) -> Result<crate::CampaignDay, String> {
         self.start
             .parse::<crate::CivilDate>()?
             .anniversary(5)?

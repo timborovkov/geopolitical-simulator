@@ -86,7 +86,7 @@ fn next_event_reaches_a_leap_year_fiscal_boundary_after_365_quiet_days() {
     let opening = World::new(&content, CountryId("AUR".into()), 0).unwrap();
     let mut world = opening.clone();
     assert_eq!(world.advance_to_event(&content).unwrap(), DaySpan::new(366));
-    assert_eq!(date(world.day.units()), "2001-01-01");
+    assert_eq!(date(world.day), "2001-01-01");
     assert!(world.events.iter().any(|e| e.country == world.player
         && e.day == sim_core::CampaignDay::new(366)
         && e.important
