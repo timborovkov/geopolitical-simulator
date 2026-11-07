@@ -161,8 +161,9 @@ fn withdrawal_and_refusal_release_only_unspent_cash_and_retain_drafting_costs() 
     );
 }
 #[test]
-fn optional_statutory_pack_preserves_default_and_old_pending_world_hashes() {
-    let default = Content::bundled().unwrap();
+fn statutory_pack_preserves_the_preceding_default_and_old_pending_world_hashes() {
+    // Published rules-25 goldens remain an explicit compatibility fixture.
+    let default = Content::statistical_history_bundled().unwrap();
     assert_eq!(default.hash(), 0x0a0defa128f0a947);
     let mut world = World::new(&default, CountryId("GBR".into()), 17).unwrap();
     world

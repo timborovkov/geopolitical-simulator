@@ -52,7 +52,8 @@ fn explicit_opening_people_unknown_and_collective_holders_seed_stable_read_only_
 }
 #[test]
 fn the_optional_reference_layer_preserves_every_prior_default_byte_and_historical_calibration() {
-    let old = Content::bundled().unwrap();
+    // This checks the published rules-25 bytes, independently of the new-game default.
+    let old = Content::statistical_history_bundled().unwrap();
     assert_eq!(old.rules, 25);
     assert_eq!(old.hash(), 0x0a0defa128f0a947);
     let world = World::new(&old, CountryId("GBR".into()), 17).unwrap();

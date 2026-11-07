@@ -1,5 +1,7 @@
 use sim_core::*;
 
+// Published rules-25 numeric and state goldens stay pinned when the new-game default changes.
+
 #[test]
 fn annual_output_keeps_numeric_content_and_rejects_negative_or_out_of_range_calibration() {
     assert!(AnnualGdp::new(-1).is_err());
@@ -14,7 +16,7 @@ fn annual_output_keeps_numeric_content_and_rejects_negative_or_out_of_range_cali
     for invalid in ["-1", "1.5", "\"1000\"", "9223372036854775808"] {
         assert!(serde_json::from_str::<AnnualGdp>(invalid).is_err());
     }
-    let content = Content::bundled().unwrap();
+    let content = Content::statistical_history_bundled().unwrap();
     assert_eq!(content.hash(), 0x0a0defa128f0a947);
     let original = serde_json::to_value(&content).unwrap();
     let index = original["countries"]
@@ -62,7 +64,7 @@ fn annual_calibration_preserves_regional_rounding_loan_tax_and_reserve_delivery_
         regional_daily_cost(AnnualGdp::new(1000).unwrap(), 1, 0),
         Money(0)
     );
-    let content = Content::bundled().unwrap();
+    let content = Content::statistical_history_bundled().unwrap();
     let player = CountryId("GBR".into());
     for (scenario, initial, settled) in [
         (Scenario::Sandbox, 0x86a7fade232d09c2, 0x4dc16fa9a2ffdc92),

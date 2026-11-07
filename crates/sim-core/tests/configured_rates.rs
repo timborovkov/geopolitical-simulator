@@ -1,5 +1,7 @@
 use sim_core::*;
 
+// Preserve published rules-25 hashes instead of regenerating them for a new default.
+
 #[test]
 fn basis_point_fields_keep_numeric_wire_units_and_reject_invalid_signed_input() {
     let maximum = BasisPoints::new(u32::MAX);
@@ -7,7 +9,7 @@ fn basis_point_fields_keep_numeric_wire_units_and_reject_invalid_signed_input() 
     assert_eq!(format!("{maximum:?}"), "4294967295");
     assert_eq!(format!("{maximum}"), "4294967295");
     assert_eq!(serde_json::to_string(&maximum).unwrap(), "4294967295");
-    let content = Content::bundled().unwrap();
+    let content = Content::statistical_history_bundled().unwrap();
     assert_eq!(content.hash(), 0x0a0defa128f0a947);
     let original = serde_json::to_value(&content).unwrap();
     let policies = original["policies"].as_array().unwrap();
@@ -39,7 +41,7 @@ fn basis_point_fields_keep_numeric_wire_units_and_reject_invalid_signed_input() 
 
 #[test]
 fn typed_rates_keep_paid_appointments_amendments_loans_and_delivery_exact() {
-    let content = Content::bundled().unwrap();
+    let content = Content::statistical_history_bundled().unwrap();
     let id = CountryId("GBR".into());
     let tax = PolicyId::from("income_tax");
     let cabinet = content.cabinet.as_ref().unwrap();

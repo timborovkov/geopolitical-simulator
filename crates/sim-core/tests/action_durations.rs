@@ -1,8 +1,10 @@
 use sim_core::*;
 
+// Preserve published rules-25 hashes instead of regenerating them for a new default.
+
 #[test]
 fn requested_elapsed_spans_keep_cash_expiry_grant_payments_and_replay_exact() {
-    let content = Content::bundled().unwrap();
+    let content = Content::statistical_history_bundled().unwrap();
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     let initial = world.hash();
     for days in [0, 91, u32::MAX] {

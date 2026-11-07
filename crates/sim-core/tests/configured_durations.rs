@@ -1,5 +1,7 @@
 use sim_core::*;
 
+// Preserve published rules-25 hashes instead of regenerating them for a new default.
+
 #[test]
 fn whole_day_scaling_retains_units_rounding_and_checked_bounds() {
     let vacancy = DaySpan::new(30);
@@ -22,7 +24,7 @@ fn whole_day_scaling_retains_units_rounding_and_checked_bounds() {
 
 #[test]
 fn configured_durations_keep_original_numeric_content_pending_delivery_and_replay() {
-    let content = Content::bundled().unwrap();
+    let content = Content::statistical_history_bundled().unwrap();
     // Captured with the release executable before the duration conversion.
     assert_eq!(content.hash(), 0x0a0defa128f0a947);
     let json = serde_json::to_value(&content).unwrap();

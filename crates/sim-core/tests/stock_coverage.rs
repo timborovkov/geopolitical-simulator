@@ -1,5 +1,7 @@
 use sim_core::*;
 
+// Preserve published rules-25 hashes instead of regenerating them for a new default.
+
 #[test]
 fn physical_need_coverage_preserves_procurement_costs_timing_and_real_stock() {
     let maximum = NeedDays::new(u32::MAX);
@@ -10,7 +12,7 @@ fn physical_need_coverage_preserves_procurement_costs_timing_and_real_stock() {
     for invalid in ["-1", "1.5", "\"1\"", "4294967296"] {
         assert!(serde_json::from_str::<NeedDays>(invalid).is_err());
     }
-    let content = Content::bundled().unwrap();
+    let content = Content::statistical_history_bundled().unwrap();
     assert_eq!(content.hash(), 0x0a0defa128f0a947);
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     let initial = world.hash();

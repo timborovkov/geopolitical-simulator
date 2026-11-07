@@ -216,7 +216,7 @@ pub struct Content {
 }
 impl Content {
     pub fn bundled() -> Result<Self, String> {
-        Self::statistical_history_bundled()
+        Self::governing_institutions_bundled()
     }
     pub fn governing_institutions_bundled() -> Result<Self, String> {
         Self::from_json(include_str!(
@@ -360,7 +360,7 @@ impl Content {
             Self::bundled()?,
             Self::legislation_bundled()?,
             Self::executive_identities_bundled()?,
-            Self::governing_institutions_bundled()?,
+            Self::statistical_history_bundled()?,
             Self::bookmark_identities_bundled()?,
             Self::stable_elections_bundled()?,
             Self::programme_events_bundled()?,

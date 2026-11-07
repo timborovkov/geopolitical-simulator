@@ -1,8 +1,10 @@
 use sim_core::*;
 
+// Published rules-25 numeric and state goldens stay pinned when the new-game default changes.
+
 #[test]
 fn authored_opening_percentages_keep_numeric_content_and_validate_their_own_bounds() {
-    let content = Content::bundled().unwrap();
+    let content = Content::statistical_history_bundled().unwrap();
     assert_eq!(content.hash(), 0x0a0defa128f0a947);
     let original = serde_json::to_value(&content).unwrap();
     assert_eq!(format!("{:?}", Percent::new(28)), "28");
@@ -57,7 +59,7 @@ fn authored_opening_percentages_keep_numeric_content_and_validate_their_own_boun
 
 #[test]
 fn typed_opening_rates_preserve_normal_and_crisis_initialization_settlement_and_replay() {
-    let content = Content::bundled().unwrap();
+    let content = Content::statistical_history_bundled().unwrap();
     let id = CountryId("GBR".into());
     for (scenario, initial, settled) in [
         (Scenario::Sandbox, 0x86a7fade232d09c2, 0x4dc16fa9a2ffdc92),

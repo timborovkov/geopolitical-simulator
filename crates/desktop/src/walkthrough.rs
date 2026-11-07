@@ -187,6 +187,12 @@ impl Panel {
                 navigation = Some(Navigation::Open(Tab::Policies));
             }
         }
+        if content.legislation.is_some() {
+            ui.label("Some policy targets require an enacted law. Passing a law grants permission; programmes still need their own funding and implementation.");
+            if ui.button("Inspect statutory permissions").clicked() {
+                navigation = Some(Navigation::Open(Tab::Politics));
+            }
+        }
         ui.separator();
         ui.strong("3 · Follow an accepted programme");
         if records.is_empty() {
@@ -382,6 +388,27 @@ impl Panel {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn statutory_guidance_is_specific_to_supported_owned_campaigns_without_issuing_orders() {
+        for content in [
+            Content::bundled().unwrap(),
+            Content::statistical_history_bundled().unwrap(),
+        ] {
+            let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+            world.advance(&content, DaySpan::new(1)).unwrap();
+            let before = world.clone();
+            for scale in [1., 1.4] {
+                let own = render(&mut Panel::default(), &world, &content, true, scale);
+                assert_eq!(
+                    own.contains("Inspect statutory permissions"),
+                    content.legislation.is_some()
+                );
+                let foreign = render(&mut Panel::default(), &world, &content, false, scale);
+                assert!(!foreign.contains("Inspect statutory permissions"));
+                assert_eq!(world, before);
+            }
+        }
+    }
     fn fixture() -> Content {
         Content::from_json(include_str!("../../../data/synthetic-commitment-test.json")).unwrap()
     }

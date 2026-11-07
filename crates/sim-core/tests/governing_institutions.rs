@@ -50,7 +50,7 @@ fn authored_institutions_are_complete_stable_and_independent_of_labels_and_order
             .len(),
         105
     );
-    assert_eq!(Content::bundled().unwrap().rules, 25);
+    assert_eq!(Content::bundled().unwrap().hash(), c.hash());
     assert_eq!(Content::bundled_for_hash(c.hash()).unwrap(), c);
     let w = World::new(&c, CountryId("GBR".into()), 17).unwrap();
     let original = view(&c, &w).context;

@@ -2213,8 +2213,8 @@ mod interface_tests {
                     .is_empty()
             );
             assert!(!content.bookmark_offices(&world.player).is_empty());
-            assert_eq!(persistence::snapshot_schema(world), 26);
-            assert_eq!(app.save_path, "saves/campaign-v26.json");
+            assert_eq!(persistence::snapshot_schema(world), 29);
+            assert_eq!(app.save_path, "saves/campaign-v29.json");
             assert_eq!(app.speed, 0);
             assert!(app.pending.is_none());
         }
