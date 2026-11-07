@@ -55,8 +55,8 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
         ui.label("Principal (million credits)");
         ui.add(
             egui::DragValue::new(money)
-                .range(1..=definition.gdp / 10)
-                .speed((definition.gdp / 10000).max(1) as f64),
+                .range(1..=definition.gdp.units() / 10)
+                .speed((definition.gdp.units() / 10000).max(1) as f64),
         );
         if ui.button("Repay debt · oldest first").clicked() {
             action = Some(Action::Repay {

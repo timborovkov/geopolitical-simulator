@@ -456,9 +456,9 @@ fn unsupported_platform() -> Content {
         .iter_mut()
         .find(|c| c.id == player())
         .unwrap();
-    d.tax = 10;
-    d.services = 4;
-    d.welfare = 0;
+    d.tax = Percent::new(10);
+    d.services = Percent::new(4);
+    d.welfare = Percent::new(0);
     let profile = content
         .party_preferences
         .as_mut()

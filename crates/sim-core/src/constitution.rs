@@ -207,7 +207,7 @@ impl Constitution {
         if let Some(request) = &self.pending {
             let command = transition_command(world, id, request.id)?;
             let route = rules.route(request.contested)?;
-            let cost = (definition.gdp * route.cost_bps.units_i64() / 10000).max(1);
+            let cost = (definition.gdp.units() * route.cost_bps.units_i64() / 10000).max(1);
             let upfront = (cost * route.upfront_bps.units_i64() / 10000).max(1);
             if !matches!(&command.action, Action::Reconstitute { target, contested } if target == &request.target && *contested == request.contested)
                 || request.from != self.regime
@@ -406,7 +406,8 @@ impl World {
             .filter(|day| *day <= MAX_DAY)
             .ok_or("No time remains for the constitutional decision")?;
         let cost = Money(
-            (content.country(id).ok_or("Missing country")?.gdp * route.cost_bps.units_i64()
+            (content.country(id).ok_or("Missing country")?.gdp.units()
+                * route.cost_bps.units_i64()
                 / 10000)
                 .max(1),
         );

@@ -183,8 +183,8 @@ fn food_spoilage_and_release_keep_national_and_civilian_stock_books_separate() {
 fn unfed_civilian_physical_needs_prevent_national_procurement_and_expiry_releases_unspent_cash() {
     let mut c = content();
     for d in &mut c.countries {
-        d.energy = 40;
-        d.food = 40;
+        d.energy = Percent::new(40);
+        d.food = Percent::new(40);
     }
     let mut w = world(&c);
     let p = w
@@ -234,9 +234,9 @@ fn support_is_rechecked_at_consent_and_refusal_does_not_deliver_goods() {
     d.government.consent_days = DaySpan::new(60);
     d.parties[0].seats = 51;
     d.parties[1].seats = 49;
-    d.tax = 10;
-    d.services = 4;
-    d.welfare = 0;
+    d.tax = Percent::new(10);
+    d.services = Percent::new(4);
+    d.welfare = Percent::new(0);
     let profiles = &mut c.party_preferences.as_mut().unwrap().profiles;
     for p in &mut profiles
         .iter_mut()
@@ -441,7 +441,7 @@ fn ai_uses_the_same_funded_contracts_and_replay_path() {
 fn zero_delay_royal_consent_still_waits_for_settlement_and_has_exact_delivery_window() {
     let mut c = content();
     for d in &mut c.countries {
-        d.energy = 40;
+        d.energy = Percent::new(40);
     }
     let mut w = World::new(&c, CountryId("COR".into()), seed()).unwrap();
     let p = w

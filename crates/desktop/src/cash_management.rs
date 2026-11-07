@@ -45,6 +45,7 @@ impl Panel {
             .country(&world.player)
             .ok_or("Missing country definition")?
             .gdp
+            .units()
             * rules.max_target_bps.units_i64()
             / 10000)
             .max(1);
@@ -130,7 +131,8 @@ impl Panel {
                 action = Some(Choice::Command(Action::ReleaseCash { request: active.id }));
             }
         } else {
-            let max = (content.country(&world.player)?.gdp * rules.max_target_bps.units_i64()
+            let max = (content.country(&world.player)?.gdp.units()
+                * rules.max_target_bps.units_i64()
                 / 10000)
                 .max(1);
             self.target = self.target.clamp(1, max);

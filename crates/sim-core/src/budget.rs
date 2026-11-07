@@ -112,7 +112,7 @@ pub struct HouseholdImpact {
 }
 impl Country {
     pub(crate) fn forecast_private_income(&self, d: &CountryDefinition) -> Vec<i64> {
-        let daily = d.gdp / 365;
+        let daily = d.gdp.units() / 365;
         let output = daily * i64::from((self.energy_capacity + 25).min(100)) / 100;
         apportion(
             output * 70 / 100,
@@ -146,7 +146,7 @@ impl Country {
         d: &CountryDefinition,
         taxes: Option<&IncomeTaxDefinition>,
     ) -> BudgetForecast {
-        let daily = d.gdp / 365;
+        let daily = d.gdp.units() / 365;
         let income = self.forecast_private_income(d);
         let revenue = income
             .iter()

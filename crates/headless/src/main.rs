@@ -68,7 +68,7 @@ fn status(world: &World, content: &Content) {
         "Cash {}m | debt {}m ({}% GDP) | arrears {}m | approval {}% | legislative {} | elite {}",
         c.accounts.treasury.0,
         c.debt.0,
-        c.debt.0 * 100 / d.gdp,
+        c.debt.0 * 100 / d.gdp.units(),
         c.arrears.0,
         c.approval,
         c.legislative_support,
@@ -166,7 +166,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "reserves | preview-reserve energy|food DAYS | procure-reserve energy|food DAYS | cancel-reserve ID\nstatus | countries | policies | party-preferences [COUNTRY] | party-alignment | sovereignty [COUNTRY] | technologies [POLICY] | preview POLICY VALUE | plan-policy POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nincome-tax-bands | income-tax-report | preview-income-tax STANDARD_RATE\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitment ID | commitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\ncash-retention | preview-retention MILLIONS DAYS | retain-cash MILLIONS DAYS | release-cash ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | public-report COUNTRY | events [COUNTRY] | event COUNTRY#NUMBER | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "laws | preview-law ID | propose-law ID | withdraw-law BILL\nreserves | preview-reserve energy|food DAYS | procure-reserve energy|food DAYS | cancel-reserve ID\nstatus | countries | policies | party-preferences [COUNTRY] | party-alignment | sovereignty [COUNTRY] | technologies [POLICY] | preview POLICY VALUE | plan-policy POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nincome-tax-bands | income-tax-report | preview-income-tax STANDARD_RATE\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitment ID | commitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\ncash-retention | preview-retention MILLIONS DAYS | retain-cash MILLIONS DAYS | release-cash ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | public-report COUNTRY | events [COUNTRY] | event COUNTRY#NUMBER | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if world.event_sequences.is_some() {println!("event COUNTRY#NUMBER · inspect one of your government's retained entries; references belong to this campaign. Accepted command replies identify their immediate outcome entries.");}
                     if content.finance.as_ref().is_some_and(|rules|rules.maturity_days.is_some()) {
@@ -174,10 +174,29 @@ fn play(
                     }
                     if developer {
                         println!(
-                            "dev-fields | dev-inspect COUNTRY | dev COUNTRY FIELD VALUE (explicit developer edits)"
+                            "dev-fields | dev-inspect COUNTRY | dev-ai-log COUNTRY [LIMIT] | dev COUNTRY FIELD VALUE (explicit developer edits)\ndev-trace-replay NEWFILE | dev-compare-traces REFERENCE ACTUAL (read-only replay evidence)"
                         );
                     }
                 }
+                "laws" => {
+                    let rules = content.legislation.as_ref().ok_or("This scenario has no statutory workflow")?;
+                    let state = world.player_country().legislation.as_ref().ok_or("Missing legislation state")?;
+                    println!("Statutory permission for your government · drafting, consent and implementation precede programme commissioning.");
+                    for law in &rules.definitions {
+                        println!("{} · {} · proposal from {} · {}",law.id.0,law.name,law.available_from,
+                            state.enacted.get(&law.id).map(|entry|format!("enacted {} by bill #{}",date(entry.day.units()),entry.bill.0)).unwrap_or_else(||"not enacted".into()));
+                    }
+                    for bill in state.bills.iter().rev() {
+                        println!("Bill #{} · {} · {} · paid {}m / {}m · reserved {}m · consent {} · enactment {} · {}",bill.id.0,bill.law.0,bill.status.label(),bill.paid.0,bill.total_cost.0,bill.reserved.0,date(bill.review_day.units()),date(bill.enactment_day.units()),bill.explanation);
+                    }
+                }
+                "preview-law" => {
+                    let law = LawId(words.get(1).ok_or("Missing law ID")?.to_string());
+                    let p = world.preview_law(content,&world.player,&law)?;
+                    println!("{} · total {}m: {}m drafting now, {}m protected implementation cash; consent {}; earliest enactment {}. {}. Programme funding and delivery remain separate.",law.0,p.total_cost.0,p.upfront.0,p.reserved.0,date(p.review_day.units()),date(p.enactment_day.units()),p.authority.label());
+                }
+                "propose-law" => { let law=LawId(words.get(1).ok_or("Missing law ID")?.to_string());issue(world,content,Action::ProposeLaw{law})?; }
+                "withdraw-law" => { issue(world,content,Action::WithdrawLaw{request:LawBillId(number(words.get(1))?)})?; }
                 "dev-fields" if developer => {
                     for field in DeveloperField::ALL {
                         println!("{} · {:?}", field.name(), field.bounds());
@@ -193,6 +212,55 @@ fn play(
                         "{}",
                         serde_json::to_string_pretty(country).map_err(|error| error.to_string())?
                     );
+                }
+                "dev-ai-log" => {
+                    if !developer {
+                        return Err("AI decision inspection requires the explicit --developer host".into());
+                    }
+                    if !(2..=3).contains(&words.len()) {
+                        return Err("Usage: dev-ai-log COUNTRY [LIMIT] (1..500, default 100)".into());
+                    }
+                    let country = CountryId(words[1].into());
+                    let limit = words.get(2).map_or(Ok(100), |value| value.parse::<usize>())
+                        .map_err(|_| "Invalid AI log limit")?;
+                    let log = world.developer_ai_log(&country, limit)?;
+                    println!("LIVE HOST TRUTH · recorded automated commands and retained AI review messages. Newest first; reviewed budget dispatch is identified by budget_bill. Unrecorded deliberation is unavailable.");
+                    println!("{}", serde_json::to_string_pretty(&log).map_err(|e| e.to_string())?);
+                }
+                "dev-trace-replay" => {
+                    if !developer {
+                        return Err("Replay traces require the explicit --developer host".into());
+                    }
+                    if words.len() != 2 {
+                        return Err("Usage: dev-trace-replay NEWFILE".into());
+                    }
+                    let file = std::fs::OpenOptions::new()
+                        .write(true)
+                        .create_new(true)
+                        .open(words[1])
+                        .map_err(|error| format!("Cannot create new trace: {error}"))?;
+                    let mut writer = io::BufWriter::new(file);
+                    let summary = sim_core::replay_trace::write_replay_trace(world, content, &mut writer)?;
+                    println!("Replay trace: {} boundaries; {:?}", summary.footer.points, summary.footer.outcome);
+                }
+                "dev-compare-traces" => {
+                    if !developer {
+                        return Err("Replay traces require the explicit --developer host".into());
+                    }
+                    if words.len() != 3 {
+                        return Err("Usage: dev-compare-traces REFERENCE ACTUAL".into());
+                    }
+                    let reference = std::fs::File::open(words[1]).map_err(|e| e.to_string())?;
+                    let actual = std::fs::File::open(words[2]).map_err(|e| e.to_string())?;
+                    let comparison = sim_core::replay_trace::compare_replay_traces(
+                        io::BufReader::new(reference), io::BufReader::new(actual))?;
+                    if let Some(difference) = comparison.first_difference {
+                        println!("First replay difference at boundary {}: reference {:?}; actual {:?}; changed components {:?}",
+                            difference.sequence, difference.expected, difference.actual, difference.components);
+                    } else {
+                        println!("Replay executions match across {} boundaries.", comparison.compared_points);
+                    }
+                    println!("Reference outcome: {:?}; actual outcome: {:?}", comparison.expected_outcome, comparison.actual_outcome);
                 }
                 "dev" => {
                     if !developer {
@@ -1069,7 +1137,7 @@ fn play(
                         "Bookmark primary currency: {} (identity metadata; values use game reporting credits).",
                         content.country(&world.player).expect("player").currency
                     );
-                    for (field, value) in [("population", d.population.0 as i64), ("gdp", d.gdp)] {
+                    for (field, value) in [("population", d.population.0 as i64), ("gdp", d.gdp.units())] {
                         if !content
                             .facts
                             .iter()

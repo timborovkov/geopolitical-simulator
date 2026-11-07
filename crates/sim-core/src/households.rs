@@ -74,7 +74,7 @@ pub(crate) fn initial_households(d: &CountryDefinition, cash: Money) -> Vec<Hous
             consumption: Money(0),
             basket_cost: Money(0),
             food_coverage: 100,
-            approval: d.approval,
+            approval: d.approval.units() as i32,
         })
         .collect()
 }
@@ -129,7 +129,7 @@ impl World {
             .iter()
             .map(|h| h.population.0 as i64)
             .collect();
-        let base_basket = (d.gdp / 365 * 60 / 100).max(1);
+        let base_basket = (d.gdp.units() / 365 * 60 / 100).max(1);
         let basket_total = if let Some(markets) = &content.markets {
             let price = self.countries[id]
                 .markets

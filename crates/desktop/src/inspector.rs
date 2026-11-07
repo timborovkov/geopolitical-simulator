@@ -69,6 +69,24 @@ impl Inspector {
             world.hash()
         ));
         ui.separator();
+        ui.collapsing("Recorded AI decisions and automated commands", |ui| {
+            let log = world.developer_ai_log(target, 100).expect("inspected country");
+            ui.label("Live host truth. Accepted AI commands and reviewed foreign-budget dispatch are recorded in the journal. Review messages below retain their original wording; unrecorded deliberation is unavailable.");
+            if log.player_controlled {
+                ui.label("This is the player-controlled country; the monthly autonomous AI does not run its government.");
+            }
+            ui.label(format!("Newest {} of {} accepted automated commands; newest {} of {} retained AI review messages.",
+                log.commands.len(), log.accepted_total, log.reviews.len(), log.reviews_available));
+            for entry in log.commands {
+                ui.monospace(format!("{} · #{} · {} · {:?}", date(entry.command.day), entry.command.id,
+                    if entry.budget_bill.is_some() { "reviewed budget dispatch" } else { "AI" }, entry.command.action));
+            }
+            ui.separator();
+            for event in log.reviews {
+                ui.label(format!("{} · {}", date(event.day), event.text));
+            }
+        });
+        ui.separator();
         let previous = self.field;
         egui::ComboBox::from_label("Direct scenario field")
             .selected_text(self.field.name())
@@ -118,7 +136,7 @@ impl Inspector {
                 .take(20)
             {
                 ui.label(format!(
-                    "{} · {:?} → {:?} · {}m · {}",
+                    "{} · {:?} to {:?} · {}m · {}",
                     date(entry.day),
                     entry.from,
                     entry.to,

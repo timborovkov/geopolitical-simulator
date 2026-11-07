@@ -259,7 +259,11 @@ impl World {
         let government = self.governing_rules(content, id)?;
         government.check(c, "appointments", 1)?;
         let fee = Money(
-            (content.country(id).ok_or("Missing country definition")?.gdp
+            (content
+                .country(id)
+                .ok_or("Missing country definition")?
+                .gdp
+                .units()
                 * rules.appointment_cost_bps.units_i64()
                 / 10000)
                 .max(1),
@@ -378,7 +382,8 @@ impl World {
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Dismissal cooldown would exceed the campaign calendar")?;
         let fee = Money(
-            (content.country(id).expect("country").gdp * rules.dismissal_cost_bps.units_i64()
+            (content.country(id).expect("country").gdp.units()
+                * rules.dismissal_cost_bps.units_i64()
                 / 10000)
                 .max(1),
         );
@@ -619,7 +624,8 @@ impl World {
             }
         }
         let fee = Money(
-            (content.country(id).expect("country").gdp * rules.appointment_cost_bps.units_i64()
+            (content.country(id).expect("country").gdp.units()
+                * rules.appointment_cost_bps.units_i64()
                 / 10000)
                 .max(1),
         );

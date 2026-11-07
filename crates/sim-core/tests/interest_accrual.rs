@@ -261,7 +261,7 @@ fn opening_budget_uses_exact_interval_interest_including_leap_year() {
 fn outlook_shares_existing_fraction_with_a_new_loan_and_times_the_first_cash_gap() {
     let mut c = fixture(true, true);
     for country in &mut c.countries {
-        country.tax = 10;
+        country.tax = Percent::new(10);
     }
     c.validate().unwrap();
     let mut w = World::new(&c, CountryId("COR".into()), 17).unwrap();

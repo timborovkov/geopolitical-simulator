@@ -188,7 +188,7 @@ fn programme_cost(
     targets: &FiscalTargets,
     baseline: &FiscalTargets,
 ) -> Money {
-    let gdp = content.country(id).expect("country").gdp;
+    let gdp = content.country(id).expect("country").gdp.units();
     Money(
         targets
             .changed(baseline)
@@ -291,7 +291,7 @@ impl World {
             .ok_or("Project ID space exhausted")?;
         let cost = programme_cost(content, id, targets, &baseline);
         let d = content.country(id).ok_or("Missing country definition")?;
-        let fee = Money((d.gdp * rules.administration_cost_bps.units_i64() / 10000).max(1));
+        let fee = Money((d.gdp.units() * rules.administration_cost_bps.units_i64() / 10000).max(1));
         if cost.0 + fee.0 > c.available_cash().0 {
             return Err(format!(
                 "Budget needs {}m uncommitted cash: {}m administration plus {}m reserved implementation; available {}m",
@@ -680,7 +680,8 @@ impl World {
             return Err("Fiscal-plan journal, interval or pending count mismatch".into());
         }
         let fee = Money(
-            (content.country(id).expect("country").gdp * rules.administration_cost_bps.units_i64()
+            (content.country(id).expect("country").gdp.units()
+                * rules.administration_cost_bps.units_i64()
                 / 10000)
                 .max(1),
         );
@@ -743,6 +744,15 @@ impl World {
                 return Err(
                     "Invalid fiscal-plan identity, targets, cost, sponsor or calendar".into(),
                 );
+            }
+            for (policy, value) in b.targets.changed(&b.baseline) {
+                self.check_policy_laws_at(
+                    content,
+                    id,
+                    &policy,
+                    value,
+                    CampaignDay::new(b.proposed_day),
+                )?;
             }
             if let Some(technologies) = &content.technologies {
                 for (policy, _) in b.targets.changed(&b.baseline) {

@@ -18,13 +18,14 @@ struct Save {
 const MAX_SAVE_BYTES: usize = 32 * 1024 * 1024;
 pub const SAVE_SCHEMA: u32 = 3;
 /// New rules require a distinct envelope so older clients reject unfamiliar state.
-/// Fixed-price, market, financing and constitutional campaigns use formats 3–26.
+/// Fixed-price, market, financing and constitutional campaigns use formats 3–27.
 pub fn snapshot_schema(world: &World) -> u32 {
     snapshot_schema_for_rules(world.rules)
 }
 /// Envelope version for a validated campaign's rules.
 pub fn snapshot_schema_for_rules(rules: u32) -> u32 {
     match rules {
+        26 => 27,
         25 => 26,
         24 => 25,
         23 => 24,
@@ -94,10 +95,15 @@ fn decode_save(bytes: &[u8], content: &Content) -> Result<Save, String> {
     }
     let header: serde_json::Value =
         serde_json::from_slice(bytes).map_err(|e| format!("Damaged save: {e}"))?;
-    if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2..=26)) {
-        return Err("Unsupported save version; supported snapshot formats are 2 through 26. The original file is preserved".into());
+    if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2..=27)) {
+        return Err("Unsupported save version; supported snapshot formats are 2 through 27. The original file is preserved".into());
     }
     let save: Save = serde_json::from_slice(bytes).map_err(|e| format!("Damaged save: {e}"))?;
+    if save.world.rules == 26 && save.schema < 27 {
+        return Err(
+            "Statutory authority requires snapshot format 27; original file preserved".into(),
+        );
+    }
     if save.world.rules == 25 && save.schema < 26 {
         return Err(
             "Archived review statistics require snapshot format 26; original file preserved".into(),
@@ -461,7 +467,7 @@ fn load_bundled_save(path: &Path) -> Result<(Content, Save), String> {
         serde_json::from_slice(&bytes).map_err(|error| format!("Damaged save: {error}"))?;
     if !matches!(
         header.get("schema").and_then(|value| value.as_u64()),
-        Some(2..=26)
+        Some(2..=27)
     ) {
         return Err("Unsupported save version; original file preserved".into());
     }
@@ -501,6 +507,15 @@ fn read_bytes(path: &Path) -> Result<Vec<u8>, String> {
 }
 /// Replay human commands; deterministic AI runs through its usual daily phase.
 pub fn replay(original: &World, content: &Content) -> Result<World, String> {
+    replay_observed(original, content, true, |_, _| Ok(()))
+}
+
+pub(crate) fn replay_observed(
+    original: &World,
+    content: &Content,
+    check_final: bool,
+    mut observe: impl FnMut(&World, crate::replay_trace::ReplayBoundary) -> Result<(), String>,
+) -> Result<World, String> {
     original.validate(content)?;
     let mut world = World::new_scenario(
         content,
@@ -508,6 +523,7 @@ pub fn replay(original: &World, content: &Content) -> Result<World, String> {
         original.seed,
         original.scenario,
     )?;
+    observe(&world, crate::replay_trace::ReplayBoundary::Opening)?;
     let mut verified = 0;
     for entry in original
         .journal
@@ -516,6 +532,7 @@ pub fn replay(original: &World, content: &Content) -> Result<World, String> {
     {
         while world.day.units() < entry.command.day {
             world.advance(content, crate::DaySpan::new(1))?;
+            observe(&world, crate::replay_trace::ReplayBoundary::Day)?;
             verify_journal(original, &world, &mut verified)?;
         }
         world
@@ -535,10 +552,15 @@ pub fn replay(original: &World, content: &Content) -> Result<World, String> {
                     crate::date(entry.command.day)
                 )
             })?;
+        observe(
+            &world,
+            crate::replay_trace::ReplayBoundary::Command(entry.command.id),
+        )?;
         verify_journal(original, &world, &mut verified)?;
     }
     while world.day.units() < original.day.units() {
         world.advance(content, crate::DaySpan::new(1))?;
+        observe(&world, crate::replay_trace::ReplayBoundary::Day)?;
         verify_journal(original, &world, &mut verified)?;
     }
     if verified != original.journal.len() {
@@ -548,7 +570,7 @@ pub fn replay(original: &World, content: &Content) -> Result<World, String> {
             original.journal.get(verified)
         ));
     }
-    if world.hash() != original.hash() {
+    if check_final && world.hash() != original.hash() {
         let detail = first_state_difference(original, &world)
             .map(|difference| {
                 format!(

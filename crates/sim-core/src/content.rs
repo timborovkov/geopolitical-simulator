@@ -1,5 +1,8 @@
 //! Versioned, validated content, separate from authoritative formulas.
-use crate::{BasisPoints, CurrencyId, DaySpan, HouseholdGroupId, PartyId, PolicyId, Population};
+use crate::{
+    AnnualGdp, BasisPoints, CurrencyId, DaySpan, HouseholdGroupId, PartyId, Percent, PolicyId,
+    Population,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -60,14 +63,41 @@ pub struct CountryDefinition {
     pub governing_office: Option<crate::OfficeId>,
     pub currency: CurrencyId,
     pub population: Population,
-    pub gdp: i64,
-    pub tax: i32,
-    pub services: i32,
-    pub welfare: i32,
-    pub energy: i32,
-    pub food: i32,
-    pub capacity: i32,
-    pub approval: i32,
+    /// Annual output is a calibration, separate from a cash balance.
+    /// ```compile_fail
+    /// use sim_core::{CountryDefinition, Money};
+    /// fn cannot_set_output_as_cash(country: &mut CountryDefinition) {
+    ///     country.gdp = Money(1_000_000);
+    /// }
+    /// ```
+    /// ```compile_fail
+    /// use sim_core::CountryDefinition;
+    /// fn cannot_set_output_as_an_untyped_count(country: &mut CountryDefinition) {
+    ///     country.gdp = 1_000_000_i64;
+    /// }
+    /// ```
+    pub gdp: AnnualGdp,
+    /// An opening whole-percent rate, separate from hundredths of a percent.
+    /// ```compile_fail
+    /// use sim_core::{BasisPoints, CountryDefinition};
+    /// fn cannot_set_opening_tax_in_basis_points(country: &mut CountryDefinition) {
+    ///     country.tax = BasisPoints::new(2800);
+    /// }
+    /// ```
+    pub tax: Percent,
+    pub services: Percent,
+    pub welfare: Percent,
+    pub energy: Percent,
+    pub food: Percent,
+    /// Opening administrative capacity is a rate, not an elapsed period.
+    /// ```compile_fail
+    /// use sim_core::{CountryDefinition, DaySpan};
+    /// fn cannot_set_capacity_as_a_duration(country: &mut CountryDefinition) {
+    ///     country.capacity = DaySpan::new(92);
+    /// }
+    /// ```
+    pub capacity: Percent,
+    pub approval: Percent,
     pub longitude: i32,
     pub latitude: i32,
     pub ruling_party: PartyId,
@@ -132,6 +162,8 @@ pub struct Content {
     pub cash_management: Option<crate::CashManagementDefinition>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reserves: Option<crate::ReserveDefinition>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub legislation: Option<crate::LegislationDefinition>,
     pub schema: u32,
     #[serde(
         default = "crate::markets::legacy_rules",
@@ -181,6 +213,12 @@ pub struct Content {
 impl Content {
     pub fn bundled() -> Result<Self, String> {
         Self::statistical_history_bundled()
+    }
+    /// Authored statutory workflow; this does not claim historical legal accuracy.
+    pub fn legislation_bundled() -> Result<Self, String> {
+        Self::from_json(include_str!(
+            "../../../data/initial-2000-statutory-authority.json"
+        ))
     }
     /// Preserved rules-24 starter before combined opening references and archived reviews.
     pub fn stable_elections_bundled() -> Result<Self, String> {
@@ -305,6 +343,7 @@ impl Content {
     pub fn bundled_for_hash(hash: u64) -> Result<Self, String> {
         for pack in [
             Self::bundled()?,
+            Self::legislation_bundled()?,
             Self::bookmark_identities_bundled()?,
             Self::stable_elections_bundled()?,
             Self::programme_events_bundled()?,
@@ -340,8 +379,8 @@ impl Content {
     pub fn from_json(json: &str) -> Result<Self, String> {
         let header: serde_json::Value =
             serde_json::from_str(json).map_err(|e| format!("Content JSON: {e}"))?;
-        if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2..=25)) {
-            return Err("Unsupported content schema: expected version 2 through 25".into());
+        if !matches!(header.get("schema").and_then(|v| v.as_u64()), Some(2..=26)) {
+            return Err("Unsupported content schema: expected version 2 through 26".into());
         }
         let mut content: Self =
             serde_json::from_str(json).map_err(|e| format!("Content JSON: {e}"))?;
@@ -395,7 +434,7 @@ impl Content {
             .map_err(|_| "Bookmark must permit a five-year review no later than 2100-01-01".into())
     }
     pub fn validate(&self) -> Result<(), String> {
-        if !matches!(self.schema, 2..=25) || self.countries.is_empty() {
+        if !matches!(self.schema, 2..=26) || self.countries.is_empty() {
             return Err("Unsupported content schema, bookmark or empty roster".into());
         }
         self.start_day()?;
@@ -406,74 +445,79 @@ impl Content {
             (4, Some(markets), Some(finance), None) if self.schema == 4 => {
                 markets.validate(self)?; finance.validate(self)?;
             }
-            (5..=25, Some(markets), Some(finance), Some(constitutions)) if self.schema == self.rules => {
+            (5..=26, Some(markets), Some(finance), Some(constitutions)) if self.schema == self.rules => {
                 markets.validate(self)?; finance.validate(self)?; constitutions.validate(self)?;
             }
-            _ => return Err("Supported rules/content definitions are 2 (fixed prices), 3 (markets), 4 (financing authority), 5 (constitutional transitions), 6 (commitment lifecycle), 7 (ministerial appointments), 8 (electoral authorities), 9 (subnational mandates), 10 (territorial reforms), 11 (delivery undertakings), 12 (fiscal plans), 13 (private-income bands), 14 (national fiscal AI), 15 (dated loan principal), 16 (temporary cash retention), 17 (carried daily interest), 18 (dated technology eligibility), 19 (bookmark sovereignty references), 20 (party policy preferences), 21 (national commodity reserves), 22 (stable event references), 23 (linked programme outcomes), 24 (stable political selection), and 25 (archived review statistics)".into()),
+            _ => return Err("Supported rules/content definitions are 2 (fixed prices), 3 (markets), 4 (financing authority), 5 (constitutional transitions), 6 (commitment lifecycle), 7 (ministerial appointments), 8 (electoral authorities), 9 (subnational mandates), 10 (territorial reforms), 11 (delivery undertakings), 12 (fiscal plans), 13 (private-income bands), 14 (national fiscal AI), 15 (dated loan principal), 16 (temporary cash retention), 17 (carried daily interest), 18 (dated technology eligibility), 19 (bookmark sovereignty references), 20 (party policy preferences), 21 (national commodity reserves), 22 (stable event references), 23 (linked programme outcomes), 24 (stable political selection), 25 (archived review statistics), and 26 (statutory authority)".into()),
+        }
+        match (&self.legislation, self.rules) {
+            (Some(rules), 26) => rules.validate(self)?,
+            (None, 2..=25) => {}
+            _ => return Err("Statutory legislation requires rules/content 26".into()),
         }
         match (&self.reserves, self.rules) {
-            (Some(rules), 21..=25) => rules.validate(self)?,
+            (Some(rules), 21..=26) => rules.validate(self)?,
             (None, 2..=20) => {}
             _ => return Err("National reserves require rules/content 21".into()),
         }
         match (&self.party_preferences, self.rules) {
-            (Some(rules), 20..=25) => rules.validate(self)?,
+            (Some(rules), 20..=26) => rules.validate(self)?,
             (None, 2..=19) => {}
             _ => return Err("Party policy preferences require rules/content 20".into()),
         }
         match (&self.sovereignty, self.rules) {
-            (Some(catalogue), 19..=25) => catalogue.validate(self)?,
+            (Some(catalogue), 19..=26) => catalogue.validate(self)?,
             // Later rule sets may leave unrelated reference geography unknown.
-            (None, 2..=18 | 20..=25) => {}
+            (None, 2..=18 | 20..=26) => {}
             _ => return Err("Bookmark sovereignty references require rules/content 19".into()),
         }
         match (&self.technologies, self.rules) {
-            (Some(rules), 18..=25) => rules.validate(self)?,
+            (Some(rules), 18..=26) => rules.validate(self)?,
             (None, 2..=17) => {}
             _ => return Err("Dated technology eligibility requires rules/content 18".into()),
         }
         match (&self.cash_management, self.rules) {
-            (Some(rules), 16..=25) => rules.validate(self)?,
+            (Some(rules), 16..=26) => rules.validate(self)?,
             (None, 2..=15) => {}
             _ => return Err("Temporary cash retention requires rules/content 16".into()),
         }
         match (&self.commitments, self.rules) {
-            (Some(rules), 6..=25) => rules.validate(self)?,
+            (Some(rules), 6..=26) => rules.validate(self)?,
             (None, 2..=5) => {}
             _ => return Err("Commitment lifecycle requires rules/content 6".into()),
         }
         match (&self.cabinet, self.rules) {
-            (Some(rules), 7..=25) => rules.validate(self)?,
+            (Some(rules), 7..=26) => rules.validate(self)?,
             (None, 2..=6) => {}
             _ => return Err("Ministerial appointments require rules/content 7".into()),
         }
         match (&self.elections, self.rules) {
-            (Some(rules), 8..=25) => rules.validate(self)?,
+            (Some(rules), 8..=26) => rules.validate(self)?,
             (None, 2..=7) => {}
             _ => return Err("Electoral authority workflow requires rules/content 8".into()),
         }
         match (&self.subnational, self.rules) {
-            (Some(rules), 9..=25) => rules.validate(self)?,
+            (Some(rules), 9..=26) => rules.validate(self)?,
             (None, 2..=8) => {}
             _ => return Err("Subnational mandates require rules/content 9".into()),
         }
         match (&self.territorial, self.rules) {
-            (Some(rules), 10..=25) => rules.validate(self)?,
+            (Some(rules), 10..=26) => rules.validate(self)?,
             (None, 2..=9) => {}
             _ => return Err("Territorial reform requires rules/content 10".into()),
         }
         match (&self.income_taxes, self.rules) {
-            (Some(rules), 13..=25) => rules.validate(self)?,
+            (Some(rules), 13..=26) => rules.validate(self)?,
             (None, 2..=12) => {}
             _ => return Err("Private-income bands require rules/content 13".into()),
         }
         match (&self.fiscal_plans, self.rules) {
-            (Some(rules), 12..=25) => rules.validate(self)?,
+            (Some(rules), 12..=26) => rules.validate(self)?,
             (None, 2..=11) => {}
             _ => return Err("Fiscal plans require rules/content 12".into()),
         }
         match (&self.undertakings, self.rules) {
-            (Some(rules), 11..=25) => rules.validate(self)?,
+            (Some(rules), 11..=26) => rules.validate(self)?,
             (None, 2..=10) => {}
             _ => return Err("Delivery undertakings require rules/content 11".into()),
         }
@@ -525,14 +569,14 @@ impl Content {
                 || c.name.is_empty()
                 || c.population.0 < 1000
                 || c.population.0 > 2_000_000_000
-                || !(1_000..=100_000_000).contains(&c.gdp)
-                || !(10..=45).contains(&c.tax)
-                || !(4..=18).contains(&c.services)
-                || !(0..=12).contains(&c.welfare)
-                || !(1..=200).contains(&c.energy)
-                || !(1..=200).contains(&c.food)
-                || !(1..=100).contains(&c.capacity)
-                || !(0..=100).contains(&c.approval)
+                || !(1_000..=100_000_000).contains(&c.gdp.units())
+                || !(10..=45).contains(&c.tax.units())
+                || !(4..=18).contains(&c.services.units())
+                || !(0..=12).contains(&c.welfare.units())
+                || !(1..=200).contains(&c.energy.units())
+                || !(1..=200).contains(&c.food.units())
+                || !(1..=100).contains(&c.capacity.units())
+                || !(0..=100).contains(&c.approval.units())
                 || !(-180..=180).contains(&c.longitude)
                 || !(-90..=90).contains(&c.latitude)
                 || c.executive.is_empty()
@@ -611,7 +655,9 @@ impl Content {
                         fact.applied_value != c.population.0 as i64
                             || fact.original_units != "persons"
                     }
-                    "gdp" => fact.applied_value != c.gdp || fact.original_units != "current USD",
+                    "gdp" => {
+                        fact.applied_value != c.gdp.units() || fact.original_units != "current USD"
+                    }
                     _ => true,
                 }
             {

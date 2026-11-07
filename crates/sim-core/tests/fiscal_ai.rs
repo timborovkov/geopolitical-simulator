@@ -6,8 +6,8 @@ fn gap_content() -> (Content, CountryId, i32) {
     ))
     .unwrap();
     for d in &mut content.countries {
-        d.energy = 120;
-        d.food = 120;
+        d.energy = Percent::new(120);
+        d.food = Percent::new(120);
     }
     content.constitutions.as_mut().unwrap().ai_targets.clear();
     content.territorial.as_mut().unwrap().ai_targets.clear();
@@ -19,7 +19,7 @@ fn gap_content() -> (Content, CountryId, i32) {
                 .iter_mut()
                 .find(|d| d.id == foreign)
                 .unwrap()
-                .tax = *rate;
+                .tax = Percent::try_from(*rate).unwrap();
             let probe = World::new(&content, foreign.clone(), 17).unwrap();
             let forecast = probe.player_country().forecast(
                 content.country(&foreign).unwrap(),

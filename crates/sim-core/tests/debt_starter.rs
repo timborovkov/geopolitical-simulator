@@ -62,7 +62,7 @@ fn each_seeded_government_can_issue_a_dated_loan_through_its_ordinary_authority_
     let content = Content::debt_bundled().unwrap();
     for definition in &content.countries {
         let mut world = World::new(&content, definition.id.clone(), 17).unwrap();
-        let amount = Money((definition.gdp / 100).max(1));
+        let amount = Money((definition.gdp.units() / 100).max(1));
         for _ in 0..4 {
             if world
                 .preview_borrowing(&content, &world.player, amount)

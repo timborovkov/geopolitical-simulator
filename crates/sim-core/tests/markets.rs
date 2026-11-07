@@ -67,8 +67,8 @@ fn prices_respond_with_a_lag_and_reprice_baskets_without_creating_cash() {
 fn physical_need_requested_use_and_delivery_are_separate() {
     let mut content = fixture();
     let country = &mut content.countries[0];
-    country.food = 200;
-    country.energy = 200;
+    country.food = Percent::new(200);
+    country.energy = Percent::new(200);
     let vulnerable = country
         .households
         .iter()

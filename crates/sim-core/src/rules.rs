@@ -50,6 +50,7 @@ impl World {
         }
         government.check(c, policy.as_str(), value)?;
         self.check_policy_technologies(content, country, policy)?;
+        self.check_policy_laws(content, country, policy, value)?;
         if policy == "energy" && c.energy_capacity >= 200
             || policy == "agriculture" && c.food_capacity >= 200
             || policy == "administration" && c.administration >= 100
@@ -70,7 +71,7 @@ impl World {
         if current == value {
             return Err("The proposed level is already in force".into());
         }
-        let cost = Money((d.gdp * p.cost_bps.units_i64() / 10000).max(1));
+        let cost = Money((d.gdp.units() * p.cost_bps.units_i64() / 10000).max(1));
         let available = c.available_cash().0;
         if require_cash && available < cost.0 {
             return Err(format!(
@@ -208,6 +209,10 @@ impl World {
             .and_then(|sequences| sequences.get(&outcome_country))
             .copied();
         match &command.action {
+            Action::ProposeLaw { law } => {
+                self.propose_law(content, &id, LawBillId(command.id.0), law)?
+            }
+            Action::WithdrawLaw { request } => self.withdraw_law(&id, *request)?,
             Action::ProcureReserve { good, days } => {
                 self.procure_reserve(content, &id, ReserveOrderId(command.id.0), *good, *days)?
             }
@@ -316,13 +321,13 @@ impl World {
                 if content.finance.is_some() {
                     self.request_borrowing(content, &id, LoanId(command.id.0), *amount)?;
                 } else {
-                    if amount.0 <= 0 || amount.0 > d.gdp / 10 {
+                    if amount.0 <= 0 || amount.0 > d.gdp.units() / 10 {
                         return Err(
                             "Borrowing must be positive and at most 10% of opening GDP per issue"
                                 .into(),
                         );
                     }
-                    if c.debt.0 + amount.0 > d.gdp * 3 / 2 {
+                    if c.debt.0 + amount.0 > d.gdp.units() * 3 / 2 {
                         return Err("Creditors refuse: debt ceiling is 150% of opening GDP".into());
                     }
                     if amount.0 > c.accounts.external.0 {
@@ -464,8 +469,10 @@ impl World {
                     self.review_budget(content, id);
                 }
                 self.notice_technology_dates(content, id);
+                self.notice_legislation_dates(content, id);
                 self.resolve_cash_hold(id);
                 self.resolve_constitution(content, id);
+                self.resolve_legislation(content, id);
                 self.resolve_cash_hold(id);
                 self.undertaking_succession(id);
                 self.resolve_undertaking_reviews(content, id);
@@ -505,6 +512,7 @@ impl World {
                 self.regional_succession(content, id);
                 self.cabinet_succession(id);
                 self.budget_succession(id);
+                self.resolve_legislation(content, id);
                 self.resolve_cash_hold(id);
             }
             if self.day.units().is_multiple_of(30) {
@@ -524,7 +532,7 @@ impl World {
                     && c.financing
                         .as_ref()
                         .is_none_or(|state| state.principal_due_through(self.day.units()).0 == 0)
-                    && c.debt.0 <= content.country(&self.player).expect("player").gdp;
+                    && c.debt.0 <= content.country(&self.player).expect("player").gdp.units();
                 let message = if self.is_developer_modified() {
                     if won {
                         "Five-year review: targets met in a developer-modified campaign. Country play continues."
@@ -635,7 +643,7 @@ impl World {
         let demand = (c.population.0 / 1000) as i64;
         let energy_demand = Energy::new(demand).expect("validated population");
         let food_demand = Food::new(demand).expect("validated population");
-        let daily = (d.gdp / 365).max(1);
+        let daily = (d.gdp.units() / 365).max(1);
         let market_rules = content.markets.as_ref();
         let energy_rule = market_rules.map(|rules| rules.good(GoodKind::Energy));
         let food_rule = market_rules.map(|rules| rules.good(GoodKind::Food));
@@ -1261,6 +1269,7 @@ impl World {
         self.ai_election_request(content, id);
         self.ai_regional_order(content, id);
         self.ai_territorial_turn(content, id);
+        self.ai_legislation(content, id);
         self.ai_budget_turn(content, id);
         self.ai_undertaking_turn(content, id);
         let c = &self.countries[id];
@@ -1310,12 +1319,12 @@ impl World {
                 .principal_due_through(self.day.units().saturating_add(notice))
                 .0
         });
-        let candidate = if c.available_cash().0 < d.gdp / 100
+        let candidate = if c.available_cash().0 < d.gdp.units() / 100
             || c.arrears.0 > 0
             || upcoming_principal > c.available_cash().0
         {
             Action::Borrow {
-                amount: Money(d.gdp / 20),
+                amount: Money(d.gdp.units() / 20),
             }
         } else {
             let policy = if regime.competitive() && c.legislative_support < government.threshold
@@ -1330,11 +1339,11 @@ impl World {
                 "agriculture"
             } else if c.administration < 85 {
                 "administration"
-            } else if c.debt.0 > d.gdp / 5 && c.accounts.treasury.0 > d.gdp / 10 {
+            } else if c.debt.0 > d.gdp.units() / 5 && c.accounts.treasury.0 > d.gdp.units() / 10 {
                 let command = self.command(
                     id.clone(),
                     Action::Repay {
-                        amount: Money(d.gdp / 100),
+                        amount: Money(d.gdp.units() / 100),
                     },
                 );
                 let _ = self.apply(content, command, CommandOrigin::Ai);
@@ -1413,14 +1422,15 @@ pub(crate) fn policy_forecast(
     }
     let annual = match policy.as_str() {
         "income_tax" => {
-            -(d.gdp * 70 / 100 * i64::from(value - c.tax) * i64::from(c.administration) / 10000)
+            -(d.gdp.units() * 70 / 100 * i64::from(value - c.tax) * i64::from(c.administration)
+                / 10000)
         }
-        "services" => d.gdp * i64::from(value - c.services) / 100,
-        "welfare" => d.gdp * i64::from(value - c.welfare) / 100,
-        "energy" | "agriculture" => d.gdp / 1000,
+        "services" => d.gdp.units() * i64::from(value - c.services) / 100,
+        "welfare" => d.gdp.units() * i64::from(value - c.welfare) / 100,
+        "energy" | "agriculture" => d.gdp.units() / 1000,
         _ => 0,
     };
-    let daily = d.gdp / 365;
+    let daily = d.gdp.units() / 365;
     let household_impacts = d
         .households
         .iter()

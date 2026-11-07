@@ -236,7 +236,8 @@ impl World {
             );
         }
         let fee = Money(
-            (content.country(id).expect("country").gdp * rules.administration_cost_bps.units_i64()
+            (content.country(id).expect("country").gdp.units()
+                * rules.administration_cost_bps.units_i64()
                 / 10000)
                 .max(1),
         );
@@ -513,7 +514,8 @@ impl World {
             );
         }
         let fee = Money(
-            (content.country(id).expect("country").gdp * rules.administration_cost_bps.units_i64()
+            (content.country(id).expect("country").gdp.units()
+                * rules.administration_cost_bps.units_i64()
                 / 10000)
                 .max(1),
         );

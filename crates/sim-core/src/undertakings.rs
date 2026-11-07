@@ -403,7 +403,8 @@ impl World {
             .filter(|d| *d <= MAX_DAY)
             .ok_or("Undertaking deadline exceeds the campaign calendar")?;
         let fee = Money(
-            (content.country(id).expect("country").gdp * t.administration_cost_bps.units_i64()
+            (content.country(id).expect("country").gdp.units()
+                * t.administration_cost_bps.units_i64()
                 / 10000)
                 .max(1),
         );
@@ -788,12 +789,12 @@ impl World {
     ) -> Result<i32, String> {
         let d = content.country(id).ok_or("Unknown country")?;
         let mut level = match policy.as_str() {
-            "income_tax" => d.tax,
-            "services" => d.services,
-            "welfare" => d.welfare,
-            "energy" => d.energy,
-            "agriculture" => d.food,
-            "administration" => d.capacity,
+            "income_tax" => d.tax.units() as i32,
+            "services" => d.services.units() as i32,
+            "welfare" => d.welfare.units() as i32,
+            "energy" => d.energy.units() as i32,
+            "agriculture" => d.food.units() as i32,
+            "administration" => d.capacity.units() as i32,
             _ => return Err("Unknown undertaking policy".into()),
         };
         if self.scenario == Scenario::FiscalSupplyCrisis && id == &self.player {
@@ -938,7 +939,7 @@ impl World {
                 || r.sponsor > c.government_number
                 || r.fee
                     != Money(
-                        (content.country(id).expect("country").gdp
+                        (content.country(id).expect("country").gdp.units()
                             * t.administration_cost_bps.units_i64()
                             / 10000)
                             .max(1),

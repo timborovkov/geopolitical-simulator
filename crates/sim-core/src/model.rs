@@ -131,6 +131,8 @@ pub struct Observation {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Country {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub legislation: Option<LegislationState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reserves: Option<NationalReserves>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cash_management: Option<CashManagement>,
@@ -216,6 +218,17 @@ impl Country {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
+    ProposeLaw {
+        law: LawId,
+    },
+    /// A statutory bill is not a commodity-reserve order.
+    /// ```compile_fail
+    /// use sim_core::{Action, ReserveOrderId};
+    /// let action = Action::WithdrawLaw { request: ReserveOrderId(1) };
+    /// ```
+    WithdrawLaw {
+        request: LawBillId,
+    },
     /// A purchased stock quantity cannot be supplied as elapsed time.
     /// ```compile_fail
     /// use sim_core::{Action, DaySpan, GoodKind};
@@ -434,20 +447,20 @@ impl World {
             .map(|definition| {
                 let mut overlay = definition.clone();
                 if scenario == Scenario::FiscalSupplyCrisis && definition.id == player {
-                    overlay.tax = 10;
-                    overlay.services = 18;
-                    overlay.welfare = 12;
-                    overlay.energy = 40;
-                    overlay.food = 40;
-                    overlay.capacity = 60;
-                    overlay.approval = 20;
+                    overlay.tax = crate::Percent::new(10);
+                    overlay.services = crate::Percent::new(18);
+                    overlay.welfare = crate::Percent::new(12);
+                    overlay.energy = crate::Percent::new(40);
+                    overlay.food = crate::Percent::new(40);
+                    overlay.capacity = crate::Percent::new(60);
+                    overlay.approval = crate::Percent::new(20);
                 }
                 let d = &overlay;
                 let accounts = Accounts {
-                    treasury: Money(d.gdp / 20),
-                    households: Money(d.gdp / 3),
-                    firms: Money(d.gdp / 2),
-                    external: Money(d.gdp * 3),
+                    treasury: Money(d.gdp.units() / 20),
+                    households: Money(d.gdp.units() / 3),
+                    firms: Money(d.gdp.units() / 2),
+                    external: Money(d.gdp.units() * 3),
                 };
                 let opening_money = Money(accounts.total());
                 let seats: BTreeMap<_, _> =
@@ -456,6 +469,10 @@ impl World {
                 (
                     d.id.clone(),
                     Country {
+                        legislation: content
+                            .legislation
+                            .as_ref()
+                            .map(|_| LegislationState::default()),
                         id: d.id.clone(),
                         population: d.population,
                         households: crate::households::initial_households(d, accounts.households),
@@ -474,23 +491,23 @@ impl World {
                             forecast: BudgetForecast {
                                 interest_accrual: None,
                                 daily_revenue: crate::income_taxes::flat_withholding(
-                                    Money(d.gdp / 365 * 70 / 100),
-                                    d.tax,
-                                    d.capacity,
+                                    Money(d.gdp.units() / 365 * 70 / 100),
+                                    d.tax.units() as i32,
+                                    d.capacity.units() as i32,
                                 ),
                                 daily_spending: Money(
                                     crate::budget::daily_policy_spending(
-                                        Money(d.gdp / 365),
-                                        d.services,
+                                        Money(d.gdp.units() / 365),
+                                        d.services.units() as i32,
                                     )
                                     .0 + crate::budget::daily_policy_spending(
-                                        Money(d.gdp / 365),
-                                        d.welfare,
+                                        Money(d.gdp.units() / 365),
+                                        d.welfare.units() as i32,
                                     )
                                     .0,
                                 ),
                                 daily_interest: crate::interest::minimum_daily_interest(Money(
-                                    d.gdp / 3,
+                                    d.gdp.units() / 3,
                                 )),
                             },
                             revenue: Money(0),
@@ -502,20 +519,20 @@ impl World {
                         budget_reviews: Vec::new(),
                         accounts,
                         opening_money,
-                        debt: Money(d.gdp / 3),
+                        debt: Money(d.gdp.units() / 3),
                         arrears: Money(0),
                         arrears_households: Money(0),
                         arrears_external: Money(0),
                         arrears_firms: Money(0),
-                        tax: d.tax,
-                        services: d.services,
-                        welfare: d.welfare,
-                        energy_capacity: d.energy,
-                        opening_energy_capacity: d.energy,
-                        opening_food_capacity: d.food,
-                        food_capacity: d.food,
-                        administration: d.capacity,
-                        approval: d.approval,
+                        tax: d.tax.units() as i32,
+                        services: d.services.units() as i32,
+                        welfare: d.welfare.units() as i32,
+                        energy_capacity: d.energy.units() as i32,
+                        opening_energy_capacity: d.energy.units() as i32,
+                        opening_food_capacity: d.food.units() as i32,
+                        food_capacity: d.food.units() as i32,
+                        administration: d.capacity.units() as i32,
+                        approval: d.approval.units() as i32,
                         elite_support: 65,
                         legislative_support: support,
                         ruling_party: d.ruling_party.clone(),
@@ -745,6 +762,22 @@ impl World {
         for (index, entry) in self.journal.iter().enumerate() {
             let command = &entry.command;
             let valid_action = match &command.action {
+                Action::ProposeLaw { law } => content
+                    .legislation
+                    .as_ref()
+                    .and_then(|rules| rules.law(law))
+                    .is_some_and(|law| law.eligible_countries.contains(&command.issuer)),
+                Action::WithdrawLaw { request } => {
+                    content.legislation.is_some()
+                        && request.0 > 0
+                        && request.0 < command.id.0
+                        && self
+                            .journal_entry(&CommandId(request.0))
+                            .is_some_and(|entry| {
+                                entry.command.issuer == command.issuer
+                                    && matches!(entry.command.action, Action::ProposeLaw { .. })
+                            })
+                }
                 Action::ProcureReserve { days, .. } => content
                     .reserves
                     .as_ref()
@@ -967,6 +1000,7 @@ impl World {
                 (Some(financing), Some(_)) => financing.validate(self, content, id)?,
                 _ => return Err("Country financing differs from campaign rules/content".into()),
             }
+            self.validate_legislation(content, id)?;
             self.validate_reserves(content, id)?;
             self.validate_cash_management(content, id)?;
             self.validate_income_taxes(content, id)?;
@@ -979,7 +1013,11 @@ impl World {
             self.validate_subnational(content, id)?;
             if id != &c.id
                 || c.accounts.checked_total() != Some(c.opening_money.0)
-                || c.opening_money.0 != d.gdp / 20 + d.gdp / 3 + d.gdp / 2 + d.gdp * 3
+                || c.opening_money.0
+                    != d.gdp.units() / 20
+                        + d.gdp.units() / 3
+                        + d.gdp.units() / 2
+                        + d.gdp.units() * 3
                 || [
                     c.accounts.treasury.0,
                     c.accounts.households.0,
@@ -1005,13 +1043,13 @@ impl World {
                     != if self.scenario == Scenario::FiscalSupplyCrisis && id == &self.player {
                         40
                     } else {
-                        d.energy
+                        d.energy.units() as i32
                     }
                 || c.opening_food_capacity
                     != if self.scenario == Scenario::FiscalSupplyCrisis && id == &self.player {
                         40
                     } else {
-                        d.food
+                        d.food.units() as i32
                     }
                 || !(1..=200).contains(&c.energy_capacity)
                 || !(1..=200).contains(&c.food_capacity)
@@ -1125,6 +1163,12 @@ impl World {
                         c.reserves
                             .as_ref()
                             .map_or(Money(0), NationalReserves::reserved_cash)
+                            .0,
+                    )
+                    + i128::from(
+                        c.legislation
+                            .as_ref()
+                            .map_or(Money(0), LegislationState::reserved_cash)
                             .0,
                     )
                     != i128::from(c.committed_cash.0)

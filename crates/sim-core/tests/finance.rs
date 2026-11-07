@@ -375,9 +375,9 @@ fn successor_government_must_seek_its_own_financing_mandate() {
 fn a_cash_constrained_ai_borrows_through_authority_and_waits_for_cash() {
     let mut content = fixture();
     let definition = &mut content.countries[0];
-    definition.tax = 10;
-    definition.services = 18;
-    definition.welfare = 12;
+    definition.tax = Percent::new(10);
+    definition.services = Percent::new(18);
+    definition.welfare = Percent::new(12);
     let mut world = world(&content, "COR");
     world.advance(&content, sim_core::DaySpan::new(90)).unwrap();
     let issuer = CountryId("AUR".into());

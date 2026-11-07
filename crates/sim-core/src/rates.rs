@@ -38,7 +38,7 @@ macro_rules! scalar {
     };
 }
 // Rates may exceed 100%. Policy-specific limits remain command/content rules.
-scalar!(Percent, Debug);
+scalar!(Percent);
 scalar!(BasisPoints);
 // A duration, not an absolute simulation date or a calendar-year mandate.
 scalar!(DaySpan);
@@ -73,6 +73,17 @@ impl std::fmt::Debug for BasisPoints {
     }
 }
 impl std::fmt::Display for BasisPoints {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
+// Authored percentages retain their preceding numeric diagnostic representation.
+impl std::fmt::Debug for Percent {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
+impl std::fmt::Display for Percent {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(formatter)
     }

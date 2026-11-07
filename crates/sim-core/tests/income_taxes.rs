@@ -8,7 +8,7 @@ fn content() -> Content {
 fn setup() -> (Content, World) {
     let mut c = content();
     for d in &mut c.countries {
-        d.energy = 120;
+        d.energy = Percent::new(120);
     }
     c.validate().unwrap();
     let w = World::new(&c, CountryId("AUR".into()), 17).unwrap();
@@ -25,7 +25,7 @@ fn authored_bands_apply_marginal_slices_not_the_top_rate_to_all_income() {
     let c = content();
     let taxes = c.income_taxes.as_ref().unwrap();
     let mut d = c.countries[0].clone();
-    d.gdp = 365000;
+    d.gdp = sim_core::AnnualGdp::new(365000).unwrap();
     d.population = Population(10000);
     let a = taxes
         .assess(&d, Population(1000), Money(100), 20, 80)
@@ -67,7 +67,7 @@ fn collection_is_bounded_monotone_and_has_no_tax_cliff_even_at_large_inputs() {
     let c = content();
     let t = c.income_taxes.as_ref().unwrap();
     let mut d = c.countries[0].clone();
-    d.gdp = 365000;
+    d.gdp = sim_core::AnnualGdp::new(365000).unwrap();
     d.population = Population(10000);
     for rate in [10, 28, 45] {
         for admin in [1, 35, 70, 100] {
@@ -86,7 +86,7 @@ fn collection_is_bounded_monotone_and_has_no_tax_cliff_even_at_large_inputs() {
             }
         }
     }
-    d.gdp = 100000000;
+    d.gdp = sim_core::AnnualGdp::new(100000000).unwrap();
     d.population = Population(2000000000);
     let a = t
         .assess(&d, Population(200000000), Money(1000000000000), 45, 100)
@@ -340,7 +340,7 @@ fn falling_received_income_reduces_withholding_and_the_average_burden_without_ch
     let c = content();
     let t = c.income_taxes.as_ref().unwrap();
     let mut d = c.countries[0].clone();
-    d.gdp = 365000;
+    d.gdp = sim_core::AnnualGdp::new(365000).unwrap();
     d.population = Population(10000);
     let high = t.assess(&d, Population(1000), Money(100), 20, 80).unwrap();
     let low = t.assess(&d, Population(1000), Money(50), 20, 80).unwrap();

@@ -74,8 +74,8 @@ fn seeded_reserves_preserve_all_prior_definitions_and_grant_no_opening_resources
 fn dated_supply_feedback_explains_both_physical_shortfalls_and_quota_bottlenecks_read_only() {
     let mut content = Content::reserve_bundled().unwrap();
     for c in &mut content.countries {
-        c.energy = 40;
-        c.food = 40;
+        c.energy = Percent::new(40);
+        c.food = Percent::new(40);
     }
     let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
     world
@@ -119,8 +119,8 @@ fn dated_supply_feedback_explains_both_physical_shortfalls_and_quota_bottlenecks
     ))
     .unwrap();
     for c in &mut quota_content.countries {
-        c.energy = 75;
-        c.food = 65;
+        c.energy = Percent::new(75);
+        c.food = Percent::new(65);
     }
     let seed = (0..100)
         .find(|seed| !stable_hash(format!("{seed}:AUR:0:supply-v2").as_bytes()).is_multiple_of(3))
@@ -141,8 +141,8 @@ fn dated_supply_feedback_explains_both_physical_shortfalls_and_quota_bottlenecks
     }
     let mut spare_content = quota_content.clone();
     for c in &mut spare_content.countries {
-        c.energy = 90;
-        c.food = 90;
+        c.energy = Percent::new(90);
+        c.food = Percent::new(90);
     }
     let mut spare_world = World::new(&spare_content, CountryId("AUR".into()), seed).unwrap();
     spare_world

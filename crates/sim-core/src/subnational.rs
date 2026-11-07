@@ -152,11 +152,11 @@ impl SubnationalDefinition {
 }
 /// Annual GDP-point spending weighted by a disjoint budget jurisdiction's population.
 /// This purchases public-service household work; it creates no physical capacity.
-pub fn regional_daily_cost(gdp: i64, share_bps: i64, level: i32) -> Money {
+pub fn regional_daily_cost(gdp: AnnualGdp, share_bps: i64, level: i32) -> Money {
     if level == 0 {
         Money(0)
     } else {
-        Money((gdp * share_bps * i64::from(level) / 365 / 10000 / 100).max(1))
+        Money((gdp.units() * share_bps * i64::from(level) / 365 / 10000 / 100).max(1))
     }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -429,7 +429,7 @@ impl World {
             ),
             None => None,
         };
-        let fee = Money((d.gdp * rules.administration_cost_bps.units_i64() / 10000).max(1));
+        let fee = Money((d.gdp.units() * rules.administration_cost_bps.units_i64() / 10000).max(1));
         if country.available_cash().0 < fee.0 + principal.0 {
             return Err("Regional offers require national uncommitted cash, excluding local entitlements and existing escrow".into());
         }
@@ -1009,7 +1009,9 @@ impl World {
                 || order.sponsor > c.government_number
                 || !(0..=8).contains(&order.baseline_level)
                 || order.paid_administration
-                    != Money((d.gdp * rules.administration_cost_bps.units_i64() / 10000).max(1))
+                    != Money(
+                        (d.gdp.units() * rules.administration_cost_bps.units_i64() / 10000).max(1),
+                    )
                 || [
                     order.principal.0,
                     order.escrow.0,

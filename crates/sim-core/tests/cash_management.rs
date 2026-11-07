@@ -11,8 +11,8 @@ fn exhausted() -> (Content, World) {
     c.finance.as_mut().unwrap().authorities.clear();
     c.finance.as_mut().unwrap().emergency = None;
     c.countries.iter_mut().for_each(|d| {
-        d.services = 18;
-        d.welfare = 12;
+        d.services = Percent::new(18);
+        d.welfare = Percent::new(12);
     });
     c.validate().unwrap();
     let mut w = World::new(&c, CountryId("AUR".into()), 17).unwrap();
@@ -300,8 +300,8 @@ fn snapshot_and_content_validation_reject_invalid_terms_and_false_cash() {
 fn deferred_matured_principal_stays_in_debt_and_is_not_operating_arrears() {
     let mut c = fixture();
     for d in &mut c.countries {
-        d.services = 18;
-        d.welfare = 12;
+        d.services = Percent::new(18);
+        d.welfare = Percent::new(12);
     }
     let mut w = World::new(&c, CountryId("AUR".into()), 17).unwrap();
     w.issue(

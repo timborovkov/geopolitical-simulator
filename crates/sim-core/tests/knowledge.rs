@@ -74,7 +74,8 @@ fn reports_reject_wrong_content_before_publishing_any_view() {
     let mut renamed = content.clone();
     renamed.countries[0].name.push_str(" changed");
     let mut revalued = content.clone();
-    revalued.countries[0].gdp += 1;
+    revalued.countries[0].gdp =
+        sim_core::AnnualGdp::new(revalued.countries[0].gdp.units() + 1).unwrap();
     let mut wrong_rules = content.clone();
     wrong_rules.rules -= 1;
     for other in [

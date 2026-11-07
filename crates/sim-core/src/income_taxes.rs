@@ -102,7 +102,7 @@ impl IncomeTaxDefinition {
             || group_population.0 == 0
             || group_population.0 > d.population.0
             || d.population.0 == 0
-            || !(1..=100_000_000).contains(&d.gdp)
+            || !(1..=100_000_000).contains(&d.gdp.units())
             || !(1..=100).contains(&administration)
             || !(10..=45).contains(&standard_rate)
         {
@@ -110,11 +110,11 @@ impl IncomeTaxDefinition {
         }
         let annual = i128::from(gross.0) * i128::from(self.annualisation_days.units());
         let threshold = |bps: u32| {
-            i128::from(d.gdp) * i128::from(group_population.0) * i128::from(bps)
+            i128::from(d.gdp.units()) * i128::from(group_population.0) * i128::from(bps)
                 / (i128::from(d.population.0) * 10_000)
         };
         let relative = annual * i128::from(d.population.0) * 10_000
-            / (i128::from(d.gdp) * i128::from(group_population.0));
+            / (i128::from(d.gdp.units()) * i128::from(group_population.0));
         let relative = u64::try_from(relative)
             .map_err(|_| "Annualised representative income ratio exceeds supported precision")?;
         let mut numerator = 0_i128;

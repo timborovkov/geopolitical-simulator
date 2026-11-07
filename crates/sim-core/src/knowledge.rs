@@ -117,7 +117,7 @@ impl World {
             undertakings: self.published_undertakings(id),
             fiscal_plans: self.published_fiscal_plans(id),
             population: c.population,
-            opening_gdp: Money(d.gdp),
+            opening_gdp: Money(d.gdp.units()),
             initial_data_quality: d.quality.clone(),
             archived_reviews: c
                 .statistical_archive

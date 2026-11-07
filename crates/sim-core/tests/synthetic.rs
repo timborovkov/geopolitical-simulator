@@ -14,7 +14,7 @@ fn synthetic_world_is_independent_of_historical_identities_and_runs_every_govern
         assert_eq!(d.identity_source, "synthetic-original");
         assert_eq!(d.economic_source, "synthetic-original");
         assert_eq!(d.population, Population(1_000_000));
-        assert_eq!(d.gdp, 100_000);
+        assert_eq!(d.gdp.units(), 100_000);
         let mut world = World::new(&content, d.id.clone(), 17).unwrap();
         let preview = world.preview(&content, &d.id, &"energy".into(), 1).unwrap();
         assert_eq!(
@@ -42,7 +42,7 @@ fn synthetic_world_is_independent_of_historical_identities_and_runs_every_govern
             restored.validate(&content).unwrap();
             assert_eq!(restored.hash(), world.hash());
         }
-        assert!(world.player_country().energy_capacity > d.energy);
+        assert!(world.player_country().energy_capacity > d.energy.units() as i32);
         persistence::replay(&world, &content).unwrap();
     }
     assert!(routes.contains(&DecisionRoute::Legislature));

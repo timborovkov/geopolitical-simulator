@@ -160,9 +160,9 @@ impl ReserveSupply {
 fn ceiling_ratio(n: i128, d: i128) -> i64 {
     i64::try_from((n + d - 1) / d).expect("bounded reserve price")
 }
-fn contract_cost(gdp: i64, need: i64, quantity: i64, price: u32) -> Money {
+fn contract_cost(gdp: AnnualGdp, need: i64, quantity: i64, price: u32) -> Money {
     Money(ceiling_ratio(
-        i128::from((gdp / 365).max(1)) * i128::from(quantity) * i128::from(price),
+        i128::from((gdp.units() / 365).max(1)) * i128::from(quantity) * i128::from(price),
         i128::from(need) * 5 * 10000,
     ))
 }
@@ -273,7 +273,7 @@ impl World {
             GoodKind::Food => market.food.next_price_bps.units(),
         };
         let cost = contract_cost(d.gdp, need, quantity, price_bps);
-        let fee = Money((d.gdp * i64::from(rules.fee_bps.units()) / 10000).max(1));
+        let fee = Money((d.gdp.units() * i64::from(rules.fee_bps.units()) / 10000).max(1));
         if c.available_cash().0 < cost.0 + fee.0 {
             return Err(format!(
                 "Requires {}m uncommitted national cash: {}m administration and {}m reserved purchase budget",
@@ -629,7 +629,7 @@ impl World {
                 continue;
             }
             if let Ok(p) = self.preview_reserve(content, id, good, rules.ai_target_days)
-                && c.available_cash().0 > d.gdp / 20 + p.cost.0 + p.fee.0
+                && c.available_cash().0 > d.gdp.units() / 20 + p.cost.0 + p.fee.0
             {
                 let cmd = self.command(
                     id.clone(),
@@ -761,7 +761,7 @@ impl World {
                 || !(market.minimum_price_bps.units()..=market.maximum_price_bps.units())
                     .contains(&o.price_bps.units())
                 || o.quoted_cost != contract_cost(d.gdp, need, o.quantity, o.price_bps.units())
-                || o.fee != Money((d.gdp * i64::from(rules.fee_bps.units()) / 10000).max(1))
+                || o.fee != Money((d.gdp.units() * i64::from(rules.fee_bps.units()) / 10000).max(1))
                 || o.paid != paid_for(o, o.filled)
                 || o.review_day < o.proposed_day
                 || o.review_day - o.proposed_day > 365

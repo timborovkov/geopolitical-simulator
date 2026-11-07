@@ -112,12 +112,13 @@ impl World {
                 date(state.next_allowed_day)
             ));
         }
-        if !(1..=(d.gdp * rules.max_target_bps.units_i64() / 10000).max(1)).contains(&target.0)
+        if !(1..=(d.gdp.units() * rules.max_target_bps.units_i64() / 10000).max(1))
+            .contains(&target.0)
             || !(1..=rules.max_days.units()).contains(&days.units())
         {
             return Err(format!(
                 "Target must be 1..{}m and duration 1..{} days",
-                (d.gdp * rules.max_target_bps.units_i64() / 10000).max(1),
+                (d.gdp.units() * rules.max_target_bps.units_i64() / 10000).max(1),
                 rules.max_days.units()
             ));
         }
@@ -332,7 +333,7 @@ impl World {
                         .preview_borrowing(
                             content,
                             id,
-                            Money(content.country(id).expect("country").gdp / 20),
+                            Money(content.country(id).expect("country").gdp.units() / 20),
                         )
                         .is_ok()
                 {
@@ -411,7 +412,7 @@ impl World {
             let Action::HoldCash { target, days } = entry.command.action else {
                 unreachable!()
             };
-            let max_target = (content.country(id).expect("country").gdp
+            let max_target = (content.country(id).expect("country").gdp.units()
                 * rules.max_target_bps.units_i64()
                 / 10000)
                 .max(1);
@@ -479,9 +480,9 @@ mod tests {
         content.finance.as_mut().unwrap().authorities.clear();
         content.finance.as_mut().unwrap().emergency = None;
         for country in &mut content.countries {
-            country.tax = 10;
-            country.services = 18;
-            country.welfare = 12;
+            country.tax = crate::Percent::new(10);
+            country.services = crate::Percent::new(18);
+            country.welfare = crate::Percent::new(12);
         }
         let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
         let foreign = CountryId("BOR".into());

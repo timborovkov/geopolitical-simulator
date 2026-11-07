@@ -38,7 +38,7 @@ fn play(
         };
         let mut loans = 0;
         for _ in 0..3 {
-            let amount = Money(definition.gdp / 10);
+            let amount = Money(definition.gdp.units() / 10);
             if loans < 2
                 && world
                     .preview_borrowing(content, &world.player, amount)
@@ -74,7 +74,7 @@ fn play(
         // Minority cabinets may only gain borrowing authority after talks.
         // Accepted requests still supply no cash until their actual decision.
         while loans < 2 {
-            let amount = Money(definition.gdp / 10);
+            let amount = Money(definition.gdp.units() / 10);
             let preview = world.preview_borrowing(content, &world.player, amount)?;
             world.issue(content, Action::Borrow { amount })?;
             loans += 1;
@@ -87,12 +87,13 @@ fn play(
             .as_ref()
             .is_some_and(|finance| finance.maturity_days.is_some())
         {
-            let cost = (definition.gdp * rules.route(true)?.cost_bps.units_i64() / 10000).max(1);
+            let cost =
+                (definition.gdp.units() * rules.route(true)?.cost_bps.units_i64() / 10000).max(1);
             for _ in 0..3 {
                 if world.player_country().available_cash().0 >= cost {
                     break;
                 }
-                let amount = Money(definition.gdp / 10);
+                let amount = Money(definition.gdp.units() / 10);
                 let preview = world.preview_borrowing(content, &world.player, amount)?;
                 world.issue(content, Action::Borrow { amount })?;
                 world.advance(content, preview.consent_days)?;
@@ -128,8 +129,8 @@ fn play(
                 .0
         });
         if c.available_cash().0 < gap.max(1) * 90 + upcoming_principal {
-            let amount = Money(definition.gdp / 10);
-            if c.debt.0 + amount.0 <= definition.gdp * 3 / 2
+            let amount = Money(definition.gdp.units() / 10);
+            if c.debt.0 + amount.0 <= definition.gdp.units() * 3 / 2
                 && c.accounts.external.0 >= amount.0
                 && (content.finance.is_none()
                     || world
@@ -207,10 +208,10 @@ fn play(
             .financing
             .as_ref()
             .map_or(0, |state| state.principal_due_through(MAX_DAY).0);
-        if c.available_cash().0 > definition.gdp / 8 + scheduled_principal
-            && c.debt.0 > definition.gdp / 5
+        if c.available_cash().0 > definition.gdp.units() / 8 + scheduled_principal
+            && c.debt.0 > definition.gdp.units() / 5
         {
-            let amount = Money((definition.gdp / 20).min(c.debt.0));
+            let amount = Money((definition.gdp.units() / 20).min(c.debt.0));
             world.issue(content, Action::Repay { amount })?;
         }
         world.advance(
@@ -228,7 +229,7 @@ fn play(
         || c.financing
             .as_ref()
             .is_some_and(|state| state.principal_due_through(world.day.units()).0 > 0)
-        || c.debt.0 > definition.gdp
+        || c.debt.0 > definition.gdp.units()
     {
         return Err(format!(
             "{country} recovery failed: energy {}%, food {}%, approval {}%, arrears {}m, debt {}m",
@@ -240,7 +241,7 @@ fn play(
         c.report.energy_coverage,
         c.report.food_coverage,
         c.approval,
-        c.debt.0 * 100 / definition.gdp,
+        c.debt.0 * 100 / definition.gdp.units(),
         world.hash()
     );
     Ok(())

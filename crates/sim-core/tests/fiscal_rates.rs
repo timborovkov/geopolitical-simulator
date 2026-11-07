@@ -8,13 +8,13 @@ fn flat_tax_and_spending_forecasts_match_funded_settlement_at_rate_boundaries() 
                 let mut content =
                     Content::from_json(include_str!("../../../data/synthetic-test.json")).unwrap();
                 for definition in &mut content.countries {
-                    definition.gdp = gdp;
-                    definition.tax = tax;
-                    definition.capacity = administration;
-                    definition.services = 18;
-                    definition.welfare = 12;
-                    definition.energy = 120;
-                    definition.food = 120;
+                    definition.gdp = sim_core::AnnualGdp::new(gdp).unwrap();
+                    definition.tax = Percent::try_from(tax).unwrap();
+                    definition.capacity = Percent::try_from(administration).unwrap();
+                    definition.services = Percent::new(18);
+                    definition.welfare = Percent::new(12);
+                    definition.energy = Percent::new(120);
+                    definition.food = Percent::new(120);
                 }
                 content.validate().unwrap();
                 let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();

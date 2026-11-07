@@ -171,6 +171,7 @@ impl World {
         }
         let government = self.governing_rules(content, id)?;
         government.check(c, p.policy.as_str(), value)?;
+        self.check_policy_laws(content, id, &p.policy, value)?;
         let fee = Money((p.cost.0 * rules.amendment_fee_bps.units_i64() / 10000).max(1));
         if fee.0 > c.available_cash().0 {
             return Err("Amendment administration requires uncommitted treasury cash".into());
@@ -521,7 +522,8 @@ impl World {
             };
             let definition = content.policy(policy).ok_or("Unknown commitment policy")?;
             let cost = Money(
-                (content.country(id).expect("country").gdp * definition.cost_bps.units_i64()
+                (content.country(id).expect("country").gdp.units()
+                    * definition.cost_bps.units_i64()
                     / 10000)
                     .max(1),
             );

@@ -562,7 +562,11 @@ fn expanded_observations_keep_the_same_rules_and_political_calibration_with_expl
         assert_eq!(&normalized, old);
     }
     assert_eq!(
-        current.country(&CountryId("PRK".into())).unwrap().gdp,
+        current
+            .country(&CountryId("PRK".into()))
+            .unwrap()
+            .gdp
+            .units(),
         17000
     );
     assert_eq!(current.policies, earlier.policies);

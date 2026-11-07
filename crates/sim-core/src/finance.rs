@@ -170,8 +170,8 @@ impl Financing {
                 id: LoanId(0),
                 creditor: creditor(&country.id),
                 currency: ReportingCurrency::Constant2000Credit,
-                original_principal: Money(country.gdp / 3),
-                outstanding: Money(country.gdp / 3),
+                original_principal: Money(country.gdp.units() / 3),
+                outstanding: Money(country.gdp.units() / 3),
                 issued_day: day,
                 annual_rate_bps: BasisPoints::new(400),
                 maturity_day: None,
@@ -292,12 +292,12 @@ impl Financing {
                 DebtOrigin::OpeningCalibration
                     if index == 0
                         && instrument.id == LoanId(0)
-                        && instrument.original_principal.0 == definition.gdp / 3
+                        && instrument.original_principal.0 == definition.gdp.units() / 3
                         && instrument.issued_day == start => {}
                 DebtOrigin::AcceptedRequest { contested }
                     if index > 0
                         && instrument.id.0 > 0
-                        && instrument.original_principal.0 <= definition.gdp / 10 =>
+                        && instrument.original_principal.0 <= definition.gdp.units() / 10 =>
                 {
                     let entry = world
                         .journal
@@ -353,7 +353,7 @@ impl Financing {
                 .authority(&world.governing_rules(content, id)?.route)
                 .ok_or("Pending loan lacks legal authority")?;
             if request.amount.0 <= 0
-                || request.amount.0 > definition.gdp / 10
+                || request.amount.0 > definition.gdp.units() / 10
                 || authority.consent_days.units() == 0
                 || request.authority != authority.id
                 || request.requested_day != entry.command.day
@@ -442,7 +442,7 @@ impl World {
         let definition = content
             .country(id)
             .ok_or("Missing borrowing country definition")?;
-        if amount.0 <= 0 || amount.0 > definition.gdp / 10 {
+        if amount.0 <= 0 || amount.0 > definition.gdp.units() / 10 {
             return Err(
                 "Borrowing must be positive and at most 10% of opening GDP per issue".into(),
             );
@@ -451,7 +451,7 @@ impl World {
             .debt
             .0
             .checked_add(amount.0)
-            .is_none_or(|debt| debt > definition.gdp * 3 / 2)
+            .is_none_or(|debt| debt > definition.gdp.units() * 3 / 2)
         {
             return Err("Creditors refuse: debt ceiling is 150% of opening GDP".into());
         }

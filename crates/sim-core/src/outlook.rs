@@ -123,7 +123,7 @@ impl World {
         let mut additional_interest = 0;
         if let Some(assumption) = loan {
             if assumption.amount.0 <= 0
-                || assumption.amount.0 > definition.gdp / 10
+                || assumption.amount.0 > definition.gdp.units() / 10
                 || assumption.decision_day < self.day.units()
                 || assumption.decision_day > MAX_DAY
             {

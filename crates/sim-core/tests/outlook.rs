@@ -115,11 +115,11 @@ fn cash_runway_excludes_reservations_and_pending_funds_and_keeps_gaps_signed() {
 fn balanced_run_rate_has_no_deficit_countdown_or_division_by_zero() {
     let (mut content, _) = setup();
     let definition = &mut content.countries[0];
-    definition.gdp = 36500;
-    definition.tax = 45;
-    definition.capacity = 23;
-    definition.services = 4;
-    definition.welfare = 0;
+    definition.gdp = sim_core::AnnualGdp::new(36500).unwrap();
+    definition.tax = Percent::new(45);
+    definition.capacity = Percent::new(23);
+    definition.services = Percent::new(4);
+    definition.welfare = Percent::new(0);
     let world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
     let plan = world.funding_outlook(&content, 365, None).unwrap();
     assert_eq!(plan.daily_balance, Money(0));

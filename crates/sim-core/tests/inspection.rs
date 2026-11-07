@@ -78,9 +78,9 @@ fn next_event_reaches_a_leap_year_fiscal_boundary_after_365_quiet_days() {
         Content::from_json(include_str!("../../../data/synthetic-test.json")).unwrap();
     // A solvent authored fixture and seed isolate the next annual review.
     for country in &mut content.countries {
-        country.tax = 30;
-        country.services = 6;
-        country.welfare = 4;
+        country.tax = Percent::new(30);
+        country.services = Percent::new(6);
+        country.welfare = Percent::new(4);
     }
     content.validate().unwrap();
     let opening = World::new(&content, CountryId("AUR".into()), 0).unwrap();

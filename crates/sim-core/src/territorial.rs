@@ -412,7 +412,7 @@ impl World {
             .ok_or("Missing territorial charter")?;
         let future = rules.apply_template(base, target)?;
         let amount = Money(
-            (content.country(id).ok_or("Missing country")?.gdp
+            (content.country(id).ok_or("Missing country")?.gdp.units()
                 * rules.compensation_bps.units_i64()
                 / 10000)
                 .max(1),
@@ -520,7 +520,9 @@ impl World {
             .filter(|day| *day <= MAX_DAY)
             .ok_or("Territorial review exceeds the campaign calendar")?;
         let admin_cost = Money(
-            (content.country(id).expect("country").gdp * route.cost_bps.units_i64() / 10000).max(1),
+            (content.country(id).expect("country").gdp.units() * route.cost_bps.units_i64()
+                / 10000)
+                .max(1),
         );
         let upfront = Money((admin_cost.0 * route.upfront_bps.units_i64() / 10000).max(1));
         let reserved = Money(
@@ -586,7 +588,7 @@ impl World {
             return Err("Requisition must be positive and covered by the local base coffer; accepted grants and escrow are protected".into());
         }
         let fee = Money(
-            (content.country(id).ok_or("Missing country")?.gdp
+            (content.country(id).ok_or("Missing country")?.gdp.units()
                 * rules.administration_cost_bps.units_i64()
                 / 10000)
                 .max(1),
@@ -1091,7 +1093,7 @@ impl World {
                 record.contested,
                 command.day,
             )?;
-            let cost = Money((d.gdp * route.cost_bps.units_i64() / 10000).max(1));
+            let cost = Money((d.gdp.units() * route.cost_bps.units_i64() / 10000).max(1));
             let upfront = Money((cost.0 * route.upfront_bps.units_i64() / 10000).max(1));
             let reservation =
                 Money(cost.0 - upfront.0 + compensations.iter().map(|p| p.amount.0).sum::<i64>());
@@ -1253,7 +1255,9 @@ impl World {
                 || claim.amount.0 == 0
                 || claim.amount.0 > claim.coffer_before.0
                 || claim.fee
-                    != Money((d.gdp * rule.administration_cost_bps.units_i64() / 10000).max(1))
+                    != Money(
+                        (d.gdp.units() * rule.administration_cost_bps.units_i64() / 10000).max(1),
+                    )
                 || claim.fee.0 > claim.national_available_before.0 + claim.amount.0
             {
                 return Err(

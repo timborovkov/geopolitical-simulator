@@ -18,6 +18,7 @@ mod help;
 mod hydrology;
 mod income_taxes;
 mod inspector;
+mod legislation;
 mod map;
 mod markets;
 mod navigation;
@@ -440,6 +441,7 @@ impl GameApp {
             .country(&self.selected)
             .expect("new country")
             .gdp
+            .units()
             / 100)
             .max(1);
         self.show_ledger = false;
@@ -625,7 +627,7 @@ impl GameApp {
                     .show(ui, |ui| {
                         let mut countries: Vec<_> = self.content.countries.iter().collect();
                         if self.sort_gdp {
-                            countries.sort_by_key(|c| std::cmp::Reverse(c.gdp));
+                            countries.sort_by_key(|c| std::cmp::Reverse(c.gdp.units()));
                         }
                         let query = self.search.to_lowercase();
                         for d in countries {
@@ -750,7 +752,11 @@ impl GameApp {
                     "Population",
                     format!("{:.1} million", d.population.0 as f64 / 1_000_000.0),
                 );
-                metric(ui, "Opening GDP", format!("{}m credits/year", d.gdp));
+                metric(
+                    ui,
+                    "Opening GDP",
+                    format!("{}m credits/year", d.gdp.units()),
+                );
                 metric(
                     ui,
                     "Energy / food",
@@ -775,7 +781,7 @@ impl GameApp {
             ui.horizontal(|ui|{
                 ui.label("World seed");ui.add(egui::DragValue::new(&mut self.seed));
                 if ui.button(RichText::new(format!("Begin as {} >",d.name)).color(MINT)).clicked(){
-                    match World::new_scenario(&self.content,d.id.clone(),self.seed,self.scenario){Ok(w)=>{self.world=Some(w);self.money=(d.gdp/100).max(1);self.status="Mandate started, paused. Advance a day to collect the first fiscal and supply report.".into();},Err(e)=>self.status=e}
+                    match World::new_scenario(&self.content,d.id.clone(),self.seed,self.scenario){Ok(w)=>{self.world=Some(w);self.money=(d.gdp.units()/100).max(1);self.status="Mandate started, paused. Advance a day to collect the first fiscal and supply report.".into();},Err(e)=>self.status=e}
                 }
             });
         }
@@ -792,7 +798,7 @@ impl GameApp {
         }
         egui::CollapsingHeader::new("Opening data & provenance").show(ui,|ui|{
             let facts:Vec<_>=self.content.facts.iter().filter(|f|f.country==d.id).collect();
-            for (field, value) in [("population", d.population.0 as i64), ("gdp", d.gdp)] {
+            for (field, value) in [("population", d.population.0 as i64), ("gdp", d.gdp.units())] {
                 if !facts.iter().any(|fact| fact.field == field) { ui.label(format!("{field}: {value} · authored calibration; no observation record in this pack.")); }
             }
             for fact in facts {ui.label(format!("{}: {} {} ({} observation; source {}). Applied {}. {}",fact.field,fact.original_value,fact.original_units,fact.observation_period,fact.source,fact.applied_value,fact.transformation));ui.small(format!("Pinned mirror revision {}. Primary API not independently reconciled.",fact.source_version));}
@@ -823,7 +829,7 @@ impl GameApp {
                 metric(
                     ui,
                     "Debt / opening GDP",
-                    format!("{}%", c.debt.0 * 100 / d.gdp),
+                    format!("{}%", c.debt.0 * 100 / d.gdp.units()),
                 );
                 metric(ui, "Approval", format!("{}%", c.approval));
                 metric(
@@ -1245,7 +1251,8 @@ impl GameApp {
                 {
                     prepare_funding = true;
                 }
-                if (definition.gdp * p.cost_bps.units_i64() / 10000).max(1) > c.available_cash().0
+                if (definition.gdp.units() * p.cost_bps.units_i64() / 10000).max(1)
+                    > c.available_cash().0
                     && ui.button("Review treasury and financing").clicked()
                 {
                     self.tab = Tab::Treasury;
@@ -1488,8 +1495,8 @@ impl GameApp {
                 ui.label("Principal (m)");
                 ui.add(
                     egui::DragValue::new(&mut self.money)
-                        .range(1..=d.gdp / 10)
-                        .speed((d.gdp / 10000).max(1) as f64),
+                        .range(1..=d.gdp.units() / 10)
+                        .speed((d.gdp.units() / 10000).max(1) as f64),
                 );
                 if ui.button("Issue loan").clicked() {
                     finance_action = Some(Action::Borrow {
@@ -1586,7 +1593,7 @@ impl GameApp {
                 ));
             }
         });
-        ui.small(format!("Reconciliation: sector cash {}m = opening {}m. External debt uses explicit principal records and 4% annual interest. Borrowing ceiling: {}m.",c.accounts.total(),c.opening_money.0,d.gdp*3/2));
+        ui.small(format!("Reconciliation: sector cash {}m = opening {}m. External debt uses explicit principal records and 4% annual interest. Borrowing ceiling: {}m.",c.accounts.total(),c.opening_money.0,d.gdp.units()*3/2));
         ui.separator();
         ui.checkbox(
             &mut self.show_ledger,
@@ -1645,6 +1652,11 @@ impl GameApp {
             return;
         }
 
+        if let Some(world) = &self.world
+            && let Some(action) = legislation::show(ui, &self.content, world)
+        {
+            self.issue(action);
+        }
         let d = self
             .content
             .country(&self.selected)
@@ -2979,9 +2991,9 @@ mod interface_tests {
         let mut content =
             Content::from_json(include_str!("../../../data/synthetic-test.json")).unwrap();
         for country in &mut content.countries {
-            country.tax = 30;
-            country.services = 6;
-            country.welfare = 4;
+            country.tax = sim_core::Percent::new(30);
+            country.services = sim_core::Percent::new(6);
+            country.welfare = sim_core::Percent::new(4);
         }
         let world = World::new(&content, CountryId("AUR".into()), 0).unwrap();
         let ctx = egui::Context::default();
