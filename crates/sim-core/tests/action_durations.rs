@@ -85,8 +85,8 @@ fn requested_elapsed_spans_keep_cash_expiry_grant_payments_and_replay_exact() {
     assert_eq!(world.hash(), 0x5b42f91462fafef5);
     let budget = world.player_country().subnational.as_ref().unwrap();
     let order = budget.orders.first().unwrap();
-    assert_eq!(order.decision_day, 14);
-    assert_eq!(order.end_day, Some(43));
+    assert_eq!(order.decision_day, sim_core::CampaignDay::new(14));
+    assert_eq!(order.end_day, Some(sim_core::CampaignDay::new(43)));
     assert_eq!(order.status, RegionalOrderStatus::Implementing);
     let paid = order.spent;
     assert!(paid.0 > 0);

@@ -28,7 +28,7 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Actio
                 let days = NeedDays::new(count);
                 match world.preview_reserve(content,&world.player,good,days) {
                     Ok(p)=>{
-                        ui.label(format!("{days} day(s), {} units: pay {}m administration now; reserve {}m purchase cash. Review {}; earliest delivery {}; expires {}. Quoted price index {:.4}. {}",p.quantity,p.fee.0,p.cost.0,date(p.review_day),date(p.earliest_delivery_day),date(p.expiry_day),f64::from(p.price_bps.units())/10000.0,p.route));
+                        ui.label(format!("{days} day(s), {} units: pay {}m administration now; reserve {}m purchase cash. Review {}; earliest delivery {}; expires {}. Quoted price index {:.4}. {}",p.quantity,p.fee.0,p.cost.0,date((p.review_day).units()),date((p.earliest_delivery_day).units()),date((p.expiry_day).units()),f64::from(p.price_bps.units())/10000.0,p.route));
                         if ui.button(format!("Authorize {good:?} contract · {days} day(s)")).clicked() {action=Some(Action::ProcureReserve{good,days});}
                     }
                     Err(reason)=>{ui.small(format!("{days} day(s): {reason}"));}
@@ -82,10 +82,15 @@ fn show_order(
     ));
     ui.label(format!(
         "Proposed {} · consent review {} · earliest delivery {} · final delivery date {}",
-        date(order.proposed_day),
-        date(order.review_day),
-        date(order.review_day.max(order.proposed_day + 1)),
-        date(order.expiry_day)
+        date((order.proposed_day).units()),
+        date((order.review_day).units()),
+        date(
+            (order
+                .review_day
+                .max(sim_core::CampaignDay::new((order.proposed_day).units() + 1)))
+            .units()
+        ),
+        date((order.expiry_day).units())
     ));
     ui.small(format!(
         "Administration paid {}m · fixed quoted price index {:.4} · unfilled quantity {} units",
@@ -96,20 +101,20 @@ fn show_order(
     if let Some(day) = order.last_fill_day {
         ui.label(format!(
             "Last purchase {}: {} units",
-            date(day),
+            date((day).units()),
             order.last_fill_quantity
         ));
     }
     if let Some(day) = order.resolved_day {
-        ui.label(format!("Closed {}. Unspent purchase reservations were released; paid goods and administration were not refunded.",date(day)));
+        ui.label(format!("Closed {}. Unspent purchase reservations were released; paid goods and administration were not refunded.",date((day).units())));
     }
     if order.status.open() {
         let next = order
             .review_day
-            .max(order.proposed_day + 1)
-            .max(world.day.units() + 1);
+            .max(sim_core::CampaignDay::new((order.proposed_day).units() + 1))
+            .max(sim_core::CampaignDay::new(world.day.units() + 1));
         let remaining = if next <= order.expiry_day {
-            order.expiry_day - next + 1
+            (order.expiry_day).units() - (next).units() + 1
         } else {
             0
         };

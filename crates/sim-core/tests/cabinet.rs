@@ -66,7 +66,10 @@ fn appointment_reduces_only_future_preparation_without_moving_funded_deadlines_o
             .units(),
         4
     );
-    assert_eq!(w.player_country().projects[0].due_day, 149);
+    assert_eq!(
+        w.player_country().projects[0].due_day,
+        sim_core::CampaignDay::new(149)
+    );
     assert_eq!(w.player_country().energy_capacity, 80);
     assert_eq!(w.player_country().administration, 70);
     assert_eq!(
@@ -125,7 +128,7 @@ fn all_three_authority_routes_apply_and_immediate_decrees_leave_no_stale_pending
         let p = w
             .preview_appointment(&c, &w.player, &office, &nominee)
             .unwrap();
-        assert_eq!(p.decision_day, delay);
+        assert_eq!(p.decision_day, sim_core::CampaignDay::new(delay));
         assert_eq!(p.fee, Money(20));
         let hash = w.hash();
         w.preview_appointment(&c, &w.player, &office, &nominee)
@@ -254,8 +257,8 @@ fn successor_cabinet_closes_terms_cancels_requests_and_retains_commissioned_prog
     w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     let state = w.player_country().cabinet.as_ref().unwrap();
     assert_eq!(state.government, sim_core::GovernmentId(2));
-    assert_eq!(state.since, 15);
-    assert_eq!(state.terms[0].until, Some(15));
+    assert_eq!(state.since, sim_core::CampaignDay::new(15));
+    assert_eq!(state.terms[0].until, Some(sim_core::CampaignDay::new(15)));
     assert!(state.pending.is_empty());
     assert_eq!(w.player_country().projects[0].due_day, due);
     assert_eq!(
@@ -275,7 +278,7 @@ fn successor_cabinet_closes_terms_cancels_requests_and_retains_commissioned_prog
     let amended = w.player_country().projects[1].id;
     let preview = w.preview_amendment(&c, &w.player, amended, 32).unwrap();
     assert_eq!(preview.preparation_days.units(), 4);
-    assert_eq!(preview.consent_day, 15);
+    assert_eq!(preview.consent_day, sim_core::CampaignDay::new(15));
     w.issue(
         &c,
         Action::AmendCommitment {
@@ -427,14 +430,16 @@ fn definitions_state_snapshot_boundaries_privacy_and_ai_appointments_are_validat
     );
     check(&w, &c);
     let mut bad = w.clone();
-    bad.countries
+    let date = &mut bad
+        .countries
         .get_mut(&w.player)
         .unwrap()
         .cabinet
         .as_mut()
         .unwrap()
         .terms[0]
-        .since += 1;
+        .since;
+    *date = date.checked_add(DaySpan::new(1)).unwrap();
     assert!(bad.validate(&c).is_err());
 }
 

@@ -177,7 +177,7 @@ pub struct RegionalBudget {
     pub cash: Money,
     pub tax_received: Money,
     pub base_spent: Money,
-    pub next_order_day: u32,
+    pub next_order_day: crate::CampaignDay,
     pub last: Option<RegionalSettlement>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -212,9 +212,9 @@ pub struct RegionalOrder {
     pub id: RegionalOrderId,
     pub region: RegionId,
     pub kind: RegionalOrderKind,
-    pub proposed_day: u32,
-    pub decision_day: u32,
-    pub end_day: Option<u32>,
+    pub proposed_day: crate::CampaignDay,
+    pub decision_day: crate::CampaignDay,
+    pub end_day: Option<crate::CampaignDay>,
     pub sponsor: crate::GovernmentId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub charter_revision: Option<u32>,
@@ -226,7 +226,7 @@ pub struct RegionalOrder {
     pub remaining: Money,
     pub spent: Money,
     pub status: RegionalOrderStatus,
-    pub resolved_day: Option<u32>,
+    pub resolved_day: Option<crate::CampaignDay>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SubnationalState {
@@ -247,7 +247,7 @@ impl SubnationalState {
                     cash: Money(0),
                     tax_received: Money(0),
                     base_spent: Money(0),
-                    next_order_day: start,
+                    next_order_day: crate::CampaignDay::new(start),
                     last: None,
                 })
                 .collect(),
@@ -320,8 +320,8 @@ pub struct RegionalPreview {
     pub fee: Money,
     pub principal: Money,
     pub daily_supplement: Money,
-    pub decision_day: u32,
-    pub end_day: Option<u32>,
+    pub decision_day: crate::CampaignDay,
+    pub end_day: Option<crate::CampaignDay>,
 }
 impl World {
     pub fn preview_regional_order(
@@ -348,10 +348,10 @@ impl World {
             .ok_or("Missing local authority")?;
         let government = self.governing_rules(content, id)?;
         government.check(country, "subnational", 1)?;
-        if self.day.units() < local.next_order_day {
+        if self.day.units() < (local.next_order_day).units() {
             return Err(format!(
                 "This jurisdiction's order interval lasts until {}",
-                date(local.next_order_day)
+                date((local.next_order_day).units())
             ));
         }
         if state.orders.iter().any(|o| {
@@ -438,8 +438,8 @@ impl World {
             fee,
             principal,
             daily_supplement,
-            decision_day,
-            end_day,
+            decision_day: crate::CampaignDay::new(decision_day),
+            end_day: (end_day).map(crate::CampaignDay::new),
         })
     }
     pub(crate) fn request_regional_order(
@@ -467,18 +467,20 @@ impl World {
             .iter_mut()
             .find(|r| &r.id == region)
             .expect("region");
-        local.next_order_day = self.day.units()
-            + content
-                .subnational
-                .as_ref()
-                .expect("rules")
-                .cooldown_days
-                .units();
+        local.next_order_day = crate::CampaignDay::new(
+            self.day.units()
+                + content
+                    .subnational
+                    .as_ref()
+                    .expect("rules")
+                    .cooldown_days
+                    .units(),
+        );
         state.orders.push(RegionalOrder {
             id: order,
             region: region.clone(),
             kind: kind.clone(),
-            proposed_day: self.day.units(),
+            proposed_day: self.day,
             decision_day: preview.decision_day,
             end_day: preview.end_day,
             sponsor: country.government_number,
@@ -493,8 +495,8 @@ impl World {
             status: RegionalOrderStatus::Pending,
             resolved_day: None,
         });
-        self.event(id,true,format!("Regional order #{} for {} submitted. Paid {}m administration; {}m remains protected in public escrow until review {}. National and local public cash stay consolidated; this is not an external payment. Withdrawal/refusal releases escrow but retains fees and the order interval.",order.0,region.0,preview.fee.0,preview.principal.0,date(preview.decision_day)));
-        if preview.decision_day == self.day.units() {
+        self.event(id,true,format!("Regional order #{} for {} submitted. Paid {}m administration; {}m remains protected in public escrow until review {}. National and local public cash stay consolidated; this is not an external payment. Withdrawal/refusal releases escrow but retains fees and the order interval.",order.0,region.0,preview.fee.0,preview.principal.0,date((preview.decision_day).units())));
+        if preview.decision_day == self.day {
             self.resolve_regional_orders(content, id);
         }
         Ok(())
@@ -515,7 +517,7 @@ impl World {
         }
         record.escrow = Money(0);
         record.status = RegionalOrderStatus::Withdrawn;
-        record.resolved_day = Some(self.day.units());
+        record.resolved_day = Some(self.day);
         self.event(id,true,format!("Regional order #{} withdrawn. Public escrow released to national availability; administration and interval remain.",order.0));
         Ok(())
     }
@@ -534,7 +536,7 @@ impl World {
             {
                 charter_changed |= order.charter_revision != revision;
                 order.status = RegionalOrderStatus::Superseded;
-                order.resolved_day = Some(self.day.units());
+                order.resolved_day = Some(self.day);
                 order.escrow = Money(0);
                 changed = true;
             }
@@ -555,9 +557,7 @@ impl World {
             .expect("subnational")
             .orders
             .iter()
-            .filter(|o| {
-                o.status == RegionalOrderStatus::Pending && o.decision_day <= self.day.units()
-            })
+            .filter(|o| o.status == RegionalOrderStatus::Pending && o.decision_day <= self.day)
             .cloned()
             .collect();
         for order in due {
@@ -599,7 +599,7 @@ impl World {
                 .iter_mut()
                 .find(|o| o.id == order.id)
                 .expect("order");
-            record.resolved_day = Some(self.day.units());
+            record.resolved_day = Some(self.day);
             record.escrow = Money(0);
             if let Some(reason) = refusal {
                 record.status = RegionalOrderStatus::Refused {
@@ -611,7 +611,7 @@ impl World {
                     RegionalOrderKind::Grant { .. } => {
                         record.status = RegionalOrderStatus::Implementing;
                         record.remaining = record.principal;
-                        self.event(id,true,format!("Local authority accepted grant #{} for {}. Protected funding purchases {}m/day of additional public-service work through {}. The national government cannot reclaim or redirect accepted funds.",order.id.0,order.region.0,order.daily_supplement.0,date(order.end_day.expect("term"))));
+                        self.event(id,true,format!("Local authority accepted grant #{} for {}. Protected funding purchases {}m/day of additional public-service work through {}. The national government cannot reclaim or redirect accepted funds.",order.id.0,order.region.0,order.daily_supplement.0,date((order.end_day.expect("term")).units())));
                     }
                     RegionalOrderKind::Directive { level } => {
                         record.status = RegionalOrderStatus::Delivered;
@@ -692,9 +692,9 @@ impl World {
                 order.remaining.0 -= amount;
                 order.spent.0 += amount;
                 supplement += amount;
-                if self.day.units() == order.end_day.expect("grant term") {
+                if self.day == order.end_day.expect("grant term") {
                     order.status = RegionalOrderStatus::Completed;
-                    order.resolved_day = Some(self.day.units());
+                    order.resolved_day = Some(self.day);
                     completed.push(order.id);
                 }
             }
@@ -835,9 +835,9 @@ impl World {
             let clock = match proposals.last() {
                 Some(order) => order
                     .proposed_day
-                    .checked_add(rules.cooldown_days.units())
+                    .checked_add(rules.cooldown_days)
                     .ok_or("Regional order interval date overflow")?,
-                None => start,
+                None => crate::CampaignDay::new(start),
             };
             let level = proposals
                 .iter()
@@ -856,8 +856,8 @@ impl World {
                 .rev()
                 .find_map(|order| match (&order.kind, &order.status) {
                     (RegionalOrderKind::Directive { level }, RegionalOrderStatus::Delivered)
-                        if order.decision_day <= self.day.units()
-                            && (order.decision_day < self.day.units()
+                        if order.decision_day <= self.day
+                            && (order.decision_day < self.day
                                 || order.proposed_day < order.decision_day) =>
                     {
                         Some(*level)
@@ -886,7 +886,7 @@ impl World {
                 || proposals.windows(2).any(|pair| {
                     pair[0]
                         .proposed_day
-                        .checked_add(rules.cooldown_days.units())
+                        .checked_add(rules.cooldown_days)
                         .is_none_or(|clock| pair[1].proposed_day < clock)
                 })
                 || [local.cash.0, local.tax_received.0, local.base_spent.0]
@@ -927,8 +927,9 @@ impl World {
                         .iter()
                         .filter(|o| {
                             o.region == local.id
-                                && o.decision_day <= self.day.units()
-                                && o.end_day.is_some_and(|end| self.day.units() <= end)
+                                && o.decision_day <= self.day
+                                && o.end_day
+                                    .is_some_and(|end| self.day.units() <= (end).units())
                                 && matches!(
                                     o.status,
                                     RegionalOrderStatus::Implementing
@@ -980,9 +981,7 @@ impl World {
                 .rev()
                 .filter(|previous| {
                     previous.id.0 < order.id.0
-                        && previous
-                            .resolved_day
-                            .is_some_and(|day| day <= command.day.units())
+                        && previous.resolved_day.is_some_and(|day| day <= command.day)
                 })
                 .find_map(|previous| match (&previous.kind, &previous.status) {
                     (RegionalOrderKind::Directive { level }, RegionalOrderStatus::Delivered)
@@ -1004,12 +1003,12 @@ impl World {
                     .units(),
             };
             if order.id.0 != command.id.0
-                || order.proposed_day != command.day.units()
+                || order.proposed_day != command.day
                 || order.charter_revision
                     != self.territorial_revision(content, id, command.day.units())
                 || command.day.checked_add(crate::DaySpan::new(delay))
-                    != Some(crate::CampaignDay::new(order.decision_day))
-                || order.decision_day > MAX_DAY
+                    != Some(crate::CampaignDay::new((order.decision_day).units()))
+                || order.decision_day > crate::CampaignDay::new(MAX_DAY)
                 || order.sponsor == crate::GovernmentId(0)
                 || order.sponsor > c.government_number
                 || !(0..=8).contains(&order.baseline_level)
@@ -1051,8 +1050,13 @@ impl World {
                         || daily <= 0
                         || order.daily_supplement != Money(daily)
                         || order.principal != Money(daily * i64::from(days.units()))
-                        || order.decision_day.checked_add(days.units() - 1) != order.end_day
-                        || order.end_day.is_none_or(|day| day > MAX_DAY)
+                        || order
+                            .decision_day
+                            .checked_add(crate::DaySpan::new(days.units() - 1))
+                            != order.end_day
+                        || order
+                            .end_day
+                            .is_none_or(|day| day > crate::CampaignDay::new(MAX_DAY))
                     {
                         return Err(
                             "Invalid funded regional grant term or financial commitment".into()
@@ -1071,14 +1075,14 @@ impl World {
                     }
                 }
             }
-            let withdrawn=self.journal.iter().any(|entry| &entry.command.issuer==id && Some(entry.command.day.units())==order.resolved_day && matches!(entry.command.action,Action::CancelRegionalOrder {order:request} if request==order.id));
+            let withdrawn=self.journal.iter().any(|entry| &entry.command.issuer==id && Some(entry.command.day.units())==(order.resolved_day).map(|day| day.units()) && matches!(entry.command.action,Action::CancelRegionalOrder {order:request} if request==order.id));
             if withdrawn != (order.status == RegionalOrderStatus::Withdrawn) {
                 return Err("Regional withdrawal differs from original commands".into());
             }
             let released = order.escrow.0 == 0 && order.remaining.0 == 0 && order.spent.0 == 0;
             let valid = match &order.status {
                 RegionalOrderStatus::Pending => {
-                    order.decision_day > self.day.units()
+                    order.decision_day > self.day
                         && order.resolved_day.is_none()
                         && order.escrow == order.principal
                         && order.remaining.0 == 0
@@ -1089,54 +1093,54 @@ impl World {
                 }
                 RegionalOrderStatus::Implementing => {
                     matches!(kind, RegionalOrderKind::Grant { .. })
-                        && order.decision_day <= self.day.units()
-                        && order.end_day.is_some_and(|end| self.day.units() < end)
+                        && order.decision_day <= self.day
+                        && order
+                            .end_day
+                            .is_some_and(|end| self.day.units() < (end).units())
                         && order.resolved_day == Some(order.decision_day)
                         && order.escrow.0 == 0
                         && order.spent.0
                             == order.daily_supplement.0
-                                * i64::from(self.day.units() - order.decision_day + 1)
+                                * i64::from(self.day.units() - order.decision_day.units() + 1)
                         && order.remaining.0 == order.principal.0 - order.spent.0
                 }
                 RegionalOrderStatus::Completed => {
                     matches!(kind, RegionalOrderKind::Grant { .. })
-                        && order.end_day.is_some_and(|end| {
-                            end <= self.day.units() && order.resolved_day == Some(end)
-                        })
+                        && order
+                            .end_day
+                            .is_some_and(|end| end <= self.day && order.resolved_day == Some(end))
                         && order.escrow.0 == 0
                         && order.remaining.0 == 0
                         && order.spent == order.principal
                 }
                 RegionalOrderStatus::Delivered => {
                     matches!(kind, RegionalOrderKind::Directive { .. })
-                        && order.decision_day <= self.day.units()
+                        && order.decision_day <= self.day
                         && order.resolved_day == Some(order.decision_day)
                         && released
                 }
                 RegionalOrderStatus::Withdrawn => {
                     released
                         && order.resolved_day.is_some_and(|day| {
-                            day >= order.proposed_day
-                                && day < order.decision_day
-                                && day <= self.day.units()
+                            day >= order.proposed_day && day < order.decision_day && day <= self.day
                         })
                 }
                 RegionalOrderStatus::Refused { reason } => {
                     released
                         && !reason.is_empty()
                         && order.resolved_day == Some(order.decision_day)
-                        && order.decision_day <= self.day.units()
+                        && order.decision_day <= self.day
                 }
                 RegionalOrderStatus::Superseded => {
                     released
                         && (order.sponsor < c.government_number
                             || order.resolved_day.is_some_and(|day| {
                                 order.charter_revision
-                                    != self.territorial_revision(content, id, day)
+                                    != self.territorial_revision(content, id, (day).units())
                             }))
                         && order
                             .resolved_day
-                            .is_some_and(|day| day >= order.proposed_day && day <= self.day.units())
+                            .is_some_and(|day| day >= order.proposed_day && day <= self.day)
                 }
             };
             if !valid {

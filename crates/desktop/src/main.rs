@@ -873,7 +873,7 @@ impl GameApp {
                 c.projects.len(),
                 c.executive,
                 c.next_election
-                    .map(date)
+                    .map(|day| date(day.units()))
                     .unwrap_or_else(|| "Elite backing reviewed monthly".into())
             ));
             if let Some(event) = w.events.iter().rev().find(|e| e.country == self.selected) {
@@ -924,7 +924,7 @@ impl GameApp {
             .as_ref()
             .and_then(|state| state.pending.as_ref())
         {
-            ui.label(format!("Pending {} constitutional decision: {:?}, due {}. Reserved administration {}m; approval is not guaranteed.", if request.contested { "CONTESTED" } else { "lawful" }, request.target, date(request.decision_day), request.reserved.0));
+            ui.label(format!("Pending {} constitutional decision: {:?}, due {}. Reserved administration {}m; approval is not guaranteed.", if request.contested { "CONTESTED" } else { "lawful" }, request.target, date((request.decision_day).units()), request.reserved.0));
             if ui.button("Review constitutional decision").clicked() {
                 self.tab = Tab::Politics;
             }
@@ -938,7 +938,7 @@ impl GameApp {
                 "Borrowing request #{}: {}m, decision {}. Pending funds are not treasury cash.",
                 request.id.0,
                 request.amount.0,
-                date(request.decision_day)
+                date((request.decision_day).units())
             ));
             if ui.button("Review borrowing decision").clicked() {
                 self.tab = Tab::Treasury;
@@ -1032,9 +1032,10 @@ impl GameApp {
             ui.label(format!(
                 "{} · next poll {}",
                 authority.title,
-                authority
-                    .next_poll
-                    .map_or_else(|| "None within the playable calendar".into(), date)
+                authority.next_poll.map_or_else(
+                    || "None within the playable calendar".into(),
+                    |day| date(day.units())
+                )
             ));
             if let Some(poll) = &authority.last_poll {
                 ui.label(format!(
@@ -1045,7 +1046,7 @@ impl GameApp {
         }
         if let Some(plans) = &report.fiscal_plans {
             for (index, p) in plans.iter().enumerate().rev() {
-                ui.label(format!("Fiscal plan {} · approved {}: {} {}%, services {}% GDP, welfare {}% GDP; first scheduled setting change {}.",p.year,date(p.enacted_day),if self.content.income_taxes.is_some(){"standard income-tax rate"}else{"tax"},p.targets.income_tax,p.targets.services,p.targets.welfare,date(p.first_scheduled_delivery)));
+                ui.label(format!("Fiscal plan {} · approved {}: {} {}%, services {}% GDP, welfare {}% GDP; first scheduled setting change {}.",p.year,date((p.enacted_day).units()),if self.content.income_taxes.is_some(){"standard income-tax rate"}else{"tax"},p.targets.income_tax,p.targets.services,p.targets.welfare,date((p.first_scheduled_delivery).units())));
                 fiscal_plans::published_delivery(
                     ui,
                     &self.content,
@@ -1065,7 +1066,7 @@ impl GameApp {
                     "Undertaking #{} · {} by {} · {}",
                     r.id.0,
                     undertakings::goal_label(&self.content, &r.goal),
-                    date(r.deadline_day),
+                    date((r.deadline_day).units()),
                     r.status.label()
                 ));
             }
@@ -1296,20 +1297,20 @@ impl GameApp {
                 ui.label("No programs in implementation.");
             }
             for project in &c.projects {
-                let progress = w.day.units().saturating_sub(project.start_day) as f32
-                    / (project.due_day - project.start_day) as f32;
+                let progress = w.day.units().saturating_sub((project.start_day).units()) as f32
+                    / ((project.due_day).units() - (project.start_day).units()) as f32;
                 ui.label(format!(
                     "{} · level {} · committed {}m · due {}",
                     project.policy,
                     project.value,
                     project.cost.0,
-                    date(project.due_day)
+                    date((project.due_day).units())
                 ));
                 ui.label(format!(
                     "Stage {:?} · reserved {}m · consent {}",
                     project.stage,
                     project.reserved.0,
-                    date(project.consent_day)
+                    date((project.consent_day).units())
                 ));
                 ui.add(egui::ProgressBar::new(progress).show_percentage());
             }
@@ -1559,8 +1560,8 @@ impl GameApp {
         let plan = &c.budget;
         ui.strong(format!(
             "Fiscal period {} to {} · opening forecast vs execution",
-            date(plan.start_day),
-            date(plan.end_day)
+            date((plan.start_day).units()),
+            date((plan.end_day).units())
         ));
         ui.label(format!("Revenue realized {}m / opening forecast {}m to date ({:+}m variance). Payments {}m · capital {}m · net financing {}m.",plan.revenue.0,plan.expected_revenue(w.day.units()),plan.revenue.0-plan.expected_revenue(w.day.units()),plan.payments.0,plan.capital.0,plan.borrowing.0-plan.principal_repaid.0));
         ui.label(format!(
@@ -1586,7 +1587,7 @@ impl GameApp {
             for review in c.budget_reviews.iter().rev() {
                 ui.label(format!(
                     "{}: revenue {}m, payments {}m, capital {}m, closing cash {}m, arrears {}m",
-                    date(review.period.end_day),
+                    date((review.period.end_day).units()),
                     review.period.revenue.0,
                     review.period.payments.0,
                     review.period.capital.0,
@@ -1692,14 +1693,16 @@ impl GameApp {
                 c.council_support,
                 c.confidence_crises,
                 c.next_leadership_review
-                    .map(date)
+                    .map(|day| date(day.units()))
                     .unwrap_or_else(|| "None scheduled".into())
             ));
             ui.label(format!(
                 "Next election: {}",
-                c.next_election.map(date).unwrap_or_else(|| {
-                    "No competitive election; elite coalition reviewed monthly".into()
-                })
+                c.next_election
+                    .map(|day| date(day.units()))
+                    .unwrap_or_else(|| {
+                        "No competitive election; elite coalition reviewed monthly".into()
+                    })
             ));
         } else {
             ui.label(format!(
@@ -2539,7 +2542,7 @@ mod interface_tests {
         let mut reviewed = pending.clone();
         let due = reviewed.player_country().project(&request).unwrap().due_day;
         reviewed
-            .advance(&content, sim_core::DaySpan::new(due))
+            .advance(&content, sim_core::DaySpan::new((due).units()))
             .unwrap();
         let review = reviewed
             .player_country()
@@ -2550,7 +2553,7 @@ mod interface_tests {
         reviewed
             .advance(
                 &content,
-                sim_core::DaySpan::new(review - reviewed.day.units()),
+                sim_core::DaySpan::new((review).units() - reviewed.day.units()),
             )
             .unwrap();
         for (world, expected) in [

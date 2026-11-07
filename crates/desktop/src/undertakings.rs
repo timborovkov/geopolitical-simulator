@@ -28,8 +28,8 @@ impl Panel {
                 "Latest undertaking #{}: {} · review {} · fixed deadline {}",
                 latest.id.0,
                 latest.status.label(),
-                date(latest.review_day),
-                date(latest.deadline_day)
+                date((latest.review_day).units()),
+                date((latest.deadline_day).units())
             ));
         }
         for template in &rules.templates {
@@ -40,13 +40,13 @@ impl Panel {
                 if template.kind==UndertakingKind::ProjectDeadline {
                     egui::ComboBox::from_id_salt(("deadline-project",&template.id)).selected_text(project.map_or("Choose an existing policy project".into(),|id|format!("Policy commitment #{}",id.0))).show_ui(ui,|ui| {
                         ui.selectable_value(project,None,"Choose an existing policy project");
-                        for p in &world.player_country().projects {if p.policy!="coalition" {ui.selectable_value(project,Some(p.id),format!("#{} · {} · operating due {}",p.id,content.policy(&p.policy).expect("policy").name,date(p.due_day)));}}
+                        for p in &world.player_country().projects {if p.policy!="coalition" {ui.selectable_value(project,Some(p.id),format!("#{} · {} · operating due {}",p.id,content.policy(&p.policy).expect("policy").name,date((p.due_day).units())));}}
                     });
                 }
                 match world.preview_undertaking(content,&world.player,&template.id,*project) {
                     Ok(p)=>{
-                        ui.label(format!("Promise {} by {} · pay {}m administration now · review {}. No implementation funds are reserved by this declaration.",goal_label(content,&p.goal),date(p.deadline_day),p.fee.0,date(p.review_day)));
-                        if let Some(due)=p.expected_delivery {ui.label(format!("Current conditional policy-delivery date: {}.",date(due)));if due>p.deadline_day {ui.colored_label(egui::Color32::LIGHT_YELLOW,"The current delivery date is after the promised deadline; this undertaking can fail.");}}
+                        ui.label(format!("Promise {} by {} · pay {}m administration now · review {}. No implementation funds are reserved by this declaration.",goal_label(content,&p.goal),date((p.deadline_day).units()),p.fee.0,date((p.review_day).units())));
+                        if let Some(due)=p.expected_delivery {ui.label(format!("Current conditional policy-delivery date: {}.",date((due).units())));if due>p.deadline_day {ui.colored_label(egui::Color32::LIGHT_YELLOW,"The current delivery date is after the promised deadline; this undertaking can fail.");}}
                         if let Some(reason)=&p.bottleneck {ui.small(reason);}
                         if ui.button("Submit undertaking").clicked(){action=Some(Action::DeclareUndertaking{template:template.id.clone(),project:*project});}
                     }
@@ -58,7 +58,7 @@ impl Panel {
             if state.records.is_empty(){ui.label("No delivery undertakings declared.");}
             for record in state.records.iter().rev() {ui.push_id(record.id.0,|ui|{
                 ui.strong(format!("#{} · {} · {}",record.id.0,goal_label(content,&record.goal),record.status.label()));
-                ui.label(format!("Review {} · fixed deadline {} · paid {}m administration · attached policy {}",date(record.review_day),date(record.deadline_day),record.fee.0,record.linked_project.map_or("none".into(),|id|format!("#{}",id.0))));
+                ui.label(format!("Review {} · fixed deadline {} · paid {}m administration · attached policy {}",date((record.review_day).units()),date((record.deadline_day).units()),record.fee.0,record.linked_project.map_or("none".into(),|id|format!("#{}",id.0))));
                 if matches!(record.status,UndertakingStatus::Pending|UndertakingStatus::Active)&&ui.button(format!("Withdraw undertaking #{}",record.id.0)).clicked(){action=Some(Action::WithdrawUndertaking{request:record.id});}
             });}
         });

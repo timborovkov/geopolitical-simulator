@@ -13,7 +13,7 @@ fn conditional_loan_delta_matches_actual_disbursement_and_interest_without_mutat
     let mut borrowed = baseline.clone();
     let loan = LoanAssumption {
         amount: Money(10000),
-        decision_day: 14,
+        decision_day: sim_core::CampaignDay::new(14),
     };
     let before = borrowed.hash();
     let plan = borrowed.funding_outlook(&content, 15, Some(loan)).unwrap();
@@ -52,7 +52,7 @@ fn immediate_manual_borrowing_adds_cash_now_and_interest_from_the_next_settlemen
     let (content, world) = setup();
     let loan = LoanAssumption {
         amount: Money(10000),
-        decision_day: world.day.units(),
+        decision_day: world.day,
     };
     let plan = world.funding_outlook(&content, 1, Some(loan)).unwrap();
     assert_eq!(
@@ -142,15 +142,15 @@ fn unsafe_horizons_dates_inputs_and_overflow_fail_without_state_changes() {
     for loan in [
         LoanAssumption {
             amount: Money(0),
-            decision_day: 14,
+            decision_day: sim_core::CampaignDay::new(14),
         },
         LoanAssumption {
             amount: Money(i64::MAX),
-            decision_day: 14,
+            decision_day: sim_core::CampaignDay::new(14),
         },
         LoanAssumption {
             amount: Money(1),
-            decision_day: MAX_DAY + 1,
+            decision_day: sim_core::CampaignDay::new(MAX_DAY + 1),
         },
     ] {
         assert!(world.funding_outlook(&content, 1, Some(loan)).is_err());

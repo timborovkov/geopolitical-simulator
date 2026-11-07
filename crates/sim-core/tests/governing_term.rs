@@ -186,7 +186,7 @@ fn annual_execution_reconciles_and_a_new_year_preserves_the_review() {
     assert_eq!(review.period.borrowing.0, 1000);
     assert_eq!(review.period.principal_repaid.0, 300);
     assert!(review.period.capital.0 > 0);
-    assert_eq!(state.budget.start_day, 366);
+    assert_eq!(state.budget.start_day, sim_core::CampaignDay::new(366));
     persistence::replay(&w, &c).unwrap();
 }
 #[test]
@@ -230,15 +230,16 @@ fn three_reference_crisis_terms_transition_and_replay_through_pending_programs()
         let preview_days = w.player_country().projects[0].due_day;
         let bytes = persistence::encode(&w, &c).unwrap();
         let mut resumed = persistence::decode(&bytes, &c).unwrap();
-        w.advance(&c, sim_core::DaySpan::new(preview_days)).unwrap();
+        w.advance(&c, sim_core::DaySpan::new((preview_days).units()))
+            .unwrap();
         resumed
-            .advance(&c, sim_core::DaySpan::new(preview_days))
+            .advance(&c, sim_core::DaySpan::new((preview_days).units()))
             .unwrap();
         assert_eq!(w.hash(), resumed.hash());
-        w.advance(&c, sim_core::DaySpan::new(1827 - preview_days))
+        w.advance(&c, sim_core::DaySpan::new(1827 - preview_days.units()))
             .unwrap();
         resumed
-            .advance(&c, sim_core::DaySpan::new(1827 - preview_days))
+            .advance(&c, sim_core::DaySpan::new(1827 - preview_days.units()))
             .unwrap();
         assert_eq!(w.hash(), resumed.hash());
         w.validate(&c).unwrap();

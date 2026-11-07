@@ -58,7 +58,7 @@ fn play(
             {
                 world.advance(
                     content,
-                    sim_core::DaySpan::new(pending.decision_day - world.day.units()),
+                    sim_core::DaySpan::new((pending.decision_day).units() - world.day.units()),
                 )?;
             }
             let preview = world.preview(content, &world.player, &"coalition".into(), 1)?;

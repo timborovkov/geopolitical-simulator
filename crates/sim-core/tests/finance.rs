@@ -257,7 +257,7 @@ fn malformed_terms_pending_dates_and_downgraded_envelopes_are_rejected() {
         .pending
         .as_mut()
         .unwrap()
-        .decision_day = u32::MAX;
+        .decision_day = sim_core::CampaignDay::new(u32::MAX);
     assert!(malformed.validate(&content).is_err());
     let mut malformed = world.clone();
     malformed
@@ -321,11 +321,11 @@ fn successor_government_must_seek_its_own_financing_mandate() {
         .unwrap();
     world.advance(&content, sim_core::DaySpan::new(61)).unwrap();
     let election = world.player_country().next_election.unwrap();
-    assert!(election > world.day.units());
+    assert!(election > world.day);
     world
         .advance(
             &content,
-            sim_core::DaySpan::new(election - world.day.units() - 1),
+            sim_core::DaySpan::new((election).units() - world.day.units() - 1),
         )
         .unwrap();
     world
@@ -406,7 +406,7 @@ fn a_cash_constrained_ai_borrows_through_authority_and_waits_for_cash() {
         .iter()
         .find(|i| i.id.0 == request.command.id.0)
         .unwrap();
-    assert_eq!(instrument.issued_day, decision);
+    assert_eq!(instrument.issued_day, sim_core::CampaignDay::new(decision));
     assert!(matches!(
         instrument.origin,
         DebtOrigin::AcceptedRequest { contested: false }

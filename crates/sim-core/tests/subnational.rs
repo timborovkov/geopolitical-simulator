@@ -39,7 +39,7 @@ fn protected_tax_entitlements_and_a_paid_local_grant_reconcile_without_creating_
     assert_eq!(preview.fee, Money(20));
     assert_eq!(preview.principal, Money(90));
     assert_eq!(preview.daily_supplement, Money(3));
-    assert_eq!(preview.end_day, Some(43));
+    assert_eq!(preview.end_day, Some(sim_core::CampaignDay::new(43)));
     let hash = w.hash();
     w.preview_regional_order(&c, &w.player, &r, &grant())
         .unwrap();
@@ -411,7 +411,7 @@ fn territorial_provenance_private_cash_calendar_and_saved_state_are_validated() 
         .as_mut()
         .unwrap()
         .orders[0]
-        .proposed_day = u32::MAX;
+        .proposed_day = sim_core::CampaignDay::new(u32::MAX);
     assert!(invalid_date.validate(&c).is_err());
     let mut bytes: serde_json::Value =
         serde_json::from_slice(&persistence::encode(&w, &c).unwrap()).unwrap();

@@ -96,11 +96,11 @@ pub struct PolicyInstance {
     pub id: CommitmentId,
     pub policy: PolicyId,
     pub value: i32,
-    pub start_day: u32,
-    pub due_day: u32,
+    pub start_day: crate::CampaignDay,
+    pub due_day: crate::CampaignDay,
     pub cost: Money,
     pub stage: PolicyStage,
-    pub consent_day: u32,
+    pub consent_day: crate::CampaignDay,
     pub reserved: Money,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -155,7 +155,7 @@ pub struct Country {
     pub committed_cash: Money,
     pub council_support: i32,
     pub confidence_crises: u32,
-    pub next_leadership_review: Option<u32>,
+    pub next_leadership_review: Option<crate::CampaignDay>,
     pub budget: BudgetPeriod,
     pub budget_reviews: Vec<BudgetReview>,
     pub opening_money: Money,
@@ -179,7 +179,7 @@ pub struct Country {
     pub coalition: Vec<PartyId>,
     pub executive: String,
     pub seats: BTreeMap<PartyId, u16>,
-    pub next_election: Option<u32>,
+    pub next_election: Option<crate::CampaignDay>,
     pub government_number: crate::GovernmentId,
     pub projects: Vec<PolicyInstance>,
     pub energy_stock: Energy,
@@ -504,13 +504,16 @@ impl World {
                         committed_cash: Money(0),
                         council_support: 65,
                         confidence_crises: 0,
-                        next_leadership_review: d
+                        next_leadership_review: (d
                             .government
                             .leadership_review_days
-                            .map(|days| start_day + days.units()),
+                            .map(|days| start_day + days.units()))
+                        .map(crate::CampaignDay::new),
                         budget: BudgetPeriod {
-                            start_day,
-                            end_day: crate::budget::next_fiscal_end(start_day),
+                            start_day: crate::CampaignDay::new(start_day),
+                            end_day: crate::CampaignDay::new(crate::budget::next_fiscal_end(
+                                start_day,
+                            )),
                             opening_cash: accounts.treasury,
                             opening_day_settled: content.fiscal_plans.as_ref().map(|_| false),
                             forecast: BudgetForecast {
@@ -564,7 +567,10 @@ impl World {
                         coalition: d.coalition.clone(),
                         executive: d.executive.clone(),
                         seats,
-                        next_election: d.regime.competitive().then_some(start_day + 730),
+                        next_election: d
+                            .regime
+                            .competitive()
+                            .then_some(crate::CampaignDay::new(start_day + 730)),
                         government_number: crate::GovernmentId(1),
                         projects: Vec::new(),
                         commitments: content.commitments.as_ref().map(|_| Vec::new()),
@@ -1112,8 +1118,9 @@ impl World {
                     .collect::<std::collections::BTreeSet<_>>()
                     .len()
                     != c.coalition.len()
-                || c.next_election
-                    .is_some_and(|day| day <= self.day.units() || day > MAX_DAY + 1460)
+                || c.next_election.is_some_and(|day| {
+                    day <= self.day || day > crate::CampaignDay::new(MAX_DAY + 1460)
+                })
             {
                 return Err(format!(
                     "Invalid country balances, institutions or ranges: {}",
@@ -1200,32 +1207,31 @@ impl World {
                             .0,
                     )
                     != i128::from(c.committed_cash.0)
-                || c.budget.start_day < start_day
-                || c.budget.start_day > self.day.units()
-                || c.budget.end_day <= self.day.units()
-                || c.budget.end_day > MAX_DAY + 366
+                || c.budget.start_day < crate::CampaignDay::new(start_day)
+                || c.budget.start_day > self.day
+                || c.budget.end_day <= self.day
+                || c.budget.end_day > crate::CampaignDay::new(MAX_DAY + 366)
                 || c.budget.opening_day_settled
                     != content
                         .fiscal_plans
                         .as_ref()
-                        .map(|_| c.budget.start_day != start_day)
+                        .map(|_| c.budget.start_day != crate::CampaignDay::new(start_day))
                 || (content.rules >= 17) != c.budget.forecast.interest_accrual.is_some()
                 || !c.budget.valid_ranges()
                 || c.budget.expected_cash() != c.accounts.treasury.0
                 || c.budget_reviews.iter().any(|r| {
-                    r.period.start_day < start_day
+                    r.period.start_day < crate::CampaignDay::new(start_day)
                         || r.period.opening_day_settled
                             != content
                                 .fiscal_plans
                                 .as_ref()
-                                .map(|_| r.period.start_day != start_day)
+                                .map(|_| r.period.start_day != crate::CampaignDay::new(start_day))
                         || (content.rules >= 17) != r.period.forecast.interest_accrual.is_some()
                         || !r.period.valid_ranges()
                         || r.period.expected_cash() != r.closing_cash.0
                 })
                 || c.budget_reviews.len() > 10
-                || c.next_leadership_review
-                    .is_some_and(|day| day <= self.day.units())
+                || c.next_leadership_review.is_some_and(|day| day <= self.day)
             {
                 return Err(format!(
                     "Invalid household, commitment or budget reconciliation: {}",
@@ -1253,10 +1259,10 @@ impl World {
                     || project.id.0 >= self.next_project
                     || project.reserved.0 < 0
                     || (project.stage == PolicyStage::AwaitingConsent
-                        && project.consent_day <= self.day.units())
+                        && project.consent_day <= self.day)
                     || (project.stage == PolicyStage::Implementing && project.reserved.0 != 0)
-                    || project.due_day <= self.day.units()
-                    || project.due_day > MAX_DAY + 1000
+                    || project.due_day <= self.day
+                    || project.due_day > crate::CampaignDay::new(MAX_DAY + 1000)
                     || !(p.min..=p.max).contains(&project.value)
                 {
                     return Err("Invalid pending policy".into());

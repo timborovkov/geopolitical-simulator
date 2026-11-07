@@ -59,19 +59,19 @@ impl Panel {
             ));
             egui::CollapsingHeader::new(format!("{} · {}",mandate.name,if mandate.autonomous_services {"Autonomous services"} else {"Delegated services"})).id_salt(&mandate.id.0).show(ui,|ui| {
                 ui.label(format!("{} authority · population share {:.1}% · entitlement {:.1}% of collected income tax · base purchasing level {}.",tier(&mandate.tier),mandate.population_share_bps.units_i64() as f64/100.0,mandate.tax_entitlement_bps.units_i64() as f64/100.0,local.service_level));
-                ui.label(format!("Protected local base cash {}m · tax received {}m · base purchases paid {}m. Next national order after {}.",local.cash.0,local.tax_received.0,local.base_spent.0,date(local.next_order_day)));
+                ui.label(format!("Protected local base cash {}m · tax received {}m · base purchases paid {}m. Next national order after {}.",local.cash.0,local.tax_received.0,local.base_spent.0,date((local.next_order_day).units())));
                 if let Some(last)=&local.last {ui.label(format!("{}: entitled receipts {}m · base requested/paid {}/{}m · funded supplement paid {}m.",date(last.day.units()),last.tax_receipts.0,last.requested_base.0,last.paid_base.0,last.paid_supplement.0));}
                 for order in state.orders.iter().filter(|o|o.region==mandate.id && matches!(o.status,RegionalOrderStatus::Pending|RegionalOrderStatus::Implementing)) {
-                    ui.label(format!("#{} · {:?} · review {} · administration {}m · escrow {}m · local grant remaining {}m.",order.id.0,order.status,date(order.decision_day),order.paid_administration.0,order.escrow.0,order.remaining.0));
+                    ui.label(format!("#{} · {:?} · review {} · administration {}m · escrow {}m · local grant remaining {}m.",order.id.0,order.status,date((order.decision_day).units()),order.paid_administration.0,order.escrow.0,order.remaining.0));
                     if order.status==RegionalOrderStatus::Pending && ui.button(format!("Withdraw pending regional order #{}",order.id.0)).clicked() {action=Some(Action::CancelRegionalOrder {order:order.id});}
-                    if order.status==RegionalOrderStatus::Implementing {ui.label(format!("Accepted local grant: {}m/day through {}. National government cannot reclaim or redirect these funds.",order.daily_supplement.0,date(order.end_day.expect("term"))));}
+                    if order.status==RegionalOrderStatus::Implementing {ui.label(format!("Accepted local grant: {}m/day through {}. National government cannot reclaim or redirect these funds.",order.daily_supplement.0,date((order.end_day.expect("term")).units())));}
                 }
                 ui.strong("Offer a funded service supplement");
                 ui.horizontal_wrapped(|ui| {ui.label("Additional levels");ui.add(egui::DragValue::new(&mut settings.0).range(1..=3));ui.label("Days");ui.add(egui::DragValue::new(&mut settings.1).range(30..=180));});
                 let kind=RegionalOrderKind::Grant {boost:settings.0,days: sim_core::DaySpan::new(settings.1)};
                 match world.preview_regional_order(content,&world.player,&mandate.id,&kind) {
                     Ok(preview)=>{
-                        ui.label(format!("Pay {}m administration now · protect {}m escrow · local review {} · if accepted, {}m/day through {}.",preview.fee.0,preview.principal.0,date(preview.decision_day),preview.daily_supplement.0,date(preview.end_day.expect("term"))));
+                        ui.label(format!("Pay {}m administration now · protect {}m escrow · local review {} · if accepted, {}m/day through {}.",preview.fee.0,preview.principal.0,date((preview.decision_day).units()),preview.daily_supplement.0,date((preview.end_day.expect("term")).units())));
                         ui.small("Review rechecks national backing, cabinet sponsorship and the local cash absorption mandate. Withdrawal/refusal releases escrow; administration and the order interval remain. Accepted grants survive national succession.");
                         if ui.button("Offer funded regional grant").clicked() {action=Some(Action::RegionalOrder {region:mandate.id.clone(),kind});}
                     }
@@ -94,7 +94,7 @@ impl Panel {
                     ui.horizontal_wrapped(|ui| {ui.label("Base level");ui.add(egui::DragValue::new(&mut settings.2).range(0..=8));});
                     let kind=RegionalOrderKind::Directive {level:settings.2};
                     match world.preview_regional_order(content,&world.player,&mandate.id,&kind) {
-                        Ok(preview)=>{ui.label(format!("Pay {}m administration · current national consent completes {}. Local base funds constrain actual purchases.",preview.fee.0,date(preview.decision_day)));if ui.button("Propose delegated service level").clicked() {action=Some(Action::RegionalOrder {region:mandate.id.clone(),kind});}}
+                        Ok(preview)=>{ui.label(format!("Pay {}m administration · current national consent completes {}. Local base funds constrain actual purchases.",preview.fee.0,date((preview.decision_day).units())));if ui.button("Propose delegated service level").clicked() {action=Some(Action::RegionalOrder {region:mandate.id.clone(),kind});}}
                         Err(reason)=>{ui.label(format!("Cannot order: {reason}"));}
                     }
                 }
@@ -102,7 +102,7 @@ impl Panel {
         }
         egui::CollapsingHeader::new("Regional decisions & funded grant terms").show(ui,|ui| {
             if state.orders.is_empty() {ui.label("No national regional orders in this campaign.");}
-            for order in state.orders.iter().rev() {ui.label(format!("#{} · {} · {:?} · {:?} · review {} · administration {}m · grant principal/spent/remaining {}/{}/{}m · escrow {}m",order.id.0,order.region.0,order.kind,order.status,date(order.decision_day),order.paid_administration.0,order.principal.0,order.spent.0,order.remaining.0,order.escrow.0));}
+            for order in state.orders.iter().rev() {ui.label(format!("#{} · {} · {:?} · {:?} · review {} · administration {}m · grant principal/spent/remaining {}/{}/{}m · escrow {}m",order.id.0,order.region.0,order.kind,order.status,date((order.decision_day).units()),order.paid_administration.0,order.principal.0,order.spent.0,order.remaining.0,order.escrow.0));}
         });
         action
     }
@@ -126,10 +126,10 @@ impl Panel {
             let route=rules.route(self.contested_territorial);
             if let Ok(route)=route {ui.label(format!("Review {} days; backing legislature {} / elite {}, council {}, approval {}. On enactment: approval -{}, legislature -{}, elite -{}, council -{}. Reform interval {} days.",route.days,route.legislative_threshold,route.elite_threshold,route.council_threshold,route.approval_threshold,route.approval_cost,route.legislative_cost,route.elite_cost,route.council_cost,rules.cooldown_days.units()));}
             match world.preview_territorial_reform(content,&world.player,target,self.contested_territorial) {
-                Ok(p)=>{ui.label(format!("Pay {}m now; reserve {}m. Total administration {}m; local compensation {}m across {} authorities. Review {}. Existing local cash and accepted grant terms continue.",p.upfront.0,p.reserved.0,p.admin_cost.0,p.compensations.iter().map(|r|r.amount.0).sum::<i64>(),p.compensations.len(),date(p.decision_day)));if ui.button("Submit territorial reform").clicked(){action=Some(Action::ReformTerritory{target:target.clone(),contested:self.contested_territorial});}}
+                Ok(p)=>{ui.label(format!("Pay {}m now; reserve {}m. Total administration {}m; local compensation {}m across {} authorities. Review {}. Existing local cash and accepted grant terms continue.",p.upfront.0,p.reserved.0,p.admin_cost.0,p.compensations.iter().map(|r|r.amount.0).sum::<i64>(),p.compensations.len(),date((p.decision_day).units())));if ui.button("Submit territorial reform").clicked(){action=Some(Action::ReformTerritory{target:target.clone(),contested:self.contested_territorial});}}
                 Err(reason)=>{ui.label(format!("Cannot reform: {reason}"));}
             }
-            for record in state.reforms.iter().rev(){ui.label(format!("#{} · {:?} → {:?} · {:?} · review {} · paid/reserved {}/{}m",record.id.0,record.from,record.target,record.status,date(record.decision_day),record.paid_admin.0,record.reserved.0));if record.status==TerritorialReformStatus::Pending&&ui.button(format!("Withdraw territorial request #{}",record.id.0)).clicked(){action=Some(Action::WithdrawTerritorialReform{request:record.id});}}
+            for record in state.reforms.iter().rev(){ui.label(format!("#{} · {:?} → {:?} · {:?} · review {} · paid/reserved {}/{}m",record.id.0,record.from,record.target,record.status,date((record.decision_day).units()),record.paid_admin.0,record.reserved.0));if record.status==TerritorialReformStatus::Pending&&ui.button(format!("Withdraw territorial request #{}",record.id.0)).clicked(){action=Some(Action::WithdrawTerritorialReform{request:record.id});}}
             for claim in state.requisitions.iter().rev(){ui.label(format!("{} · contested claim #{} · {} · {}m base funds · {}m administration",date(claim.day.units()),claim.id.0,claim.region.0,claim.amount.0,claim.fee.0));}
         });
         action

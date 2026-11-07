@@ -35,8 +35,8 @@ impl BudgetForecast {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BudgetPeriod {
-    pub start_day: u32,
-    pub end_day: u32,
+    pub start_day: crate::CampaignDay,
+    pub end_day: crate::CampaignDay,
     pub opening_cash: Money,
     /// Calendar execution: initial opening has no flow; later years settle January 1.
     /// None preserves the earlier elapsed-period accounting convention.
@@ -52,7 +52,7 @@ pub struct BudgetPeriod {
 impl BudgetPeriod {
     pub fn valid_ranges(&self) -> bool {
         self.start_day < self.end_day
-            && self.end_day <= MAX_DAY + 366
+            && self.end_day <= crate::CampaignDay::new(MAX_DAY + 366)
             && [
                 self.opening_cash.0,
                 self.revenue.0,
@@ -73,17 +73,21 @@ impl BudgetPeriod {
     }
     pub fn expected_revenue(&self, day: u32) -> i64 {
         let days = match self.opening_day_settled {
-            None => day.min(self.end_day).saturating_sub(self.start_day),
+            None => day
+                .min((self.end_day).units())
+                .saturating_sub((self.start_day).units()),
             Some(included) => {
-                day.min(self.end_day - 1).saturating_sub(self.start_day)
-                    + u32::from(included && day >= self.start_day)
+                day.min((self.end_day).units() - 1)
+                    .saturating_sub((self.start_day).units())
+                    + u32::from(included && day >= (self.start_day).units())
             }
         };
         self.forecast.daily_revenue.0 * i64::from(days)
     }
     pub fn forecast_closing_cash(&self) -> i64 {
-        let days =
-            self.end_day - self.start_day - u32::from(self.opening_day_settled == Some(false));
+        let days = (self.end_day).units()
+            - (self.start_day).units()
+            - u32::from(self.opening_day_settled == Some(false));
         if let Some(interest) = &self.forecast.interest_accrual {
             return self.opening_cash.0
                 + i64::from(days)
@@ -92,7 +96,9 @@ impl BudgetPeriod {
         }
         self.opening_cash.0
             + i64::from(
-                self.end_day - self.start_day - u32::from(self.opening_day_settled == Some(false)),
+                (self.end_day).units()
+                    - (self.start_day).units()
+                    - u32::from(self.opening_day_settled == Some(false)),
             ) * (self.forecast.daily_revenue.0
                 - self.forecast.daily_spending.0
                 - self.forecast.daily_interest.0)
@@ -221,7 +227,7 @@ pub(crate) fn next_fiscal_end(day: u32) -> u32 {
 }
 impl World {
     pub(crate) fn review_budget(&mut self, content: &Content, id: &CountryId) {
-        if self.countries[id].budget.end_day != self.day.units() {
+        if self.countries[id].budget.end_day != self.day {
             return;
         }
         let c = self.countries.get_mut(id).expect("country");
@@ -244,8 +250,8 @@ impl World {
             c.arrears.0
         );
         c.budget = BudgetPeriod {
-            start_day: self.day.units(),
-            end_day: next_fiscal_end(self.day.units()),
+            start_day: self.day,
+            end_day: crate::CampaignDay::new(next_fiscal_end(self.day.units())),
             opening_cash: c.accounts.treasury,
             opening_day_settled: content.fiscal_plans.as_ref().map(|_| true),
             forecast: c.forecast(d, content.income_taxes.as_ref()),

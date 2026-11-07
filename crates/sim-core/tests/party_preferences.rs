@@ -257,10 +257,10 @@ fn policy_feedback_and_legislative_pressure_follow_operation_not_declaration() {
     }
     let due = first.player_country().projects[0].due_day;
     first
-        .advance(&content, sim_core::DaySpan::new(due - 1))
+        .advance(&content, sim_core::DaySpan::new((due).units() - 1))
         .unwrap();
     second
-        .advance(&neutral, sim_core::DaySpan::new(due - 1))
+        .advance(&neutral, sim_core::DaySpan::new((due).units() - 1))
         .unwrap();
     assert_eq!(first.player_country(), second.player_country());
     assert_eq!(first.player_country().tax, 24);
@@ -308,10 +308,10 @@ fn party_leadership_pressure_is_separate_from_council_backing() {
     }
     let due = first.player_country().projects[0].due_day;
     first
-        .advance(&content, sim_core::DaySpan::new(due + 720))
+        .advance(&content, sim_core::DaySpan::new((due).units() + 720))
         .unwrap();
     second
-        .advance(&neutral, sim_core::DaySpan::new(due + 720))
+        .advance(&neutral, sim_core::DaySpan::new((due).units() + 720))
         .unwrap();
     assert!(first.player_country().elite_support < second.player_country().elite_support);
     assert_eq!(
@@ -535,7 +535,10 @@ fn misalignment_can_block_authority_and_costed_support_restores_it_without_free_
         .unwrap()
         .due_day;
     world
-        .advance(&content, sim_core::DaySpan::new(due - world.day.units()))
+        .advance(
+            &content,
+            sim_core::DaySpan::new((due).units() - world.day.units()),
+        )
         .unwrap();
     assert!(world.player_country().legislative_support >= 51);
     assert!(

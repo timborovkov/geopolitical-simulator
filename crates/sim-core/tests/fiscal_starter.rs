@@ -70,7 +70,7 @@ fn the_seeded_fiscal_roster_preserves_all_prior_data_and_each_country_can_delive
         );
         w.advance(
             &c,
-            sim_core::DaySpan::new(preview.review_day - w.day.units()),
+            sim_core::DaySpan::new((preview.review_day).units() - w.day.units()),
         )
         .unwrap();
         let bill = w
@@ -91,7 +91,7 @@ fn the_seeded_fiscal_roster_preserves_all_prior_data_and_each_country_can_delive
             .map(|p| p.due_day)
             .max()
             .unwrap();
-        w.advance(&c, sim_core::DaySpan::new(due - w.day.units()))
+        w.advance(&c, sim_core::DaySpan::new((due).units() - w.day.units()))
             .unwrap();
         assert_eq!(
             FiscalTargets::current(w.player_country()),

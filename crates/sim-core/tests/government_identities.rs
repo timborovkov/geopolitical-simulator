@@ -76,7 +76,10 @@ fn typed_pending_sponsors_survive_restoration_and_expire_on_the_actual_successor
         .unwrap()
         .decision_day;
     world
-        .advance(&pack, DaySpan::new(decision - world.day.units() - 1))
+        .advance(
+            &pack,
+            DaySpan::new((decision).units() - world.day.units() - 1),
+        )
         .unwrap();
     world
         .issue(

@@ -126,7 +126,7 @@ fn typed_rates_keep_paid_appointments_amendments_loans_and_delivery_exact() {
             .find(|p| p.id == request)
             .unwrap()
             .due_day,
-        85
+        sim_core::CampaignDay::new(85)
     );
     let bytes = persistence::encode(&world, &content).unwrap();
     world = persistence::decode(&bytes, &content).unwrap();

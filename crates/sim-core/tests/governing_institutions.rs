@@ -278,7 +278,7 @@ fn budget_dispatch_keeps_its_submission_mandate_before_same_day_leadership_repla
     .unwrap();
     assert_eq!(
         w.player_country().fiscal_plans.as_ref().unwrap().bills[0].review_day,
-        30
+        sim_core::CampaignDay::new(30)
     );
     w.advance(&c, DaySpan::new(20)).unwrap();
     // Explicit host edit supplies a deterministic loss of council backing. It is

@@ -129,7 +129,9 @@ fn election_replacement_allocates_a_body_independent_of_its_display_name_and_man
         .holder
         .clone();
     let due = world.player_country().next_election.unwrap();
-    while world.player_country().government_number == GovernmentId(1) && world.day.units() < due {
+    while world.player_country().government_number == GovernmentId(1)
+        && world.day.units() < (due).units()
+    {
         world.advance(&content, DaySpan::new(1)).unwrap();
     }
     world.validate(&content).unwrap();
@@ -335,7 +337,7 @@ fn exhausted_body_allocator_rolls_back_the_actual_executive_replacement_day() {
     world.validate(&content).unwrap();
     let limit = world.player_country().next_election.unwrap();
     let mut failed = false;
-    while world.day.units() <= limit {
+    while world.day.units() <= (limit).units() {
         let before = world.clone();
         match world.advance(&content, DaySpan::new(1)) {
             Ok(()) => {}

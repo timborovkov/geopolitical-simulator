@@ -336,7 +336,7 @@ fn snapshot_format_and_corrupted_territorial_dates_are_rejected() {
         .territorial
         .as_mut()
         .unwrap();
-    s.reforms[0].proposed_day = u32::MAX;
+    s.reforms[0].proposed_day = sim_core::CampaignDay::new(u32::MAX);
     assert!(w.validate(&c).is_err());
 }
 
@@ -444,7 +444,7 @@ fn malformed_rights_funds_and_history_are_rejected_without_arithmetic_panics() {
                 amount: Money(i64::MAX),
             }),
             2 => state.history[0].day = sim_core::CampaignDay::new(u32::MAX),
-            3 => state.next_requisition_day = u32::MAX,
+            3 => state.next_requisition_day = sim_core::CampaignDay::new(u32::MAX),
             _ => state.reforms[0].sponsor = GovernmentId(u32::MAX),
         }
         assert!(bad.validate(&c).is_err(), "mutation {kind}");

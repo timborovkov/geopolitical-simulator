@@ -52,18 +52,18 @@ pub struct ReserveOrder {
     pub quantity: i64,
     pub filled: i64,
     pub price_bps: BasisPoints,
-    pub last_fill_day: Option<u32>,
+    pub last_fill_day: Option<crate::CampaignDay>,
     pub last_fill_quantity: i64,
     pub quoted_cost: Money,
     pub paid: Money,
     pub reserved: Money,
     pub fee: Money,
-    pub proposed_day: u32,
-    pub review_day: u32,
-    pub expiry_day: u32,
+    pub proposed_day: crate::CampaignDay,
+    pub review_day: crate::CampaignDay,
+    pub expiry_day: crate::CampaignDay,
     pub sponsor: crate::GovernmentId,
     pub status: ReserveStatus,
-    pub resolved_day: Option<u32>,
+    pub resolved_day: Option<crate::CampaignDay>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ReserveFlow<Q> {
@@ -87,7 +87,7 @@ pub struct NationalReserves {
     pub energy: ReserveStock<Energy>,
     pub food: ReserveStock<Food>,
     pub orders: Vec<ReserveOrder>,
-    pub last_release_day: Option<u32>,
+    pub last_release_day: Option<crate::CampaignDay>,
 }
 impl NationalReserves {
     pub fn new() -> Self {
@@ -131,9 +131,9 @@ pub struct ReservePreview {
     pub price_bps: BasisPoints,
     pub cost: Money,
     pub fee: Money,
-    pub review_day: u32,
-    pub earliest_delivery_day: u32,
-    pub expiry_day: u32,
+    pub review_day: crate::CampaignDay,
+    pub earliest_delivery_day: crate::CampaignDay,
+    pub expiry_day: crate::CampaignDay,
     pub route: String,
 }
 /// Observed procurement constraints, never a promise about a future settlement.
@@ -297,9 +297,9 @@ impl World {
             price_bps: BasisPoints::new(price_bps),
             cost,
             fee,
-            review_day,
-            earliest_delivery_day,
-            expiry_day,
+            review_day: crate::CampaignDay::new(review_day),
+            earliest_delivery_day: crate::CampaignDay::new(earliest_delivery_day),
+            expiry_day: crate::CampaignDay::new(expiry_day),
             route: government.label(),
         })
     }
@@ -327,7 +327,7 @@ impl World {
             && let Some(index) = state
                 .orders
                 .iter()
-                .position(|o| !o.status.open() && o.last_fill_day != Some(self.day.units()))
+                .position(|o| !o.status.open() && o.last_fill_day != Some(self.day))
         {
             state.orders.remove(index);
         }
@@ -344,18 +344,18 @@ impl World {
             paid: Money(0),
             reserved: p.cost,
             fee: p.fee,
-            proposed_day: self.day.units(),
+            proposed_day: self.day,
             review_day: p.review_day,
             expiry_day: p.expiry_day,
             sponsor: c.government_number,
-            status: if p.review_day == self.day.units() {
+            status: if p.review_day == self.day {
                 ReserveStatus::Active
             } else {
                 ReserveStatus::Pending
             },
             resolved_day: None,
         });
-        self.event(id,true,format!("Reserve contract #{} proposed: {:?}, {} units. Paid {}m administration; {}m reserved at a fixed quoted price. Consent {}; fills use only spare import capacity after civilian needs. Reserved cash is not delivered goods.",request.0,good,p.quantity,p.fee.0,p.cost.0,date(p.review_day)));
+        self.event(id,true,format!("Reserve contract #{} proposed: {:?}, {} units. Paid {}m administration; {}m reserved at a fixed quoted price. Consent {}; fills use only spare import capacity after civilian needs. Reserved cash is not delivered goods.",request.0,good,p.quantity,p.fee.0,p.cost.0,date((p.review_day).units())));
         Ok(())
     }
     fn close_reserve(&mut self, id: &CountryId, request: ReserveOrderId, status: ReserveStatus) {
@@ -372,7 +372,7 @@ impl World {
         let released = order.reserved.0;
         order.reserved = Money(0);
         order.status = status.clone();
-        order.resolved_day = Some(self.day.units());
+        order.resolved_day = Some(self.day);
         self.event(id,true,format!("Reserve contract #{} {:?}; released {}m unspent cash. Delivered stocks and paid administration remain; no delivered-goods refund.",request.0,status,released));
     }
     pub fn preview_cancel_reserve(
@@ -419,7 +419,7 @@ impl World {
             if o.status == ReserveStatus::Pending {
                 let result = if o.sponsor != self.countries[id].government_number {
                     Err("sponsoring government changed".into())
-                } else if self.day.units() >= o.review_day {
+                } else if self.day.units() >= (o.review_day).units() {
                     self.governing_rules(content, id)
                         .expect("government")
                         .check(&self.countries[id], "reserve", 1)
@@ -443,7 +443,7 @@ impl World {
                     .status = ReserveStatus::Active;
                 self.event(id,true,format!("Reserve contract #{} received consent; procurement may now fill from spare import capacity. It grants no immediate stocks.",o.id.0));
             }
-            if self.day.units() > o.expiry_day {
+            if self.day.units() > (o.expiry_day).units() {
                 self.close_reserve(id, o.id, ReserveStatus::Expired);
             }
         }
@@ -480,9 +480,9 @@ impl World {
         let amount = s.stored(good).min(shortfall);
         let notice = amount > 0
             && s.last_release_day
-                .is_none_or(|day| day.saturating_add(1) < self.day.units());
+                .is_none_or(|day| day.units().saturating_add(1) < self.day.units());
         if amount > 0 {
-            s.last_release_day = Some(self.day.units());
+            s.last_release_day = Some(self.day);
         }
         match good {
             GoodKind::Energy => {
@@ -558,7 +558,7 @@ impl World {
             let s = c.reserves.as_mut().unwrap();
             let r = s.orders.iter_mut().find(|r| r.id == o.id).unwrap();
             r.filled += quantity;
-            r.last_fill_day = Some(self.day.units());
+            r.last_fill_day = Some(self.day);
             r.last_fill_quantity = quantity;
             r.paid.0 += paid;
             r.reserved.0 -= paid;
@@ -726,12 +726,11 @@ impl World {
                 .last
                 .as_ref()
                 .is_some_and(|f| f.released.units() > 0);
-        if state
-            .last_release_day
-            .is_some_and(|day| day <= content.start_day().unwrap() || day > self.day.units())
-            || (state.energy.released.units() > 0 || state.food.released.units() > 0)
-                != state.last_release_day.is_some()
-            || released_today != (state.last_release_day == Some(self.day.units()))
+        if state.last_release_day.is_some_and(|day| {
+            day <= crate::CampaignDay::new(content.start_day().unwrap()) || day > self.day
+        }) || (state.energy.released.units() > 0 || state.food.released.units() > 0)
+            != state.last_release_day.is_some()
+            || released_today != (state.last_release_day == Some(self.day))
         {
             return Err("Invalid national reserve release notice date".into());
         }
@@ -753,7 +752,7 @@ impl World {
             let market = content.markets.as_ref().unwrap().good(o.good);
             if o.id.0 <= previous
                 || command.command.issuer != *id
-                || command.command.day != crate::CampaignDay::new(o.proposed_day)
+                || command.command.day != crate::CampaignDay::new((o.proposed_day).units())
                 || !matches!(command.command.action,Action::ProcureReserve{good,days} if good==o.good&&days==o.days)
                 || !(1..=rules.capacity_days.units()).contains(&o.days.units())
                 || o.quantity != need * i64::from(o.days.units())
@@ -764,10 +763,16 @@ impl World {
                 || o.fee != Money((d.gdp.units() * i64::from(rules.fee_bps.units()) / 10000).max(1))
                 || o.paid != paid_for(o, o.filled)
                 || o.review_day < o.proposed_day
-                || o.review_day - o.proposed_day > 365
+                || (o.review_day).units() - (o.proposed_day).units() > 365
                 || o.expiry_day
-                    != o.review_day.max(o.proposed_day + 1) + rules.order_days.units() - 1
-                || o.expiry_day > MAX_DAY
+                    != crate::CampaignDay::new(
+                        (o.review_day
+                            .max(crate::CampaignDay::new((o.proposed_day).units() + 1)))
+                        .units()
+                            + rules.order_days.units()
+                            - 1,
+                    )
+                || o.expiry_day > crate::CampaignDay::new(MAX_DAY)
                 || o.sponsor == crate::GovernmentId(0)
                 || o.sponsor > c.government_number
                 || o.reserved.0
@@ -777,10 +782,10 @@ impl World {
                         0
                     }
                 || o.resolved_day
-                    .is_some_and(|x| x < o.proposed_day || x > self.day.units())
+                    .is_some_and(|x| x < o.proposed_day || x > self.day)
                 || o.status.open() != o.resolved_day.is_none()
                 || o.last_fill_day
-                    .is_some_and(|x| x < o.review_day || x > self.day.units() || x > o.expiry_day)
+                    .is_some_and(|x| x < o.review_day || x > self.day || x > o.expiry_day)
                 || (o.filled == 0) != (o.last_fill_day.is_none())
                 || o.last_fill_quantity < 0
                 || o.last_fill_quantity > o.filled
@@ -800,11 +805,11 @@ impl World {
             }
             match &o.status {
                 ReserveStatus::Pending if o.filled!=0=>return Err("Pending reserve contract already received goods".into()),
-                ReserveStatus::Active if o.review_day>self.day.units()||self.day.units()>o.expiry_day||o.filled==o.quantity=>return Err("Invalid active reserve contract".into()),
+                ReserveStatus::Active if o.review_day>self.day||self.day.units()>(o.expiry_day).units()||o.filled==o.quantity=>return Err("Invalid active reserve contract".into()),
                 ReserveStatus::Completed if o.filled!=o.quantity||o.resolved_day!=o.last_fill_day=>return Err("Invalid completed reserve contract".into()),
-                ReserveStatus::Expired if o.resolved_day!=Some(o.expiry_day+1)=>return Err("Invalid reserve expiry".into()),
+                ReserveStatus::Expired if o.resolved_day!=Some(crate::CampaignDay::new((o.expiry_day).units()+1))=>return Err("Invalid reserve expiry".into()),
                 ReserveStatus::Refused{reason} if o.filled!=0||reason.trim().is_empty()=>return Err("Invalid reserve refusal".into()),
-                ReserveStatus::Cancelled if !self.journal.iter().any(|e|e.command.issuer==*id&&Some(e.command.day.units())==o.resolved_day&&matches!(e.command.action,Action::CancelReserve{request} if request==o.id))=>return Err("Missing reserve cancellation command".into()),
+                ReserveStatus::Cancelled if !self.journal.iter().any(|e|e.command.issuer==*id&&Some(e.command.day.units())==(o.resolved_day).map(|day| day.units())&&matches!(e.command.action,Action::CancelReserve{request} if request==o.id))=>return Err("Missing reserve cancellation command".into()),
                 _=>{}
             }
             previous = o.id.0;
@@ -813,7 +818,7 @@ impl World {
             state
                 .orders
                 .iter()
-                .filter(|o| o.good == good && o.last_fill_day == Some(self.day.units()))
+                .filter(|o| o.good == good && o.last_fill_day == Some(self.day))
                 .map(|o| o.last_fill_quantity)
                 .sum()
         };

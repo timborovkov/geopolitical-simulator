@@ -46,8 +46,8 @@ fn physical_need_coverage_preserves_procurement_costs_timing_and_real_stock() {
     assert_eq!(order.quantity, 58892);
     assert_eq!(order.reserved, Money(913));
     assert_eq!(order.fee, Money(166));
-    assert_eq!(order.review_day, 14);
-    assert_eq!(order.expiry_day, 103);
+    assert_eq!(order.review_day, sim_core::CampaignDay::new(14));
+    assert_eq!(order.expiry_day, sim_core::CampaignDay::new(103));
     let bytes = persistence::encode(&world, &content).unwrap();
     world = persistence::decode(&bytes, &content).unwrap();
     assert_eq!(persistence::encode(&world, &content).unwrap(), bytes);
@@ -62,7 +62,10 @@ fn physical_need_coverage_preserves_procurement_costs_timing_and_real_stock() {
     assert_eq!(world.hash(), 0xad2d84e8ab210c5d);
     let reserves = world.player_country().reserves.as_ref().unwrap();
     assert_eq!(reserves.orders[0].status, ReserveStatus::Completed);
-    assert_eq!(reserves.orders[0].resolved_day, Some(20));
+    assert_eq!(
+        reserves.orders[0].resolved_day,
+        Some(sim_core::CampaignDay::new(20))
+    );
     assert_eq!(reserves.energy.stored, Energy::new(58892).unwrap());
     assert_eq!(reserves.orders[0].paid, Money(913));
     assert_eq!(reserves.orders[0].reserved, Money(0));

@@ -43,8 +43,8 @@ fn configured_durations_keep_original_numeric_content_pending_delivery_and_repla
     world.advance(&content, DaySpan::new(7)).unwrap();
     assert_eq!(world.hash(), 0x07e398663b1c5328);
     let project = &world.player_country().projects[0];
-    assert_eq!(project.consent_day, 14);
-    assert_eq!(project.due_day, 78);
+    assert_eq!(project.consent_day, sim_core::CampaignDay::new(14));
+    assert_eq!(project.due_day, sim_core::CampaignDay::new(78));
     assert_eq!(project.reserved, Money(300));
     let encoded = persistence::encode(&world, &content).unwrap();
     world = persistence::decode(&encoded, &content).unwrap();

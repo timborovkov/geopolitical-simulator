@@ -36,8 +36,11 @@ fn public_delivery_separates_review_schedule_and_phased_setting_operation_withou
         .fiscal_plans
         .unwrap();
     assert_eq!(plans.len(), 1);
-    assert_eq!(plans[0].enacted_day, 44);
-    assert_eq!(plans[0].first_scheduled_delivery, 108);
+    assert_eq!(plans[0].enacted_day, sim_core::CampaignDay::new(44));
+    assert_eq!(
+        plans[0].first_scheduled_delivery,
+        sim_core::CampaignDay::new(108)
+    );
     assert_eq!(plans[0].delivery.len(), 3);
     assert!(plans[0].delivery.iter().all(|p| p.operation.is_none()));
     let json = serde_json::to_value(&plans).unwrap();

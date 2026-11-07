@@ -96,9 +96,7 @@ impl World {
         let due: Vec<_> = self.countries[id]
             .projects
             .iter()
-            .filter(|p| {
-                p.stage == PolicyStage::AwaitingConsent && p.consent_day <= self.day.units()
-            })
+            .filter(|p| p.stage == PolicyStage::AwaitingConsent && p.consent_day <= self.day)
             .cloned()
             .collect();
         for project in due {
@@ -135,7 +133,7 @@ impl World {
                     p.stage = PolicyStage::Implementing;
                     p.reserved = Money(0);
                     self.record_consent(id, &project, true);
-                    self.event_for_commitment(id,project.id,CommitmentStage::Implementing,format!("{} received institutional consent. {}m paid to contractors; construction due {}.",project.policy,paid,date(project.due_day)));
+                    self.event_for_commitment(id,project.id,CommitmentStage::Implementing,format!("{} received institutional consent. {}m paid to contractors; construction due {}.",project.policy,paid,date((project.due_day).units())));
                 }
                 Err(reason) => {
                     self.countries

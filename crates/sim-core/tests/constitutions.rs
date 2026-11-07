@@ -111,7 +111,7 @@ fn lawful_change_and_restoration_switch_real_powers_preserve_debt_and_resume_pen
             .unwrap()
             .instruments[1]
             .issued_day,
-        14
+        sim_core::CampaignDay::new(14)
     );
     assert_eq!(
         world
@@ -137,7 +137,10 @@ fn lawful_change_and_restoration_switch_real_powers_preserve_debt_and_resume_pen
         .unwrap()
         .next_request_day;
     world
-        .advance(&content, sim_core::DaySpan::new(next - world.day.units()))
+        .advance(
+            &content,
+            sim_core::DaySpan::new((next).units() - world.day.units()),
+        )
         .unwrap();
     propose(&mut world, &content, Regime::Parliamentary, false);
     world.advance(&content, sim_core::DaySpan::new(90)).unwrap();
@@ -151,7 +154,7 @@ fn lawful_change_and_restoration_switch_real_powers_preserve_debt_and_resume_pen
     );
     assert_eq!(
         world.player_country().next_election,
-        Some(world.day.units() + 365)
+        Some(sim_core::CampaignDay::new(world.day.units() + 365))
     );
     assert_eq!(
         world.player_country().accounts.total(),
@@ -390,7 +393,7 @@ fn invalid_templates_history_pending_dates_and_old_envelopes_fail_cleanly() {
         .pending
         .as_mut()
         .unwrap()
-        .decision_day = u32::MAX;
+        .decision_day = sim_core::CampaignDay::new(u32::MAX);
     assert!(bad.validate(&content).is_err());
     let mut bad = world.clone();
     bad.countries
@@ -486,7 +489,7 @@ fn a_successor_cabinet_does_not_inherit_an_unapproved_constitutional_mandate() {
     world
         .advance(
             &content,
-            sim_core::DaySpan::new(election - world.day.units() - 1),
+            sim_core::DaySpan::new((election).units() - world.day.units() - 1),
         )
         .unwrap();
     world
@@ -500,7 +503,10 @@ fn a_successor_cabinet_does_not_inherit_an_unapproved_constitutional_mandate() {
         )
         .unwrap();
     world
-        .advance(&content, sim_core::DaySpan::new(due - world.day.units()))
+        .advance(
+            &content,
+            sim_core::DaySpan::new((due).units() - world.day.units()),
+        )
         .unwrap();
     assert!(world.player_country().government_number > sim_core::GovernmentId(1));
     assert!(
@@ -547,10 +553,11 @@ fn every_configured_form_applies_its_policy_consent_borrowing_and_review_clocks(
         );
         assert_eq!(
             world.player_country().next_leadership_review,
-            template
+            (template
                 .government
                 .leadership_review_days
-                .map(|days| world.day.units() + days.units())
+                .map(|days| world.day.units() + days.units()))
+            .map(sim_core::CampaignDay::new)
         );
         let preview = world
             .preview(&content, &world.player, &"energy".into(), 1)
@@ -570,7 +577,9 @@ fn every_configured_form_applies_its_policy_consent_borrowing_and_review_clocks(
             .unwrap();
         assert_eq!(
             world.player_country().projects[0].consent_day,
-            world.day.units() + template.government.consent_days.units()
+            sim_core::CampaignDay::new(
+                world.day.units() + template.government.consent_days.units()
+            )
         );
         let borrowing = world
             .preview_borrowing(&content, &world.player, Money(1))

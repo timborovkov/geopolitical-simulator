@@ -48,17 +48,17 @@ impl CashHoldEnd {
 pub struct CashHoldRecord {
     pub id: CashHoldId,
     pub target: Money,
-    pub start_day: u32,
-    pub expiry_day: u32,
+    pub start_day: crate::CampaignDay,
+    pub expiry_day: crate::CampaignDay,
     pub sponsor_government: crate::GovernmentId,
-    pub funded_notice_day: Option<u32>,
-    pub ended: Option<(u32, CashHoldEnd)>,
+    pub funded_notice_day: Option<crate::CampaignDay>,
+    pub ended: Option<(crate::CampaignDay, CashHoldEnd)>,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CashManagement {
     pub records: Vec<CashHoldRecord>,
     pub retained: Money,
-    pub next_allowed_day: u32,
+    pub next_allowed_day: crate::CampaignDay,
 }
 impl CashManagement {
     pub fn active(&self) -> Option<&CashHoldRecord> {
@@ -78,8 +78,8 @@ impl Country {
 pub struct CashHoldPreview {
     pub target: Money,
     pub retained_now: Money,
-    pub expiry_day: u32,
-    pub next_allowed_day: u32,
+    pub expiry_day: crate::CampaignDay,
+    pub next_allowed_day: crate::CampaignDay,
     pub approval_cost: i32,
 }
 impl World {
@@ -106,10 +106,10 @@ impl World {
         if state.active().is_some() {
             return Err("Release the active retention before creating another".into());
         }
-        if self.day.units() < state.next_allowed_day {
+        if self.day.units() < (state.next_allowed_day).units() {
             return Err(format!(
                 "Cash retention may be used again on {}",
-                date(state.next_allowed_day)
+                date((state.next_allowed_day).units())
             ));
         }
         if !(1..=(d.gdp.units() * rules.max_target_bps.units_i64() / 10000).max(1))
@@ -137,8 +137,8 @@ impl World {
         Ok(CashHoldPreview {
             target,
             retained_now: Money(target.0.min(c.available_cash().0.max(0))),
-            expiry_day,
-            next_allowed_day,
+            expiry_day: crate::CampaignDay::new(expiry_day),
+            next_allowed_day: crate::CampaignDay::new(next_allowed_day),
             approval_cost: rules.approval_cost,
         })
     }
@@ -156,10 +156,10 @@ impl World {
         state.records.push(CashHoldRecord {
             id: request,
             target,
-            start_day: self.day.units(),
+            start_day: self.day,
             expiry_day: preview.expiry_day,
             sponsor_government: c.government_number,
-            funded_notice_day: (preview.retained_now == target).then_some(self.day.units()),
+            funded_notice_day: (preview.retained_now == target).then_some(self.day),
             ended: None,
         });
         state.next_allowed_day = preview.next_allowed_day;
@@ -168,7 +168,7 @@ impl World {
         for h in &mut c.households {
             h.approval = (h.approval - preview.approval_cost).max(0);
         }
-        self.event(id, true, format!("Temporary cash retention #{}: target {}m until {}. Approval -{}. Only actual uncommitted national cash is protected; unpaid operating claims remain arrears and dated principal remains due. Release before funding a decision.", request.0, target.0, date(preview.expiry_day), preview.approval_cost));
+        self.event(id, true, format!("Temporary cash retention #{}: target {}m until {}. Approval -{}. Only actual uncommitted national cash is protected; unpaid operating claims remain arrears and dated principal remains due. Release before funding a decision.", request.0, target.0, date((preview.expiry_day).units()), preview.approval_cost));
         Ok(())
     }
     pub(crate) fn release_cash(
@@ -199,7 +199,7 @@ impl World {
             .cash_management
             .as_mut()
             .expect("cash management");
-        state.records.last_mut().expect("active").ended = Some((self.day.units(), reason));
+        state.records.last_mut().expect("active").ended = Some((self.day, reason));
         state.retained = Money(0);
     }
     pub(crate) fn resolve_cash_hold(&mut self, id: &CountryId) {
@@ -209,7 +209,7 @@ impl World {
         };
         let reason = if active.sponsor_government != c.government_number {
             Some(CashHoldEnd::GovernmentChanged)
-        } else if self.day.units() >= active.expiry_day {
+        } else if self.day.units() >= (active.expiry_day).units() {
             Some(CashHoldEnd::Expired)
         } else {
             None
@@ -247,7 +247,7 @@ impl World {
                 .records
                 .last_mut()
                 .expect("active")
-                .funded_notice_day = Some(self.day.units());
+                .funded_notice_day = Some(self.day);
             self.event(id, true, format!("Retention target funded with {}m actual cash. Release it before proposing your decision; ordinary costs and authority still apply. Retention expires automatically.", target.0));
         }
     }
@@ -405,8 +405,8 @@ impl World {
         {
             return Err("Retained cash exceeds actual uncommitted national cash or target".into());
         }
-        let mut next_allowed = 0;
-        let mut previous_end = content.start_day()?;
+        let mut next_allowed = CampaignDay::new(0);
+        let mut previous_end = CampaignDay::new(content.start_day()?);
         let mut release_count = 0;
         for (index, (record, entry)) in state.records.iter().zip(holds).enumerate() {
             let Action::HoldCash { target, days } = entry.command.action else {
@@ -420,40 +420,43 @@ impl World {
                 || record.target != target
                 || !(1..=max_target).contains(&target.0)
                 || !(1..=rules.max_days.units()).contains(&days.units())
-                || record.start_day != entry.command.day.units()
+                || record.start_day != entry.command.day
                 || record.start_day < next_allowed
                 || record.start_day < previous_end
-                || record.start_day.checked_add(days.units()) != Some(record.expiry_day)
-                || record.expiry_day > MAX_DAY
+                || record
+                    .start_day
+                    .checked_add(crate::DaySpan::new(days.units()))
+                    != Some(record.expiry_day)
+                || record.expiry_day > crate::CampaignDay::new(MAX_DAY)
                 || record.sponsor_government == crate::GovernmentId(0)
                 || record.sponsor_government > c.government_number
                 || record.funded_notice_day.is_some_and(|day| {
-                    day < record.start_day || day >= record.expiry_day || day > self.day.units()
+                    day < record.start_day || day >= record.expiry_day || day > self.day
                 })
             {
                 return Err("Invalid cash retention terms, sponsor or chronology".into());
             }
             next_allowed = record
                 .start_day
-                .checked_add(rules.cooldown_days.units())
-                .filter(|day| *day <= MAX_DAY)
+                .checked_add(rules.cooldown_days)
+                .filter(|day| *day <= crate::CampaignDay::new(MAX_DAY))
                 .ok_or("Invalid cash retention cooldown")?;
             match &record.ended {
                 None if index + 1 == state.records.len()
-                    && self.day.units() < record.expiry_day
+                    && self.day < record.expiry_day
                     && record.sponsor_government == c.government_number =>
                 {
-                    previous_end = self.day.units();
+                    previous_end = self.day;
                 }
                 Some((day, reason))
                     if *day >= record.start_day
-                        && *day <= self.day.units()
+                        && *day <= self.day
                         && record.funded_notice_day.is_none_or(|notice| notice <= *day) =>
                 {
                     match reason {
                         CashHoldEnd::Expired if *day == record.expiry_day => {}
                         CashHoldEnd::GovernmentChanged if *day <= record.expiry_day && record.sponsor_government < c.government_number => {}
-                        CashHoldEnd::Released { command } if *day < record.expiry_day && releases.iter().any(|e| e.command.id == *command && e.command.day == crate::CampaignDay::new(*day) && matches!(e.command.action, Action::ReleaseCash { request } if request == record.id)) => { release_count += 1; }
+                        CashHoldEnd::Released { command } if *day < record.expiry_day && releases.iter().any(|e| e.command.id == *command && e.command.day == *day && matches!(e.command.action, Action::ReleaseCash { request } if request == record.id)) => { release_count += 1; }
                         _ => return Err("Invalid cash retention ending".into()),
                     }
                     previous_end = *day;

@@ -188,7 +188,7 @@ fn expiry_cooldown_rejections_and_successor_governments_release_only_actual_cash
     assert_eq!(w.player_country().retained_cash(), Money(0));
     assert!(matches!(
         w.player_country().cash_management.as_ref().unwrap().records[0].ended,
-        Some((2, CashHoldEnd::Expired))
+        Some((day, CashHoldEnd::Expired)) if day == CampaignDay::new(2)
     ));
     assert_eq!(
         w.player_country().accounts.treasury,

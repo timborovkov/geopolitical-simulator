@@ -124,7 +124,7 @@ pub struct DebtInstrument {
     pub outstanding: Money,
     /// Opening calibration is recognized at the bookmark, not a historical
     /// claim that the country's actual debt originated on that date.
-    pub issued_day: u32,
+    pub issued_day: crate::CampaignDay,
     /// Annual basis points; four percent is 400 basis points, not four.
     /// ```compile_fail
     /// use sim_core::{DebtInstrument, Percent};
@@ -134,19 +134,19 @@ pub struct DebtInstrument {
     /// ```
     pub annual_rate_bps: BasisPoints,
     /// None denotes perpetual principal, including the opening calibration.
-    pub maturity_day: Option<u32>,
+    pub maturity_day: Option<crate::CampaignDay>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub maturity_repaid: Option<Money>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub last_maturity_payment_day: Option<u32>,
+    pub last_maturity_payment_day: Option<crate::CampaignDay>,
     pub origin: DebtOrigin,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BorrowingRequest {
     pub id: LoanId,
     pub amount: Money,
-    pub requested_day: u32,
-    pub decision_day: u32,
+    pub requested_day: crate::CampaignDay,
+    pub decision_day: crate::CampaignDay,
     pub authority: AuthorityId,
     pub sponsor_government: crate::GovernmentId,
 }
@@ -157,7 +157,7 @@ pub struct Financing {
     pub instruments: Vec<DebtInstrument>,
     pub pending: Option<BorrowingRequest>,
     pub emergency_count: u32,
-    pub next_emergency_day: u32,
+    pub next_emergency_day: crate::CampaignDay,
 }
 fn creditor(country: &CountryId) -> CreditorId {
     CreditorId(format!("external:{}", country.0))
@@ -172,7 +172,7 @@ impl Financing {
                 currency: ReportingCurrency::Constant2000Credit,
                 original_principal: Money(country.gdp.units() / 3),
                 outstanding: Money(country.gdp.units() / 3),
-                issued_day: day,
+                issued_day: crate::CampaignDay::new(day),
                 annual_rate_bps: BasisPoints::new(400),
                 maturity_day: None,
                 maturity_repaid: None,
@@ -181,7 +181,7 @@ impl Financing {
             }],
             pending: None,
             emergency_count: 0,
-            next_emergency_day: day,
+            next_emergency_day: crate::CampaignDay::new(day),
         }
     }
     pub fn with_rules(country: &CountryDefinition, day: u32, rules: &FinanceDefinition) -> Self {
@@ -197,7 +197,10 @@ impl Financing {
         Money(
             self.instruments
                 .iter()
-                .filter(|loan| loan.maturity_day.is_some_and(|due| due <= day))
+                .filter(|loan| {
+                    loan.maturity_day
+                        .is_some_and(|due| due <= crate::CampaignDay::new(day))
+                })
                 .map(|loan| loan.outstanding.0)
                 .sum(),
         )
@@ -256,13 +259,17 @@ impl Financing {
                     != if index == 0 {
                         None
                     } else {
-                        rules
-                            .maturity_days
-                            .and_then(|days| instrument.issued_day.checked_add(days.units()))
+                        rules.maturity_days.and_then(|days| {
+                            instrument
+                                .issued_day
+                                .checked_add(crate::DaySpan::new(days.units()))
+                        })
                     }
-                || instrument.maturity_day.is_some_and(|day| day > MAX_DAY)
-                || instrument.issued_day < previous_issue
-                || instrument.issued_day > world.day.units()
+                || instrument
+                    .maturity_day
+                    .is_some_and(|day| day > crate::CampaignDay::new(MAX_DAY))
+                || instrument.issued_day < crate::CampaignDay::new(previous_issue)
+                || instrument.issued_day > world.day
             {
                 return Err("Invalid debt terms, chronology, creditor or principal".into());
             }
@@ -272,7 +279,7 @@ impl Financing {
                 || scheduled > instrument.original_principal.0
                 || (scheduled > 0) != instrument.last_maturity_payment_day.is_some()
                 || instrument.last_maturity_payment_day.is_some_and(|day| {
-                    day > world.day.units() || instrument.maturity_day.is_none_or(|due| day < due)
+                    day > world.day || instrument.maturity_day.is_none_or(|due| day < due)
                 })
             {
                 return Err("Invalid dated principal repayment history".into());
@@ -284,7 +291,7 @@ impl Financing {
                 );
             }
             repayments -= redeemed;
-            previous_issue = instrument.issued_day;
+            previous_issue = (instrument.issued_day).units();
             total = total
                 .checked_add(instrument.outstanding.0)
                 .ok_or("Debt portfolio overflow")?;
@@ -293,7 +300,7 @@ impl Financing {
                     if index == 0
                         && instrument.id == LoanId(0)
                         && instrument.original_principal.0 == definition.gdp.units() / 3
-                        && instrument.issued_day == start => {}
+                        && instrument.issued_day == crate::CampaignDay::new(start) => {}
                 DebtOrigin::AcceptedRequest { contested }
                     if index > 0
                         && instrument.id.0 > 0
@@ -324,7 +331,7 @@ impl Financing {
                     if &entry.command.issuer != id
                         || amount != instrument.original_principal
                         || entry.command.day.checked_add(crate::DaySpan::new(delay))
-                            != Some(crate::CampaignDay::new(instrument.issued_day))
+                            != Some(crate::CampaignDay::new((instrument.issued_day).units()))
                     {
                         return Err(
                             "Debt principal, issuer or approval date differs from the journal"
@@ -357,14 +364,12 @@ impl Financing {
                 || request.amount.0 > definition.gdp.units() / 10
                 || authority.consent_days.units() == 0
                 || request.authority != authority.id
-                || request.requested_day != entry.command.day.units()
+                || request.requested_day != entry.command.day
                 || Some(request.decision_day)
-                    != request
-                        .requested_day
-                        .checked_add(authority.consent_days.units())
-                || request.decision_day <= world.day.units()
-                || request.decision_day > MAX_DAY
-                || request.requested_day < start
+                    != request.requested_day.checked_add(authority.consent_days)
+                || request.decision_day <= world.day
+                || request.decision_day > crate::CampaignDay::new(MAX_DAY)
+                || request.requested_day < crate::CampaignDay::new(start)
                 || request.sponsor_government == crate::GovernmentId(0)
                 || request.sponsor_government > country.government_number
                 || &entry.command.issuer != id
@@ -406,7 +411,7 @@ impl Financing {
             crate::CampaignDay::new(start)
         };
         if self.emergency_count as usize != emergencies.len()
-            || self.next_emergency_day != expected_next.units()
+            || self.next_emergency_day != crate::CampaignDay::new(expected_next.units())
         {
             return Err("Emergency-financing audit differs from accepted commands".into());
         }
@@ -420,7 +425,7 @@ pub struct BorrowingPreview {
     pub authority: AuthorityId,
     pub route: String,
     pub consent_days: DaySpan,
-    pub decision_day: u32,
+    pub decision_day: crate::CampaignDay,
 }
 
 impl World {
@@ -504,7 +509,7 @@ impl World {
             authority: authority.id.clone(),
             route: authority.label.clone(),
             consent_days: authority.consent_days,
-            decision_day,
+            decision_day: crate::CampaignDay::new(decision_day),
         })
     }
     pub fn preview_emergency_borrowing(
@@ -524,10 +529,10 @@ impl World {
             .financing
             .as_ref()
             .ok_or("Missing financing state")?;
-        if self.day.units() < financing.next_emergency_day {
+        if self.day.units() < (financing.next_emergency_day).units() {
             return Err(format!(
                 "Emergency financing is on cooldown until {}",
-                date(financing.next_emergency_day)
+                date((financing.next_emergency_day).units())
             ));
         }
         if country.council_support < rule.council_threshold {
@@ -571,13 +576,14 @@ impl World {
                 currency: ReportingCurrency::Constant2000Credit,
                 original_principal: amount,
                 outstanding: amount,
-                issued_day: self.day.units(),
+                issued_day: self.day,
                 annual_rate_bps: BasisPoints::new(400),
-                maturity_day: content
+                maturity_day: (content
                     .finance
                     .as_ref()
                     .and_then(|r| r.maturity_days)
-                    .map(|days| self.day.units() + days.units()),
+                    .map(|days| self.day.units() + days.units()))
+                .map(crate::CampaignDay::new),
                 maturity_repaid: content
                     .finance
                     .as_ref()
@@ -608,13 +614,15 @@ impl World {
                         .iter()
                         .filter(|loan| {
                             loan.outstanding.0 > 0
-                                && loan.maturity_day == self.day.units().checked_add(30)
+                                && loan.maturity_day
+                                    == (self.day.units().checked_add(30))
+                                        .map(crate::CampaignDay::new)
                         })
                         .map(|loan| (loan.id, loan.outstanding.0, loan.maturity_day.unwrap()))
                         .collect()
                 });
         for (loan, principal, day) in upcoming {
-            self.event(id,true,format!("Loan #{}: {principal}m principal is due in 30 days on {}. Review the repayment calendar and available cash; borrowing consent and refinancing are not guaranteed.",loan.0,date(day)));
+            self.event(id,true,format!("Loan #{}: {principal}m principal is due in 30 days on {}. Review the repayment calendar and available cash; borrowing consent and refinancing are not guaranteed.",loan.0,date((day).units())));
         }
         let due: Vec<_> = self.countries[id]
             .financing
@@ -625,7 +633,7 @@ impl World {
                     .iter()
                     .filter(|loan| {
                         loan.outstanding.0 > 0
-                            && loan.maturity_day.is_some_and(|day| day <= self.day.units())
+                            && loan.maturity_day.is_some_and(|day| day <= self.day)
                     })
                     .map(|loan| (loan.id, loan.outstanding.0, loan.maturity_day.unwrap()))
                     .collect()
@@ -652,10 +660,10 @@ impl World {
                     .unwrap();
                 record.outstanding.0 -= paid;
                 record.maturity_repaid.as_mut().unwrap().0 += paid;
-                record.last_maturity_payment_day = Some(self.day.units());
+                record.last_maturity_payment_day = Some(self.day);
             }
-            if self.day.units() == maturity || paid == outstanding {
-                self.event(id, true, format!("Loan #{} principal due {}: paid {paid}m; {}m remains overdue principal. Overdue principal remains in debt and is not counted again as operating arrears. Refinancing requires a separately authorized loan; no automatic rollover.",loan.0,date(maturity),outstanding-paid));
+            if self.day == maturity || paid == outstanding {
+                self.event(id, true, format!("Loan #{} principal due {}: paid {paid}m; {}m remains overdue principal. Overdue principal remains in debt and is not counted again as operating arrears. Refinancing requires a separately authorized loan; no automatic rollover.",loan.0,date((maturity).units()),outstanding-paid));
             }
         }
     }
@@ -674,12 +682,12 @@ impl World {
             country.financing.as_mut().expect("financing state").pending = Some(BorrowingRequest {
                 id: loan,
                 amount,
-                requested_day: self.day.units(),
+                requested_day: self.day,
                 decision_day: preview.decision_day,
                 authority: preview.authority,
                 sponsor_government: country.government_number,
             });
-            self.event(id, true, format!("Requested loan #{}: {}m via {}. Decision due {}; pending funds are not treasury cash. Authority, debt ceiling and creditor cash will be rechecked.", loan.0, amount.0, preview.route, date(preview.decision_day)));
+            self.event(id, true, format!("Requested loan #{}: {}m via {}. Decision due {}; pending funds are not treasury cash. Authority, debt ceiling and creditor cash will be rechecked.", loan.0, amount.0, preview.route, date((preview.decision_day).units())));
         }
         Ok(())
     }
@@ -703,7 +711,7 @@ impl World {
             .checked_add(rule.cooldown_days.units())
             .ok_or("Emergency cooldown overflow")?;
         financing.emergency_count = count;
-        financing.next_emergency_day = next;
+        financing.next_emergency_day = crate::CampaignDay::new(next);
         country.approval = (country.approval - rule.approval_cost).max(0);
         for household in &mut country.households {
             household.approval = (household.approval - rule.approval_cost).max(0);
@@ -744,8 +752,7 @@ impl World {
             .financing
             .as_ref()
             .and_then(|state| state.pending.clone());
-        let Some(request) = request.filter(|request| request.decision_day <= self.day.units())
-        else {
+        let Some(request) = request.filter(|request| request.decision_day <= self.day) else {
             return;
         };
         let result = if self.countries[id].government_number != request.sponsor_government {

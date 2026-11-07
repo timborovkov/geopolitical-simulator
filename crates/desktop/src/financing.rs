@@ -42,7 +42,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
             "Pending #{} · {}m · decision {} · {}",
             request.id.0,
             request.amount.0,
-            date(request.decision_day),
+            date((request.decision_day).units()),
             request.authority.0
         ));
         if ui.button("Cancel pending loan").clicked() {
@@ -70,7 +70,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
                 "{} · consent {} days · decision {} · fixed 4% annual interest",
                 preview.route,
                 preview.consent_days.units(),
-                date(preview.decision_day)
+                date((preview.decision_day).units())
             ));
             if let Some(term) = content
                 .finance
@@ -80,7 +80,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
                 ui.label(format!(
                     "If approved on schedule: {}m principal due {}.",
                     money,
-                    date(preview.decision_day + term.units())
+                    date((preview.decision_day).units() + term.units())
                 ));
             }
             if ui
@@ -120,8 +120,8 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
                 DebtOrigin::AcceptedRequest { contested: false } => "Authorized borrowing",
                 DebtOrigin::AcceptedRequest { contested: true } => "Contested borrowing",
             };
-            let maturity = loan.maturity_day.map_or_else(||"perpetual".into(), |day| format!("principal due {} · automatically repaid {}m{}",date(day),loan.maturity_repaid.unwrap_or(Money(0)).0,if day<=world.day.units() && loan.outstanding.0>0 {" · OVERDUE"}else{""}));
-            ui.label(format!("#{} · {origin} · outstanding {}m / original {}m · {} · creditor {}", loan.id.0, loan.outstanding.0, loan.original_principal.0, date(loan.issued_day), loan.creditor.0));
+            let maturity = loan.maturity_day.map_or_else(||"perpetual".into(), |day| format!("principal due {} · automatically repaid {}m{}",date((day).units()),loan.maturity_repaid.unwrap_or(Money(0)).0,if day<=world.day && loan.outstanding.0>0 {" · OVERDUE"}else{""}));
+            ui.label(format!("#{} · {origin} · outstanding {}m / original {}m · {} · creditor {}", loan.id.0, loan.outstanding.0, loan.original_principal.0, date((loan.issued_day).units()), loan.creditor.0));
             ui.small(maturity);
         }
     });

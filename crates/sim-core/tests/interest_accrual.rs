@@ -100,10 +100,10 @@ fn manual_and_delayed_loans_use_actual_assessment_timing_and_shared_fraction() {
         for day in 1_u32..=20 {
             w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
             actually_due += state(&w).last.as_ref().unwrap().amount_due.0;
-            let expected_days = if due == 0 {
+            let expected_days = if due == sim_core::CampaignDay::new(0) {
                 day
             } else {
-                day.saturating_sub(due) + u32::from(day >= due)
+                day.saturating_sub((due).units()) + u32::from(day >= (due).units())
             };
             assert_eq!(
                 state(&w).principal_days,
@@ -223,7 +223,7 @@ fn opening_budget_uses_exact_interval_interest_including_leap_year() {
     let c = fixture(false, true);
     let w = World::new(&c, CountryId("COR".into()), 17).unwrap();
     let period = &w.player_country().budget;
-    assert_eq!(period.end_day, 366);
+    assert_eq!(period.end_day, sim_core::CampaignDay::new(366));
     let forecast = &period.forecast;
     let due = forecast
         .interest_accrual
@@ -276,7 +276,7 @@ fn outlook_shares_existing_fraction_with_a_new_loan_and_times_the_first_cash_gap
             10,
             Some(LoanAssumption {
                 amount: Money(300),
-                decision_day: w.day.units(),
+                decision_day: w.day,
             }),
         )
         .unwrap();

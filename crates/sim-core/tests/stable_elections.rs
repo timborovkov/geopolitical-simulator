@@ -86,7 +86,10 @@ fn an_equal_seat_poll_uses_the_lowest_id_and_keeps_developer_control_replayable(
         let mut world =
             World::new_scenario(&pack, id.clone(), 17, Scenario::FiscalSupplyCrisis).unwrap();
         world.advance(&pack, sim_core::DaySpan::new(360)).unwrap();
-        assert_eq!(world.player_country().next_election, Some(361));
+        assert_eq!(
+            world.player_country().next_election,
+            Some(sim_core::CampaignDay::new(361))
+        );
         world
             .issue_developer(
                 &pack,

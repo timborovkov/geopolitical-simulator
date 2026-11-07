@@ -19,8 +19,8 @@ impl Panel {
                 b.id.0,
                 b.year,
                 b.status.label(),
-                date(b.review_day),
-                date(b.effective_day)
+                date((b.review_day).units()),
+                date((b.effective_day).units())
             ));
         }
         if !state.pending() {
@@ -50,7 +50,7 @@ impl Panel {
                 date(world.day.units())[..4].parse::<u32>().expect("year") + u32::from(self.annual);
             match world.preview_budget(content, &world.player, year, targets) {
                 Ok(p) => {
-                    ui.label(format!("Fiscal year {year} · {} · review {} · legal start {}. Pay {}m administration now; reserve {}m implementation cash.",p.route,date(p.review_day),date(p.effective_day),p.fee.0,p.implementation_cost.0));
+                    ui.label(format!("Fiscal year {year} · {} · review {} · legal start {}. Pay {}m administration now; reserve {}m implementation cash.",p.route,date((p.review_day).units()),date((p.effective_day).units()),p.fee.0,p.implementation_cost.0));
                     if let Some(interest) = &p.planned_forecast.interest_accrual {
                         ui.small(format!("Interest mean {:.4}m/day; whole amount below is due on the next settlement with the current carry. Later daily dues vary as fractions accumulate. National balance figures round down to whole units.",interest.average_per_day()));
                     }
@@ -66,7 +66,7 @@ impl Panel {
                         ui.small(format!(
                             "{} to {value}: conditional operation {}",
                             content.policy(policy).expect("policy").name,
-                            date(*due)
+                            date((*due).units())
                         ));
                     }
                     if ui.button("Submit budget proposal").clicked() {
@@ -85,8 +85,8 @@ impl Panel {
             if state.bills.is_empty(){ui.label("No combined fiscal plans submitted. Existing cash execution continues under operating settings.");}
             for b in state.bills.iter().rev(){ui.push_id(b.id.0,|ui|{
                 ui.strong(format!("Budget #{} · {} · {}",b.id.0,b.year,b.status.label()));
-                ui.label(format!("Targets: {} {}%, services {}% GDP, welfare {}% GDP. Review {} · legal start {}. Administration {}m; implementation {}m.",if content.income_taxes.is_some(){"standard income-tax rate"}else{"income tax"},b.targets.income_tax,b.targets.services,b.targets.welfare,date(b.review_day),date(b.effective_day),b.fee.0,b.implementation_cost.0));
-                for p in &b.programmes {if let Some(r)=c.commitments.as_ref().and_then(|r|r.iter().find(|r|r.id==p.project)){ui.label(format!("{} · policy #{} · {:?} · due {}",content.policy(&p.policy).expect("policy").name,p.project.0,r.stage(),date(r.project.due_day)));}}
+                ui.label(format!("Targets: {} {}%, services {}% GDP, welfare {}% GDP. Review {} · legal start {}. Administration {}m; implementation {}m.",if content.income_taxes.is_some(){"standard income-tax rate"}else{"income tax"},b.targets.income_tax,b.targets.services,b.targets.welfare,date((b.review_day).units()),date((b.effective_day).units()),b.fee.0,b.implementation_cost.0));
+                for p in &b.programmes {if let Some(r)=c.commitments.as_ref().and_then(|r|r.iter().find(|r|r.id==p.project)){ui.label(format!("{} · policy #{} · {:?} · due {}",content.policy(&p.policy).expect("policy").name,p.project.0,r.stage(),date((r.project.due_day).units())));}}
                 if b.status==BudgetBillStatus::Pending && ui.button(format!("Withdraw budget #{}",b.id.0)).clicked(){action=Some(Action::WithdrawBudget{request:b.id});}
             });}
             ui.label(format!("Operating now: {} {}%, services {}% GDP, welfare {}% GDP. The execution and year-end reports below record actual receipts, payments, capital, financing and arrears.",if content.income_taxes.is_some(){"standard income-tax rate"}else{"income tax"},c.tax,c.services,c.welfare));
@@ -111,20 +111,20 @@ pub fn published_delivery(
     open: bool,
 ) {
     egui::CollapsingHeader::new("Policy setting changes · schedule & observed operation")
-        .id_salt(("public-fiscal-delivery",country.0.as_str(),plan.year,plan.enacted_day))
+        .id_salt(("public-fiscal-delivery",country.0.as_str(),plan.year,plan.enacted_day.units()))
         .default_open(open).show(ui, |ui| {
             if plan.delivery.is_empty() {
                 ui.label("No setting-operation details are published.");
                 return;
             }
-            egui::ScrollArea::horizontal().id_salt(("public-fiscal-table",country.0.as_str(),plan.year,plan.enacted_day)).show(ui, |ui| {
-                egui::Grid::new(("public-fiscal-grid",country.0.as_str(),plan.year,plan.enacted_day)).striped(true).show(ui, |ui| {
+            egui::ScrollArea::horizontal().id_salt(("public-fiscal-table",country.0.as_str(),plan.year,plan.enacted_day.units())).show(ui, |ui| {
+                egui::Grid::new(("public-fiscal-grid",country.0.as_str(),plan.year,plan.enacted_day.units())).striped(true).show(ui, |ui| {
                     for title in ["Policy setting", "Approved target", "Scheduled change", "Observed setting change"] {ui.strong(title);}
                     ui.end_row();
                     for row in &plan.delivery {
                         ui.label(content.policy(&row.policy).map_or(row.policy.as_str(),|p|p.name.as_str()));
                         ui.label(published_value(&row.policy,row.target));
-                        ui.label(date(row.scheduled_day));
+                        ui.label(date((row.scheduled_day).units()));
                         ui.label(row.operation.as_ref().map_or_else(||"No published setting change".into(),|operation|format!("{} · {}",published_value(&row.policy,operation.value),date(operation.day.units()))));
                         ui.end_row();
                     }

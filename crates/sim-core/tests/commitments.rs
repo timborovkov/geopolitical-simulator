@@ -38,7 +38,7 @@ fn amendment_pays_restarts_consent_and_preserves_direct_and_observed_history() {
     assert_eq!(p.annual_budget_change, forecast.annual_budget_change);
     assert_eq!(p.household_impacts, forecast.household_impacts);
     assert_eq!(p.fee, Money(2));
-    assert_eq!(p.consent_day, 17);
+    assert_eq!(p.consent_day, sim_core::CampaignDay::new(17));
     let before = w.player_country().accounts.treasury;
     let hash = w.hash();
     w.preview_amendment(&c, &w.player, id, 32).unwrap();
@@ -54,14 +54,20 @@ fn amendment_pays_restarts_consent_and_preserves_direct_and_observed_history() {
     assert_eq!(w.player_country().accounts.treasury.0, before.0 - 2);
     assert_eq!(w.player_country().committed_cash, Money(18));
     check(&w, &c);
-    w.advance(&c, sim_core::DaySpan::new(p.consent_day - w.day.units()))
-        .unwrap();
+    w.advance(
+        &c,
+        sim_core::DaySpan::new((p.consent_day).units() - w.day.units()),
+    )
+    .unwrap();
     let r = &w.player_country().commitments.as_ref().unwrap()[0];
     assert_eq!(r.stage(), CommitmentStage::Implementing);
     assert_eq!(r.paid, Money(22));
     check(&w, &c);
-    w.advance(&c, sim_core::DaySpan::new(p.due_day - w.day.units()))
-        .unwrap();
+    w.advance(
+        &c,
+        sim_core::DaySpan::new((p.due_day).units() - w.day.units()),
+    )
+    .unwrap();
     assert_eq!(w.player_country().tax, 32);
     assert!(w.player_country().projects.is_empty());
     let r = &w.player_country().commitments.as_ref().unwrap()[0];
@@ -117,7 +123,7 @@ fn withdrawal_releases_only_reservations_and_cannot_cancel_a_finished_programme(
     assert_eq!(w.player_country().accounts, before);
     check(&w, &c);
     let id = enact(&mut w, &c, "income_tax", 28);
-    let delay = w.player_country().projects[0].due_day - w.day.units();
+    let delay = (w.player_country().projects[0].due_day).units() - w.day.units();
     w.advance(&c, sim_core::DaySpan::new(delay)).unwrap();
     let hash = w.hash();
     assert!(

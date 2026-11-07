@@ -29,35 +29,41 @@ fn authority_announces_and_conducts_a_fixed_poll_that_government_cannot_withdraw
     assert_eq!(opening, w.hash());
     w.advance(&c, sim_core::DaySpan::new(365)).unwrap();
     let p = w.preview_election(&c, &w.player).unwrap();
-    assert_eq!(p.decision_day, 372);
-    assert_eq!(p.vote_day, 432);
+    assert_eq!(p.decision_day, sim_core::CampaignDay::new(372));
+    assert_eq!(p.vote_day, sim_core::CampaignDay::new(432));
     assert_eq!(p.fee, Money(50));
-    assert_eq!(p.previous_vote_day, Some(730));
+    assert_eq!(p.previous_vote_day, Some(sim_core::CampaignDay::new(730)));
     let hash = w.hash();
     w.preview_election(&c, &w.player).unwrap();
     assert_eq!(hash, w.hash());
     let before = w.player_country().accounts.treasury;
     let id = request(&mut w, &c);
     assert_eq!(w.player_country().accounts.treasury.0, before.0 - 50);
-    assert_eq!(w.player_country().next_election, Some(730));
+    assert_eq!(
+        w.player_country().next_election,
+        Some(sim_core::CampaignDay::new(730))
+    );
     assert_eq!(
         w.public_report(&c, &w.player)
             .unwrap()
             .electoral_authority
             .unwrap()
             .next_poll,
-        Some(730)
+        Some(sim_core::CampaignDay::new(730))
     );
     check(&w, &c);
     w.advance(&c, sim_core::DaySpan::new(7)).unwrap();
-    assert_eq!(w.player_country().next_election, Some(432));
+    assert_eq!(
+        w.player_country().next_election,
+        Some(sim_core::CampaignDay::new(432))
+    );
     assert_eq!(
         w.public_report(&c, &w.player)
             .unwrap()
             .electoral_authority
             .unwrap()
             .next_poll,
-        Some(432)
+        Some(sim_core::CampaignDay::new(432))
     );
     for action in [
         Action::WithdrawElectionRequest { request: id },
@@ -88,7 +94,10 @@ fn authority_announces_and_conducts_a_fixed_poll_that_government_cannot_withdraw
         .unwrap()
         .campaign_day()
         .unwrap();
-    assert_eq!(w.player_country().next_election, Some(next));
+    assert_eq!(
+        w.player_country().next_election,
+        Some(sim_core::CampaignDay::new(next))
+    );
     assert_eq!(
         w.public_report(&c, &w.player)
             .unwrap()
@@ -125,7 +134,10 @@ fn withdrawal_and_refusal_retain_administration_and_the_statutory_interval() {
         .issue(&c, Action::WithdrawElectionRequest { request: id })
         .unwrap();
     assert_eq!(withdrawn.player_country().accounts, before);
-    assert_eq!(withdrawn.player_country().next_election, Some(730));
+    assert_eq!(
+        withdrawn.player_country().next_election,
+        Some(sim_core::CampaignDay::new(730))
+    );
     let hash = withdrawn.hash();
     assert!(withdrawn.issue(&c, Action::RequestElection).is_err());
     assert_eq!(hash, withdrawn.hash());
@@ -154,7 +166,10 @@ fn withdrawal_and_refusal_retain_administration_and_the_statutory_interval() {
             .status,
         ElectionCaseStatus::Refused { .. }
     ));
-    assert_eq!(refused.player_country().next_election, Some(730));
+    assert_eq!(
+        refused.player_country().next_election,
+        Some(sim_core::CampaignDay::new(730))
+    );
     assert!(!refused.is_developer_modified());
     check(&refused, &c);
 }
@@ -179,11 +194,17 @@ fn an_earlier_mandatory_confidence_poll_supersedes_an_announced_poll() {
     w.advance(&c, sim_core::DaySpan::new(60)).unwrap();
     request(&mut w, &c);
     w.advance(&c, sim_core::DaySpan::new(7)).unwrap();
-    assert_eq!(w.player_country().next_election, Some(247));
+    assert_eq!(
+        w.player_country().next_election,
+        Some(sim_core::CampaignDay::new(247))
+    );
     check(&w, &c);
     w.advance(&c, sim_core::DaySpan::new(113)).unwrap();
     assert_eq!(w.day.units(), 180);
-    assert_eq!(w.player_country().next_election, Some(181));
+    assert_eq!(
+        w.player_country().next_election,
+        Some(sim_core::CampaignDay::new(181))
+    );
     assert_eq!(
         w.player_country()
             .electoral_authority
@@ -328,14 +349,16 @@ fn independent_mandates_private_requests_saved_state_and_ai_share_validated_rule
     assert!(!public.contains("sponsor"));
     assert!(!public.contains("paid"));
     let mut bad = w.clone();
-    bad.countries
+    let date = &mut bad
+        .countries
         .get_mut(&w.player)
         .unwrap()
         .electoral_authority
         .as_mut()
         .unwrap()
         .cases[0]
-        .vote_day += 1;
+        .vote_day;
+    *date = date.checked_add(DaySpan::new(1)).unwrap();
     assert!(bad.validate(&c).is_err());
     let mut bad = w.clone();
     bad.countries
@@ -378,7 +401,10 @@ fn an_announced_poll_on_a_confidence_review_day_actually_counts_the_seats() {
     w.advance(&c, sim_core::DaySpan::new(60)).unwrap();
     request(&mut w, &c);
     w.advance(&c, sim_core::DaySpan::new(60)).unwrap();
-    assert_eq!(w.player_country().next_election, Some(180));
+    assert_eq!(
+        w.player_country().next_election,
+        Some(sim_core::CampaignDay::new(180))
+    );
     w.advance(&c, sim_core::DaySpan::new(60)).unwrap();
     let state = w.player_country().electoral_authority.as_ref().unwrap();
     assert_eq!(state.polls.len(), 1);

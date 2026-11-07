@@ -647,7 +647,7 @@ impl World {
             if !ids.insert(bill.id)
                 || !matches!(&command.command.action,Action::ProposeLaw{law}if law==&bill.law)
                 || &command.command.issuer != country
-                || command.command.day != crate::CampaignDay::new(bill.proposed_day.units())
+                || command.command.day != bill.proposed_day
                 || bill.sponsor.0 == 0
                 || bill.sponsor > c.government_number
                 || !known_authority

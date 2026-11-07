@@ -54,7 +54,7 @@ fn proposal_is_paid_reserved_and_delayed_then_deliveries_reconcile_cash_and_spar
         opening.treasury.0 - p.fee.0
     );
     assert_eq!(w.player_country().committed_cash, p.cost);
-    w.advance(&c, sim_core::DaySpan::new(p.review_day - 1))
+    w.advance(&c, sim_core::DaySpan::new((p.review_day).units() - 1))
         .unwrap();
     assert_eq!(
         w.player_country().reserves.as_ref().unwrap().orders[0].filled,
@@ -191,7 +191,7 @@ fn unfed_civilian_physical_needs_prevent_national_procurement_and_expiry_release
         .preview_reserve(&c, &id(), GoodKind::Energy, NeedDays::new(1))
         .unwrap();
     issue(&mut w, &c, GoodKind::Energy, 1);
-    w.advance(&c, sim_core::DaySpan::new(p.expiry_day + 1))
+    w.advance(&c, sim_core::DaySpan::new((p.expiry_day).units() + 1))
         .unwrap();
     let o = &w.player_country().reserves.as_ref().unwrap().orders[0];
     assert_eq!(o.status, ReserveStatus::Expired);
@@ -256,7 +256,8 @@ fn support_is_rechecked_at_consent_and_refusal_does_not_deliver_goods() {
         .preview_reserve(&c, &id(), GoodKind::Energy, NeedDays::new(1))
         .unwrap();
     issue(&mut w, &c, GoodKind::Energy, 1);
-    w.advance(&c, sim_core::DaySpan::new(p.review_day)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new((p.review_day).units()))
+        .unwrap();
     let o = &w.player_country().reserves.as_ref().unwrap().orders[0];
     assert!(matches!(o.status, ReserveStatus::Refused { .. }));
     assert_eq!(o.filled, 0);
@@ -447,11 +448,16 @@ fn zero_delay_royal_consent_still_waits_for_settlement_and_has_exact_delivery_wi
     let p = w
         .preview_reserve(&c, &w.player, GoodKind::Energy, NeedDays::new(1))
         .unwrap();
-    assert_eq!(p.review_day, w.day.units());
-    assert_eq!(p.earliest_delivery_day, w.day.units() + 1);
+    assert_eq!(p.review_day, w.day);
+    assert_eq!(
+        p.earliest_delivery_day,
+        sim_core::CampaignDay::new(w.day.units() + 1)
+    );
     assert_eq!(
         p.expiry_day,
-        p.earliest_delivery_day + c.reserves.as_ref().unwrap().order_days.units() - 1
+        sim_core::CampaignDay::new(
+            (p.earliest_delivery_day).units() + c.reserves.as_ref().unwrap().order_days.units() - 1
+        )
     );
     w.issue(
         &c,
@@ -469,7 +475,8 @@ fn zero_delay_royal_consent_still_waits_for_settlement_and_has_exact_delivery_wi
         w.player_country().reserves.as_ref().unwrap().orders[0].status,
         ReserveStatus::Active
     );
-    w.advance(&c, sim_core::DaySpan::new(p.expiry_day)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new((p.expiry_day).units()))
+        .unwrap();
     assert_eq!(
         w.player_country().reserves.as_ref().unwrap().orders[0].status,
         ReserveStatus::Active

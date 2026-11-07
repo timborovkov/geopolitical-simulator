@@ -44,7 +44,7 @@ impl World {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LoanAssumption {
     pub amount: Money,
-    pub decision_day: u32,
+    pub decision_day: crate::CampaignDay,
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FundingPoint {
@@ -124,8 +124,8 @@ impl World {
         if let Some(assumption) = loan {
             if assumption.amount.0 <= 0
                 || assumption.amount.0 > definition.gdp.units() / 10
-                || assumption.decision_day < self.day.units()
-                || assumption.decision_day > MAX_DAY
+                || assumption.decision_day < self.day
+                || assumption.decision_day > crate::CampaignDay::new(MAX_DAY)
             {
                 return Err("Invalid hypothetical loan amount or decision date".into());
             }
@@ -152,16 +152,22 @@ impl World {
                 .finance
                 .as_ref()
                 .and_then(|r| r.maturity_days)
-                .and_then(|term| assumption.decision_day.checked_add(term.units()))
+                .and_then(|term| {
+                    assumption
+                        .decision_day
+                        .checked_add(crate::DaySpan::new(term.units()))
+                })
         });
-        if assumed_maturity.is_some_and(|day| day > MAX_DAY) {
+        if assumed_maturity.is_some_and(|day| day > crate::CampaignDay::new(MAX_DAY)) {
             return Err("Hypothetical loan maturity exceeds the campaign calendar".into());
         }
         let conditional_principal_due = Money(
             principal_due.0
                 + loan
                     .filter(|_| {
-                        assumed_maturity.is_some_and(|day| day <= self.day.units() + horizon)
+                        assumed_maturity.is_some_and(|day| {
+                            day <= crate::CampaignDay::new(self.day.units() + horizon)
+                        })
                     })
                     .map_or(0, |assumption| assumption.amount.0),
         );
@@ -187,11 +193,13 @@ impl World {
                     - i128::from(due);
             }
             let mut if_approved = baseline;
-            if let Some(assumption) = loan.filter(|assumption| day >= assumption.decision_day) {
+            if let Some(assumption) =
+                loan.filter(|assumption| day >= (assumption.decision_day).units())
+            {
                 // A future approval precedes that day's settlement/interest;
                 // an immediate manual draw is after today's settlement.
-                let interest_days = day - assumption.decision_day
-                    + u32::from(assumption.decision_day > self.day.units());
+                let interest_days = day - assumption.decision_day.units()
+                    + u32::from(assumption.decision_day > self.day);
                 if let Some(interest) = &forecast.interest_accrual {
                     final_interest.1 =
                         interest.due_with_addition(offset, assumption.amount, interest_days)?;
@@ -202,7 +210,8 @@ impl World {
                         - i128::from(additional_interest) * i128::from(interest_days);
                 }
             }
-            if offset > 0 && assumed_maturity.is_some_and(|due| due <= day) {
+            if offset > 0 && assumed_maturity.is_some_and(|due| due <= crate::CampaignDay::new(day))
+            {
                 if_approved -= i128::from(loan.expect("assumed maturity requires loan").amount.0);
             }
             points.push(FundingPoint {

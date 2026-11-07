@@ -66,12 +66,8 @@ fn typed_receipts_and_cash_release_keep_the_pre_change_campaign_and_numeric_wire
         .records[0];
     assert!(matches!(
         record.ended,
-        Some((
-            0,
-            CashHoldEnd::Released {
-                command: CommandId(4)
-            }
-        ))
+        Some((day, CashHoldEnd::Released { command: CommandId(4) }))
+            if day == CampaignDay::new(0)
     ));
     world.advance(&content, sim_core::DaySpan::new(14)).unwrap();
     assert_eq!(world.hash(), 0xbf9cebfd31a16e85);

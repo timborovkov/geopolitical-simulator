@@ -59,7 +59,10 @@ fn maturity_follows_actual_approval_not_request_and_reconciles_cash_principal_an
         1
     );
     w.advance(&content, sim_core::DaySpan::new(14)).unwrap();
-    assert_eq!(instrument(&w, id).maturity_day, Some(44));
+    assert_eq!(
+        instrument(&w, id).maturity_day,
+        Some(sim_core::CampaignDay::new(44))
+    );
     let outlook = w.funding_outlook(&content, 30, None).unwrap();
     assert_eq!(outlook.principal_due, Money(1000));
     assert_eq!(
@@ -77,7 +80,7 @@ fn maturity_follows_actual_approval_not_request_and_reconciles_cash_principal_an
             44,
             Some(LoanAssumption {
                 amount: Money(2000),
-                decision_day: 28,
+                decision_day: sim_core::CampaignDay::new(28),
             }),
         )
         .unwrap();
@@ -109,7 +112,10 @@ fn maturity_follows_actual_approval_not_request_and_reconciles_cash_principal_an
     assert_eq!(w, resumed);
     assert_eq!(instrument(&w, id).outstanding, Money(0));
     assert_eq!(instrument(&w, id).maturity_repaid, Some(Money(1000)));
-    assert_eq!(instrument(&w, id).last_maturity_payment_day, Some(44));
+    assert_eq!(
+        instrument(&w, id).last_maturity_payment_day,
+        Some(sim_core::CampaignDay::new(44))
+    );
     assert_eq!(w.player_country().debt.0, opening.0 - 1000);
     assert!(w.player_country().report.interest.0 <= interest.0);
     assert_eq!(w.player_country().budget.principal_repaid, Money(1000));
@@ -215,7 +221,7 @@ fn mixed_voluntary_and_maturity_redemption_preserves_fifo_and_rejects_forged_his
         .as_mut()
         .unwrap()
         .instruments[1]
-        .last_maturity_payment_day = Some(29);
+        .last_maturity_payment_day = Some(sim_core::CampaignDay::new(29));
     assert!(tampered.validate(&content).is_err());
     let mut tampered = w.clone();
     tampered

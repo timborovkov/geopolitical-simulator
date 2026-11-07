@@ -98,9 +98,9 @@ pub struct BudgetProgramme {
 pub struct BudgetBill {
     pub id: BudgetBillId,
     pub year: u32,
-    pub proposed_day: u32,
-    pub review_day: u32,
-    pub effective_day: u32,
+    pub proposed_day: crate::CampaignDay,
+    pub review_day: crate::CampaignDay,
+    pub effective_day: crate::CampaignDay,
     pub sponsor: crate::GovernmentId,
     pub baseline: FiscalTargets,
     pub targets: FiscalTargets,
@@ -109,18 +109,18 @@ pub struct BudgetBill {
     pub baseline_forecast: BudgetForecast,
     pub planned_forecast: BudgetForecast,
     pub status: BudgetBillStatus,
-    pub resolved_day: Option<u32>,
+    pub resolved_day: Option<crate::CampaignDay>,
     pub programmes: Vec<BudgetProgramme>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct FiscalPlans {
-    pub next_proposal: u32,
+    pub next_proposal: crate::CampaignDay,
     pub bills: Vec<BudgetBill>,
 }
 impl FiscalPlans {
     pub fn new(day: u32) -> Self {
         Self {
-            next_proposal: day,
+            next_proposal: crate::CampaignDay::new(day),
             bills: Vec::new(),
         }
     }
@@ -143,9 +143,9 @@ impl FiscalPlans {
 pub struct BudgetPreview {
     pub fee: Money,
     pub implementation_cost: Money,
-    pub review_day: u32,
-    pub effective_day: u32,
-    pub programmes: Vec<(PolicyId, i32, u32)>,
+    pub review_day: crate::CampaignDay,
+    pub effective_day: crate::CampaignDay,
+    pub programmes: Vec<(PolicyId, i32, crate::CampaignDay)>,
     pub baseline_forecast: BudgetForecast,
     pub planned_forecast: BudgetForecast,
     pub baseline_national_balance: Money,
@@ -163,15 +163,15 @@ pub struct PublishedFiscalOperation {
 pub struct PublishedFiscalDelivery {
     pub policy: PolicyId,
     pub target: i32,
-    pub scheduled_day: u32,
+    pub scheduled_day: crate::CampaignDay,
     pub operation: Option<PublishedFiscalOperation>,
 }
 /// Enacted targets and setting-operation evidence. Cash and private project IDs stay private.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PublishedFiscalPlan {
     pub year: u32,
-    pub enacted_day: u32,
-    pub first_scheduled_delivery: u32,
+    pub enacted_day: crate::CampaignDay,
+    pub first_scheduled_delivery: crate::CampaignDay,
     pub targets: FiscalTargets,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub delivery: Vec<PublishedFiscalDelivery>,
@@ -216,10 +216,10 @@ impl World {
         if state.pending() {
             return Err("Withdraw or resolve the pending budget before submitting another".into());
         }
-        if self.day.units() < state.next_proposal {
+        if self.day.units() < (state.next_proposal).units() {
             return Err(format!(
                 "Budget preparation interval ends {}",
-                date(state.next_proposal)
+                date((state.next_proposal).units())
             ));
         }
         if !targets.valid(content) {
@@ -281,7 +281,7 @@ impl World {
                 .map(|d| d.max(effective_day))
                 .filter(|d| *d <= MAX_DAY)
                 .ok_or("Budget programme delivery exceeds the campaign calendar")?;
-            programmes.push((p, v, delivery));
+            programmes.push((p, v, crate::CampaignDay::new(delivery)));
         }
         self.next_command
             .checked_add(4)
@@ -312,8 +312,8 @@ impl World {
         Ok(BudgetPreview {
             fee,
             implementation_cost: cost,
-            review_day,
-            effective_day,
+            review_day: crate::CampaignDay::new(review_day),
+            effective_day: crate::CampaignDay::new(effective_day),
             programmes,
             baseline_forecast,
             planned_forecast,
@@ -345,17 +345,19 @@ impl World {
         let baseline = FiscalTargets::current(c);
         let sponsor = c.government_number;
         let state = c.fiscal_plans.as_mut().expect("fiscal plans");
-        state.next_proposal = self.day.units()
-            + content
-                .fiscal_plans
-                .as_ref()
-                .expect("rules")
-                .cooldown_days
-                .units();
+        state.next_proposal = crate::CampaignDay::new(
+            self.day.units()
+                + content
+                    .fiscal_plans
+                    .as_ref()
+                    .expect("rules")
+                    .cooldown_days
+                    .units(),
+        );
         state.bills.push(BudgetBill {
             id: bill,
             year: fiscal_year,
-            proposed_day: self.day.units(),
+            proposed_day: self.day,
             review_day: p.review_day,
             effective_day: p.effective_day,
             sponsor,
@@ -369,7 +371,7 @@ impl World {
             resolved_day: None,
             programmes: Vec::new(),
         });
-        self.event(id,true,format!("Budget #{} proposed for {fiscal_year}. Paid {}m administration; {}m implementation cash reserved. Review {}; no setting changes before actual delivery or {}. Recurring spending still needs daily cash.",bill.0,p.fee.0,p.implementation_cost.0,date(p.review_day),date(p.effective_day)));
+        self.event(id,true,format!("Budget #{} proposed for {fiscal_year}. Paid {}m administration; {}m implementation cash reserved. Review {}; no setting changes before actual delivery or {}. Recurring spending still needs daily cash.",bill.0,p.fee.0,p.implementation_cost.0,date((p.review_day).units()),date((p.effective_day).units())));
         Ok(())
     }
     pub(crate) fn withdraw_budget(
@@ -388,7 +390,7 @@ impl World {
         }
         c.committed_cash.0 -= b.implementation_cost.0;
         b.status = BudgetBillStatus::Withdrawn;
-        b.resolved_day = Some(self.day.units());
+        b.resolved_day = Some(self.day);
         self.event(id,true,format!("Budget #{} withdrawn. Implementation reservation released; administration and preparation interval retained.",bill.0));
         Ok(())
     }
@@ -405,7 +407,7 @@ impl World {
         {
             c.committed_cash.0 -= b.implementation_cost.0;
             b.status = BudgetBillStatus::Superseded;
-            b.resolved_day = Some(self.day.units());
+            b.resolved_day = Some(self.day);
             closed.push(b.id.0);
         }
         for b in closed {
@@ -418,9 +420,9 @@ impl World {
             .fiscal_plans
             .as_ref()
             .and_then(|s| {
-                s.bills.iter().find(|b| {
-                    b.status == BudgetBillStatus::Pending && b.review_day == self.day.units()
-                })
+                s.bills
+                    .iter()
+                    .find(|b| b.status == BudgetBillStatus::Pending && b.review_day == self.day)
             })
             .cloned()
         else {
@@ -439,7 +441,7 @@ impl World {
             .find(|x| x.id == b.id)
             .expect("bill");
         stored.status = BudgetBillStatus::Enacted;
-        stored.resolved_day = Some(self.day.units());
+        stored.resolved_day = Some(self.day);
         let result = (|| -> Result<(), String> {
             if FiscalTargets::current(&trial.countries[id]) != b.baseline {
                 return Err("Operating fiscal settings changed during review".into());
@@ -499,7 +501,7 @@ impl World {
                 b.status = BudgetBillStatus::Refused {
                     reason: reason.clone(),
                 };
-                b.resolved_day = Some(self.day.units());
+                b.resolved_day = Some(self.day);
                 self.event(id,true,format!("Budget review refused: {reason}. Implementation reservation released; proposal administration retained."));
             }
         }
@@ -518,7 +520,7 @@ impl World {
             .and_then(|s| s.bills.iter().find(|b| b.id == bill))
             .ok_or("Unknown budget dispatch")?;
         if b.status != BudgetBillStatus::Enacted
-            || b.resolved_day != Some(self.day.units())
+            || b.resolved_day != Some(self.day)
             || !b
                 .targets
                 .changed(&b.baseline)
@@ -533,7 +535,7 @@ impl World {
             .checked_sub(p.consent_delay)
             .expect("implementation includes consent")
             .max(DaySpan::new(
-                b.effective_day.saturating_sub(self.day.units()),
+                b.effective_day.units().saturating_sub(self.day.units()),
             ));
         p.consent_delay = DaySpan::ZERO;
         p.route = format!(
@@ -673,9 +675,12 @@ impl World {
                 .count()
                 > 1
             || Some(state.next_proposal)
-                != state.bills.last().map_or(Some(content.start_day()?), |b| {
-                    b.proposed_day.checked_add(rules.cooldown_days.units())
-                })
+                != state
+                    .bills
+                    .last()
+                    .map_or(Some(crate::CampaignDay::new(content.start_day()?)), |b| {
+                        b.proposed_day.checked_add(rules.cooldown_days)
+                    })
         {
             return Err("Fiscal-plan journal, interval or pending count mismatch".into());
         }
@@ -695,14 +700,14 @@ impl World {
             else {
                 unreachable!()
             };
-            if b.proposed_day != e.command.day.units() || !(2000..=2099).contains(&b.year) {
+            if b.proposed_day != e.command.day || !(2000..=2099).contains(&b.year) {
                 return Err("Invalid fiscal-plan proposal date or year".into());
             }
-            let annual = b.year == year(b.proposed_day) + 1;
+            let annual = b.year == year((b.proposed_day).units()) + 1;
             let expected_effective = if annual {
                 year_start(b.year)?
             } else {
-                b.proposed_day
+                (b.proposed_day).units()
             };
             let opening = &content.country(id).expect("country").government;
             let government = c
@@ -710,37 +715,39 @@ impl World {
                 .as_ref()
                 .and_then(|s| {
                     s.history.iter().rfind(|h| {
-                        h.day <= crate::CampaignDay::new(b.proposed_day)
+                        h.day <= crate::CampaignDay::new((b.proposed_day).units())
                             && h.government_number <= b.sponsor
                     })
                 })
                 .and_then(|h| content.constitutions.as_ref()?.template(&h.to))
                 .map_or(opening, |t| &t.government);
-            let expected_review = b.proposed_day
+            let expected_review = (b.proposed_day).units()
                 + rules
                     .review_days
                     .units()
                     .max(government.consent_days.units());
             let changed = b.targets.changed(&b.baseline);
             if b.id.0 != e.command.id.0
-                || b.proposed_day != e.command.day.units()
+                || b.proposed_day != e.command.day
                 || b.year != *fiscal_year
                 || b.targets != *targets
                 || !b.targets.valid(content)
                 || !b.baseline.valid(content)
                 || changed.is_empty()
                 || b.year > 2099
-                || (!annual && b.year != year(b.proposed_day))
-                || b.effective_day != expected_effective
-                || (annual && b.effective_day - b.proposed_day > rules.annual_window_days.units())
-                || b.proposed_day < previous_next
+                || (!annual && b.year != year((b.proposed_day).units()))
+                || b.effective_day != crate::CampaignDay::new(expected_effective)
+                || (annual
+                    && (b.effective_day).units() - (b.proposed_day).units()
+                        > rules.annual_window_days.units())
+                || b.proposed_day < crate::CampaignDay::new(previous_next)
                 || b.fee != fee
                 || b.implementation_cost != programme_cost(content, id, &b.targets, &b.baseline)
                 || b.sponsor == crate::GovernmentId(0)
                 || b.sponsor > c.government_number
-                || b.review_day != expected_review
-                || b.review_day > MAX_DAY
-                || b.review_day >= year_start(b.year + 1)?
+                || b.review_day != crate::CampaignDay::new(expected_review)
+                || b.review_day > crate::CampaignDay::new(MAX_DAY)
+                || b.review_day >= crate::CampaignDay::new(year_start(b.year + 1)?)
             {
                 return Err(
                     "Invalid fiscal-plan identity, targets, cost, sponsor or calendar".into(),
@@ -752,15 +759,15 @@ impl World {
                     id,
                     &policy,
                     value,
-                    CampaignDay::new(b.proposed_day),
+                    CampaignDay::new((b.proposed_day).units()),
                 )?;
             }
             if let Some(technologies) = &content.technologies {
                 for (policy, _) in b.targets.changed(&b.baseline) {
-                    technologies.check_at(id, &policy, b.proposed_day)?;
+                    technologies.check_at(id, &policy, (b.proposed_day).units())?;
                 }
             }
-            previous_next = b.proposed_day + rules.cooldown_days.units();
+            previous_next = (b.proposed_day).units() + rules.cooldown_days.units();
             for f in [&b.baseline_forecast, &b.planned_forecast] {
                 if !f.valid() || (content.rules >= 17) != f.interest_accrual.is_some() {
                     return Err("Invalid budget forecast assumptions".into());
@@ -773,7 +780,7 @@ impl World {
             }
             if b.status == BudgetBillStatus::Pending {
                 if b.resolved_day.is_some()
-                    || b.review_day <= self.day.units()
+                    || b.review_day <= self.day
                     || b.sponsor != c.government_number
                     || !b.programmes.is_empty()
                     || c.projects
@@ -788,10 +795,7 @@ impl World {
                 let resolved = b
                     .resolved_day
                     .ok_or("Closed budget lacks a resolution date")?;
-                if resolved < b.proposed_day
-                    || resolved > self.day.units()
-                    || resolved > b.review_day
-                {
+                if resolved < b.proposed_day || resolved > self.day || resolved > b.review_day {
                     return Err("Invalid budget resolution date".into());
                 }
                 if matches!(
@@ -820,7 +824,7 @@ impl World {
                         if p.policy != *policy
                             || entry.budget_bill != Some(b.id)
                             || &entry.command.issuer != id
-                            || entry.command.day != crate::CampaignDay::new(resolved)
+                            || entry.command.day != crate::CampaignDay::new((resolved).units())
                             || entry.command.action
                                 != (Action::Enact {
                                     policy: policy.clone(),
@@ -834,7 +838,7 @@ impl World {
                             || record.project.due_day < b.effective_day
                             || !record.milestones.iter().any(|m| {
                                 m.stage == CommitmentStage::Funded
-                                    && m.day == crate::CampaignDay::new(resolved)
+                                    && m.day == crate::CampaignDay::new((resolved).units())
                             })
                             || record.project.policy != *policy
                         {
@@ -853,7 +857,9 @@ impl World {
                     && matches!(e.command.action,Action::WithdrawBudget{request} if request==b.id)
             });
             if (b.status == BudgetBillStatus::Withdrawn) != withdrawal.is_some()
-                || withdrawal.is_some_and(|e| Some(e.command.day.units()) != b.resolved_day)
+                || withdrawal.is_some_and(|e| {
+                    Some(e.command.day.units()) != (b.resolved_day).map(|day| day.units())
+                })
             {
                 return Err("Budget withdrawal differs from journal".into());
             }

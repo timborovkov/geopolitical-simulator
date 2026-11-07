@@ -143,8 +143,11 @@ fn compatible_undertakings_share_one_real_delivery_and_the_previous_roster_recov
     );
     persistence::replay(&restored, &resolved).unwrap();
     let mut loaded = persistence::decode(&primary, &c).unwrap();
-    w.advance(&c, sim_core::DaySpan::new(due)).unwrap();
-    loaded.advance(&c, sim_core::DaySpan::new(due)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new((due).units()))
+        .unwrap();
+    loaded
+        .advance(&c, sim_core::DaySpan::new((due).units()))
+        .unwrap();
     assert_eq!(w, loaded);
     assert_eq!(w.player_country().energy_capacity, initial + 15);
     let state = w.player_country().undertakings.as_ref().unwrap();

@@ -263,17 +263,17 @@ impl Panel {
                 ui.label(format!(
                     "{} · consent {} · scheduled operation {} · reserved capital {}m. {note}",
                     project.stage.label(),
-                    date(project.consent_day),
-                    date(project.due_day),
+                    date((project.consent_day).units()),
+                    date((project.due_day).units()),
                     project.reserved.0
                 ));
-                if next > world.day.units()
+                if next > world.day
                     && ui
-                        .button(format!("Advance toward {}", date(next)))
+                        .button(format!("Advance toward {}", date((next).units())))
                         .clicked()
                 {
                     navigation = Some(Navigation::Advance(DaySpan::new(
-                        (next - world.day.units()).min(365),
+                        ((next).units() - world.day.units()).min(365),
                     )));
                 }
                 ui.small("Advance up to one year at a time, stopping earlier for important events. Review the event and continue when ready.");
@@ -361,13 +361,18 @@ impl Panel {
                 ui.label(format!("{} other programme deliveries occurred during the review window. Prices, other policies and disruptions can also change outcomes; these observed differences do not isolate this programme's causal effect.",evaluation.other_deliveries));
                 ui.strong("You have a complete decision record to review. Use the results to choose your next problem; the five-year mandate is a separate objective.");
             } else if let Some(day) = record.review_due {
-                ui.label(format!("The observed review is due {}. Operation confirms a setting change; it does not yet establish the programme's wider results.",date(day)));
-                if day > world.day.units()
+                ui.label(format!("The observed review is due {}. Operation confirms a setting change; it does not yet establish the programme's wider results.",date((day).units())));
+                if day > world.day
                     && ui
-                        .button(format!("Advance toward observed review {}", date(day)))
+                        .button(format!(
+                            "Advance toward observed review {}",
+                            date((day).units())
+                        ))
                         .clicked()
                 {
-                    navigation = Some(Navigation::Advance(DaySpan::new(day - world.day.units())));
+                    navigation = Some(Navigation::Advance(DaySpan::new(
+                        (day).units() - world.day.units(),
+                    )));
                 }
             }
         }
@@ -464,14 +469,17 @@ mod tests {
         let project = world.player_country().projects[0].clone();
         for scale in [1.0, 1.4] {
             let text = render(&mut panel, &world, &content, true, scale);
-            assert!(text.contains(&format!("Advance toward {}", date(project.consent_day))));
+            assert!(text.contains(&format!(
+                "Advance toward {}",
+                date((project.consent_day).units())
+            )));
             assert!(text.contains("setting changes only when it actually operates"));
             assert!(!text.contains("Operating since"));
         }
         world
             .advance(
                 &content,
-                sim_core::DaySpan::new(project.consent_day - world.day.units()),
+                sim_core::DaySpan::new((project.consent_day).units() - world.day.units()),
             )
             .unwrap();
         for scale in [1.0, 1.4] {
@@ -482,7 +490,7 @@ mod tests {
         world
             .advance(
                 &content,
-                sim_core::DaySpan::new(project.due_day - world.day.units()),
+                sim_core::DaySpan::new((project.due_day).units() - world.day.units()),
             )
             .unwrap();
         let review = world.player_country().commitments.as_ref().unwrap()[0]
@@ -491,11 +499,17 @@ mod tests {
         for scale in [1.0, 1.4] {
             let text = render(&mut panel, &world, &content, true, scale);
             assert!(text.contains("80 to 95"));
-            assert!(text.contains(&format!("Advance toward observed review {}", date(review))));
+            assert!(text.contains(&format!(
+                "Advance toward observed review {}",
+                date((review).units())
+            )));
             assert!(!text.contains("complete decision record"));
         }
         world
-            .advance(&content, sim_core::DaySpan::new(review - world.day.units()))
+            .advance(
+                &content,
+                sim_core::DaySpan::new((review).units() - world.day.units()),
+            )
             .unwrap();
         for scale in [1.0, 1.4] {
             let text = render(&mut panel, &world, &content, true, scale);

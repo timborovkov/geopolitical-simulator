@@ -25,7 +25,7 @@ impl Panel {
         let mut action = None;
         ui.separator();
         ui.heading("Constitutional change");
-        ui.label(format!("Current form {:?} · recorded in this campaign since {}. Country identity, accounts and existing debt continue across a change of government.", state.regime, date(state.since)));
+        ui.label(format!("Current form {:?} · recorded in this campaign since {}. Country identity, accounts and existing debt continue across a change of government.", state.regime, date((state.since).units())));
         ui.small("These routes and templates are authored scenario rules. Council/elite backing is a simplified effective-power model, not a complete military, court or faction simulation.");
         if let Some(request) = &state.pending {
             ui.label(format!(
@@ -38,7 +38,7 @@ impl Panel {
                 } else {
                     "lawful"
                 },
-                date(request.decision_day),
+                date((request.decision_day).units()),
                 request.sponsor_government
             ));
             ui.label(format!("Administration paid {}m; reserved {}m. Backing and cabinet sponsorship will be checked again. Withdrawal/refusal keeps paid costs and the cooldown.", request.upfront.0, request.reserved.0));
@@ -50,7 +50,7 @@ impl Panel {
         }
         ui.label(format!(
             "Next request permitted after {} · backing, funding and time limits also apply.",
-            date(state.next_request_day)
+            date((state.next_request_day).units())
         ));
         egui::ComboBox::from_label("Proposed governing form")
             .selected_text(format!("{:?}", self.target))
@@ -96,7 +96,7 @@ impl Panel {
         ui.label("Existing funded programs continue. Unapproved programs face the new government's consent rules. Pending borrowing is cancelled on constitutional succession; the successor seeks its own loan mandate.");
         match world.preview_constitution(content, &world.player, &self.target, self.contested) {
             Ok(preview) => {
-                ui.label(format!("Administration {}m total · pay {}m now · reserve {}m · decision {}. Cancellation or refusal does not refund paid administration or remove the cooldown.", preview.cost.0, preview.upfront.0, preview.reserved.0, date(preview.decision_day)));
+                ui.label(format!("Administration {}m total · pay {}m now · reserve {}m · decision {}. Cancellation or refusal does not refund paid administration or remove the cooldown.", preview.cost.0, preview.upfront.0, preview.reserved.0, date((preview.decision_day).units())));
                 if ui
                     .button(if self.contested {
                         "Initiate contested change with these costs"

@@ -72,8 +72,8 @@ fn a_public_pledge_costs_administration_but_only_an_actual_policy_delivery_fulfi
         .unwrap();
     assert_eq!(p.fee, Money(20));
     assert_eq!(p.goal.target, 95);
-    assert_eq!(p.review_day, 7);
-    assert_eq!(p.deadline_day, 187);
+    assert_eq!(p.review_day, sim_core::CampaignDay::new(7));
+    assert_eq!(p.deadline_day, sim_core::CampaignDay::new(187));
     assert_eq!(w.hash(), hash);
     let id = declare(&mut w, &c, "energy-pledge", None);
     assert!(w.player_country().projects.is_empty());
@@ -82,7 +82,8 @@ fn a_public_pledge_costs_administration_but_only_an_actual_policy_delivery_fulfi
     check(&w, &c);
     let source = enact(&mut w, &c, "energy", 1);
     let due = w.player_country().projects[0].due_day;
-    w.advance(&c, sim_core::DaySpan::new(due)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new((due).units()))
+        .unwrap();
     assert_eq!(
         record(&w, id).status,
         UndertakingStatus::Fulfilled { evidence: source }
@@ -120,7 +121,10 @@ fn an_unimplemented_support_agreement_grants_backing_then_breaches_at_its_fixed_
     let before = w.player_country().clone();
     w.advance(&c, sim_core::DaySpan::new(1)).unwrap();
     assert_eq!(record(&w, id).status, UndertakingStatus::Breached);
-    assert_eq!(record(&w, id).resolved_day, Some(194));
+    assert_eq!(
+        record(&w, id).resolved_day,
+        Some(sim_core::CampaignDay::new(194))
+    );
     assert_eq!(
         w.player_country().legislative_support,
         (before.legislative_support - 18).max(0)
@@ -187,7 +191,8 @@ fn a_project_deadline_reuses_the_owned_policy_commitment_and_never_orders_a_seco
     assert_eq!(w.player_country().projects.len(), 1);
     assert_eq!(record(&w, id).linked_project, Some(source));
     check(&w, &c);
-    w.advance(&c, sim_core::DaySpan::new(due)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new((due).units()))
+        .unwrap();
     assert_eq!(
         record(&w, id).status,
         UndertakingStatus::Fulfilled { evidence: source }
@@ -218,7 +223,8 @@ fn amending_or_withdrawing_the_attached_project_does_not_move_its_promised_targe
         assert_eq!(record(&w, id).goal.target, 26);
         assert_eq!(record(&w, id).deadline_day, deadline);
         check(&w, &c);
-        w.advance(&c, sim_core::DaySpan::new(deadline)).unwrap();
+        w.advance(&c, sim_core::DaySpan::new((deadline).units()))
+            .unwrap();
         assert_eq!(record(&w, id).status, UndertakingStatus::Breached);
         check(&w, &c);
     }
@@ -237,16 +243,21 @@ fn delivery_during_review_is_recognized_when_the_undertaking_is_accepted() {
     let id = declare(&mut w, &c, "energy-pledge", None);
     let source = enact(&mut w, &c, "energy", 1);
     let due = w.player_country().projects[0].due_day;
-    assert!(due < 30);
-    w.advance(&c, sim_core::DaySpan::new(due)).unwrap();
+    assert!(due < sim_core::CampaignDay::new(30));
+    w.advance(&c, sim_core::DaySpan::new((due).units()))
+        .unwrap();
     assert_eq!(record(&w, id).status, UndertakingStatus::Pending);
     check(&w, &c);
-    w.advance(&c, sim_core::DaySpan::new(30 - due)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new(30 - due.units()))
+        .unwrap();
     assert_eq!(
         record(&w, id).status,
         UndertakingStatus::Fulfilled { evidence: source }
     );
-    assert_eq!(record(&w, id).resolved_day, Some(30));
+    assert_eq!(
+        record(&w, id).resolved_day,
+        Some(sim_core::CampaignDay::new(30))
+    );
     check(&w, &c);
 }
 #[test]
@@ -353,7 +364,7 @@ fn malformed_dates_targets_fees_links_and_credibility_fail_validation_without_pa
             .as_mut()
             .unwrap();
         match mutation {
-            0 => s.records[0].declared_day = u32::MAX,
+            0 => s.records[0].declared_day = sim_core::CampaignDay::new(u32::MAX),
             1 => s.records[0].baseline = i32::MAX,
             2 => s.records[0].fee = Money(i64::MIN),
             3 => s.records[0].linked_project = Some(CommitmentId(u64::MAX)),
@@ -486,7 +497,8 @@ fn a_lower_tax_pledge_uses_the_operating_rate_and_actual_downward_delivery_evide
     assert_eq!(record(&w, pledge).goal.target, 22);
     let source = enact(&mut w, &c, "income_tax", 22);
     let due = w.player_country().projects[0].due_day;
-    w.advance(&c, sim_core::DaySpan::new(due)).unwrap();
+    w.advance(&c, sim_core::DaySpan::new((due).units()))
+        .unwrap();
     assert_eq!(w.player_country().tax, 22);
     assert_eq!(
         record(&w, pledge).status,

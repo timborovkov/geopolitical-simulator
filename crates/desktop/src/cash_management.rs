@@ -120,7 +120,7 @@ impl Panel {
                     c.retained_cash().0,
                     active.target.0,
                     active.target.0 - c.retained_cash().0,
-                    date(active.expiry_day)
+                    date((active.expiry_day).units())
                 ),
             );
             ui.label("Release the actual cash before approving a decision while paused. Release creates no money and grants no policy authority; costs and implementation delays still apply. Expiry or a successor government releases it automatically.");
@@ -150,7 +150,7 @@ impl Panel {
                 DaySpan::new(self.days),
             ) {
                 Ok(preview) => {
-                    ui.label(format!("Protect {}m now; remaining {}m must come from future actual cash. Approval -{} (floor zero). Expires {}; reuse from {}. A target is not funded cash.", preview.retained_now.0, self.target - preview.retained_now.0, preview.approval_cost, date(preview.expiry_day), date(preview.next_allowed_day)));
+                    ui.label(format!("Protect {}m now; remaining {}m must come from future actual cash. Approval -{} (floor zero). Expires {}; reuse from {}. A target is not funded cash.", preview.retained_now.0, self.target - preview.retained_now.0, preview.approval_cost, date((preview.expiry_day).units()), date((preview.next_allowed_day).units())));
                     if ui
                         .button("Retain actual cash with these consequences")
                         .clicked()
@@ -173,11 +173,15 @@ impl Panel {
                         "#{} · target {}m · {} to {} · {}",
                         record.id.0,
                         record.target.0,
-                        date(record.start_day),
-                        date(record.expiry_day),
+                        date((record.start_day).units()),
+                        date((record.expiry_day).units()),
                         record.ended.as_ref().map_or_else(
                             || "active".into(),
-                            |(day, reason)| format!("{} on {}", reason.label(), date(*day))
+                            |(day, reason)| format!(
+                                "{} on {}",
+                                reason.label(),
+                                date((*day).units())
+                            )
                         )
                     ));
                 }

@@ -37,12 +37,18 @@ fn a_midyear_bookmark_initializes_clocks_fiscal_periods_and_pending_saves() {
     let start = parse_date("2001-07-15").unwrap();
     let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
     assert_eq!(world.day.units(), start);
-    assert_eq!(world.player_country().budget.start_day, start);
+    assert_eq!(
+        world.player_country().budget.start_day,
+        sim_core::CampaignDay::new(start)
+    );
     assert_eq!(
         world.player_country().budget.end_day,
-        parse_date("2002-01-01").unwrap()
+        sim_core::CampaignDay::new(parse_date("2002-01-01").unwrap())
     );
-    assert_eq!(world.player_country().next_election, Some(start + 730));
+    assert_eq!(
+        world.player_country().next_election,
+        Some(sim_core::CampaignDay::new(start + 730))
+    );
     world
         .issue(
             &content,
@@ -66,9 +72,9 @@ fn a_midyear_bookmark_initializes_clocks_fiscal_periods_and_pending_saves() {
     assert_eq!(restored.hash(), world.hash());
     assert_eq!(
         world.player_country().budget_reviews[0].period.start_day,
-        start
+        sim_core::CampaignDay::new(start)
     );
-    assert_eq!(world.player_country().budget.start_day, world.day.units());
+    assert_eq!(world.player_country().budget.start_day, world.day);
     persistence::replay(&world, &content).unwrap();
 }
 

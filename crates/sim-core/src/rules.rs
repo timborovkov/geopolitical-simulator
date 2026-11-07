@@ -307,9 +307,13 @@ impl World {
                     id: request,
                     policy: policy.clone(),
                     value: *value,
-                    start_day: self.day.units() + preview.consent_delay.units(),
-                    consent_day: self.day.units() + preview.consent_delay.units(),
-                    due_day: self.day.units() + preview.delay.units(),
+                    start_day: crate::CampaignDay::new(
+                        self.day.units() + preview.consent_delay.units(),
+                    ),
+                    consent_day: crate::CampaignDay::new(
+                        self.day.units() + preview.consent_delay.units(),
+                    ),
+                    due_day: crate::CampaignDay::new(self.day.units() + preview.delay.units()),
                     cost: preview.cost,
                     reserved,
                     stage: if preview.consent_delay.units() == 0 {
@@ -503,11 +507,11 @@ impl World {
                 if content.fiscal_plans.is_none() {
                     self.review_budget(content, id);
                 }
-                let election_due = self.countries[id].next_election == Some(self.day.units());
+                let election_due = self.countries[id].next_election == Some(self.day);
                 let previous_government = self.countries[id].government_number;
                 if self.day.units().is_multiple_of(30)
                     || election_due
-                    || self.countries[id].next_leadership_review == Some(self.day.units())
+                    || self.countries[id].next_leadership_review == Some(self.day)
                 {
                     self.politics(content, id)?;
                     if election_due {
@@ -590,7 +594,7 @@ impl World {
         let c = self.countries.get_mut(id).expect("country");
         let mut completed = Vec::new();
         c.projects.retain(|p| {
-            if p.stage == PolicyStage::Implementing && p.due_day <= self.day.units() {
+            if p.stage == PolicyStage::Implementing && p.due_day <= self.day {
                 completed.push(p.clone());
                 false
             } else {
@@ -1155,20 +1159,21 @@ impl World {
             if c.confidence_crises >= 3 && regime == Regime::Parliamentary {
                 // An independent authority must conduct the poll already due today.
                 // Earlier rule packs keep their published confidence timing.
-                if content.elections.is_none() || c.next_election != Some(self.day.units()) {
-                    c.next_election = Some(self.day.units() + 1);
+                if content.elections.is_none() || c.next_election != Some(self.day) {
+                    c.next_election = Some(crate::CampaignDay::new(self.day.units() + 1));
                 }
                 c.confidence_crises = 0;
             }
         }
-        let leadership_review = c.next_leadership_review == Some(self.day.units());
+        let leadership_review = c.next_leadership_review == Some(self.day);
         if leadership_review {
-            c.next_leadership_review = government
+            c.next_leadership_review = (government
                 .leadership_review_days
-                .map(|days| self.day.units() + days.units());
+                .map(|days| self.day.units() + days.units()))
+            .map(crate::CampaignDay::new);
         }
         let mut transition = None;
-        if c.next_election.is_some_and(|day| day <= self.day.units()) {
+        if c.next_election.is_some_and(|day| day <= self.day) {
             let current = c.ruling_party.clone();
             let outgoing = if self.rules >= 24 {
                 "governing party"
@@ -1231,7 +1236,7 @@ impl World {
                     ));
                 }
             }
-            c.next_election = Some(self.day.units() + 1460);
+            c.next_election = Some(crate::CampaignDay::new(self.day.units() + 1460));
         } else if !regime.competitive()
             && (c.elite_support < 40
                 || leadership_review && c.council_support < government.council_threshold.max(45))

@@ -4,6 +4,33 @@ use serde::{Deserialize, Serialize};
 
 /// An absolute day index counted from 2000-01-01. Campaign-specific calendar
 /// limits remain validation rules; existing numeric snapshot fields are retained.
+/// Scheduled dates use the same unit; durations and rates cannot stand in for them.
+/// ```compile_fail
+/// use sim_core::{BorrowingRequest, DaySpan};
+/// fn wrong_unit(request: &mut BorrowingRequest) { request.decision_day = DaySpan::new(14); }
+/// ```
+/// ```compile_fail
+/// use sim_core::PolicyInstance;
+/// fn raw_date(project: &mut PolicyInstance) { project.due_day = 30u32; }
+/// ```
+/// ```compile_fail
+/// use sim_core::{BudgetPeriod, BasisPoints};
+/// fn rate_as_date(period: &mut BudgetPeriod) { period.end_day = BasisPoints::new(100); }
+/// ```
+/// ```compile_fail
+/// use sim_core::{Country, DaySpan};
+/// fn duration_as_poll(country: &mut Country) { country.next_election = Some(DaySpan::new(730)); }
+/// ```
+/// ```compile_fail
+/// use sim_core::{MinisterialTerm, DaySpan};
+/// fn duration_as_tenure(term: &mut MinisterialTerm) { term.since = DaySpan::new(30); }
+/// ```
+/// ```compile_fail
+/// use sim_core::{BudgetPreview, PolicyId, DaySpan};
+/// fn duration_in_delivery(preview: &mut BudgetPreview) {
+///     preview.programmes.push((PolicyId("income_tax".into()), 28, DaySpan::new(30)));
+/// }
+/// ```
 #[derive(Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(transparent)]
 pub struct CampaignDay(u32);

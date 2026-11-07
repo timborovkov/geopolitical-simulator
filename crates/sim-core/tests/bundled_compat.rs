@@ -380,7 +380,10 @@ fn earlier_commitment_amendment_recovers_without_new_preparation_delays() {
     let (resolved, mut restored) = persistence::restore_bundled(&path, &backup).unwrap();
     assert_eq!(resolved, earlier);
     assert!(restored.player_country().cabinet.is_none());
-    assert_eq!(restored.player_country().projects[0].due_day, 51);
+    assert_eq!(
+        restored.player_country().projects[0].due_day,
+        sim_core::CampaignDay::new(51)
+    );
     restored
         .advance(&resolved, sim_core::DaySpan::new(78))
         .unwrap();
@@ -521,7 +524,10 @@ fn default_early_poll_preserves_a_retained_cabinet_and_its_commissioned_programm
     );
     assert_eq!(world.player_country().energy_capacity, 90);
     world
-        .advance(&content, sim_core::DaySpan::new(due - world.day.units()))
+        .advance(
+            &content,
+            sim_core::DaySpan::new((due).units() - world.day.units()),
+        )
         .unwrap();
     assert_eq!(world.player_country().energy_capacity, 105);
     persistence::replay(&world, &content).unwrap();

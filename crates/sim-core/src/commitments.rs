@@ -90,7 +90,7 @@ pub struct CommitmentRecord {
     pub amendments: u32,
     pub milestones: Vec<CommitmentMilestone>,
     pub direct_effects: Vec<DirectPolicyEffect>,
-    pub review_due: Option<u32>,
+    pub review_due: Option<crate::CampaignDay>,
     pub baseline: Option<DailyReport>,
     pub approval_at_delivery: Option<i32>,
     pub evaluation: Option<CommitmentEvaluation>,
@@ -110,8 +110,8 @@ impl CommitmentRecord {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AmendmentPreview {
     pub fee: Money,
-    pub consent_day: u32,
-    pub due_day: u32,
+    pub consent_day: crate::CampaignDay,
+    pub due_day: crate::CampaignDay,
     pub route: String,
     pub preparation_days: DaySpan,
     pub annual_budget_change: Money,
@@ -200,8 +200,8 @@ impl World {
         );
         Ok(AmendmentPreview {
             fee,
-            consent_day,
-            due_day,
+            consent_day: crate::CampaignDay::new(consent_day),
+            due_day: crate::CampaignDay::new(due_day),
             route: government.label(),
             preparation_days,
             annual_budget_change,
@@ -275,7 +275,7 @@ impl World {
         r.mark(self.day.units(), CommitmentStage::Amended);
         // An intervening constitutional change may now permit immediate consent.
         self.resolve_consents(content, id);
-        self.event_for_commitment(id, request, CommitmentStage::Amended, format!("Commitment #{} amended to {value}. Paid {}m administration; consent {} and operating due {}. Existing capital reservation is unchanged.",request.0,preview.fee.0,date(preview.consent_day),date(preview.due_day)));
+        self.event_for_commitment(id, request, CommitmentStage::Amended, format!("Commitment #{} amended to {value}. Paid {}m administration; consent {} and operating due {}. Existing capital reservation is unchanged.",request.0,preview.fee.0,date((preview.consent_day).units()),date((preview.due_day).units())));
         Ok(())
     }
     pub(crate) fn cancel_commitment(
@@ -420,7 +420,7 @@ impl World {
         r.baseline = (self.day.units() > content.start_day().expect("start") + 1)
             .then(|| before.report.clone());
         r.approval_at_delivery = Some(before.approval);
-        r.review_due = self
+        r.review_due = (self
             .day
             .units()
             .checked_add(
@@ -431,7 +431,8 @@ impl World {
                     .evaluation_days
                     .units(),
             )
-            .filter(|day| *day <= MAX_DAY);
+            .filter(|day| *day <= MAX_DAY))
+        .map(crate::CampaignDay::new);
         r.mark(self.day.units(), CommitmentStage::Operating);
     }
     pub(crate) fn evaluate_commitments(&mut self, id: &CountryId) {
@@ -439,10 +440,7 @@ impl World {
         let Some(records) = &mut c.commitments else {
             return;
         };
-        if !records
-            .iter()
-            .any(|r| r.review_due == Some(self.day.units()))
-        {
+        if !records.iter().any(|r| r.review_due == Some(self.day)) {
             return;
         }
         let deliveries: Vec<_> = records
@@ -454,7 +452,7 @@ impl World {
         let mut evaluated = Vec::new();
         for r in records
             .iter_mut()
-            .filter(|r| r.review_due == Some(self.day.units()))
+            .filter(|r| r.review_due == Some(self.day))
         {
             let delivery = r
                 .milestones
@@ -534,9 +532,9 @@ impl World {
                 || r.project.policy != *policy
                 || r.project.cost != cost
                 || r.project.start_day != r.project.consent_day
-                || r.project.consent_day < entry.command.day.units()
+                || r.project.consent_day < entry.command.day
                 || r.project.due_day < r.project.consent_day
-                || r.project.due_day > MAX_DAY
+                || r.project.due_day > crate::CampaignDay::new(MAX_DAY)
                 || !(definition.min..=definition.max).contains(&r.project.value)
                 || r.milestones[0]
                     != (CommitmentMilestone {
@@ -584,7 +582,7 @@ impl World {
             if let Some(m) = operating {
                 expected.push(CommitmentStage::Operating);
                 if !funded
-                    || m.day != crate::CampaignDay::new(r.project.due_day)
+                    || m.day != crate::CampaignDay::new((r.project.due_day).units())
                     || r.approval_at_delivery.is_none()
                     || r.direct_effects.is_empty()
                 {
@@ -682,8 +680,9 @@ impl World {
             } else {
                 None
             };
-            if r.review_due != expected_review.map(crate::CampaignDay::units)
-                || r.review_due.is_some_and(|day| day <= self.day.units())
+            if r.review_due
+                != (expected_review.map(crate::CampaignDay::units)).map(crate::CampaignDay::new)
+                || r.review_due.is_some_and(|day| day <= self.day)
             {
                 return Err("Invalid pending commitment review".into());
             }

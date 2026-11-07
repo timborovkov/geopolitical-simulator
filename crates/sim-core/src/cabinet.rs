@@ -137,8 +137,8 @@ pub struct MinisterialTerm {
     pub appointment: AppointmentId,
     pub office: OfficeId,
     pub person: PersonId,
-    pub since: u32,
-    pub until: Option<u32>,
+    pub since: crate::CampaignDay,
+    pub until: Option<crate::CampaignDay>,
     pub government: crate::GovernmentId,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -146,31 +146,31 @@ pub struct PendingAppointment {
     pub id: AppointmentId,
     pub office: OfficeId,
     pub person: PersonId,
-    pub proposed_day: u32,
-    pub decision_day: u32,
+    pub proposed_day: crate::CampaignDay,
+    pub decision_day: crate::CampaignDay,
     pub sponsor: crate::GovernmentId,
     pub paid: Money,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Cabinet {
     pub government: crate::GovernmentId,
-    pub since: u32,
+    pub since: crate::CampaignDay,
     pub terms: Vec<MinisterialTerm>,
     pub pending: Vec<PendingAppointment>,
-    pub next_request_day: BTreeMap<OfficeId, u32>,
+    pub next_request_day: BTreeMap<OfficeId, crate::CampaignDay>,
 }
 impl Cabinet {
     pub fn new(rules: &CabinetDefinition, id: &CountryId, day: u32) -> Self {
         Self {
             government: crate::GovernmentId(1),
-            since: day,
+            since: crate::CampaignDay::new(day),
             terms: Vec::new(),
             pending: Vec::new(),
             next_request_day: rules
                 .portfolios
                 .iter()
                 .filter(|p| &p.country == id)
-                .map(|p| (p.id.clone(), day))
+                .map(|p| (p.id.clone(), crate::CampaignDay::new(day)))
                 .collect(),
         }
     }
@@ -184,7 +184,7 @@ impl Cabinet {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AppointmentPreview {
     pub fee: Money,
-    pub decision_day: u32,
+    pub decision_day: crate::CampaignDay,
     pub preparation_days: DaySpan,
     pub elite_cost: i32,
     pub council_cost: i32,
@@ -252,7 +252,7 @@ impl World {
         if cabinet
             .next_request_day
             .get(office)
-            .is_none_or(|day| *day > self.day.units())
+            .is_none_or(|day| *day > self.day)
         {
             return Err("This portfolio's appointment cooldown has not elapsed".into());
         }
@@ -285,7 +285,7 @@ impl World {
         let cost = (100 - candidate.acceptability) / 10;
         Ok(AppointmentPreview {
             fee,
-            decision_day,
+            decision_day: crate::CampaignDay::new(decision_day),
             preparation_days: rules
                 .vacancy_preparation_days
                 .scaled((100 - candidate.skill) as u32, 100)
@@ -316,24 +316,26 @@ impl World {
         let cabinet = c.cabinet.as_mut().expect("cabinet");
         cabinet.next_request_day.insert(
             office.clone(),
-            self.day.units()
-                + content
-                    .cabinet
-                    .as_ref()
-                    .expect("rules")
-                    .cooldown_days
-                    .units(),
+            crate::CampaignDay::new(
+                self.day.units()
+                    + content
+                        .cabinet
+                        .as_ref()
+                        .expect("rules")
+                        .cooldown_days
+                        .units(),
+            ),
         );
         cabinet.pending.push(PendingAppointment {
             id: request,
             office: office.clone(),
             person: person.clone(),
-            proposed_day: self.day.units(),
+            proposed_day: self.day,
             decision_day: preview.decision_day,
             sponsor: c.government_number,
             paid: preview.fee,
         });
-        self.event(id,true,format!("Appointment #{} proposed: {} to {}. Paid {}m administration; decision {}. Current authority and cabinet sponsorship will be rechecked. Withdrawal/refusal does not refund administration or remove the cooldown.",request.0,content.cabinet.as_ref().expect("rules").candidate(person).expect("candidate").name,content.cabinet.as_ref().expect("rules").office(office).expect("office").title,preview.fee.0,date(preview.decision_day)));
+        self.event(id,true,format!("Appointment #{} proposed: {} to {}. Paid {}m administration; decision {}. Current authority and cabinet sponsorship will be rechecked. Withdrawal/refusal does not refund administration or remove the cooldown.",request.0,content.cabinet.as_ref().expect("rules").candidate(person).expect("candidate").name,content.cabinet.as_ref().expect("rules").office(office).expect("office").title,preview.fee.0,date((preview.decision_day).units())));
         self.resolve_appointments(content, id);
         Ok(())
     }
@@ -413,16 +415,18 @@ impl World {
             .terms
             .iter_mut()
             .filter(|t| &t.office == office && t.until.is_none())
-            .for_each(|t| t.until = Some(self.day.units()));
+            .for_each(|t| t.until = Some(self.day));
         cabinet.next_request_day.insert(
             office.clone(),
-            self.day.units()
-                + content
-                    .cabinet
-                    .as_ref()
-                    .expect("rules")
-                    .cooldown_days
-                    .units(),
+            crate::CampaignDay::new(
+                self.day.units()
+                    + content
+                        .cabinet
+                        .as_ref()
+                        .expect("rules")
+                        .cooldown_days
+                        .units(),
+            ),
         );
         self.event(id,true,format!("Minister dismissed from {}. Paid {}m administration. Permanent civil service now prepares new proposals with the configured vacancy delay; funded projects retain their delivery dates.",content.cabinet.as_ref().expect("rules").office(office).expect("office").title,fee.0));
         Ok(())
@@ -437,7 +441,7 @@ impl World {
             .expect("cabinet")
             .pending
             .iter()
-            .filter(|p| p.decision_day <= self.day.units())
+            .filter(|p| p.decision_day <= self.day)
             .cloned()
             .collect();
         for p in requests {
@@ -468,12 +472,12 @@ impl World {
                 .terms
                 .iter_mut()
                 .filter(|t| t.office == p.office && t.until.is_none())
-                .for_each(|t| t.until = Some(self.day.units()));
+                .for_each(|t| t.until = Some(self.day));
             cabinet.terms.push(MinisterialTerm {
                 appointment: p.id,
                 office: p.office.clone(),
                 person: p.person.clone(),
-                since: self.day.units(),
+                since: self.day,
                 until: None,
                 government: c.government_number,
             });
@@ -493,15 +497,15 @@ impl World {
             return;
         }
         cabinet.government = c.government_number;
-        cabinet.since = self.day.units();
+        cabinet.since = self.day;
         cabinet
             .terms
             .iter_mut()
             .filter(|t| t.until.is_none())
-            .for_each(|t| t.until = Some(self.day.units()));
+            .for_each(|t| t.until = Some(self.day));
         cabinet.pending.clear();
         for day in cabinet.next_request_day.values_mut() {
-            *day = self.day.units();
+            *day = self.day;
         }
         self.event(id,true,"Successor cabinet ended prior ministerial terms and cancelled unapproved appointments. Administration remains spent; the new government may appoint its own ministers. Permanent civil service handles new preparation until appointments complete.");
     }
@@ -563,14 +567,15 @@ impl World {
             .map(|p| &p.id)
             .collect();
         if state.government != country.government_number
-            || state.since < start
-            || state.since > self.day.units()
-            || state.government == crate::GovernmentId(1) && state.since != start
+            || state.since < crate::CampaignDay::new(start)
+            || state.since > self.day
+            || state.government == crate::GovernmentId(1)
+                && state.since != crate::CampaignDay::new(start)
             || state.next_request_day.keys().collect::<BTreeSet<_>>() != offices
             || state
                 .next_request_day
                 .values()
-                .any(|d| *d < state.since || *d > MAX_DAY)
+                .any(|d| *d < state.since || *d > crate::CampaignDay::new(MAX_DAY))
         {
             return Err("Invalid cabinet identity or portfolio clocks".into());
         }
@@ -603,11 +608,11 @@ impl World {
                 .units();
             if !ids.insert(term.appointment.0)
                 || origin.day.checked_add(crate::DaySpan::new(delay))
-                    != Some(crate::CampaignDay::new(term.since))
-                || term.since > self.day.units()
+                    != Some(crate::CampaignDay::new((term.since).units()))
+                || term.since > self.day
                 || term
                     .until
-                    .is_some_and(|day| day < term.since || day > self.day.units())
+                    .is_some_and(|day| day < term.since || day > self.day)
                 || term.government == crate::GovernmentId(0)
                 || term.government > state.government
                 || term.until.is_none()
@@ -639,15 +644,18 @@ impl World {
                 .units();
             if !ids.insert(p.id.0)
                 || !pending.insert(&p.office)
-                || p.proposed_day != origin.day.units()
+                || p.proposed_day != origin.day
                 || origin.day.checked_add(crate::DaySpan::new(delay))
-                    != Some(crate::CampaignDay::new(p.decision_day))
-                || p.decision_day <= self.day.units()
-                || p.decision_day > MAX_DAY
+                    != Some(crate::CampaignDay::new((p.decision_day).units()))
+                || p.decision_day <= self.day
+                || p.decision_day > crate::CampaignDay::new(MAX_DAY)
                 || p.sponsor != state.government
                 || p.proposed_day < state.since
                 || p.paid != fee
-                || state.next_request_day[&p.office] != p.proposed_day + rules.cooldown_days.units()
+                || state.next_request_day[&p.office]
+                    != crate::CampaignDay::new(
+                        (p.proposed_day).units() + rules.cooldown_days.units(),
+                    )
             {
                 return Err("Invalid pending ministerial appointment".into());
             }

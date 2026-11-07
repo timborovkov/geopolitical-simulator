@@ -47,8 +47,8 @@ impl Panel {
         {
             ui.push_id(p.id,|ui| {egui::Frame::group(ui.style()).show(ui,|ui| {
                 ui.strong(format!("#{} · {} · level {}",p.id,content.policy(&p.policy).expect("policy").name,p.value));
-                ui.label(format!("{} · consent {} · operating due {} · reserved {}m",p.stage.label(),date(p.consent_day),date(p.due_day),p.reserved.0));
-                let progress=world.day.units().saturating_sub(p.start_day) as f32/(p.due_day-p.start_day).max(1) as f32;
+                ui.label(format!("{} · consent {} · operating due {} · reserved {}m",p.stage.label(),date((p.consent_day).units()),date((p.due_day).units()),p.reserved.0));
+                let progress=world.day.units().saturating_sub((p.start_day).units()) as f32/((p.due_day).units()-(p.start_day).units()).max(1) as f32;
                 ui.add(egui::ProgressBar::new(progress).show_percentage());
                 if p.stage==PolicyStage::AwaitingConsent && matches!(p.policy.as_str(),"income_tax"|"services"|"welfare") {
                     let value=self.levels.entry(p.id).or_insert(p.value);
@@ -56,7 +56,7 @@ impl Panel {
                     ui.add(egui::Slider::new(value,definition.min..=definition.max).text("Amended level (%)"));
                     match world.preview_amendment(content,&world.player,p.id,*value) {
                         Ok(preview)=>{
-                            ui.label(format!("Pay {}m administration now; consent restarts to {}, delivery {}. {}",preview.fee.0,date(preview.consent_day),date(preview.due_day),preview.route));
+                            ui.label(format!("Pay {}m administration now; consent restarts to {}, delivery {}. {}",preview.fee.0,date((preview.consent_day).units()),date((preview.due_day).units()),preview.route));
                             if preview.preparation_days.units() > 0 { ui.label(format!("Portfolio preparation adds {} days to the restarted delivery process.",preview.preparation_days.units())); }
                             ui.label(format!("After delivery versus current operating levels: annual consolidated net expenditure change {:+}m (forecast).",preview.annual_budget_change.0));
                             for impact in &preview.household_impacts {ui.label(format!("{}: {:+}m/day disposable income",impact.group,impact.daily_disposable_change.0));}
@@ -97,7 +97,7 @@ impl Panel {
                 egui::CollapsingHeader::new(format!("#{} · {} · {:?} · paid {}m",r.id.0,content.policy(&r.project.policy).expect("policy").name,r.stage(),r.paid.0)).id_salt(r.id.0).open(self.focused.map(|id| id == r.id)).show(ui,|ui| {
                     for m in &r.milestones {ui.label(format!("{} · {:?} · level {}",date(m.day.units()),m.stage,m.value));}
                     for e in &r.direct_effects {ui.label(format!("Direct delivered change: {} from {} to {}",effect_label(&e.field),e.before,e.after));}
-                    if let Some(day)=r.review_due {ui.label(format!("Observed outcome review due {}",date(day)));}
+                    if let Some(day)=r.review_due {ui.label(format!("Observed outcome review due {}",date((day).units())));}
                     if let Some(e)=&r.evaluation {
                         ui.strong(format!("Observed review · {}",date(e.day.units())));
                         if let Some(before)=&e.before {ui.label(format!("Before delivery: revenue {}m/day · spending {}m/day · food {}% · energy {}% · external disruption {} capacity points",before.revenue.0,before.spending.0,before.food_coverage,before.energy_coverage,before.shock));}

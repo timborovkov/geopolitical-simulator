@@ -123,7 +123,7 @@ fn status(world: &World, content: &Content) {
             p.stage.label(),
             paid,
             p.reserved.0,
-            date(p.due_day)
+            date((p.due_day).units())
         );
     }
 }
@@ -782,8 +782,8 @@ fn play(
                     println!(
                         "Current {:?} since {} · next request {}",
                         state.regime,
-                        date(state.since),
-                        date(state.next_request_day)
+                        date((state.since).units()),
+                        date((state.next_request_day).units())
                     );
                     for template in &rules.templates {
                         println!(
@@ -802,7 +802,7 @@ fn play(
                             request.id.0,
                             request.target,
                             request.contested,
-                            date(request.decision_day),
+                            date((request.decision_day).units()),
                             request.upfront.0,
                             request.reserved.0
                         );
@@ -842,7 +842,7 @@ fn play(
                             "{:?} · contested {} · decision {} · {}m total: {}m upfront, {}m reserved · approval/legislature/elite/council costs {}/{}/{}/{} if enacted. Cancellation/refusal retains paid costs and cooldown.",
                             target,
                             contested,
-                            date(preview.decision_day),
+                            date((preview.decision_day).units()),
                             preview.cost.0,
                             preview.upfront.0,
                             preview.reserved.0,
@@ -899,7 +899,7 @@ fn play(
                     for point in plan.points.iter().filter(|point| {
                         point.day == world.day
                             || point.day == sim_core::CampaignDay::new(world.day.units() + horizon)
-                            || loan.is_some_and(|loan| point.day == sim_core::CampaignDay::new(loan.decision_day))
+                            || loan.is_some_and(|loan| point.day == sim_core::CampaignDay::new((loan.decision_day).units()))
                     }) {
                         println!(
                             "{}: without borrowing {}m · conditional approval {}m (negative = funding gap)",
@@ -910,7 +910,7 @@ fn play(
                     }
                     if let Some(loan) = loan {
                         let rate = plan.interest_accrual.as_ref().map_or_else(|| format!("{}m/day",plan.additional_daily_interest.0), |i| format!("{:.4}m/day mean",i.additional_daily_numerator as f64 / f64::from(INTEREST_DENOMINATOR)));
-                        println!("Pending {}m on {} IF approved · additional interest {rate}",loan.amount.0,date(loan.decision_day));
+                        println!("Pending {}m on {} IF approved · additional interest {rate}",loan.amount.0,date((loan.decision_day).units()));
                     }
                 }
                 "cash-retention" => {
@@ -921,7 +921,7 @@ fn play(
                 }
                 "preview-retention" => {
                     let preview = world.preview_cash_hold(content, &world.player, Money(number(words.get(1))?), DaySpan::new(number(words.get(2))?))?;
-                    println!("Target {}m; actual protected now {}m; approval -{}; expiry {}; reuse {}. Unfilled target is not cash. Wages, welfare and interest may become arrears; matured principal may remain unpaid. Local claims and project reservations remain protected.", preview.target.0, preview.retained_now.0, preview.approval_cost, date(preview.expiry_day), date(preview.next_allowed_day));
+                    println!("Target {}m; actual protected now {}m; approval -{}; expiry {}; reuse {}. Unfilled target is not cash. Wages, welfare and interest may become arrears; matured principal may remain unpaid. Local claims and project reservations remain protected.", preview.target.0, preview.retained_now.0, preview.approval_cost, date((preview.expiry_day).units()), date((preview.next_allowed_day).units()));
                 }
                 "retain-cash" => issue(world, content, Action::HoldCash { target: Money(number(words.get(1))?), days: sim_core::DaySpan::new(number(words.get(2))?)})?,
                 "release-cash" => issue(world, content, Action::ReleaseCash { request: CashHoldId(number(words.get(1))?) })?,
@@ -966,7 +966,7 @@ fn play(
                                 request.id.0,
                                 request.amount.0,
                                 request.authority.0,
-                                date(request.decision_day),
+                                date((request.decision_day).units()),
                                 request.id.0
                             );
                         }
@@ -979,17 +979,17 @@ fn play(
                                 loan.currency,
                                 loan.original_principal.0,
                                 loan.outstanding.0,
-                                date(loan.issued_day),
+                                date((loan.issued_day).units()),
                                 loan.origin
                             );
                             if let Some(day) = loan.maturity_day {
-                                println!("  Principal due {} · automatic repayment {}m · remaining {}m{}",date(day),loan.maturity_repaid.unwrap_or(Money(0)).0,loan.outstanding.0,if day <= world.day.units() && loan.outstanding.0 > 0 {" OVERDUE"} else {""});
+                                println!("  Principal due {} · automatic repayment {}m · remaining {}m{}",date((day).units()),loan.maturity_repaid.unwrap_or(Money(0)).0,loan.outstanding.0,if day <= world.day && loan.outstanding.0 > 0 {" OVERDUE"} else {""});
                             } else {println!("  Perpetual principal, no mandatory maturity date.");}
                         }
                         println!(
                             "Emergency acts {} · next eligible {} (backing and credit checks still apply)",
                             financing.emergency_count,
-                            date(financing.next_emergency_day)
+                            date((financing.next_emergency_day).units())
                         );
                     } else {
                         println!(
@@ -1004,7 +1004,7 @@ fn play(
                             "{}m via {} · decision {} · consent {} days · authority and creditor funds rechecked before cash is released",
                             amount.0,
                             preview.route,
-                            date(preview.decision_day),
+                            date((preview.decision_day).units()),
                             preview.consent_days.units()
                         ),
                         Err(reason) => println!("Ordinary borrowing unavailable: {reason}"),
@@ -1138,8 +1138,8 @@ fn play(
                     let p = &c.budget;
                     println!(
                         "Fiscal period {} → {}: opening cash {}m; forecast closing cash {}m",
-                        date(p.start_day),
-                        date(p.end_day),
+                        date((p.start_day).units()),
+                        date((p.end_day).units()),
                         p.opening_cash.0,
                         p.forecast_closing_cash()
                     );
@@ -1156,7 +1156,7 @@ fn play(
                     for review in &c.budget_reviews {
                         println!(
                             "Closed {} · revenue {}m · payments {}m · closing cash {}m · arrears {}m",
-                            date(review.period.end_day),
+                            date((review.period.end_day).units()),
                             review.period.revenue.0,
                             review.period.payments.0,
                             review.closing_cash.0,

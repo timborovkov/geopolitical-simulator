@@ -207,7 +207,7 @@ impl AccruedInterest {
             .iter()
             .filter(|loan| {
                 loan.id.0 > 0
-                    && loan.issued_day == world.day.units()
+                    && loan.issued_day == world.day
                     && world
                         .journal
                         .get(loan.id.0 as usize - 1)

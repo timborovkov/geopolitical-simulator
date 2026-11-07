@@ -100,7 +100,7 @@ fn classic_pending_project_roundtrips_without_lifecycle_records() {
     assert_eq!(serde_json::to_value(&project).unwrap()["id"], id.0);
     roundtrip(&world, &content);
     world
-        .advance(&content, sim_core::DaySpan::new(project.due_day))
+        .advance(&content, sim_core::DaySpan::new((project.due_day).units()))
         .unwrap();
     assert!(world.player_country().project(&id).is_none());
     assert_eq!(world.player_country().tax, 30);
