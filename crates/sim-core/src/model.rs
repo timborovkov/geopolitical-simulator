@@ -77,9 +77,14 @@ impl Accounts {
         paid
     }
 }
+/// The recorded stamp is an absolute campaign day; numeric snapshots are preserved.
+/// ```compile_fail
+/// use sim_core::{LedgerEntry, DaySpan};
+/// fn cannot_assign_elapsed_or_untyped_time(record: &mut LedgerEntry) { record.day = 30_u32; }
+/// ```
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LedgerEntry {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub country: CountryId,
     pub from: Account,
     pub to: Account,
@@ -119,9 +124,14 @@ pub struct DailyReport {
     pub food_consumed: Food,
     pub food_lost: Food,
 }
+/// The recorded stamp is an absolute campaign day; numeric snapshots are preserved.
+/// ```compile_fail
+/// use sim_core::{Observation, DaySpan};
+/// fn cannot_assign_elapsed_or_untyped_time(record: &mut Observation) { record.day = 30_u32; }
+/// ```
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Observation {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub treasury: Money,
     pub debt: Money,
     pub approval: i32,
@@ -340,20 +350,30 @@ pub enum Action {
         edit: DeveloperEdit,
     },
 }
+/// The recorded stamp is an absolute campaign day; numeric snapshots are preserved.
+/// ```compile_fail
+/// use sim_core::{Command, DaySpan};
+/// fn cannot_assign_elapsed_or_untyped_time(record: &mut Command) { record.day = DaySpan::new(30); }
+/// ```
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Command {
     pub id: CommandId,
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub issuer: CountryId,
     pub action: Action,
 }
+/// The recorded stamp is an absolute campaign day; numeric snapshots are preserved.
+/// ```compile_fail
+/// use sim_core::{Event, DaySpan};
+/// fn cannot_assign_elapsed_or_untyped_time(record: &mut Event) { record.day = DaySpan::new(30); }
+/// ```
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Event {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub context: Option<EventContext>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<EventId>,
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub country: CountryId,
     pub important: bool,
     pub text: String,
@@ -638,7 +658,7 @@ impl World {
     pub fn command(&self, issuer: CountryId, action: Action) -> Command {
         Command {
             id: self.next_command,
-            day: self.day.units(),
+            day: self.day,
             issuer,
             action,
         }
@@ -673,7 +693,7 @@ impl World {
         self.events.push(Event {
             context: (self.rules >= 23).then_some(context),
             id,
-            day: self.day.units(),
+            day: self.day,
             country: country.clone(),
             important,
             text: text.into(),
@@ -728,7 +748,7 @@ impl World {
         }
         if paid > 0 {
             self.ledger.push(LedgerEntry {
-                day: self.day.units(),
+                day: self.day,
                 country: country.clone(),
                 from,
                 to,
@@ -959,8 +979,8 @@ impl World {
                 }
             };
             if command.id.0 != index as u64 + 1
-                || command.day < previous_day
-                || command.day > self.day.units()
+                || command.day < crate::CampaignDay::new(previous_day)
+                || command.day > self.day
                 || !self.countries.contains_key(&command.issuer)
                 || entry.ai == (command.issuer == self.player)
                 || (entry.ai && entry.developer)
@@ -976,9 +996,9 @@ impl World {
             if let (Some(technologies), Action::Enact { policy, .. }) =
                 (&content.technologies, &command.action)
             {
-                technologies.check_at(&command.issuer, policy, command.day)?;
+                technologies.check_at(&command.issuer, policy, command.day.units())?;
             }
-            previous_day = command.day;
+            previous_day = command.day.units();
         }
         for (id, c) in &self.countries {
             match (&c.statistical_archive, self.rules >= 25) {
@@ -1210,8 +1230,8 @@ impl World {
                 ));
             }
             if c.history.iter().any(|o| {
-                o.day < start_day
-                    || o.day > self.day.units()
+                o.day < crate::CampaignDay::new(start_day)
+                    || o.day > self.day
                     || !(0..=100).contains(&o.approval)
                     || !(0..=100).contains(&o.needs)
                     || [o.treasury.0, o.debt.0, o.output.0]

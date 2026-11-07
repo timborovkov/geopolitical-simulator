@@ -205,14 +205,14 @@ pub struct TerritorialChange {
     pub request: TerritorialOrderId,
     pub from: TerritorialForm,
     pub to: TerritorialForm,
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub contested: bool,
     pub compensations: Vec<RegionalCompensation>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RegionalRequisition {
     pub id: TerritorialOrderId,
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub region: RegionId,
     pub amount: Money,
     pub fee: Money,
@@ -286,7 +286,12 @@ impl World {
             .countries
             .get(id)
             .and_then(|c| c.territorial.as_ref())
-            .and_then(|s| s.history.iter().rev().find(|change| change.day <= day))
+            .and_then(|s| {
+                s.history
+                    .iter()
+                    .rev()
+                    .find(|change| change.day <= crate::CampaignDay::new(day))
+            })
             .map_or_else(|| base.form.clone(), |change| change.to.clone()))
     }
     pub(crate) fn territorial_revision(
@@ -301,7 +306,7 @@ impl World {
             state
                 .history
                 .iter()
-                .filter(|change| change.day <= day)
+                .filter(|change| change.day <= crate::CampaignDay::new(day))
                 .count() as u32,
         )
     }
@@ -322,7 +327,12 @@ impl World {
                 .countries
                 .get(id)
                 .and_then(|c| c.territorial.as_ref())
-                .and_then(|s| s.history.iter().rev().find(|change| change.day <= day))
+                .and_then(|s| {
+                    s.history
+                        .iter()
+                        .rev()
+                        .find(|change| change.day <= crate::CampaignDay::new(day))
+                })
         {
             return rules
                 .apply_template(base, &change.to)?
@@ -818,7 +828,7 @@ impl World {
             request: record.id,
             from: record.from,
             to: record.target.clone(),
-            day: self.day.units(),
+            day: self.day,
             contested: record.contested,
             compensations: record.compensations.clone(),
         });
@@ -873,7 +883,7 @@ impl World {
         state.next_requisition_day = self.day.units() + rule.cooldown_days.units();
         state.requisitions.push(RegionalRequisition {
             id: request,
-            day: self.day.units(),
+            day: self.day,
             region: region.clone(),
             amount,
             fee: preview.fee,
@@ -969,13 +979,13 @@ impl World {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PublishedTerritorialChange {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub form: TerritorialForm,
     pub contested: bool,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PublishedRequisition {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub region: RegionId,
     pub amount: Money,
 }
@@ -1050,9 +1060,9 @@ impl World {
             Some(entry) => entry
                 .command
                 .day
-                .checked_add(rules.cooldown_days.units())
+                .checked_add(rules.cooldown_days)
                 .ok_or("Territorial interval overflow")?,
-            None => start,
+            None => crate::CampaignDay::new(start),
         };
         let requisition_clock = match requisition_origins.last() {
             Some(entry) => entry
@@ -1063,16 +1073,15 @@ impl World {
                         .requisition
                         .as_ref()
                         .ok_or("Requisition journal without procedures")?
-                        .cooldown_days
-                        .units(),
+                        .cooldown_days,
                 )
                 .ok_or("Requisition interval overflow")?,
-            None => start,
+            None => crate::CampaignDay::new(start),
         };
         if state.reforms.len() != reform_origins.len()
             || state.requisitions.len() != requisition_origins.len()
-            || state.next_reform_day != reform_clock
-            || state.next_requisition_day != requisition_clock
+            || state.next_reform_day != reform_clock.units()
+            || state.next_requisition_day != requisition_clock.units()
             || state
                 .reforms
                 .iter()
@@ -1091,7 +1100,7 @@ impl World {
                 id,
                 &record.target,
                 record.contested,
-                command.day,
+                command.day.units(),
             )?;
             let cost = Money((d.gdp.units() * route.cost_bps.units_i64() / 10000).max(1));
             let upfront = Money((cost.0 * route.upfront_bps.units_i64() / 10000).max(1));
@@ -1099,10 +1108,11 @@ impl World {
                 Money(cost.0 - upfront.0 + compensations.iter().map(|p| p.amount.0).sum::<i64>());
             if !matches
                 || record.id.0 != command.id.0
-                || record.proposed_day != command.day
-                || command.day.checked_add(route.days.units()) != Some(record.decision_day)
+                || record.proposed_day != command.day.units()
+                || command.day.checked_add(route.days)
+                    != Some(crate::CampaignDay::new(record.decision_day))
                 || record.decision_day > MAX_DAY
-                || record.from != self.territorial_form_at(content, id, command.day)?
+                || record.from != self.territorial_form_at(content, id, command.day.units())?
                 || record.admin_cost != cost
                 || record.compensations != compensations
                 || record.sponsor == crate::GovernmentId(0)
@@ -1119,7 +1129,8 @@ impl World {
                 .expect("charter");
             let mut differs = record.from != record.target;
             for next in rules.apply_template(base, &record.target)? {
-                let previous = self.regional_mandate_at(content, id, &next.id, command.day)?;
+                let previous =
+                    self.regional_mandate_at(content, id, &next.id, command.day.units())?;
                 differs |= previous.autonomous_services != next.autonomous_services
                     || previous.tax_entitlement_bps.units_i64()
                         != next.tax_entitlement_bps.units_i64();
@@ -1130,7 +1141,7 @@ impl World {
             if !record.contested && losses.len() != record.compensations.len() {
                 return Err("Local rights losses require explicit funded compensation".into());
             }
-            let withdrawal=self.journal.iter().filter(|entry|&entry.command.issuer==id&&Some(entry.command.day)==record.resolved_day&&matches!(entry.command.action,Action::WithdrawTerritorialReform{request} if request==record.id)).count();
+            let withdrawal=self.journal.iter().filter(|entry|&entry.command.issuer==id&&Some(entry.command.day.units())==record.resolved_day&&matches!(entry.command.action,Action::WithdrawTerritorialReform{request} if request==record.id)).count();
             if withdrawal != usize::from(record.status == TerritorialReformStatus::Withdrawn) {
                 return Err("Territorial withdrawal differs from accepted commands".into());
             }
@@ -1208,7 +1219,7 @@ impl World {
             .clone();
         for (change, record) in state.history.iter().zip(enacted) {
             if change.request != record.id
-                || change.day != record.decision_day
+                || change.day != crate::CampaignDay::new(record.decision_day)
                 || change.from != record.from
                 || change.from != previous
                 || change.to != record.target
@@ -1270,7 +1281,7 @@ impl World {
             && state.requisitions.windows(2).any(|pair| {
                 pair[0]
                     .day
-                    .checked_add(rule.cooldown_days.units())
+                    .checked_add(rule.cooldown_days)
                     .is_none_or(|day| pair[1].day < day)
             })
         {
@@ -1291,7 +1302,7 @@ impl World {
                 state
                     .requisitions
                     .iter()
-                    .filter(|claim| claim.day == self.day.units() && &claim.region == region)
+                    .filter(|claim| claim.day == self.day && &claim.region == region)
                     .map(|claim| i128::from(claim.amount.0))
                     .sum::<i128>()
             })

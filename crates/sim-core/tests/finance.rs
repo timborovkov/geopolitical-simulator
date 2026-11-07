@@ -57,7 +57,7 @@ fn consent_withholds_cash_until_the_decision_and_survives_save_resume() {
     assert!(country.financing.as_ref().unwrap().pending.is_none());
     assert_eq!(country.financing.as_ref().unwrap().instruments[1].id, id);
     assert!(world.ledger.iter().any(|e| e.country == world.player
-        && e.day == 14
+        && e.day == sim_core::CampaignDay::new(14)
         && e.from == Account::External
         && e.to == Account::Treasury
         && e.amount == Money(10000)));
@@ -391,7 +391,7 @@ fn a_cash_constrained_ai_borrows_through_authority_and_waits_for_cash() {
         })
         .unwrap();
     let request = request.clone();
-    let decision = request.command.day + 14;
+    let decision = request.command.day.units() + 14;
     if decision > world.day.units() {
         world
             .advance(

@@ -177,7 +177,7 @@ pub struct IncomeTaxWithholding {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IncomeTaxReport {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub standard_rate: i32,
     pub administration: i32,
     pub groups: Vec<IncomeTaxWithholding>,
@@ -246,7 +246,7 @@ impl World {
             .as_ref()
             .ok_or("Missing settled income-tax report")?;
         let d = content.country(id).ok_or("Unknown country")?;
-        if report.day != self.day.units()
+        if report.day != self.day
             || report.groups.len() != d.households.len()
             || c.households.len() != d.households.len()
             || report.standard_rate

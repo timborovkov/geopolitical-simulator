@@ -74,7 +74,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World) -> Option<Action> {
         for poll in state.polls.iter().rev() {
             ui.strong(format!(
                 "{} · modeled allocation · governing party {}",
-                date(poll.day),
+                date(poll.day.units()),
                 poll.governing_party
             ));
             if !poll.contested {

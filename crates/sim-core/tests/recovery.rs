@@ -50,7 +50,7 @@ fn interrupted_valid_write_can_be_reviewed_and_restored_without_losing_originals
             .find(|r| r.kind == persistence::RecoveryKind::PendingSave)
             .unwrap()
             .day,
-        Some(3)
+        Some(CampaignDay::new(3))
     );
     assert!(persistence::save(&path, &w, &c).is_err());
     let restored = persistence::restore(&path, &pending, &c).unwrap();

@@ -106,7 +106,7 @@ fn show_event(ui: &mut egui::Ui, event: &Event) -> Option<EventId> {
                     },
                     format!(
                         "{} · {}",
-                        date(event.day),
+                        date(event.day.units()),
                         if event.important {
                             "DECISION / ALERT"
                         } else {

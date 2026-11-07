@@ -52,9 +52,10 @@ impl AdvanceJob {
                 }
                 progress.store(world.day.units() - start_day, Ordering::Relaxed);
                 if important
-                    && world.events.iter().any(|e| {
-                        e.day == world.day.units() && e.country == world.player && e.important
-                    })
+                    && world
+                        .events
+                        .iter()
+                        .any(|e| e.day == world.day && e.country == world.player && e.important)
                 {
                     stopped_for_event = true;
                     break;
@@ -124,7 +125,7 @@ mod tests {
                 .world
                 .events
                 .iter()
-                .any(|e| e.day == outcome.world.day.units()
+                .any(|e| e.day == outcome.world.day
                     && e.country == outcome.world.player
                     && e.important)
         );

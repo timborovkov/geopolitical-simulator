@@ -20,7 +20,7 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, money: &mut i64) -> O
         ));
         ui.label(format!("Unsettled fraction {}/{} of 1m credits. This is a creditor claim, never available cash; it survives principal retirement until a whole unit becomes due.", interest.remainder, INTEREST_DENOMINATOR));
         if let Some(last) = &interest.last {
-            ui.small(format!("Latest assessment {} · principal basis {}m · whole interest due {}m. Manual borrowing and repayments made afterward affect the next day.", date(last.day), last.principal.0, last.amount_due.0));
+            ui.small(format!("Latest assessment {} · principal basis {}m · whole interest due {}m. Manual borrowing and repayments made afterward affect the next day.", date(last.day.units()), last.principal.0, last.amount_due.0));
         }
     }
     ui.label("Pending borrowing is not available cash. Approval rechecks governing backing, the debt ceiling and the finite creditor's cash.");

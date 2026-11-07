@@ -9,9 +9,14 @@ pub enum Viewer {
     Government(CountryId),
     Observer,
 }
+/// Published review dates keep the same absolute-day type as their private source.
+/// ```compile_fail
+/// use sim_core::{PublishedObservation, DaySpan};
+/// fn cannot_publish_a_duration(report: &mut PublishedObservation) { report.day = DaySpan::new(30); }
+/// ```
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PublishedObservation {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub debt: Money,
     pub approval: i32,
     pub needs: i32,
@@ -55,7 +60,7 @@ pub struct PublicCountryReport {
 pub struct PlayerView {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub own_events: Option<Vec<Event>>,
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub rules: u32,
     pub content_hash: u64,
     pub developer_modified: bool,
@@ -161,7 +166,7 @@ impl World {
         }
         Ok(PlayerView {
             own_events,
-            day: self.day.units(),
+            day: self.day,
             rules: self.rules,
             content_hash: self.content_hash,
             developer_modified: self.is_developer_modified(),

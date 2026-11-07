@@ -105,16 +105,16 @@ pub fn show(ui: &mut Ui, content: &Content, world: &World, amount: i64, chart: &
         if let Some(loan) = outlook.loan {
             let rate = outlook.interest_accrual.as_ref().map_or_else(||format!("{}m/day",outlook.additional_daily_interest.0), |i|format!("{:.4}m/day mean",i.additional_daily_numerator as f64 / f64::from(INTEREST_DENOMINATOR)));
             ui.label(format!("{} {}m if approved on {} · additional interest {rate} after disbursement.", if pending.is_some() { "Pending request:" } else { "Selected ordinary borrowing:" }, loan.amount.0, date(loan.decision_day)));
-            if let Some(before) = outlook.points.iter().find(|point| point.day + 1 == loan.decision_day)
+            if let Some(before) = outlook.points.iter().find(|point| point.day.units() + 1 == loan.decision_day)
                 && before.without_loan.0 < 0 {
                 ui.colored_label(Color32::LIGHT_YELLOW, "The current deficit would exhaust available cash before the borrowing decision. Review spending, revenues or the explicit emergency route and its political costs.");
             }
         } else {
             ui.label("No ordinary loan is currently available for this comparison. The line excludes new borrowing.");
         }
-        let mut series = vec![Series { label: "Without new borrowing".into(), points: outlook.points.iter().map(|point| (point.day, point.without_loan.0 as f64)).collect() }];
+        let mut series = vec![Series { label: "Without new borrowing".into(), points: outlook.points.iter().map(|point| (point.day.units(), point.without_loan.0 as f64)).collect() }];
         if outlook.loan.is_some() {
-            series.push(Series { label: "If this loan is approved".into(), points: outlook.points.iter().map(|point| (point.day, point.if_approved.0 as f64)).collect() });
+            series.push(Series { label: "If this loan is approved".into(), points: outlook.points.iter().map(|point| (point.day.units(), point.if_approved.0 as f64)).collect() });
         }
         chart.show_funding_forecast(ui, &series);
     });

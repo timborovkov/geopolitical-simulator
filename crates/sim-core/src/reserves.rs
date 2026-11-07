@@ -67,7 +67,7 @@ pub struct ReserveOrder {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ReserveFlow<Q> {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub opening: Q,
     pub purchased: Q,
     pub released: Q,
@@ -139,7 +139,7 @@ pub struct ReservePreview {
 /// Observed procurement constraints, never a promise about a future settlement.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ReserveSupply {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub physical_need: i64,
     pub civilian_supply: i64,
     pub civilian_imports: i64,
@@ -451,7 +451,7 @@ impl World {
     pub(crate) fn begin_reserve_day(&mut self, id: &CountryId) {
         if let Some(state) = self.countries.get_mut(id).unwrap().reserves.as_mut() {
             state.energy.last = Some(ReserveFlow {
-                day: self.day.units(),
+                day: self.day,
                 opening: state.energy.stored,
                 purchased: Energy::ZERO,
                 released: Energy::ZERO,
@@ -459,7 +459,7 @@ impl World {
                 closing: state.energy.stored,
             });
             state.food.last = Some(ReserveFlow {
-                day: self.day.units(),
+                day: self.day,
                 opening: state.food.stored,
                 purchased: Food::ZERO,
                 released: Food::ZERO,
@@ -682,7 +682,7 @@ fn validate_stock<Q: Copy>(
     let bought = units(f.purchased);
     let used = units(f.released);
     let loss = units(f.loss);
-    if f.day != day
+    if f.day != crate::CampaignDay::new(day)
         || day <= start
         || [opening, bought, used, loss]
             .iter()
@@ -753,7 +753,7 @@ impl World {
             let market = content.markets.as_ref().unwrap().good(o.good);
             if o.id.0 <= previous
                 || command.command.issuer != *id
-                || command.command.day != o.proposed_day
+                || command.command.day != crate::CampaignDay::new(o.proposed_day)
                 || !matches!(command.command.action,Action::ProcureReserve{good,days} if good==o.good&&days==o.days)
                 || !(1..=rules.capacity_days.units()).contains(&o.days.units())
                 || o.quantity != need * i64::from(o.days.units())
@@ -804,7 +804,7 @@ impl World {
                 ReserveStatus::Completed if o.filled!=o.quantity||o.resolved_day!=o.last_fill_day=>return Err("Invalid completed reserve contract".into()),
                 ReserveStatus::Expired if o.resolved_day!=Some(o.expiry_day+1)=>return Err("Invalid reserve expiry".into()),
                 ReserveStatus::Refused{reason} if o.filled!=0||reason.trim().is_empty()=>return Err("Invalid reserve refusal".into()),
-                ReserveStatus::Cancelled if !self.journal.iter().any(|e|e.command.issuer==*id&&Some(e.command.day)==o.resolved_day&&matches!(e.command.action,Action::CancelReserve{request} if request==o.id))=>return Err("Missing reserve cancellation command".into()),
+                ReserveStatus::Cancelled if !self.journal.iter().any(|e|e.command.issuer==*id&&Some(e.command.day.units())==o.resolved_day&&matches!(e.command.action,Action::CancelReserve{request} if request==o.id))=>return Err("Missing reserve cancellation command".into()),
                 _=>{}
             }
             previous = o.id.0;

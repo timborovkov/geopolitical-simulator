@@ -115,7 +115,7 @@ impl InterestProjection {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct InterestAssessment {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub principal: Money,
     pub opening_remainder: u32,
     pub amount_due: Money,
@@ -146,7 +146,7 @@ impl AccruedInterest {
             .checked_add(principal.0 as u64)
             .expect("bounded campaign principal-days");
         self.last = Some(InterestAssessment {
-            day,
+            day: crate::CampaignDay::new(day),
             principal,
             opening_remainder: self.remainder,
             amount_due,
@@ -193,7 +193,7 @@ impl AccruedInterest {
         let repayments: i128 = world
             .journal
             .iter()
-            .filter(|e| e.command.issuer == *id && e.command.day == world.day.units())
+            .filter(|e| e.command.issuer == *id && e.command.day == world.day)
             .filter_map(|e| match e.command.action {
                 Action::Repay { amount } => Some(i128::from(amount.0)),
                 _ => None,
@@ -211,11 +211,11 @@ impl AccruedInterest {
                     && world
                         .journal
                         .get(loan.id.0 as usize - 1)
-                        .is_some_and(|e| e.command.day == world.day.units())
+                        .is_some_and(|e| e.command.day == world.day)
             })
             .map(|loan| i128::from(loan.original_principal.0))
             .sum();
-        if last.day != world.day.units()
+        if last.day != world.day
             || i128::from(last.principal.0) != i128::from(c.debt.0) + repayments - issued_after
             || self.principal_days < last.principal.0 as u64
             || u64::from(last.opening_remainder)

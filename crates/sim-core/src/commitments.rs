@@ -61,7 +61,7 @@ pub enum CommitmentStage {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CommitmentMilestone {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub stage: CommitmentStage,
     pub value: i32,
 }
@@ -73,7 +73,7 @@ pub struct DirectPolicyEffect {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CommitmentEvaluation {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     /// Last settled day before delivery; opening-state reports are explicitly absent.
     pub before: Option<DailyReport>,
     pub after: DailyReport,
@@ -101,7 +101,7 @@ impl CommitmentRecord {
     }
     fn mark(&mut self, day: u32, stage: CommitmentStage) {
         self.milestones.push(CommitmentMilestone {
-            day,
+            day: crate::CampaignDay::new(day),
             stage,
             value: self.project.value,
         });
@@ -463,14 +463,14 @@ impl World {
                 .expect("delivery")
                 .day;
             r.evaluation = Some(CommitmentEvaluation {
-                day: self.day.units(),
+                day: self.day,
                 before: r.baseline.clone(),
                 after: c.report.clone(),
                 approval_before: r.approval_at_delivery.expect("approval"),
                 approval_after: c.approval,
                 other_deliveries: deliveries
                     .iter()
-                    .filter(|day| **day >= delivery && **day <= self.day.units())
+                    .filter(|day| **day >= delivery && **day <= self.day)
                     .count()
                     .saturating_sub(1) as u32,
             });
@@ -534,7 +534,7 @@ impl World {
                 || r.project.policy != *policy
                 || r.project.cost != cost
                 || r.project.start_day != r.project.consent_day
-                || r.project.consent_day < entry.command.day
+                || r.project.consent_day < entry.command.day.units()
                 || r.project.due_day < r.project.consent_day
                 || r.project.due_day > MAX_DAY
                 || !(definition.min..=definition.max).contains(&r.project.value)
@@ -546,8 +546,7 @@ impl World {
                     })
                 || r.milestones.windows(2).any(|m| m[0].day > m[1].day)
                 || r.milestones.iter().any(|m| {
-                    m.day > self.day.units()
-                        || !(definition.min..=definition.max).contains(&m.value)
+                    m.day > self.day || !(definition.min..=definition.max).contains(&m.value)
                 })
                 || r.milestones.last().expect("milestone").value != r.project.value
             {
@@ -585,7 +584,7 @@ impl World {
             if let Some(m) = operating {
                 expected.push(CommitmentStage::Operating);
                 if !funded
-                    || m.day != r.project.due_day
+                    || m.day != crate::CampaignDay::new(r.project.due_day)
                     || r.approval_at_delivery.is_none()
                     || r.direct_effects.is_empty()
                 {
@@ -628,9 +627,8 @@ impl World {
             }
             if let Some(e) = &r.evaluation {
                 expected.push(CommitmentStage::Evaluated);
-                if operating.and_then(|m| m.day.checked_add(rules.evaluation_days.units()))
-                    != Some(e.day)
-                    || e.day > self.day.units()
+                if operating.and_then(|m| m.day.checked_add(rules.evaluation_days)) != Some(e.day)
+                    || e.day > self.day
                     || e.before != r.baseline
                     || Some(e.approval_before) != r.approval_at_delivery
                     || !(0..=100).contains(&e.approval_after)
@@ -679,12 +677,12 @@ impl World {
             }
             let expected_review = if r.stage() == CommitmentStage::Operating {
                 operating
-                    .and_then(|m| m.day.checked_add(rules.evaluation_days.units()))
-                    .filter(|day| *day <= MAX_DAY)
+                    .and_then(|m| m.day.checked_add(rules.evaluation_days))
+                    .filter(|day| *day <= crate::CampaignDay::new(MAX_DAY))
             } else {
                 None
             };
-            if r.review_due != expected_review
+            if r.review_due != expected_review.map(crate::CampaignDay::units)
                 || r.review_due.is_some_and(|day| day <= self.day.units())
             {
                 return Err("Invalid pending commitment review".into());

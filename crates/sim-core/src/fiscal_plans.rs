@@ -156,7 +156,7 @@ pub struct BudgetPreview {
 /// Historical operation of a published policy setting, not a payment or outcome claim.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PublishedFiscalOperation {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub value: i32,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -451,7 +451,7 @@ impl World {
                     content,
                     Command {
                         id: command,
-                        day: trial.day.units(),
+                        day: trial.day,
                         issuer: id.clone(),
                         action: Action::Enact {
                             policy: policy.clone(),
@@ -634,7 +634,7 @@ impl World {
                 content,
                 Command {
                     id: self.next_command,
-                    day: self.day.units(),
+                    day: self.day,
                     issuer: id.clone(),
                     action: Action::ProposeBudget {
                         year: fiscal_year,
@@ -695,7 +695,7 @@ impl World {
             else {
                 unreachable!()
             };
-            if b.proposed_day != e.command.day || !(2000..=2099).contains(&b.year) {
+            if b.proposed_day != e.command.day.units() || !(2000..=2099).contains(&b.year) {
                 return Err("Invalid fiscal-plan proposal date or year".into());
             }
             let annual = b.year == year(b.proposed_day) + 1;
@@ -709,9 +709,10 @@ impl World {
                 .constitution
                 .as_ref()
                 .and_then(|s| {
-                    s.history
-                        .iter()
-                        .rfind(|h| h.day <= b.proposed_day && h.government_number <= b.sponsor)
+                    s.history.iter().rfind(|h| {
+                        h.day <= crate::CampaignDay::new(b.proposed_day)
+                            && h.government_number <= b.sponsor
+                    })
                 })
                 .and_then(|h| content.constitutions.as_ref()?.template(&h.to))
                 .map_or(opening, |t| &t.government);
@@ -722,7 +723,7 @@ impl World {
                     .max(government.consent_days.units());
             let changed = b.targets.changed(&b.baseline);
             if b.id.0 != e.command.id.0
-                || b.proposed_day != e.command.day
+                || b.proposed_day != e.command.day.units()
                 || b.year != *fiscal_year
                 || b.targets != *targets
                 || !b.targets.valid(content)
@@ -819,7 +820,7 @@ impl World {
                         if p.policy != *policy
                             || entry.budget_bill != Some(b.id)
                             || &entry.command.issuer != id
-                            || entry.command.day != resolved
+                            || entry.command.day != crate::CampaignDay::new(resolved)
                             || entry.command.action
                                 != (Action::Enact {
                                     policy: policy.clone(),
@@ -831,10 +832,10 @@ impl World {
                             || p.command.0 <= b.id.0
                             || record.project.consent_day != resolved
                             || record.project.due_day < b.effective_day
-                            || !record
-                                .milestones
-                                .iter()
-                                .any(|m| m.stage == CommitmentStage::Funded && m.day == resolved)
+                            || !record.milestones.iter().any(|m| {
+                                m.stage == CommitmentStage::Funded
+                                    && m.day == crate::CampaignDay::new(resolved)
+                            })
                             || record.project.policy != *policy
                         {
                             return Err(
@@ -852,7 +853,7 @@ impl World {
                     && matches!(e.command.action,Action::WithdrawBudget{request} if request==b.id)
             });
             if (b.status == BudgetBillStatus::Withdrawn) != withdrawal.is_some()
-                || withdrawal.is_some_and(|e| Some(e.command.day) != b.resolved_day)
+                || withdrawal.is_some_and(|e| Some(e.command.day.units()) != b.resolved_day)
             {
                 return Err("Budget withdrawal differs from journal".into());
             }

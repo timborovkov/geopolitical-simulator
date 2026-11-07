@@ -876,7 +876,7 @@ impl GameApp {
                     .unwrap_or_else(|| "Elite backing reviewed monthly".into())
             ));
             if let Some(event) = w.events.iter().rev().find(|e| e.country == self.selected) {
-                ui.label(format!("{}  {}", date(event.day), event.text));
+                ui.label(format!("{}  {}", date(event.day.units()), event.text));
             }
             self.situation(ui);
         }
@@ -1038,7 +1038,7 @@ impl GameApp {
             if let Some(poll) = &authority.last_poll {
                 ui.label(format!(
                     "Last modeled poll: {}. Allocation uses the scenario's 100-seat rule.",
-                    date(poll.day)
+                    date(poll.day.units())
                 ));
             }
         }
@@ -1077,14 +1077,14 @@ impl GameApp {
             if let Some(change) = &territory.last_change {
                 ui.label(format!(
                     "Last charter change {} · contested {}",
-                    date(change.day),
+                    date(change.day.units()),
                     change.contested
                 ));
             }
             if let Some(claim) = &territory.last_requisition {
                 ui.label(format!(
                     "Last contested local-fund requisition {} · {} · {}m",
-                    date(claim.day),
+                    date(claim.day.units()),
                     claim.region.0,
                     claim.amount.0
                 ));
@@ -1118,7 +1118,7 @@ impl GameApp {
             }
         }
         if let Some(latest) = report.latest {
-            ui.label(format!("Statistical release {} ({} days old): approval {}%, needs {}%, debt {}m, daily output {}m.",date(latest.day),w.day.units()-latest.day,latest.approval,latest.needs,latest.debt.0,latest.daily_output.0));
+            ui.label(format!("Statistical release {} ({} days old): approval {}%, needs {}%, debt {}m, daily output {}m.",date(latest.day.units()),w.day.units()-latest.day.units(),latest.approval,latest.needs,latest.debt.0,latest.daily_output.0));
         } else {
             ui.label("No statistical release yet. The first report is due at a political/statistical review; missing observations are not zero.");
         }
@@ -1629,7 +1629,7 @@ impl GameApp {
             {
                 ui.label(format!(
                     "{} · {:?} → {:?} · {}m · {}",
-                    date(e.day),
+                    date(e.day.units()),
                     e.from,
                     e.to,
                     e.amount.0,
@@ -1972,7 +1972,7 @@ impl GameApp {
                 ui.label("Restoration preserves the current file and interrupted writes before replacing the primary. The active campaign changes only after successful recovery.");
                 for candidate in &self.recovery {
                     ui.separator();ui.label(format!("{:?}: {}",candidate.kind,candidate.path.display()));
-                    if let Some(error)=&candidate.error{ui.colored_label(Color32::LIGHT_YELLOW,error);}else if let Some(day)=candidate.day {ui.label(format!("Valid campaign at {} · snapshot format {} · {} · rules {}",date(day),candidate.schema.unwrap_or_default(),candidate.content_id.as_deref().unwrap_or("unknown pack"),candidate.rules.unwrap_or_default()));if ui.add_enabled(self.pending.is_none(),egui::Button::new(format!("Restore {:?} from {}",candidate.kind,date(day)))).clicked(){chosen=Some(candidate.path.clone());}}
+                    if let Some(error)=&candidate.error{ui.colored_label(Color32::LIGHT_YELLOW,error);}else if let Some(day)=candidate.day {ui.label(format!("Valid campaign at {} · snapshot format {} · {} · rules {}",date(day.units()),candidate.schema.unwrap_or_default(),candidate.content_id.as_deref().unwrap_or("unknown pack"),candidate.rules.unwrap_or_default()));if ui.add_enabled(self.pending.is_none(),egui::Button::new(format!("Restore {:?} from {}",candidate.kind,date(day.units())))).clicked(){chosen=Some(candidate.path.clone());}}
                 }
                 close=ui.button("Close without changes").clicked();
             });
@@ -2630,7 +2630,7 @@ mod interface_tests {
             world.events.push(Event {
                 context: None,
                 id: None,
-                day: 0,
+                day: sim_core::CampaignDay::new(0),
                 country: world.player.clone(),
                 important: true,
                 text: "OWN IMPORTANT DECISION".into(),
@@ -2638,7 +2638,7 @@ mod interface_tests {
             world.events.push(Event {
                 context: None,
                 id: None,
-                day: 0,
+                day: sim_core::CampaignDay::new(0),
                 country: CountryId("BOR".into()),
                 important: true,
                 text: "PRIVATE FOREIGN DECISION".into(),
@@ -2711,7 +2711,7 @@ mod interface_tests {
             app.world.as_mut().unwrap().events.push(Event {
                 context: None,
                 id: None,
-                day: 0,
+                day: sim_core::CampaignDay::new(0),
                 country: CountryId("BOR".into()),
                 important: true,
                 text: "ANOTHER PRIVATE FOREIGN DECISION".into(),
@@ -2721,7 +2721,7 @@ mod interface_tests {
             app.world.as_mut().unwrap().events.push(Event {
                 context: None,
                 id: None,
-                day: 0,
+                day: sim_core::CampaignDay::new(0),
                 country: CountryId("AUR".into()),
                 important: true,
                 text: "NEW OWN IMPORTANT DECISION".into(),

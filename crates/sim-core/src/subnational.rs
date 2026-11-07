@@ -161,7 +161,7 @@ pub fn regional_daily_cost(gdp: AnnualGdp, share_bps: i64, level: i32) -> Money 
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RegionalSettlement {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub tax_receipts: Money,
     pub requested_base: Money,
     pub paid_base: Money,
@@ -699,7 +699,7 @@ impl World {
                 }
             }
             local.last = Some(RegionalSettlement {
-                day: self.day.units(),
+                day: self.day,
                 tax_receipts: Money(receipt),
                 requested_base: requested,
                 paid_base: Money(base),
@@ -911,10 +911,10 @@ impl World {
                         .ledger
                         .iter()
                         .rev()
-                        .take_while(|entry| entry.day == self.day.units())
+                        .take_while(|entry| entry.day == self.day)
                         .filter(|e| {
                             &e.country == id
-                                && e.day == self.day.units()
+                                && e.day == self.day
                                 && e.from == Account::Treasury
                                 && e.to == Account::Households
                                 && e.reason
@@ -937,7 +937,7 @@ impl World {
                         })
                         .map(|o| i128::from(o.daily_supplement.0))
                         .sum::<i128>();
-                    if last.day != self.day.units()
+                    if last.day != self.day
                         || last.tax_receipts != Money(receipt)
                         || last.requested_base
                             != regional_daily_cost(
@@ -964,7 +964,8 @@ impl World {
         }
         for (order, origin) in state.orders.iter().zip(origins) {
             let command = &origin.command;
-            let mandate = self.regional_mandate_at(content, id, &order.region, command.day)?;
+            let mandate =
+                self.regional_mandate_at(content, id, &order.region, command.day.units())?;
             let kind = match &command.action {
                 Action::RegionalOrder { region, kind }
                     if region == &order.region && kind == &order.kind =>
@@ -979,7 +980,9 @@ impl World {
                 .rev()
                 .filter(|previous| {
                     previous.id.0 < order.id.0
-                        && previous.resolved_day.is_some_and(|day| day <= command.day)
+                        && previous
+                            .resolved_day
+                            .is_some_and(|day| day <= command.day.units())
                 })
                 .find_map(|previous| match (&previous.kind, &previous.status) {
                     (RegionalOrderKind::Directive { level }, RegionalOrderStatus::Delivered)
@@ -996,14 +999,16 @@ impl World {
             let delay = match kind {
                 RegionalOrderKind::Grant { .. } => rules.grant_review_days.units(),
                 RegionalOrderKind::Directive { .. } => self
-                    .governing_rules_at(content, id, command.day)?
+                    .governing_rules_at(content, id, command.day.units())?
                     .consent_days
                     .units(),
             };
             if order.id.0 != command.id.0
-                || order.proposed_day != command.day
-                || order.charter_revision != self.territorial_revision(content, id, command.day)
-                || command.day.checked_add(delay) != Some(order.decision_day)
+                || order.proposed_day != command.day.units()
+                || order.charter_revision
+                    != self.territorial_revision(content, id, command.day.units())
+                || command.day.checked_add(crate::DaySpan::new(delay))
+                    != Some(crate::CampaignDay::new(order.decision_day))
                 || order.decision_day > MAX_DAY
                 || order.sponsor == crate::GovernmentId(0)
                 || order.sponsor > c.government_number
@@ -1066,7 +1071,7 @@ impl World {
                     }
                 }
             }
-            let withdrawn=self.journal.iter().any(|entry| &entry.command.issuer==id && Some(entry.command.day)==order.resolved_day && matches!(entry.command.action,Action::CancelRegionalOrder {order:request} if request==order.id));
+            let withdrawn=self.journal.iter().any(|entry| &entry.command.issuer==id && Some(entry.command.day.units())==order.resolved_day && matches!(entry.command.action,Action::CancelRegionalOrder {order:request} if request==order.id));
             if withdrawn != (order.status == RegionalOrderStatus::Withdrawn) {
                 return Err("Regional withdrawal differs from original commands".into());
             }

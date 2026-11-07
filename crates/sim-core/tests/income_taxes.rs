@@ -371,7 +371,7 @@ fn malformed_bands_reports_and_older_envelopes_reject_cleanly() {
             .as_mut()
             .unwrap();
         match field {
-            "date" => r.day += 1,
+            "date" => r.day = r.day.checked_add(DaySpan::new(1)).unwrap(),
             "rate" => r.standard_rate += 1,
             "capacity" => r.administration += 1,
             "slice" => {

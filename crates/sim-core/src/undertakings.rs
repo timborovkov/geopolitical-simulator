@@ -225,7 +225,7 @@ pub struct UndertakingRecord {
 impl UndertakingRecord {
     fn mark(&mut self, day: u32, stage: CommitmentStage) {
         self.milestones.push(CommitmentMilestone {
-            day,
+            day: crate::CampaignDay::new(day),
             stage,
             value: self.goal.target,
         });
@@ -467,15 +467,15 @@ impl World {
                     .iter()
                     .find(|m| m.stage == CommitmentStage::Operating)?
                     .day;
-                if delivered < from
-                    || delivered > through.min(record.deadline_day)
+                if delivered < crate::CampaignDay::new(from)
+                    || delivered > crate::CampaignDay::new(through.min(record.deadline_day))
                     || !policy.direct_effects.iter().any(|e| {
                         e.field == field && record.goal.direction.met(e.after, record.goal.target)
                     })
                 {
                     return None;
                 }
-                Some((policy.id, delivered))
+                Some((policy.id, delivered.units()))
             })
             .min_by_key(|(id, day)| (*day, id.0))
     }
@@ -818,15 +818,16 @@ impl World {
                 .milestones
                 .iter()
                 .find(|m| m.stage == CommitmentStage::Operating)
-                && delivered.day <= day
+                && delivered.day <= crate::CampaignDay::new(day)
                 && let Some(effect) = r.direct_effects.iter().find(|e| e.field == field)
             {
                 changes.push((delivered.day, 0_u8, r.id.0, effect.after));
             }
         }
         for entry in &self.journal {
-            if entry.command.day > day
-                || entry.command.day == day && entry.command.id >= before_command
+            if entry.command.day > crate::CampaignDay::new(day)
+                || entry.command.day == crate::CampaignDay::new(day)
+                    && entry.command.id >= before_command
             {
                 continue;
             }
@@ -931,8 +932,9 @@ impl World {
             if !matches!(&command.action,Action::DeclareUndertaking{template,project} if template==&r.template&&project==&r.linked_project)
                 || r.id.0 != command.id.0
                 || r.kind != t.kind
-                || r.declared_day != command.day
-                || command.day.checked_add(t.review_days.units()) != Some(r.review_day)
+                || r.declared_day != command.day.units()
+                || command.day.checked_add(t.review_days)
+                    != Some(crate::CampaignDay::new(r.review_day))
                 || r.review_day.checked_add(t.deadline_days.units()) != Some(r.deadline_day)
                 || r.deadline_day > MAX_DAY
                 || r.sponsor == crate::GovernmentId(0)
@@ -946,7 +948,13 @@ impl World {
                     )
                 || !target_in_range(content, &r.goal.policy, r.goal.target)
                 || r.baseline
-                    != self.policy_level_at(content, id, &r.goal.policy, command.day, command.id)?
+                    != self.policy_level_at(
+                        content,
+                        id,
+                        &r.goal.policy,
+                        command.day.units(),
+                        command.id,
+                    )?
             {
                 return Err(
                     "Invalid undertaking origin, dates, goal baseline, fee or sponsorship".into(),
@@ -999,7 +1007,7 @@ impl World {
             if withdrawn.len() != usize::from(r.status == UndertakingStatus::Withdrawn)
                 || withdrawn
                     .first()
-                    .is_some_and(|e| Some(e.command.day) != r.resolved_day)
+                    .is_some_and(|e| Some(e.command.day.units()) != r.resolved_day)
             {
                 return Err("Undertaking withdrawal differs from commands".into());
             }
@@ -1012,7 +1020,7 @@ impl World {
             // the former cabinet's undertaking has already been closed.
             let superseded_before_delivery = c.constitution.as_ref().is_some_and(|state| {
                 state.history.iter().any(|change| {
-                    Some(change.day) == r.resolved_day
+                    Some(change.day.units()) == r.resolved_day
                         && r.sponsor.checked_add(1) == Some(change.government_number)
                 })
             });
@@ -1094,14 +1102,14 @@ impl World {
                 );
             }
             let mut milestones = vec![CommitmentMilestone {
-                day: r.declared_day,
+                day: crate::CampaignDay::new(r.declared_day),
                 stage: CommitmentStage::Proposed,
                 value: r.goal.target,
             }];
             if accepted {
                 for stage in [CommitmentStage::Approved, CommitmentStage::Operating] {
                     milestones.push(CommitmentMilestone {
-                        day: r.review_day,
+                        day: crate::CampaignDay::new(r.review_day),
                         stage,
                         value: r.goal.target,
                     });
@@ -1116,7 +1124,7 @@ impl World {
                     _ => CommitmentStage::Evaluated,
                 };
                 milestones.push(CommitmentMilestone {
-                    day,
+                    day: crate::CampaignDay::new(day),
                     stage,
                     value: r.goal.target,
                 });

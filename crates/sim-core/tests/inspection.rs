@@ -17,7 +17,7 @@ fn malformed_journals_are_rejected_before_encoding_or_replay() {
         let mut bad = world.clone();
         match variant {
             0 => bad.journal[0].command.id = CommandId(99),
-            1 => bad.journal[0].command.day = world.day.units() + 1,
+            1 => bad.journal[0].command.day = sim_core::CampaignDay::new(world.day.units() + 1),
             2 => bad.journal[0].command.issuer = CountryId("absent".into()),
             3 => bad.journal[0].ai = true,
             4 => {
@@ -88,7 +88,7 @@ fn next_event_reaches_a_leap_year_fiscal_boundary_after_365_quiet_days() {
     assert_eq!(world.advance_to_event(&content).unwrap(), DaySpan::new(366));
     assert_eq!(date(world.day.units()), "2001-01-01");
     assert!(world.events.iter().any(|e| e.country == world.player
-        && e.day == 366
+        && e.day == sim_core::CampaignDay::new(366)
         && e.important
         && e.text.starts_with("Fiscal year closed")));
     let mut direct = opening;

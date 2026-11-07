@@ -30,7 +30,9 @@ fn summarize(world: &World, country: &CountryId, first: u32) -> Result<Summary, 
     let closing = ACCOUNTS.map(|account| state.accounts.balance(account));
     let mut amounts = [[0_i128; 4]; 4];
     for entry in world.ledger.iter().filter(|entry| {
-        &entry.country == country && entry.day >= first && entry.day <= world.day.units()
+        &entry.country == country
+            && entry.day >= sim_core::CampaignDay::new(first)
+            && entry.day <= world.day
     }) {
         if entry.amount.0 < 0 {
             return Err("Invalid negative cash transfer".into());
@@ -122,13 +124,13 @@ impl CashFlows {
                 ui.monospace(format!("{name}: {}m {:+}m = {}m", summary.opening[i], summary.closing[i] - summary.opening[i], summary.closing[i]));
             }
             ui.small("Opening cash is reconstructed immediately before this period's recorded transfers. Sector totals include only this country's finite external counterpart; the model does not claim a full global financial network.");
-            let entries: Vec<_> = world.ledger.iter().rev().filter(|entry| &entry.country == country && entry.day >= first && entry.day <= world.day.units()
+            let entries: Vec<_> = world.ledger.iter().rev().filter(|entry| &entry.country == country && entry.day >= sim_core::CampaignDay::new(first) && entry.day <= world.day
                 && self.route.is_none_or(|(from, to)| index(entry.from) == from && index(entry.to) == to)).collect();
             let route = self.route.map_or_else(|| "All routes".into(), |(from, to)| format!("{} to {}", NAMES[from], NAMES[to]));
             ui.strong(format!("{route} · {} transactions · latest 80 shown", entries.len()));
             if entries.is_empty() { ui.label("No recorded transfers on this route in the selected period."); }
             for entry in entries.into_iter().take(80) {
-                ui.label(format!("{} · {} to {} · {}m · {}", date(entry.day), NAMES[index(entry.from)], NAMES[index(entry.to)], entry.amount.0, entry.reason));
+                ui.label(format!("{} · {} to {} · {}m · {}", date(entry.day.units()), NAMES[index(entry.from)], NAMES[index(entry.to)], entry.amount.0, entry.reason));
             }
         });
     }

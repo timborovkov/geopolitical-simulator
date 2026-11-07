@@ -53,7 +53,7 @@ fn exact_same_day_decisions_delivery_and_review_resolve_owned_programmes() {
         (other, CommitmentStage::Proposed),
     ] {
         let event = linked(&w, id, stage);
-        assert_eq!(event.day, 0);
+        assert_eq!(event.day, sim_core::CampaignDay::new(0));
         assert_eq!(
             w.event_commitment(
                 &c,

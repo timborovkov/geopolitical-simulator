@@ -647,7 +647,7 @@ impl World {
             if !ids.insert(bill.id)
                 || !matches!(&command.command.action,Action::ProposeLaw{law}if law==&bill.law)
                 || &command.command.issuer != country
-                || command.command.day != bill.proposed_day.units()
+                || command.command.day != crate::CampaignDay::new(bill.proposed_day.units())
                 || bill.sponsor.0 == 0
                 || bill.sponsor > c.government_number
                 || !known_authority
@@ -711,7 +711,7 @@ impl World {
                     country,
                     policy,
                     *value,
-                    CampaignDay::new(entry.command.day),
+                    CampaignDay::new(entry.command.day.units()),
                 )?,
                 Action::AmendCommitment { request, value } => {
                     let record = c
@@ -722,7 +722,7 @@ impl World {
                         country,
                         &record.project.policy,
                         *value,
-                        CampaignDay::new(entry.command.day),
+                        CampaignDay::new(entry.command.day.units()),
                     )?;
                 }
                 _ => {}
@@ -743,7 +743,7 @@ impl World {
                     != rules
                         .costs(content.country(country).expect("country").gdp)?
                         .0
-                || CampaignDay::new(command.command.day)
+                || CampaignDay::new(command.command.day.units())
                     .checked_add(entry.authority.consent_days)
                     .and_then(|day| day.checked_add(rules.implementation_days))
                     != Some(entry.day)
@@ -759,7 +759,7 @@ impl World {
                 || entry.government.0 == 0
                 || entry.government > c.government_number
                 || entry.day > self.day
-                || entry.day.units() < command.command.day
+                || entry.day.units() < command.command.day.units()
             {
                 return Err("Invalid enacted statute identity or chronology".into());
             }

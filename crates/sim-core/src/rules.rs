@@ -166,7 +166,7 @@ impl World {
         if self.content_hash != content.hash() {
             return Err("Command content pack differs from campaign".into());
         }
-        if command.id != self.next_command || command.day != self.day.units() {
+        if command.id != self.next_command || command.day != self.day {
             return Err("Stale or duplicate command: refresh the current state".into());
         }
         let next_command = self
@@ -525,7 +525,8 @@ impl World {
                     }
                 }
             }
-            self.ledger.retain(|e| e.day + 30 >= self.day.units());
+            self.ledger
+                .retain(|e| e.day.units() + 30 >= self.day.units());
             if self.day.units() >= review_day && !self.milestone_reported {
                 let c = self.player_country();
                 let won = c.report.food_coverage >= 90
@@ -569,7 +570,7 @@ impl World {
             if self
                 .events
                 .iter()
-                .any(|e| e.day == self.day.units() && e.country == self.player && e.important)
+                .any(|e| e.day == self.day && e.country == self.player && e.important)
             {
                 break;
             }
@@ -812,7 +813,7 @@ impl World {
             .get_mut(id)
             .expect("country")
             .income_tax_report = content.income_taxes.as_ref().map(|_| IncomeTaxReport {
-            day: self.day.units(),
+            day: self.day,
             standard_rate,
             administration,
             groups: withholding,
@@ -1008,7 +1009,7 @@ impl World {
         };
         if let Some(markets) = &mut c.markets {
             markets.energy.last = Some(MarketSettlement {
-                day: self.day.units(),
+                day: self.day,
                 price_bps: BasisPoints::new(energy_price),
                 physical_need: energy_demand,
                 requested_use: energy_demand,
@@ -1022,7 +1023,7 @@ impl World {
                 closing_stock: c.energy_stock,
             });
             markets.food.last = Some(MarketSettlement {
-                day: self.day.units(),
+                day: self.day,
                 price_bps: BasisPoints::new(food_price),
                 physical_need: food_demand,
                 requested_use: food_requested,
@@ -1246,7 +1247,7 @@ impl World {
             transition=Some("Elite coalition replaced the leadership after sustained loss of backing. Institutional route remains in force; country play continues.".into());
         }
         c.history.push(Observation {
-            day: self.day.units(),
+            day: self.day,
             treasury: c.accounts.treasury,
             debt: c.debt,
             approval: c.approval,
@@ -1528,14 +1529,19 @@ mod maturity_ai_tests {
         assert!(world.countries[&foreign].available_cash().0 > 1000);
         assert!(world.countries[&foreign].available_cash().0 < 10000);
         world.advance(&content, crate::DaySpan::new(1)).unwrap();
-        assert!(world.journal.iter().any(|entry| entry.command.day == 30
-            && entry.command.issuer == foreign
-            && matches!(
-                entry.command.action,
-                Action::Borrow {
-                    amount: Money(5000)
-                }
-            )));
+        assert!(
+            world
+                .journal
+                .iter()
+                .any(|entry| entry.command.day == CampaignDay::new(30)
+                    && entry.command.issuer == foreign
+                    && matches!(
+                        entry.command.action,
+                        Action::Borrow {
+                            amount: Money(5000)
+                        }
+                    ))
+        );
         world.validate(&content).unwrap();
     }
 }

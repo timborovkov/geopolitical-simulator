@@ -8,7 +8,7 @@ fn pack() -> Content {
 }
 fn point(day: u32, value: i64) -> Observation {
     Observation {
-        day,
+        day: sim_core::CampaignDay::new(day),
         treasury: Money(value),
         debt: Money(value + 10),
         approval: 51,
@@ -31,7 +31,7 @@ fn archive_rounding_dates_and_bounds_are_explicit_and_refusal_is_atomic() {
     let first = &archive.years[0];
     assert_eq!(
         (first.year, first.first_day, first.last_day, first.samples),
-        (2000, 30, 90, 3)
+        (2000, CampaignDay::new(30), CampaignDay::new(90), 3)
     );
     assert_eq!(first.mean().unwrap().treasury, Money(101));
     assert_eq!(archive.years[1].year, 2001);
@@ -60,8 +60,8 @@ fn archive_rounding_dates_and_bounds_are_explicit_and_refusal_is_atomic() {
     invalid.approval_sum = i64::MAX;
     assert!(invalid.mean().is_none());
     let mut invalid_date = archive.years[0].clone();
-    invalid_date.first_day = 0;
-    invalid_date.last_day = u32::MAX;
+    invalid_date.first_day = sim_core::CampaignDay::new(0);
+    invalid_date.last_day = sim_core::CampaignDay::new(u32::MAX);
     assert!(invalid_date.mean().is_none());
     let released = serde_json::to_string(&archive.published()).unwrap();
     assert!(!released.contains("treasury") && !released.contains("_sum"));
@@ -106,7 +106,7 @@ fn twelve_year_retention_matches_the_original_campaign_and_independent_retired_s
     for bucket in &archive.years {
         let rows: Vec<_> = retired
             .iter()
-            .filter(|p| date(p.day).parse::<CivilDate>().unwrap().year() == bucket.year)
+            .filter(|p| date(p.day.units()).parse::<CivilDate>().unwrap().year() == bucket.year)
             .collect();
         assert_eq!(bucket.samples as usize, rows.len());
         assert_eq!(bucket.first_day, rows.first().unwrap().day);
@@ -185,8 +185,8 @@ fn forged_archive_ranges_missing_state_and_legacy_injection_are_rejected() {
                 3 => summary.treasury_sum = Money(i64::MAX),
                 4 => summary.year = 2099,
                 _ => {
-                    summary.first_day = 0;
-                    summary.last_day = u32::MAX;
+                    summary.first_day = sim_core::CampaignDay::new(0);
+                    summary.last_day = sim_core::CampaignDay::new(u32::MAX);
                 }
             }
         }

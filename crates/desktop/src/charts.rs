@@ -39,8 +39,8 @@ pub fn series(
             .player_country()
             .history
             .iter()
-            .filter(|o| o.day + horizon >= world.day.units())
-            .map(|o| (o.day, o.treasury.0 as f64))
+            .filter(|o| o.day.units() + horizon >= world.day.units())
+            .map(|o| (o.day.units(), o.treasury.0 as f64))
             .collect()
     } else {
         world
@@ -48,10 +48,10 @@ pub fn series(
             .ok()?
             .history
             .iter()
-            .filter(|o| o.day + horizon >= world.day.units())
+            .filter(|o| o.day.units() + horizon >= world.day.units())
             .map(|o| {
                 (
-                    o.day,
+                    o.day.units(),
                     match metric {
                         Metric::Approval => f64::from(o.approval),
                         Metric::Needs => f64::from(o.needs),
@@ -88,11 +88,11 @@ pub fn archived_series(
             .as_ref()?
             .years
             .iter()
-            .filter(|summary| summary.last_day.saturating_add(horizon) >= world.day.units())
+            .filter(|summary| summary.last_day.units().saturating_add(horizon) >= world.day.units())
             .filter_map(|summary| {
                 summary
                     .mean()
-                    .map(|mean| (mean.day, mean.treasury.0 as f64))
+                    .map(|mean| (mean.day.units(), mean.treasury.0 as f64))
             })
             .collect()
     } else {
@@ -101,10 +101,10 @@ pub fn archived_series(
             .ok()?
             .archived_reviews?
             .iter()
-            .filter(|summary| summary.last_day.saturating_add(horizon) >= world.day.units())
+            .filter(|summary| summary.last_day.units().saturating_add(horizon) >= world.day.units())
             .map(|summary| {
                 (
-                    summary.last_day,
+                    summary.last_day.units(),
                     match metric {
                         Metric::Approval => f64::from(summary.mean.approval),
                         Metric::Needs => f64::from(summary.mean.needs),

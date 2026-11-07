@@ -63,7 +63,7 @@ fn failed_envelopes_return_no_receipt_and_preserve_bytes_and_allocators() {
         let mut bad = valid.clone();
         match variant {
             0 => bad.id.0 += 1,
-            1 => bad.day += 1,
+            1 => bad.day = bad.day.checked_add(DaySpan::new(1)).unwrap(),
             2 => bad.issuer = CountryId("USA".into()),
             3 => {
                 bad.action = Action::Enact {

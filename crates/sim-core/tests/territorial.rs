@@ -309,7 +309,10 @@ fn published_charter_history_excludes_private_reservations_and_pending_reviews()
     assert!(view.own.is_none());
     let t = view.reports[&w.player].territorial.as_ref().unwrap();
     assert_eq!(t.form, TerritorialForm::Federation);
-    assert_eq!(t.last_change.as_ref().unwrap().day, 90);
+    assert_eq!(
+        t.last_change.as_ref().unwrap().day,
+        sim_core::CampaignDay::new(90)
+    );
     check(&w, &c);
 }
 #[test]
@@ -440,7 +443,7 @@ fn malformed_rights_funds_and_history_are_rejected_without_arithmetic_panics() {
                 region: region("COR", "city"),
                 amount: Money(i64::MAX),
             }),
-            2 => state.history[0].day = u32::MAX,
+            2 => state.history[0].day = sim_core::CampaignDay::new(u32::MAX),
             3 => state.next_requisition_day = u32::MAX,
             _ => state.reforms[0].sponsor = GovernmentId(u32::MAX),
         }

@@ -135,7 +135,7 @@ pub struct ElectionCase {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ElectoralPoll {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub request: Option<ElectionRequestId>,
     pub government_before: crate::GovernmentId,
     pub government_after: crate::GovernmentId,
@@ -424,7 +424,7 @@ impl World {
             pending.resolved_day = Some(self.day.units());
         }
         state.polls.push(ElectoralPoll {
-            day: self.day.units(),
+            day: self.day,
             request,
             government_before,
             government_after: c.government_number,
@@ -535,7 +535,7 @@ impl World {
                     &change.to
                 });
             if case.id.0 != command.id.0
-                || case.proposed_day != command.day
+                || case.proposed_day != command.day.units()
                 || case.form != *form
                 || !mandate.snap_forms.contains(form)
                 || case.proposed_day.checked_add(rules.decision_days.units())
@@ -550,7 +550,7 @@ impl World {
             }
             interval = interval.max(case.proposed_day + rules.minimum_interval_days.units());
             let resolved = case.resolved_day;
-            let withdrawn=self.journal.iter().any(|entry| &entry.command.issuer==id && matches!(entry.command.action,Action::WithdrawElectionRequest{request} if request==case.id) && Some(entry.command.day)==resolved);
+            let withdrawn=self.journal.iter().any(|entry| &entry.command.issuer==id && matches!(entry.command.action,Action::WithdrawElectionRequest{request} if request==case.id) && Some(entry.command.day.units())==resolved);
             if (case.status == ElectionCaseStatus::Withdrawn) != withdrawn {
                 return Err("Election withdrawal differs from the command journal".into());
             }
@@ -570,10 +570,10 @@ impl World {
                 }
                 ElectionCaseStatus::Conducted => {
                     resolved == Some(case.vote_day)
-                        && state
-                            .polls
-                            .iter()
-                            .any(|p| p.request == Some(case.id) && p.day == case.vote_day)
+                        && state.polls.iter().any(|p| {
+                            p.request == Some(case.id)
+                                && p.day == crate::CampaignDay::new(case.vote_day)
+                        })
                 }
                 ElectionCaseStatus::Withdrawn => resolved.is_some_and(|day| {
                     day >= case.proposed_day && day < case.decision_day && day <= self.day.units()
@@ -590,10 +590,10 @@ impl World {
                             || country
                                 .next_election
                                 .is_some_and(|poll| poll <= case.vote_day)
-                            || state
-                                .polls
-                                .iter()
-                                .any(|p| p.day >= day && p.day <= case.vote_day))
+                            || state.polls.iter().any(|p| {
+                                p.day >= crate::CampaignDay::new(day)
+                                    && p.day <= crate::CampaignDay::new(case.vote_day)
+                            }))
                 }),
             };
             if !valid {
@@ -601,8 +601,8 @@ impl World {
             }
         }
         for poll in &state.polls {
-            if poll.day < start
-                || poll.day > self.day.units()
+            if poll.day < crate::CampaignDay::new(start)
+                || poll.day > self.day
                 || poll.government_before == crate::GovernmentId(0)
                 || poll.government_after < poll.government_before
                 || poll.government_after > country.government_number
@@ -615,19 +615,19 @@ impl World {
                     !state.cases.iter().any(|case| {
                         case.id == request
                             && case.status == ElectionCaseStatus::Conducted
-                            && case.vote_day == poll.day
+                            && case.vote_day == poll.day.units()
                     })
                 })
             {
                 return Err("Invalid recorded modeled poll".into());
             }
-            interval = interval.max(poll.day + rules.minimum_interval_days.units());
+            interval = interval.max(poll.day.units() + rules.minimum_interval_days.units());
         }
         if state.polls.windows(2).any(|p| p[0].day >= p[1].day) {
             return Err("Invalid poll chronology".into());
         }
         if let Some(change) = country.constitution.as_ref().and_then(|c| c.history.last()) {
-            interval = interval.max(change.day + rules.minimum_interval_days.units());
+            interval = interval.max(change.day.units() + rules.minimum_interval_days.units());
         }
         if state.next_request_day != interval {
             return Err(
@@ -639,7 +639,7 @@ impl World {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PublishedPoll {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub governing_party: PartyId,
     pub seats: BTreeMap<PartyId, u16>,
     pub contested: bool,

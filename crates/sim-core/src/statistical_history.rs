@@ -10,8 +10,8 @@ pub struct StatisticalArchive {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AnnualReviewSummary {
     pub year: u16,
-    pub first_day: u32,
-    pub last_day: u32,
+    pub first_day: crate::CampaignDay,
+    pub last_day: crate::CampaignDay,
     pub samples: u32,
     pub treasury_sum: Money,
     pub debt_sum: Money,
@@ -44,11 +44,14 @@ impl AnnualReviewSummary {
         let count = i64::from(self.samples);
         if self.samples == 0
             || self.samples > 366
-            || self.last_day > crate::MAX_DAY
+            || self.last_day > crate::CampaignDay::new(crate::MAX_DAY)
             || self.first_day > self.last_day
-            || self.samples > self.last_day - self.first_day + 1
-            || year(self.first_day)? != self.year
-            || year(self.last_day)? != self.year
+            || self
+                .last_day
+                .elapsed_since(self.first_day)
+                .is_none_or(|elapsed| self.samples > elapsed.units() + 1)
+            || year(self.first_day.units())? != self.year
+            || year(self.last_day.units())? != self.year
             || [
                 self.treasury_sum.0,
                 self.debt_sum.0,
@@ -72,7 +75,7 @@ impl StatisticalArchive {
         let mut previous = None;
         for summary in &self.years {
             summary.validate()?;
-            if summary.first_day < start
+            if summary.first_day < crate::CampaignDay::new(start)
                 || previous
                     .is_some_and(|(year, last)| summary.year <= year || summary.first_day <= last)
                 || recent
@@ -88,7 +91,7 @@ impl StatisticalArchive {
     /// Move one retired observation into its calendar-year sample summary.
     /// Validate and allocate on a copy so refusal leaves the archive unchanged.
     pub fn retire(&mut self, point: &Observation) -> Result<(), String> {
-        let point_year = year(point.day)?;
+        let point_year = year(point.day.units())?;
         if [point.treasury.0, point.debt.0, point.output.0]
             .iter()
             .any(|value| !(0..=1_000_000_000_000).contains(value))
@@ -154,8 +157,8 @@ impl StatisticalArchive {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PublishedAnnualReview {
     pub year: u16,
-    pub first_day: u32,
-    pub last_day: u32,
+    pub first_day: crate::CampaignDay,
+    pub last_day: crate::CampaignDay,
     pub samples: u32,
     pub mean: crate::PublishedObservation,
 }

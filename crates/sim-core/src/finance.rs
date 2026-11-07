@@ -314,7 +314,7 @@ impl Financing {
                         rules
                             .authority(
                                 &world
-                                    .governing_rules_at(content, id, entry.command.day)?
+                                    .governing_rules_at(content, id, entry.command.day.units())?
                                     .route,
                             )
                             .ok_or("Debt lacks legal authority")?
@@ -323,7 +323,8 @@ impl Financing {
                     };
                     if &entry.command.issuer != id
                         || amount != instrument.original_principal
-                        || entry.command.day.checked_add(delay) != Some(instrument.issued_day)
+                        || entry.command.day.checked_add(crate::DaySpan::new(delay))
+                            != Some(crate::CampaignDay::new(instrument.issued_day))
                     {
                         return Err(
                             "Debt principal, issuer or approval date differs from the journal"
@@ -356,7 +357,7 @@ impl Financing {
                 || request.amount.0 > definition.gdp.units() / 10
                 || authority.consent_days.units() == 0
                 || request.authority != authority.id
-                || request.requested_day != entry.command.day
+                || request.requested_day != entry.command.day.units()
                 || Some(request.decision_day)
                     != request
                         .requested_day
@@ -398,15 +399,14 @@ impl Financing {
                         .emergency
                         .as_ref()
                         .ok_or("Contested borrowing lacks rules")?
-                        .cooldown_days
-                        .units(),
+                        .cooldown_days,
                 )
                 .ok_or("Emergency deadline overflow")?
         } else {
-            start
+            crate::CampaignDay::new(start)
         };
         if self.emergency_count as usize != emergencies.len()
-            || self.next_emergency_day != expected_next
+            || self.next_emergency_day != expected_next.units()
         {
             return Err("Emergency-financing audit differs from accepted commands".into());
         }

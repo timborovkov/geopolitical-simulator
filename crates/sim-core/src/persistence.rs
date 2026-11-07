@@ -349,7 +349,7 @@ pub enum RecoveryKind {
 pub struct RecoveryCandidate {
     pub path: std::path::PathBuf,
     pub kind: RecoveryKind,
-    pub day: Option<u32>,
+    pub day: Option<crate::CampaignDay>,
     pub schema: Option<u32>,
     pub content_id: Option<String>,
     pub rules: Option<u32>,
@@ -390,7 +390,7 @@ fn inspect_candidates(
     .map(|(path, kind)| {
         let (day, schema, content_id, rules, error) = match resolve(&path) {
             Ok((id, save)) => (
-                Some(save.world.day.units()),
+                Some(save.world.day),
                 Some(save.schema),
                 Some(id),
                 Some(save.world.rules),
@@ -536,7 +536,7 @@ pub(crate) fn replay_observed(
         .iter()
         .filter(|e| !e.ai && e.budget_bill.is_none())
     {
-        while world.day.units() < entry.command.day {
+        while world.day.units() < entry.command.day.units() {
             world.advance(content, crate::DaySpan::new(1))?;
             observe(&world, crate::replay_trace::ReplayBoundary::Day)?;
             verify_journal(original, &world, &mut verified)?;
@@ -555,7 +555,7 @@ pub(crate) fn replay_observed(
                 format!(
                     "Replay command #{} on {} was rejected: {reason}",
                     entry.command.id,
-                    crate::date(entry.command.day)
+                    crate::date(entry.command.day.units())
                 )
             })?;
         observe(
@@ -603,7 +603,7 @@ fn verify_journal(original: &World, replayed: &World, verified: &mut usize) -> R
             return Err(format!(
                 "Replay first command divergence at entry {} on {}: expected {:?}, got {:?}",
                 *verified + 1,
-                crate::date(actual.command.day),
+                crate::date(actual.command.day.units()),
                 expected,
                 actual
             ));

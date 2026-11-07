@@ -95,11 +95,11 @@ impl Panel {
         egui::CollapsingHeader::new(format!("Programme history · {count} record{}",if count == 1 { "" } else { "s" })).default_open(true).open(reveal_history.then_some(true)).show(ui,|ui| {
             for r in records.iter().rev().filter(|r| self.focused.is_none_or(|id| r.id == id)) {
                 egui::CollapsingHeader::new(format!("#{} · {} · {:?} · paid {}m",r.id.0,content.policy(&r.project.policy).expect("policy").name,r.stage(),r.paid.0)).id_salt(r.id.0).open(self.focused.map(|id| id == r.id)).show(ui,|ui| {
-                    for m in &r.milestones {ui.label(format!("{} · {:?} · level {}",date(m.day),m.stage,m.value));}
+                    for m in &r.milestones {ui.label(format!("{} · {:?} · level {}",date(m.day.units()),m.stage,m.value));}
                     for e in &r.direct_effects {ui.label(format!("Direct delivered change: {} from {} to {}",effect_label(&e.field),e.before,e.after));}
                     if let Some(day)=r.review_due {ui.label(format!("Observed outcome review due {}",date(day)));}
                     if let Some(e)=&r.evaluation {
-                        ui.strong(format!("Observed review · {}",date(e.day)));
+                        ui.strong(format!("Observed review · {}",date(e.day.units())));
                         if let Some(before)=&e.before {ui.label(format!("Before delivery: revenue {}m/day · spending {}m/day · food {}% · energy {}% · external disruption {} capacity points",before.revenue.0,before.spending.0,before.food_coverage,before.energy_coverage,before.shock));}
                         else {ui.label("No pre-delivery settlement was available at this bookmark.");}
                         ui.label(format!("Review day: revenue {}m/day · spending {}m/day · food {}% · energy {}% · external disruption {} capacity points",e.after.revenue.0,e.after.spending.0,e.after.food_coverage,e.after.energy_coverage,e.after.shock));

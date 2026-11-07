@@ -535,6 +535,6 @@ fn an_instant_royal_order_after_settlement_keeps_the_dated_report_and_can_save_i
         .as_ref()
         .unwrap();
     assert_eq!(current.requested_base, Money(3));
-    assert_eq!(current.day, 2);
+    assert_eq!(current.day, sim_core::CampaignDay::new(2));
     check(&w, &c);
 }

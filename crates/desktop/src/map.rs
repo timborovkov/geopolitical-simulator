@@ -88,7 +88,7 @@ impl ReportTime {
             Self::Published(day) => report
                 .history
                 .iter()
-                .filter(|release| release.day <= day)
+                .filter(|release| release.day <= sim_core::CampaignDay::new(day))
                 .max_by_key(|release| release.day),
         }
     }
@@ -100,6 +100,7 @@ impl ReportTime {
             .values()
             .flat_map(|report| report.history.iter().map(|release| release.day))
             .filter(|day| *day <= view.day)
+            .map(sim_core::CampaignDay::units)
             .collect::<std::collections::BTreeSet<_>>()
             .into_iter()
             .collect()
@@ -179,19 +180,19 @@ impl Layer {
             .count();
         let dates = match (dates.first(), dates.last()) {
             (Some(first), Some(last)) if first == last => {
-                format!("Published {}", sim_core::date(*first))
+                format!("Published {}", sim_core::date((*first).units()))
             }
             (Some(first), Some(last)) => format!(
                 "Latest release dates {} to {}",
-                sim_core::date(*first),
-                sim_core::date(*last)
+                sim_core::date((*first).units()),
+                sim_core::date((*last).units())
             ),
             _ => "No statistical release yet".into(),
         };
         ui.small(format!(
             "{dates} · {published}/{} countries published · campaign {}",
             view.reports.len(),
-            sim_core::date(view.day)
+            sim_core::date(view.day.units())
         ));
         if let ReportTime::Published(day) = time {
             ui.small(format!("Statistics cutoff {}. Age uses the campaign date; government labels stay current and reference geography stays fixed.", sim_core::date(day)));
@@ -224,12 +225,12 @@ impl Layer {
                         );
                         ui.label(time.release(report).map_or_else(
                             || "No release".into(),
-                            |release| sim_core::date(release.day),
+                            |release| sim_core::date(release.day.units()),
                         ));
                         ui.label(time.release(report).map_or_else(
                             || "—".into(),
                             |release| {
-                                let age = view.day.saturating_sub(release.day);
+                                let age = view.day.units().saturating_sub(release.day.units());
                                 format!("{age} {}", if age == 1 { "day" } else { "days" })
                             },
                         ));
@@ -706,7 +707,7 @@ impl WorldMap {
                 |o| {
                     format!(
                         "Published {} · needs {}% · approval {}%",
-                        sim_core::date(o.day),
+                        sim_core::date(o.day.units()),
                         o.needs,
                         o.approval
                     )
@@ -823,7 +824,7 @@ mod tests {
         let view = world.project(&content, Viewer::Observer).unwrap();
         let report = &view.reports[&id];
         let release = report.latest.as_ref().unwrap();
-        assert_eq!(release.day, 30);
+        assert_eq!(release.day, sim_core::CampaignDay::new(30));
         assert_eq!(
             layer_value(Layer::Approval, Some(report), ReportTime::Latest),
             Some(release.approval)
@@ -993,7 +994,7 @@ mod tests {
                 .release(&report)
                 .unwrap()
                 .day,
-            90
+            sim_core::CampaignDay::new(90)
         );
         assert_eq!(
             ReportTime::Published(30)
@@ -1001,9 +1002,12 @@ mod tests {
                 .release(&report)
                 .unwrap()
                 .day,
-            30
+            sim_core::CampaignDay::new(30)
         );
-        assert_eq!(ReportTime::Latest.release(&report).unwrap().day, 90);
+        assert_eq!(
+            ReportTime::Latest.release(&report).unwrap().day,
+            sim_core::CampaignDay::new(90)
+        );
         for (cutoff, expected) in [
             (29, None),
             (30, Some(30)),
@@ -1015,12 +1019,17 @@ mod tests {
                 ReportTime::Published(cutoff)
                     .release(&report)
                     .map(|release| release.day),
-                expected
+                expected.map(sim_core::CampaignDay::new)
             );
         }
         report.history.reverse();
-        assert_eq!(ReportTime::Published(59).release(&report).unwrap().day, 30);
-        report.history.retain(|release| release.day >= 60);
+        assert_eq!(
+            ReportTime::Published(59).release(&report).unwrap().day,
+            sim_core::CampaignDay::new(30)
+        );
+        report
+            .history
+            .retain(|release| release.day >= sim_core::CampaignDay::new(60));
         assert!(ReportTime::Published(30).release(&report).is_none());
         assert_eq!(
             layer_value(Layer::Approval, Some(&report), ReportTime::Published(30)),
@@ -1028,7 +1037,7 @@ mod tests {
         );
         assert_eq!(layer_color(Layer::Approval, false, None), Color32::GRAY);
         let mut future = report.latest.clone().unwrap();
-        future.day = 120;
+        future.day = sim_core::CampaignDay::new(120);
         view.reports
             .get_mut(&world.player)
             .unwrap()

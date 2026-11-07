@@ -420,7 +420,7 @@ impl World {
                 || record.target != target
                 || !(1..=max_target).contains(&target.0)
                 || !(1..=rules.max_days.units()).contains(&days.units())
-                || record.start_day != entry.command.day
+                || record.start_day != entry.command.day.units()
                 || record.start_day < next_allowed
                 || record.start_day < previous_end
                 || record.start_day.checked_add(days.units()) != Some(record.expiry_day)
@@ -453,7 +453,7 @@ impl World {
                     match reason {
                         CashHoldEnd::Expired if *day == record.expiry_day => {}
                         CashHoldEnd::GovernmentChanged if *day <= record.expiry_day && record.sponsor_government < c.government_number => {}
-                        CashHoldEnd::Released { command } if *day < record.expiry_day && releases.iter().any(|e| e.command.id == *command && e.command.day == *day && matches!(e.command.action, Action::ReleaseCash { request } if request == record.id)) => { release_count += 1; }
+                        CashHoldEnd::Released { command } if *day < record.expiry_day && releases.iter().any(|e| e.command.id == *command && e.command.day == crate::CampaignDay::new(*day) && matches!(e.command.action, Action::ReleaseCash { request } if request == record.id)) => { release_count += 1; }
                         _ => return Err("Invalid cash retention ending".into()),
                     }
                     previous_end = *day;

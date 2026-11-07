@@ -122,7 +122,7 @@ impl Panel {
             for change in state.history.iter().rev() {
                 ui.label(format!(
                     "{} · {:?} to {:?} · {} · cabinet #{}",
-                    date(change.day),
+                    date(change.day.units()),
                     change.from,
                     change.to,
                     if change.contested {

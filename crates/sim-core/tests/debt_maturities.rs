@@ -118,7 +118,7 @@ fn maturity_follows_actual_approval_not_request_and_reconciles_cash_principal_an
         w.player_country().accounts.treasury.0
     );
     assert!(w.ledger.iter().any(|row| row.country == w.player
-        && row.day == 44
+        && row.day == sim_core::CampaignDay::new(44)
         && row.from == Account::Treasury
         && row.to == Account::External
         && row.amount == Money(1000)));

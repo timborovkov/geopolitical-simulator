@@ -106,15 +106,15 @@ impl World {
         let start = content.start_day()?;
         let mut previous = start;
         for event in &self.events {
-            if event.day < previous
-                || event.day > self.day.units()
+            if event.day < crate::CampaignDay::new(previous)
+                || event.day > self.day
                 || event.text.is_empty()
                 || event.text.len() > 65536
                 || !self.countries.contains_key(&event.country)
             {
                 return Err("Invalid retained event date, country or text".into());
             }
-            previous = event.day;
+            previous = event.day.units();
         }
         let mut expected: BTreeMap<_, _> = sequences.clone();
         for event in self.events.iter().rev() {

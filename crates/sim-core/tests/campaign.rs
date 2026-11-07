@@ -60,7 +60,7 @@ fn rejected_commands_never_mutate_state() {
     assert!(w.execute(&content, foreign).is_err());
     assert_eq!(w.hash(), before);
     let mut stale = w.command(w.player.clone(), Action::Borrow { amount: Money(1) });
-    stale.day = 1;
+    stale.day = sim_core::CampaignDay::new(1);
     assert!(w.execute(&content, stale).is_err());
     assert_eq!(w.hash(), before);
     let command = w.command(w.player.clone(), Action::Borrow { amount: Money(1) });
@@ -94,7 +94,7 @@ fn legal_routes_apply_to_all_regimes_and_support_can_be_negotiated() {
         w.advance(&content, sim_core::DaySpan::new(delivery_day))
             .unwrap();
         assert!(w.events.iter().any(|e| e.country == d.id
-            && e.day == delivery_day
+            && e.day == sim_core::CampaignDay::new(delivery_day)
             && e.text.contains("coalition is operating")));
         w.advance(&content, sim_core::DaySpan::new(200 - delivery_day))
             .unwrap();
@@ -111,7 +111,8 @@ fn legal_routes_apply_to_all_regimes_and_support_can_be_negotiated() {
             delivery
                 .milestones
                 .iter()
-                .any(|m| m.stage == CommitmentStage::Operating && m.day == delivery_day)
+                .any(|m| m.stage == CommitmentStage::Operating
+                    && m.day == sim_core::CampaignDay::new(delivery_day))
         );
         assert_eq!(delivery.direct_effects.len(), 3);
         assert!(
@@ -360,6 +361,11 @@ fn ten_year_campaigns_across_the_roster_preserve_invariants() {
             .unwrap();
         world.validate(&content).unwrap();
         assert!(world.countries.values().all(|c| c.history.len() <= 120));
-        assert!(world.ledger.iter().all(|e| e.day + 30 >= world.day.units()));
+        assert!(
+            world
+                .ledger
+                .iter()
+                .all(|e| e.day.units() + 30 >= world.day.units())
+        );
     }
 }

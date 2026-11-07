@@ -24,7 +24,7 @@ cargo test --workspace --locked
 cargo build --workspace --release --locked
 ```
 
-The test profile compiles `sim-core` at optimization level 1 for long campaign/replay checks, retaining debug assertions and overflow checks. The other workspace packages keep their default test settings, and the release runner separately validates the production build. Hosted validation allows 105 minutes per operating system for cold builds and the expanded transactional campaign/recovery suite.
+The test profile compiles `sim-core` at optimization level 1 for long campaign/replay checks, retaining debug assertions and overflow checks. The other workspace packages keep their default test settings, and the release runner separately validates the production build. Hosted validation allows 135 minutes per operating system for cold builds and the expanded transactional campaign/recovery suite.
 
 Use `cargo fmt --all` to apply formatting. Add meaningful behavioral tests as game systems are implemented. A passing empty test harness only verifies the initial workspace compiles. GitHub Actions runs these checks and the release runner on macOS, Linux and Windows; platform checks are only confirmed after those jobs run. CPU UI rendering tests cover the current screens without a GPU. Native interaction checks require a display; packaging and installer validation remain future work.
 

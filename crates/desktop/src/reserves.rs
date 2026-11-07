@@ -13,7 +13,7 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Actio
             ui.strong(format!("{good:?} · national inventory {} units",state.stored(good)));
             match world.reserve_supply(content,&world.player,good) {
                 Ok(Some(s))=>{
-                    ui.label(format!("Observed {}: civilian physical supply {} / need {}; civilian imports {} / capacity {}; spare capacity {} units/day.",date(s.day),s.civilian_supply,s.physical_need,s.civilian_imports,s.import_capacity,s.spare_import_capacity));
+                    ui.label(format!("Observed {}: civilian physical supply {} / need {}; civilian imports {} / capacity {}; spare capacity {} units/day.",date(s.day.units()),s.civilian_supply,s.physical_need,s.civilian_imports,s.import_capacity,s.spare_import_capacity));
                     ui.label(s.explanation());
                     ui.small("This is the last settlement, not a forecast or guaranteed delivery. Future supply, imports and contract consent can change.");
                 },
@@ -21,8 +21,8 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Actio
                 Err(reason)=>{ui.small(reason);},
             }
             match good {
-                GoodKind::Energy=>{if let Some(f)=&state.energy.last {ui.label(format!("{}: opening {} · purchased {} · released {} · loss {} · closing {}",date(f.day),f.opening,f.purchased,f.released,f.loss,f.closing));}},
-                GoodKind::Food=>{if let Some(f)=&state.food.last {ui.label(format!("{}: opening {} · purchased {} · released {} · loss {} · closing {}",date(f.day),f.opening,f.purchased,f.released,f.loss,f.closing));}},
+                GoodKind::Energy=>{if let Some(f)=&state.energy.last {ui.label(format!("{}: opening {} · purchased {} · released {} · loss {} · closing {}",date(f.day.units()),f.opening,f.purchased,f.released,f.loss,f.closing));}},
+                GoodKind::Food=>{if let Some(f)=&state.food.last {ui.label(format!("{}: opening {} · purchased {} · released {} · loss {} · closing {}",date(f.day.units()),f.opening,f.purchased,f.released,f.loss,f.closing));}},
             }
             for count in 1..=rules.capacity_days.units() {
                 let days = NeedDays::new(count);

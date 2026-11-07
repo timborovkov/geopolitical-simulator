@@ -81,7 +81,7 @@ fn public_delivery_separates_review_schedule_and_phased_setting_operation_withou
     assert_eq!(
         tax(&plans[0]).operation,
         Some(PublishedFiscalOperation {
-            day: 108,
+            day: sim_core::CampaignDay::new(108),
             value: 30
         })
     );
@@ -107,7 +107,10 @@ fn public_delivery_separates_review_schedule_and_phased_setting_operation_withou
             .find(|p| p.policy == "services")
             .unwrap()
             .operation,
-        Some(PublishedFiscalOperation { day: 138, value: 8 })
+        Some(PublishedFiscalOperation {
+            day: sim_core::CampaignDay::new(138),
+            value: 8
+        })
     );
     assert_eq!(
         world.hash(),
@@ -188,7 +191,10 @@ fn public_operations_keep_linked_historical_evidence_instead_of_inferring_it_fro
                 .unwrap();
             assert_eq!(
                 tax(&plans[0]).operation,
-                Some(PublishedFiscalOperation { day: 78, value: 30 }),
+                Some(PublishedFiscalOperation {
+                    day: sim_core::CampaignDay::new(78),
+                    value: 30
+                }),
                 "later repeal must retain the dated historical operation"
             );
         }

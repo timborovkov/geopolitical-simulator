@@ -281,7 +281,7 @@ impl Panel {
         } else if let Some(operation) = operation {
             ui.label(format!(
                 "Operating since {}. Recorded direct changes:",
-                date(operation.day)
+                date(operation.day.units())
             ));
             for effect in &record.direct_effects {
                 ui.label(format!(
@@ -295,13 +295,13 @@ impl Panel {
                 ui.separator();
                 ui.strong(format!(
                     "4 · Review observed results · {}",
-                    date(evaluation.day)
+                    date(evaluation.day.units())
                 ));
                 if let Some(before) = &evaluation.before {
                     ui.small(format!(
                         "Before delivery: settled {}. Review: settled {}.",
-                        date(operation.day.saturating_sub(1)),
-                        date(evaluation.day)
+                        date(operation.day.units().saturating_sub(1)),
+                        date(evaluation.day.units())
                     ));
                     egui::ScrollArea::horizontal()
                         .id_salt("guided-review-table-scroll")

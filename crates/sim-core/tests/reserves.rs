@@ -72,7 +72,7 @@ fn proposal_is_paid_reserved_and_delayed_then_deliveries_reconcile_cash_and_spar
             .ledger
             .iter()
             .filter(|e| {
-                e.day == w.day.units()
+                e.day == w.day
                     && e.country == id()
                     && e.reason == "National reserve commodity procurement"
             })
@@ -136,7 +136,7 @@ fn reserves_reduce_actual_post_import_shortfall_and_do_not_create_output_before_
     let s = w.player_country().reserves.as_ref().unwrap();
     assert!(s.energy.last.as_ref().unwrap().released.units() > 0);
     assert!(w.events.iter().any(|e| e.country == id()
-        && e.day == w.day.units()
+        && e.day == w.day
         && e.important
         && e.text.contains("National reserves are covering")));
     assert_eq!(

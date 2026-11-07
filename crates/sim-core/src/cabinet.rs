@@ -598,11 +598,12 @@ impl World {
         for term in &state.terms {
             let origin = appointment(term.appointment, &term.office, &term.person)?;
             let delay = self
-                .governing_rules_at(content, id, origin.day)?
+                .governing_rules_at(content, id, origin.day.units())?
                 .consent_days
                 .units();
             if !ids.insert(term.appointment.0)
-                || origin.day.checked_add(delay) != Some(term.since)
+                || origin.day.checked_add(crate::DaySpan::new(delay))
+                    != Some(crate::CampaignDay::new(term.since))
                 || term.since > self.day.units()
                 || term
                     .until
@@ -633,13 +634,14 @@ impl World {
         for p in &state.pending {
             let origin = appointment(p.id, &p.office, &p.person)?;
             let delay = self
-                .governing_rules_at(content, id, origin.day)?
+                .governing_rules_at(content, id, origin.day.units())?
                 .consent_days
                 .units();
             if !ids.insert(p.id.0)
                 || !pending.insert(&p.office)
-                || p.proposed_day != origin.day
-                || origin.day.checked_add(delay) != Some(p.decision_day)
+                || p.proposed_day != origin.day.units()
+                || origin.day.checked_add(crate::DaySpan::new(delay))
+                    != Some(crate::CampaignDay::new(p.decision_day))
                 || p.decision_day <= self.day.units()
                 || p.decision_day > MAX_DAY
                 || p.sponsor != state.government

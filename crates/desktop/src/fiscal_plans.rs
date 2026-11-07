@@ -125,7 +125,7 @@ pub fn published_delivery(
                         ui.label(content.policy(&row.policy).map_or(row.policy.as_str(),|p|p.name.as_str()));
                         ui.label(published_value(&row.policy,row.target));
                         ui.label(date(row.scheduled_day));
-                        ui.label(row.operation.as_ref().map_or_else(||"No published setting change".into(),|operation|format!("{} · {}",published_value(&row.policy,operation.value),date(operation.day))));
+                        ui.label(row.operation.as_ref().map_or_else(||"No published setting change".into(),|operation|format!("{} · {}",published_value(&row.policy,operation.value),date(operation.day.units()))));
                         ui.end_row();
                     }
                 });

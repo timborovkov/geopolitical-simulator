@@ -21,7 +21,7 @@ impl Briefing {
             .iter()
             .rev()
             .filter(|event| {
-                event.important && event.country == world.player && event.day == world.day.units()
+                event.important && event.country == world.player && event.day == world.day
             })
             .collect();
         if events.is_empty() {

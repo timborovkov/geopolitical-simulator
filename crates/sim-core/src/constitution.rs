@@ -114,7 +114,7 @@ pub struct ConstitutionChange {
     pub request: TransitionId,
     pub from: Regime,
     pub to: Regime,
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub contested: bool,
     pub government_number: crate::GovernmentId,
 }
@@ -186,19 +186,16 @@ impl Constitution {
                 || contested != change.contested
                 || change.to == current
                 || rules.template(target).is_none()
-                || command
-                    .day
-                    .checked_add(rules.route(contested)?.days.units())
-                    != Some(change.day)
-                || change.day < previous_day
-                || change.day > world.day.units()
+                || command.day.checked_add(rules.route(contested)?.days) != Some(change.day)
+                || change.day < crate::CampaignDay::new(previous_day)
+                || change.day > world.day
                 || change.government_number <= previous_government
                 || change.government_number > country.government_number
             {
                 return Err("Constitution history differs from its chronology, government or command origin".into());
             }
             current = change.to.clone();
-            previous_day = change.day;
+            previous_day = change.day.units();
             previous_government = change.government_number;
         }
         if current != self.regime || self.since != previous_day {
@@ -213,8 +210,9 @@ impl Constitution {
                 || request.from != self.regime
                 || request.target == self.regime
                 || rules.template(&request.target).is_none()
-                || request.proposed_day != command.day
-                || command.day.checked_add(route.days.units()) != Some(request.decision_day)
+                || request.proposed_day != command.day.units()
+                || command.day.checked_add(route.days)
+                    != Some(crate::CampaignDay::new(request.decision_day))
                 || request.decision_day <= world.day.units()
                 || request.decision_day > MAX_DAY
                 || request.sponsor_government == crate::GovernmentId(0)
@@ -231,14 +229,14 @@ impl Constitution {
             &entry.command.issuer == id
                 && matches!(entry.command.action, Action::Reconstitute { .. })
         });
-        let expected = last_request.map_or(Ok(start), |entry| {
+        let expected = last_request.map_or(Ok(crate::CampaignDay::new(start)), |entry| {
             entry
                 .command
                 .day
-                .checked_add(rules.cooldown_days.units())
+                .checked_add(rules.cooldown_days)
                 .ok_or("Constitution cooldown overflow")
         })?;
-        if self.next_request_day != expected {
+        if self.next_request_day != expected.units() {
             return Err("Constitutional inertia differs from accepted requests".into());
         }
         Ok(())
@@ -298,11 +296,13 @@ impl World {
         day: u32,
     ) -> Result<&'a GovernmentDefinition, String> {
         let country = self.countries.get(id).ok_or("Unknown governing country")?;
-        if let Some(change) = country
-            .constitution
-            .as_ref()
-            .and_then(|state| state.history.iter().rev().find(|change| change.day <= day))
-        {
+        if let Some(change) = country.constitution.as_ref().and_then(|state| {
+            state
+                .history
+                .iter()
+                .rev()
+                .find(|change| change.day <= crate::CampaignDay::new(day))
+        }) {
             return Ok(&content
                 .constitutions
                 .as_ref()
@@ -582,7 +582,7 @@ impl World {
             request: request.id,
             from: request.from.clone(),
             to: request.target.clone(),
-            day: self.day.units(),
+            day: self.day,
             contested: request.contested,
             government_number: next_government,
         });

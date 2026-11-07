@@ -60,7 +60,7 @@ impl Panel {
             egui::CollapsingHeader::new(format!("{} · {}",mandate.name,if mandate.autonomous_services {"Autonomous services"} else {"Delegated services"})).id_salt(&mandate.id.0).show(ui,|ui| {
                 ui.label(format!("{} authority · population share {:.1}% · entitlement {:.1}% of collected income tax · base purchasing level {}.",tier(&mandate.tier),mandate.population_share_bps.units_i64() as f64/100.0,mandate.tax_entitlement_bps.units_i64() as f64/100.0,local.service_level));
                 ui.label(format!("Protected local base cash {}m · tax received {}m · base purchases paid {}m. Next national order after {}.",local.cash.0,local.tax_received.0,local.base_spent.0,date(local.next_order_day)));
-                if let Some(last)=&local.last {ui.label(format!("{}: entitled receipts {}m · base requested/paid {}/{}m · funded supplement paid {}m.",date(last.day),last.tax_receipts.0,last.requested_base.0,last.paid_base.0,last.paid_supplement.0));}
+                if let Some(last)=&local.last {ui.label(format!("{}: entitled receipts {}m · base requested/paid {}/{}m · funded supplement paid {}m.",date(last.day.units()),last.tax_receipts.0,last.requested_base.0,last.paid_base.0,last.paid_supplement.0));}
                 for order in state.orders.iter().filter(|o|o.region==mandate.id && matches!(o.status,RegionalOrderStatus::Pending|RegionalOrderStatus::Implementing)) {
                     ui.label(format!("#{} · {:?} · review {} · administration {}m · escrow {}m · local grant remaining {}m.",order.id.0,order.status,date(order.decision_day),order.paid_administration.0,order.escrow.0,order.remaining.0));
                     if order.status==RegionalOrderStatus::Pending && ui.button(format!("Withdraw pending regional order #{}",order.id.0)).clicked() {action=Some(Action::CancelRegionalOrder {order:order.id});}
@@ -130,7 +130,7 @@ impl Panel {
                 Err(reason)=>{ui.label(format!("Cannot reform: {reason}"));}
             }
             for record in state.reforms.iter().rev(){ui.label(format!("#{} · {:?} → {:?} · {:?} · review {} · paid/reserved {}/{}m",record.id.0,record.from,record.target,record.status,date(record.decision_day),record.paid_admin.0,record.reserved.0));if record.status==TerritorialReformStatus::Pending&&ui.button(format!("Withdraw territorial request #{}",record.id.0)).clicked(){action=Some(Action::WithdrawTerritorialReform{request:record.id});}}
-            for claim in state.requisitions.iter().rev(){ui.label(format!("{} · contested claim #{} · {} · {}m base funds · {}m administration",date(claim.day),claim.id.0,claim.region.0,claim.amount.0,claim.fee.0));}
+            for claim in state.requisitions.iter().rev(){ui.label(format!("{} · contested claim #{} · {} · {}m base funds · {}m administration",date(claim.day.units()),claim.id.0,claim.region.0,claim.amount.0,claim.fee.0));}
         });
         action
     }

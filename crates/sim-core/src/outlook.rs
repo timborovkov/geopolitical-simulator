@@ -48,7 +48,7 @@ pub struct LoanAssumption {
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FundingPoint {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub without_loan: Money,
     pub if_approved: Money,
 }
@@ -206,7 +206,7 @@ impl World {
                 if_approved -= i128::from(loan.expect("assumed maturity requires loan").amount.0);
             }
             points.push(FundingPoint {
-                day,
+                day: crate::CampaignDay::new(day),
                 without_loan: Money(
                     baseline
                         .try_into()
@@ -237,7 +237,7 @@ impl World {
                 points
                     .iter()
                     .find(|p| p.without_loan.0 < 0)
-                    .map(|p| u64::from((p.day - self.day.units()).saturating_sub(1)))
+                    .map(|p| u64::from((p.day.units() - self.day.units()).saturating_sub(1)))
             } else {
                 (balance < 0).then(|| (i128::from(available) / -i128::from(balance)) as u64)
             },

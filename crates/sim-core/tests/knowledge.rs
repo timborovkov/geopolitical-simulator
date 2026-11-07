@@ -10,7 +10,10 @@ fn government_projection_excludes_foreign_accounts_and_future_truth() {
     assert_eq!(view.own.as_ref().unwrap().id, w.player);
     assert_eq!(view.reports.len(), 15);
     let china = &view.reports[&CountryId("CHN".into())];
-    assert_eq!(china.latest.as_ref().unwrap().day, 30);
+    assert_eq!(
+        china.latest.as_ref().unwrap().day,
+        sim_core::CampaignDay::new(30)
+    );
     let report = serde_json::to_value(china).unwrap();
     for key in [
         "treasury",

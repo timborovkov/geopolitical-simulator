@@ -97,8 +97,7 @@ fn a_later_bookmark_receives_five_calendar_years_before_its_review() {
         world
             .events
             .iter()
-            .any(|event| event.day == world.day.units()
-                && event.text.starts_with("Five-year review:"))
+            .any(|event| event.day == world.day && event.text.starts_with("Five-year review:"))
     );
     world.validate(&content).unwrap();
     persistence::replay(&world, &content).unwrap();

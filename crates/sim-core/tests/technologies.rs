@@ -290,6 +290,10 @@ fn nonplayer_supply_orders_obey_the_same_date_gate_and_have_no_free_capacity() {
         .filter(|entry| entry.ai && energy_order(entry))
         .collect();
     assert!(!orders.is_empty());
-    assert!(orders.iter().all(|entry| entry.command.day >= 60));
+    assert!(
+        orders
+            .iter()
+            .all(|entry| entry.command.day >= sim_core::CampaignDay::new(60))
+    );
     replay(&w, &c);
 }

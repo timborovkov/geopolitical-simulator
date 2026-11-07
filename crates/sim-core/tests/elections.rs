@@ -71,7 +71,7 @@ fn authority_announces_and_conducts_a_fixed_poll_that_government_cannot_withdraw
     w.advance(&c, sim_core::DaySpan::new(60)).unwrap();
     let state = w.player_country().electoral_authority.as_ref().unwrap();
     assert_eq!(state.cases[0].status, ElectionCaseStatus::Conducted);
-    assert_eq!(state.polls[0].day, 432);
+    assert_eq!(state.polls[0].day, sim_core::CampaignDay::new(432));
     assert_eq!(state.polls[0].request, Some(id));
     assert_eq!(
         state.polls[0]
@@ -97,7 +97,7 @@ fn authority_announces_and_conducts_a_fixed_poll_that_government_cannot_withdraw
             .last_poll
             .unwrap()
             .day,
-        432
+        sim_core::CampaignDay::new(432)
     );
     check(&w, &c);
 }
@@ -201,7 +201,7 @@ fn an_earlier_mandatory_confidence_poll_supersedes_an_announced_poll() {
         .as_ref()
         .unwrap()
         .polls[0];
-    assert_eq!(poll.day, 181);
+    assert_eq!(poll.day, sim_core::CampaignDay::new(181));
     assert!(poll.request.is_none());
     assert!(!w.is_developer_modified());
     check(&w, &c);
@@ -382,7 +382,7 @@ fn an_announced_poll_on_a_confidence_review_day_actually_counts_the_seats() {
     w.advance(&c, sim_core::DaySpan::new(60)).unwrap();
     let state = w.player_country().electoral_authority.as_ref().unwrap();
     assert_eq!(state.polls.len(), 1);
-    assert_eq!(state.polls[0].day, 180);
+    assert_eq!(state.polls[0].day, sim_core::CampaignDay::new(180));
     assert_ne!(
         state.polls[0].seats[&"AUR-1".into()],
         40,

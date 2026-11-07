@@ -89,7 +89,7 @@ fn no_reserve_release<Q>() -> Option<Q> {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MarketSettlement<Q> {
-    pub day: u32,
+    pub day: crate::CampaignDay,
     pub price_bps: BasisPoints,
     pub physical_need: Q,
     /// Food: household demand after affordability. Energy: requested physical industrial use; only imports have a cash settlement in this version.
@@ -218,7 +218,7 @@ fn validate_quote<Q: Copy>(
     let delivered = units(last.delivered);
     let loss = units(last.loss);
     let closing = units(last.closing_stock);
-    if last.day != day
+    if last.day != crate::CampaignDay::new(day)
         || day <= start
         || physical != need
         || affordable < 0
