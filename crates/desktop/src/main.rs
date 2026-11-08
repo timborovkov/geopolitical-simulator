@@ -79,6 +79,7 @@ struct GameApp {
     commitment_panel: commitments::Panel,
     undertaking_panel: undertakings::Panel,
     fiscal_panel: fiscal_plans::Panel,
+    legislation_panel: legislation::Panel,
     cabinet_panel: cabinet::Panel,
     subnational_panel: subnational::Panel,
     sort_gdp: bool,
@@ -155,6 +156,7 @@ impl GameApp {
             commitment_panel: commitments::Panel::default(),
             undertaking_panel: undertakings::Panel::default(),
             fiscal_panel: fiscal_plans::Panel::default(),
+            legislation_panel: legislation::Panel::default(),
             cabinet_panel: cabinet::Panel::default(),
             subnational_panel: subnational::Panel::default(),
             sort_gdp: false,
@@ -349,6 +351,7 @@ impl GameApp {
                 self.navigation = navigation::History::default();
                 self.undertaking_panel = undertakings::Panel::default();
                 self.fiscal_panel = fiscal_plans::Panel::default();
+                self.legislation_panel = legislation::Panel::default();
                 self.walkthrough = walkthrough::Panel::default();
                 self.cash_management = cash_management::Panel::default();
                 self.event_browser = chronicle::Panel::default();
@@ -459,6 +462,7 @@ impl GameApp {
         self.commitment_panel = commitments::Panel::default();
         self.undertaking_panel = undertakings::Panel::default();
         self.fiscal_panel = fiscal_plans::Panel::default();
+        self.legislation_panel = legislation::Panel::default();
         self.cabinet_panel = cabinet::Panel::default();
         self.cashflows = cashflows::CashFlows::default();
         self.inspector = inspector::Inspector::default();
@@ -1199,6 +1203,11 @@ impl GameApp {
             return;
         }
         technologies::show(ui, &self.content, w, &self.policy);
+        if let Some(law) = legislation::requirements(ui, &self.content, w, &self.policy, self.value)
+        {
+            self.inspect_required_law(law);
+            return;
+        }
         if self.policy == "income_tax" {
             income_taxes::show(ui, &self.content, w, Some(self.value));
         }
@@ -1293,6 +1302,9 @@ impl GameApp {
         {
             if let Some(action) = self.commitment_panel.show(ui, &self.content, w) {
                 self.issue(action);
+            }
+            if let Some(law) = self.commitment_panel.take_law_request() {
+                self.inspect_required_law(law);
             }
             return;
         }
@@ -1648,11 +1660,30 @@ impl GameApp {
         if let Some(action) = finance_action {
             self.issue(action);
         }
+        if let Some(law) = self.fiscal_panel.take_law_request() {
+            self.inspect_required_law(law);
+        }
         if let Some((policy, value)) = compare {
             self.pause();
             self.policy = policy;
             self.value = value;
             self.tab = Tab::Policies;
+        }
+    }
+    fn inspect_required_law(&mut self, law: LawId) {
+        if self
+            .world
+            .as_ref()
+            .is_some_and(|world| world.player == self.selected)
+            && self
+                .content
+                .legislation
+                .as_ref()
+                .is_some_and(|rules| rules.law(&law).is_some())
+        {
+            self.pause();
+            self.legislation_panel.focus(law);
+            self.tab = Tab::Politics;
         }
     }
     fn politics(&mut self, ui: &mut egui::Ui) {
@@ -1666,7 +1697,7 @@ impl GameApp {
             executive_identity::show(ui, &self.content, world);
         }
         if let Some(world) = &self.world
-            && let Some(action) = legislation::show(ui, &self.content, world)
+            && let Some(action) = self.legislation_panel.show(ui, &self.content, world)
         {
             self.issue(action);
         }
@@ -2004,6 +2035,7 @@ impl GameApp {
                         self.navigation = navigation::History::default();
                         self.undertaking_panel = undertakings::Panel::default();
                         self.fiscal_panel = fiscal_plans::Panel::default();
+                        self.legislation_panel = legislation::Panel::default();
                         self.walkthrough = walkthrough::Panel::default();
                         self.cash_management = cash_management::Panel::default();
                         self.event_browser = chronicle::Panel::default();
@@ -4433,5 +4465,115 @@ mod interface_tests {
             .remove(0);
         assert_eq!(app.map.camera.longitude, target.bounds.center().x);
         assert_eq!(app.map.camera.latitude, target.bounds.center().y);
+    }
+    #[test]
+    fn statutory_policy_link_focuses_permission_and_back_preserves_the_draft_without_orders() {
+        fn labels(output: &egui::FullOutput) -> String {
+            output
+                .shapes
+                .iter()
+                .filter_map(|shape| match &shape.shape {
+                    egui::Shape::Text(text) => Some(text.galley.text()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        }
+        fn click(ctx: &egui::Context, app: &mut GameApp, input: &egui::RawInput, label: &str) {
+            for _ in 0..20 {
+                let output = ctx.run(input.clone(), |ctx| app.render(ctx));
+                if let Some(pos) = output.shapes.iter().find_map(|shape| match &shape.shape {
+                    egui::Shape::Text(text) if text.galley.text() == label => {
+                        let center = text.pos + text.galley.size() / 2.;
+                        shape.clip_rect.contains(center).then_some(center)
+                    }
+                    _ => None,
+                }) {
+                    for pressed in [true, false] {
+                        let mut next = input.clone();
+                        next.events = vec![
+                            egui::Event::PointerMoved(pos),
+                            egui::Event::PointerButton {
+                                pos,
+                                button: egui::PointerButton::Primary,
+                                pressed,
+                                modifiers: Default::default(),
+                            },
+                        ];
+                        let _ = ctx.run(next, |ctx| app.render(ctx));
+                    }
+                    return;
+                }
+                let mut next = input.clone();
+                next.events = vec![
+                    egui::Event::PointerMoved(egui::pos2(800., 400.)),
+                    egui::Event::MouseWheel {
+                        unit: egui::MouseWheelUnit::Point,
+                        delta: egui::vec2(0., -160.),
+                        modifiers: Default::default(),
+                    },
+                ];
+                let _ = ctx.run(next, |ctx| app.render(ctx));
+                for _ in 0..4 {
+                    let _ = ctx.run(input.clone(), |ctx| app.render(ctx));
+                }
+            }
+            panic!("Missing visible {label}");
+        }
+        let content = Content::bundled().unwrap();
+        let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        for scale in [1., 1.4] {
+            let ctx = egui::Context::default();
+            let mut app =
+                GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            app.world = Some(world.clone());
+            app.selected = world.player.clone();
+            app.tab = Tab::Policies;
+            app.policy = "services".into();
+            app.value = 14;
+            let input = egui::RawInput {
+                focused: true,
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1440. / scale, 1000. / scale),
+                )),
+                ..Default::default()
+            };
+            for _ in 0..4 {
+                let _ = ctx.run(input.clone(), |ctx| app.render(ctx));
+            }
+            click(&ctx, &mut app, &input, "Inspect required law");
+            assert!(app.tab == Tab::Politics);
+            let mut output = ctx.run(input.clone(), |ctx| app.render(ctx));
+            for _ in 0..4 {
+                output = ctx.run(input.clone(), |ctx| app.render(ctx));
+            }
+            assert!(labels(&output).contains("High-service appropriation authority"));
+            assert!(
+                output.shapes.iter().any(|shape| match &shape.shape {
+                    egui::Shape::Text(text)
+                        if text.galley.text() == "Propose funded statutory bill" =>
+                        shape.clip_rect.contains(text.pos + text.galley.size() / 2.),
+                    _ => false,
+                }),
+                "Focused law controls must be visible at scale {scale}"
+            );
+            click(&ctx, &mut app, &input, "Back");
+            assert!(app.tab == Tab::Policies);
+            assert_eq!((app.policy.as_str(), app.value), ("services", 14));
+            assert_eq!(app.world.as_ref().unwrap(), &world);
+            app.selected = CountryId("USA".into());
+            for tab in [Tab::Policies, Tab::Politics, Tab::Treasury] {
+                app.tab = tab;
+                let output = ctx.run(input.clone(), |ctx| app.render(ctx));
+                assert!(!labels(&output).contains("Statutory prerequisites for this target"));
+                assert!(!labels(&output).contains("Inspect required law"));
+            }
+            app.tab = Tab::Policies;
+            app.inspect_required_law(LawId("high_service_authority".into()));
+            assert!(app.tab == Tab::Policies);
+            assert_eq!(app.world.as_ref().unwrap(), &world);
+        }
     }
 }

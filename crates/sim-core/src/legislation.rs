@@ -226,7 +226,84 @@ pub struct LawEligibility {
     pub name: String,
     pub enacted: bool,
 }
+/// Owner-only planning information. None of these states approves a programme.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PolicyLawPlan {
+    pub law: LawId,
+    pub name: String,
+    pub progress: LawPermissionProgress,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LawPermissionProgress {
+    Enacted {
+        bill: LawBillId,
+        day: CampaignDay,
+    },
+    Pending {
+        bill: LawBillId,
+        status: LawBillStatus,
+        paid: Money,
+        reserved: Money,
+        review_day: CampaignDay,
+        enactment_day: CampaignDay,
+    },
+    Proposable(LawPreview),
+    Blocked(String),
+}
 impl World {
+    /// Inspect only the controlled government's requirements for this target.
+    /// Pending consent and conditional dates grant no statutory permission.
+    pub fn policy_law_plan(
+        &self,
+        content: &Content,
+        viewer: Viewer,
+        policy: &PolicyId,
+        value: i32,
+    ) -> Result<Vec<PolicyLawPlan>, String> {
+        if viewer != Viewer::Government(self.player.clone()) {
+            return Err("Statutory planning is private to the controlled government".into());
+        }
+        self.policy_law_eligibility(content, &self.player, policy, value)?
+            .into_iter()
+            .map(|requirement| {
+                let state = self
+                    .player_country()
+                    .legislation
+                    .as_ref()
+                    .ok_or("Missing legislation state")?;
+                let progress = if let Some(entry) = state.enacted.get(&requirement.law) {
+                    LawPermissionProgress::Enacted {
+                        bill: entry.bill,
+                        day: entry.day,
+                    }
+                } else if let Some(bill) = state
+                    .bills
+                    .iter()
+                    .rev()
+                    .find(|bill| bill.law == requirement.law && bill.status.pending())
+                {
+                    LawPermissionProgress::Pending {
+                        bill: bill.id,
+                        status: bill.status,
+                        paid: bill.paid,
+                        reserved: bill.reserved,
+                        review_day: bill.review_day,
+                        enactment_day: bill.enactment_day,
+                    }
+                } else {
+                    match self.preview_law(content, &self.player, &requirement.law) {
+                        Ok(preview) => LawPermissionProgress::Proposable(preview),
+                        Err(reason) => LawPermissionProgress::Blocked(reason),
+                    }
+                };
+                Ok(PolicyLawPlan {
+                    law: requirement.law,
+                    name: requirement.name,
+                    progress,
+                })
+            })
+            .collect()
+    }
     pub fn policy_law_eligibility(
         &self,
         content: &Content,

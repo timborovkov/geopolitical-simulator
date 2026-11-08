@@ -6,8 +6,12 @@ pub struct Panel {
     levels: BTreeMap<CommitmentId, i32>,
     focused: Option<CommitmentId>,
     scroll_to_focus: bool,
+    inspect_law: Option<LawId>,
 }
 impl Panel {
+    pub fn take_law_request(&mut self) -> Option<LawId> {
+        self.inspect_law.take()
+    }
     pub fn focus(&mut self, request: CommitmentId) {
         self.focused = Some(request);
         self.scroll_to_focus = true;
@@ -54,6 +58,7 @@ impl Panel {
                     let value=self.levels.entry(p.id).or_insert(p.value);
                     let definition=content.policy(&p.policy).expect("policy");
                     ui.add(egui::Slider::new(value,definition.min..=definition.max).text("Amended level (%)"));
+                    self.inspect_law = super::legislation::requirements(ui, content, world, &p.policy, *value).or(self.inspect_law.take());
                     match world.preview_amendment(content,&world.player,p.id,*value) {
                         Ok(preview)=>{
                             ui.label(format!("Pay {}m administration now; consent restarts to {}, delivery {}. {}",preview.fee.0,date(preview.consent_day),date(preview.due_day),preview.route));
@@ -131,6 +136,41 @@ pub(crate) fn effect_label(field: &str) -> &str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn blocked_amendment_requests_permission_inspection_and_keeps_its_pending_draft_and_cash() {
+        let content = Content::from_json(include_str!(
+            "../../../data/synthetic-legislation-test.json"
+        ))
+        .unwrap();
+        let mut world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+        world
+            .issue(
+                &content,
+                Action::Enact {
+                    policy: "services".into(),
+                    value: 12,
+                },
+            )
+            .unwrap();
+        let request = world.player_country().projects[0].id;
+        let before = world.clone();
+        for scale in [1., 1.4] {
+            let mut panel = Panel::default();
+            panel.levels.insert(request, 14);
+            let mut action = None;
+            super::super::legislation::click_required_law(scale, |ui| {
+                action = panel.show(ui, &content, &world).or(action.take());
+            });
+            assert!(action.is_none());
+            assert_eq!(
+                panel.take_law_request(),
+                Some(LawId("high_service_authority".into()))
+            );
+            assert!(panel.take_law_request().is_none());
+            assert_eq!(panel.levels[&request], 14);
+            assert_eq!(world, before);
+        }
+    }
     #[test]
     fn withdrawal_shows_sunk_cost_and_returns_an_explicit_order_without_mutating_the_world() {
         for scale in [1.0, 1.4] {

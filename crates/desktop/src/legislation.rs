@@ -1,14 +1,137 @@
 use eframe::egui;
 use sim_core::*;
 
-pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Action> {
+#[derive(Default)]
+pub struct Panel {
+    focus: Option<LawId>,
+}
+impl Panel {
+    pub fn focus(&mut self, law: LawId) {
+        self.focus = Some(law);
+    }
+    pub fn show(&mut self, ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Action> {
+        show_inner(ui, content, world, self.focus.take().as_ref())
+    }
+}
+
+/// Shared by owner-only policy, amendment and fiscal-draft workspaces.
+/// A click requests inspection; it never returns a simulation command.
+pub fn requirements(
+    ui: &mut egui::Ui,
+    content: &Content,
+    world: &World,
+    policy: &PolicyId,
+    value: i32,
+) -> Option<LawId> {
+    let plans = match world.policy_law_plan(
+        content,
+        Viewer::Government(world.player.clone()),
+        policy,
+        value,
+    ) {
+        Ok(plans) => plans,
+        Err(reason) => {
+            ui.label(format!("Statutory prerequisites: {reason}"));
+            return None;
+        }
+    };
+    if plans.is_empty() {
+        return None;
+    }
+    let mut inspect = None;
+    egui::Frame::group(ui.style()).show(ui, |ui| {
+        ui.strong("Statutory prerequisites for this target");
+        for plan in plans {
+            ui.push_id((&policy.0, value, &plan.law.0), |ui| {
+                ui.label(&plan.name);
+                match plan.progress {
+                    LawPermissionProgress::Enacted { bill, day } => {
+                        ui.colored_label(super::MINT, format!("Enacted {} · bill #{}", date(day), bill.0));
+                    }
+                    LawPermissionProgress::Pending { bill, status, paid, reserved, review_day, enactment_day } => {
+                        ui.label(format!("Bill #{} · {} · paid {}m · protected {}m", bill.0, status.label(), paid.0, reserved.0));
+                        ui.label(format!("Conditional consent {} · earliest enactment {}. Pending work grants no permission.", date(review_day), date(enactment_day)));
+                    }
+                    LawPermissionProgress::Proposable(preview) => {
+                        ui.label(format!("Not enacted. A proposal today costs {}m: pay {}m drafting and protect {}m implementation cash.", preview.total_cost.0, preview.upfront.0, preview.reserved.0));
+                        ui.label(format!("Conditional consent {} · earliest enactment {}. {}", date(preview.review_day), date(preview.enactment_day), preview.authority.label()));
+                    }
+                    LawPermissionProgress::Blocked(reason) => { ui.label(format!("Not enacted. Proposal condition: {reason}")); }
+                }
+                if ui.button("Inspect required law").clicked() { inspect = Some(plan.law.clone()); }
+            });
+        }
+        ui.small("Law enactment grants permission. Programme funding, consent and delivery are separate; future dates depend on backing and paid implementation.");
+    });
+    inspect
+}
+
+#[cfg(test)]
+fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Action> {
+    Panel::default().show(ui, content, world)
+}
+
+#[cfg(test)]
+pub(super) fn click_required_law(scale: f32, mut render: impl FnMut(&mut egui::Ui)) {
+    let ctx = egui::Context::default();
+    ctx.set_zoom_factor(scale);
+    let mut frame = |events| {
+        ctx.run(
+            egui::RawInput {
+                focused: true,
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1440. / scale, 1000. / scale),
+                )),
+                events,
+                ..Default::default()
+            },
+            |ctx| {
+                egui::CentralPanel::default().show(ctx, |ui| render(ui));
+            },
+        )
+    };
+    for _ in 0..3 {
+        let _ = frame(vec![]);
+    }
+    let output = frame(vec![]);
+    let pos = output
+        .shapes
+        .iter()
+        .find_map(|shape| match &shape.shape {
+            egui::Shape::Text(text) if text.galley.text() == "Inspect required law" => {
+                let center = text.pos + text.galley.size() / 2.;
+                shape.clip_rect.contains(center).then_some(center)
+            }
+            _ => None,
+        })
+        .expect("visible required-law inspection");
+    for pressed in [true, false] {
+        let _ = frame(vec![
+            egui::Event::PointerMoved(pos),
+            egui::Event::PointerButton {
+                pos,
+                button: egui::PointerButton::Primary,
+                pressed,
+                modifiers: Default::default(),
+            },
+        ]);
+    }
+}
+
+fn show_inner(
+    ui: &mut egui::Ui,
+    content: &Content,
+    world: &World,
+    focus: Option<&LawId>,
+) -> Option<Action> {
     let rules = content.legislation.as_ref()?;
     let state = world.player_country().legislation.as_ref()?;
     let mut action = None;
     ui.heading("Statutory authority");
     ui.label("Fund drafting and implementation, obtain governing consent, then commission the permitted programme through its ordinary funding and delivery process.");
     for law in &rules.definitions {
-        egui::CollapsingHeader::new(&law.name).id_salt((&law.id.0,"statute")).default_open(true).show(ui, |ui| {
+        let response = egui::CollapsingHeader::new(&law.name).id_salt((&law.id.0,"statute")).default_open(true).open((focus == Some(&law.id)).then_some(true)).show(ui, |ui| {
             ui.label(&law.description);
             ui.small(format!("Proposal availability: {} · scenario source {} / {}",law.available_from,law.source,law.source_version));
             for requirement in rules.policy_requirements.iter().filter(|r|r.laws.contains(&law.id)) {
@@ -28,6 +151,13 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World) -> Option<Actio
                 }
             }
         });
+        if focus == Some(&law.id) {
+            ui.scroll_to_rect_animation(
+                response.header_response.rect,
+                Some(egui::Align::TOP),
+                egui::style::ScrollAnimation::none(),
+            );
+        }
     }
     for bill in state.bills.iter().filter(|bill| bill.status.pending()) {
         egui::Frame::group(ui.style()).show(ui, |ui| {

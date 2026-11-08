@@ -4,8 +4,12 @@ use sim_core::*;
 pub struct Panel {
     targets: Option<FiscalTargets>,
     annual: bool,
+    inspect_law: Option<LawId>,
 }
 impl Panel {
+    pub fn take_law_request(&mut self) -> Option<LawId> {
+        self.inspect_law.take()
+    }
     pub fn show(&mut self, ui: &mut Ui, content: &Content, world: &World) -> Option<Action> {
         content.fiscal_plans.as_ref()?;
         let c = world.player_country();
@@ -47,6 +51,18 @@ impl Panel {
                 "Next-year annual budget (otherwise current-year supplementary)",
             );
             let year = date(world.day)[..4].parse::<u32>().expect("year") + u32::from(self.annual);
+            // Only changed settings are dispatched as programmes by a fiscal plan.
+            for (policy, value, current) in [
+                ("income_tax", targets.income_tax, c.tax),
+                ("services", targets.services, c.services),
+                ("welfare", targets.welfare, c.welfare),
+            ] {
+                if value != current {
+                    self.inspect_law =
+                        super::legislation::requirements(ui, content, world, &policy.into(), value)
+                            .or(self.inspect_law.take());
+                }
+            }
             match world.preview_budget(content, &world.player, year, targets) {
                 Ok(p) => {
                     ui.label(format!("Fiscal year {year} · {} · review {} · legal start {}. Pay {}m administration now; reserve {}m implementation cash.",p.route,date(p.review_day),date(p.effective_day),p.fee.0,p.implementation_cost.0));
@@ -194,6 +210,38 @@ mod tests {
     }
 
     #[test]
+    fn blocked_fiscal_target_requests_law_inspection_without_submitting_or_replacing_the_draft() {
+        let content = Content::from_json(include_str!(
+            "../../../data/synthetic-legislation-test.json"
+        ))
+        .unwrap();
+        let world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+        let before = world.clone();
+        for scale in [1., 1.4] {
+            let targets = FiscalTargets {
+                services: 14,
+                ..FiscalTargets::current(world.player_country())
+            };
+            let mut panel = Panel {
+                targets: Some(targets.clone()),
+                ..Default::default()
+            };
+            let mut action = None;
+            super::super::legislation::click_required_law(scale, |ui| {
+                action = panel.show(ui, &content, &world).or(action.take());
+            });
+            assert!(action.is_none());
+            assert_eq!(
+                panel.take_law_request(),
+                Some(LawId("high_service_authority".into()))
+            );
+            assert!(panel.take_law_request().is_none());
+            assert_eq!(panel.targets, Some(targets));
+            assert_eq!(world, before);
+        }
+    }
+
+    #[test]
     fn fiscal_preview_is_read_only_and_submission_is_explicit_at_two_scales() {
         for scale in [1.0, 1.4] {
             let c = Content::from_json(include_str!(
@@ -211,6 +259,7 @@ mod tests {
                     welfare: 3,
                 }),
                 annual: false,
+                ..Default::default()
             };
             let input = egui::RawInput {
                 focused: true,
