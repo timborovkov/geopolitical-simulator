@@ -97,16 +97,48 @@ impl IncomeTaxDefinition {
         standard_rate: i32,
         administration: i32,
     ) -> Result<IncomeTaxAssessment, String> {
+        self.assess_for_population(
+            d,
+            group_population,
+            gross,
+            standard_rate,
+            administration,
+            false,
+        )
+    }
+    pub(crate) fn assess_for_population(
+        &self,
+        d: &CountryDefinition,
+        group_population: Population,
+        gross: Money,
+        standard_rate: i32,
+        administration: i32,
+        dynamic_population: bool,
+    ) -> Result<IncomeTaxAssessment, String> {
         self.validate_shape()?;
         if !(0..=1_000_000_000_000).contains(&gross.0)
-            || group_population.0 == 0
-            || group_population.0 > d.population.0
+            || group_population.0 == 0 && (!dynamic_population || gross.0 != 0)
+            || group_population.0
+                > if dynamic_population {
+                    1_000_000_000_000
+                } else {
+                    d.population.0
+                }
             || d.population.0 == 0
             || !(1..=100_000_000).contains(&d.gdp.units())
             || !(1..=100).contains(&administration)
             || !(10..=45).contains(&standard_rate)
         {
             return Err("Income assessment requires bounded received income, population, GDP, standard rate and collection capacity".into());
+        }
+        if group_population.0 == 0 {
+            return Ok(IncomeTaxAssessment {
+                gross,
+                annualised_reference_bps: 0,
+                potential: Money(0),
+                collectible: Money(0),
+                slices: vec![],
+            });
         }
         let annual = i128::from(gross.0) * i128::from(self.annualisation_days.units());
         let threshold = |bps: u32| {
@@ -204,18 +236,19 @@ impl World {
             .ok_or("This campaign uses the earlier flat private-income model")?;
         let c = self.countries.get(id).ok_or("Unknown country")?;
         let d = content.country(id).ok_or("Missing country definition")?;
-        c.forecast_private_income(d)
+        c.forecast_private_income_for_content(d, content)
             .iter()
             .zip(&c.households)
             .map(|(amount, h)| {
                 Ok((
                     h.id.clone(),
-                    taxes.assess(
+                    taxes.assess_for_population(
                         d,
                         h.population,
                         Money(*amount),
                         standard_rate,
                         c.administration,
+                        content.demographics.is_some(),
                     )?,
                 ))
             })
@@ -274,12 +307,13 @@ impl World {
         let mut gross = 0_i128;
         let mut paid = 0_i128;
         for (line, h) in report.groups.iter().zip(&c.households) {
-            let expected = rules.assess(
+            let expected = rules.assess_for_population(
                 d,
                 h.population,
                 line.assessment.gross,
                 report.standard_rate,
                 report.administration,
+                content.demographics.is_some(),
             )?;
             if line.group != h.id
                 || line.assessment != expected

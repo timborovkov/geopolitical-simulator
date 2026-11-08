@@ -214,7 +214,12 @@ impl World {
             .as_ref()
             .ok_or("Missing commodity market rules")?
             .good(good);
-        let import_capacity = physical_need * i64::from(rule.import_limit_bps.units()) / 10000;
+        let import_basis = if content.demographics.is_some() {
+            (content.country(id).expect("country").population.0 / 1000) as i64
+        } else {
+            physical_need
+        };
+        let import_capacity = import_basis * i64::from(rule.import_limit_bps.units()) / 10000;
         Ok(Some(ReserveSupply {
             day,
             physical_need,
@@ -250,7 +255,11 @@ impl World {
                 rules.capacity_days
             ));
         }
-        let need = (c.population.0 / 1000) as i64;
+        let need = (if content.demographics.is_some() {
+            d.population.0
+        } else {
+            c.population.0
+        } / 1000) as i64;
         let quantity = need * i64::from(days.units());
         if state
             .orders
@@ -518,7 +527,16 @@ impl World {
             .cloned()
             .collect();
         let c = &self.countries[id];
-        let need = (c.population.0 / 1000) as i64;
+        let need = (if content.demographics.is_some() {
+            c.population.0.div_ceil(1000)
+        } else {
+            c.population.0 / 1000
+        }) as i64;
+        let import_basis = if content.demographics.is_some() {
+            (content.country(id).expect("country").population.0 / 1000) as i64
+        } else {
+            need
+        };
         for o in orders {
             let c = &self.countries[id];
             let m = c.markets.as_ref().unwrap();
@@ -536,7 +554,7 @@ impl World {
             if supply < need {
                 continue;
             }
-            let quantity = (need * i64::from(r.import_limit_bps.units()) / 10000 - imports)
+            let quantity = (import_basis * i64::from(r.import_limit_bps.units()) / 10000 - imports)
                 .min(o.quantity - o.filled)
                 .max(0);
             if quantity == 0 {
@@ -619,10 +637,14 @@ impl World {
             return;
         }
         let d = content.country(id).unwrap();
-        if c.population != d.population {
+        if content.demographics.is_none() && c.population != d.population {
             return;
         }
-        let need = (c.population.0 / 1000) as i64;
+        let need = (if content.demographics.is_some() {
+            c.population.0.div_ceil(1000)
+        } else {
+            c.population.0 / 1000
+        }) as i64;
         let state = c.reserves.as_ref().unwrap();
         for good in [GoodKind::Energy, GoodKind::Food] {
             if state.stored(good) >= need / 2 {
@@ -741,10 +763,14 @@ impl World {
             return Err("Reserve order history exceeds its retention limit".into());
         }
         let d = content.country(id).unwrap();
-        if c.population != d.population {
+        if content.demographics.is_none() && c.population != d.population {
             return Err("Reserve population differs from fixed country definition".into());
         }
-        let need = (c.population.0 / 1000) as i64;
+        let need = (if content.demographics.is_some() {
+            d.population.0
+        } else {
+            c.population.0
+        } / 1000) as i64;
         let mut previous = 0;
         let mut open = std::collections::BTreeSet::new();
         for o in &state.orders {

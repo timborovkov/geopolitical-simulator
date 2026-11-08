@@ -267,10 +267,7 @@ impl World {
             return active.is_some();
         }
         let government = self.governing_rules(content, id).expect("government");
-        let forecast = c.forecast(
-            content.country(id).expect("country"),
-            content.income_taxes.as_ref(),
-        );
+        let forecast = c.forecast_for_content(content.country(id).expect("country"), content);
         let candidates = if government.check(&c, "borrow", 0).is_err() {
             vec![("coalition", 1)]
         } else if c

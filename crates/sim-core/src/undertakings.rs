@@ -355,7 +355,12 @@ impl World {
             }
             let current = policy_level(c, &record.project.policy).expect("policy");
             let target = match record.project.policy.as_str() {
-                "energy" | "agriculture" => (current + 15).min(200),
+                "energy" | "agriculture" => (current + 15).min(
+                    content
+                        .demographics
+                        .as_ref()
+                        .map_or(200, |d| d.maximum_capacity.units() as i32),
+                ),
                 "administration" => (current + 8).min(100),
                 _ => record.project.value,
             };
@@ -970,7 +975,12 @@ impl World {
                     .ok_or("Unknown attached policy commitment")?;
                 if project.proposal_command>=command.id||project.project.policy!=r.goal.policy||self.journal.iter().any(|entry|entry.command.issuer==*id&&entry.command.id<command.id&&matches!(entry.command.action,Action::CancelCommitment{request} if request==project.id))||project.milestones.iter().any(|m|matches!(m.stage,CommitmentStage::Operating|CommitmentStage::Refused)&&m.day<=command.day){return Err("Undertaking attached a nonpending or unrelated project".into());}
                 let target = match r.goal.policy.as_str() {
-                    "energy" | "agriculture" => (r.baseline + 15).min(200),
+                    "energy" | "agriculture" => (r.baseline + 15).min(
+                        content
+                            .demographics
+                            .as_ref()
+                            .map_or(200, |d| d.maximum_capacity.units() as i32),
+                    ),
                     "administration" => (r.baseline + 8).min(100),
                     _ => self.undertaking_project_value_at(id, project, command.id)?,
                 };

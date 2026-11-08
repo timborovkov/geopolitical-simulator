@@ -2,6 +2,7 @@ use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
 use sim_core::{Content, CountryId, World};
 #[derive(Clone, Copy, PartialEq)]
 pub enum Metric {
+    Population,
     Approval,
     Needs,
     Debt,
@@ -11,6 +12,7 @@ pub enum Metric {
 impl Metric {
     pub fn label(self) -> &'static str {
         match self {
+            Self::Population => "Published resident estimates (people)",
             Self::Approval => "Approval (%)",
             Self::Needs => "Needs met (%)",
             Self::Debt => "Debt principal (m credits)",
@@ -31,7 +33,16 @@ pub fn series(
     horizon: u32,
 ) -> Option<Series> {
     let name = content.country(id)?.name.clone();
-    let points = if metric == Metric::Treasury {
+    let points = if metric == Metric::Population {
+        world
+            .demographic_report(content, sim_core::Viewer::Observer, id)
+            .ok()??
+            .published
+            .iter()
+            .filter(|p| p.day.units().saturating_add(horizon) >= world.day.units())
+            .map(|p| (p.day.units(), p.population.0 as f64))
+            .collect()
+    } else if metric == Metric::Treasury {
         if id != &world.player {
             return None;
         }
@@ -57,7 +68,7 @@ pub fn series(
                         Metric::Needs => f64::from(o.needs),
                         Metric::Debt => o.debt.0 as f64,
                         Metric::Output => o.daily_output.0 as f64,
-                        Metric::Treasury => unreachable!(),
+                        Metric::Treasury | Metric::Population => unreachable!(),
                     },
                 )
             })
@@ -68,6 +79,41 @@ pub fn series(
         points,
     })
 }
+/// Public integer-rounding bounds, never private current resident stocks.
+pub fn population_intervals(
+    world: &World,
+    content: &Content,
+    id: &CountryId,
+    horizon: u32,
+) -> Vec<Series> {
+    let Ok(Some(report)) = world.demographic_report(content, sim_core::Viewer::Observer, id) else {
+        return vec![];
+    };
+    let Some(country) = content.country(id) else {
+        return vec![];
+    };
+    [false, true]
+        .into_iter()
+        .map(|upper| Series {
+            label: format!(
+                "{} · rounding {}",
+                country.name,
+                if upper { "upper" } else { "lower" }
+            ),
+            points: report
+                .published
+                .iter()
+                .filter(|p| p.day.units().saturating_add(horizon) >= world.day.units())
+                .map(|p| {
+                    (
+                        p.day.units(),
+                        if upper { p.upper.0 } else { p.lower.0 } as f64,
+                    )
+                })
+                .collect(),
+        })
+        .collect()
+}
 /// Archived samples remain a separately labelled series rather than silently
 /// replacing recent point observations with calendar-year means.
 pub fn archived_series(
@@ -77,6 +123,9 @@ pub fn archived_series(
     metric: Metric,
     horizon: u32,
 ) -> Option<Series> {
+    if metric == Metric::Population {
+        return None;
+    }
     let name = content.country(id)?.name.clone();
     let points: Vec<_> = if metric == Metric::Treasury {
         if id != &world.player {
@@ -110,7 +159,7 @@ pub fn archived_series(
                         Metric::Needs => f64::from(summary.mean.needs),
                         Metric::Debt => summary.mean.debt.0 as f64,
                         Metric::Output => summary.mean.daily_output.0 as f64,
-                        Metric::Treasury => unreachable!(),
+                        Metric::Treasury | Metric::Population => unreachable!(),
                     },
                 )
             })
@@ -152,6 +201,7 @@ impl Chart {
             series,
             matches!(metric, Metric::Approval | Metric::Needs),
             false,
+            metric == Metric::Population,
         );
     }
     pub fn show_funding_forecast(&mut self, ui: &mut egui::Ui, series: &[Series]) {
@@ -161,6 +211,7 @@ impl Chart {
             series,
             false,
             true,
+            false,
         );
     }
     fn draw(
@@ -170,10 +221,11 @@ impl Chart {
         series: &[Series],
         percent: bool,
         forecast: bool,
+        population: bool,
     ) {
         ui.strong(title);
         let Some((first, last, low, high)) = bounds(series) else {
-            ui.label("No published observations in this period. Advance to the first statistical review; unknown history is not a zero series.");
+            ui.label(if population { "No census release in this period. Advance to a census attempt with statistical capacity; unknown population is not a zero series." } else { "No published observations in this period. Advance to the first statistical review; unknown history is not a zero series." });
             return;
         };
         let padding = ((high - low) * 0.08).max(1.0);
@@ -205,8 +257,10 @@ impl Chart {
                 plot.bottom() - ((value - min) / (max - min)) as f32 * plot.height(),
             )
         };
-        for tick in 0..=4 {
-            let fraction = f64::from(tick) / 4.0;
+        // Whole-unit axes need fewer ticks when the displayed span is tiny.
+        let vertical_steps = ((max - min).floor() as u32).clamp(1, 4);
+        for tick in 0..=vertical_steps {
+            let fraction = f64::from(tick) / f64::from(vertical_steps);
             let value = min + (max - min) * fraction;
             let y = plot.bottom() - fraction as f32 * plot.height();
             painter.line_segment(
@@ -235,11 +289,19 @@ impl Chart {
                 Color32::LIGHT_YELLOW,
             );
         }
-        for (day, align) in [
+        for (index, (day, align)) in [
             (first, egui::Align2::LEFT_TOP),
             (first + (last - first) / 2, egui::Align2::CENTER_TOP),
             (last, egui::Align2::RIGHT_TOP),
-        ] {
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            // A single observation spans one display day. Its midpoint would
+            // duplicate the first calendar label with conflicting alignment.
+            if index == 1 && (day == first || day == last) {
+                continue;
+            }
             let position = map(day, min);
             painter.text(
                 position + Vec2::new(0.0, 10.0),
@@ -334,7 +396,7 @@ impl Chart {
                 );
             }
         });
-        ui.small(if forecast { "Daily hypothetical funding balances; negative values are funding gaps, not overdrafts. Click then use Left/Right to inspect one day at a time." } else { "Review points show the release day; output is that day's flow. Separately labelled archive series show floor-rounded review-sample means at the last sampled date, not annual totals or daily time averages. Click then use Left/Right to inspect." });
+        ui.small(if population { "Dated published population estimates and labelled rounding lower/upper bounds; these intervals are not statistical confidence. Connecting lines do not reconstruct daily truth. The latest 120 releases are retained. Click then use Left/Right to inspect." } else if forecast { "Daily hypothetical funding balances; negative values are funding gaps, not overdrafts. Click then use Left/Right to inspect one day at a time." } else { "Review points show the release day; output is that day's flow. Separately labelled archive series show floor-rounded review-sample means at the last sampled date, not annual totals or daily time averages. Click then use Left/Right to inspect." });
         egui::CollapsingHeader::new("Inspect chart values").show(ui, |ui| {
             for s in series {
                 ui.strong(&s.label);

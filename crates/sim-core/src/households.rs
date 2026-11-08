@@ -143,12 +143,30 @@ impl World {
         } else {
             base_basket
         };
+        if content.demographics.is_some() && weights.iter().all(|w| *w == 0) {
+            for h in &mut self.countries.get_mut(id).expect("country").households {
+                h.basket_cost = Money(0);
+                h.food_coverage = 100;
+            }
+            return (Money(0), Food::new(0).unwrap(), Food::new(0).unwrap());
+        }
+        let basket_total = if content.demographics.is_some() {
+            (i128::from(basket_total) * i128::from(self.countries[id].population.0)
+                / i128::from(d.population.0))
+            .min(i128::from(i64::MAX)) as i64
+        } else {
+            basket_total
+        };
         let baskets = apportion(basket_total.max(1), &weights);
         let needs = apportion(demand.units(), &weights);
         let mut affordable = Vec::new();
         let mut consumption = 0;
         for (index, basket) in baskets.iter().enumerate() {
             let h = &self.countries[id].households[index];
+            if content.demographics.is_some() && h.population.0 == 0 {
+                affordable.push(0);
+                continue;
+            }
             let desired = (*basket).max((h.income.0 - h.tax.0) * 90 / 100).max(1);
             let paid = self.pay_group(
                 id,

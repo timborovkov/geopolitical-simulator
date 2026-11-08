@@ -406,6 +406,8 @@ impl Scenario {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct World {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub demographics: Option<crate::DemographyState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub event_sequences: Option<BTreeMap<CountryId, u64>>,
     #[serde(skip)]
     pub(crate) event_error: Option<String>,
@@ -620,6 +622,7 @@ impl World {
             })
             .collect();
         let mut world = Self {
+            demographics: None,
             rules: content.rules,
             content_hash: content.hash(),
             seed,
@@ -642,12 +645,11 @@ impl World {
             ledger: Vec::new(),
             milestone_reported: false,
         };
+        world.seed_demographics(content)?;
         world.seed_executive_identities(content)?;
         for (id, country) in &mut world.countries {
-            country.budget.forecast = country.forecast(
-                content.country(id).expect("definition"),
-                content.income_taxes.as_ref(),
-            );
+            country.budget.forecast =
+                country.forecast_for_content(content.country(id).expect("definition"), content);
         }
         world.event(&player, true, "Welcome. Review supply gaps, fiscal balance and governing support. Five-year objective: needs ≥90%, approval ≥50%, no arrears, debt ≤100% of opening GDP. Values are authored game approximations.");
         if scenario == Scenario::FiscalSupplyCrisis {
@@ -728,6 +730,15 @@ impl World {
         weights: Option<&[i64]>,
     ) -> i64 {
         let c = self.countries.get_mut(country).expect("known country");
+        if self.rules >= 29
+            && to == Account::Households
+            && !weights.map_or_else(
+                || c.households.iter().any(|h| h.population.0 > 0),
+                |weights| weights.iter().any(|w| *w > 0),
+            )
+        {
+            return 0;
+        }
         let requested = if from == Account::Treasury {
             amount.max(0).min(c.available_cash().0)
         } else {
@@ -787,6 +798,7 @@ impl World {
         {
             return Err("Invalid world clock, player, roster or command sequence".into());
         }
+        self.validate_demographics(content)?;
         self.validate_event_references(content)?;
         let mut previous_day = start_day;
         for (index, entry) in self.journal.iter().enumerate() {
@@ -1016,9 +1028,13 @@ impl World {
             let d = content.country(id).ok_or("Unknown country in save")?;
             match (&c.markets, &content.markets) {
                 (None, None) => {}
-                (Some(markets), Some(definition)) => {
-                    markets.validate(definition, c, self.day, start_day)?
-                }
+                (Some(markets), Some(definition)) => markets.validate(
+                    definition,
+                    c,
+                    self.day,
+                    start_day,
+                    content.demographics.as_ref().map(|_| d.population),
+                )?,
                 _ => return Err("Country markets differ from the campaign rules/content".into()),
             }
             match (&c.constitution, &content.constitutions) {
@@ -1083,9 +1099,17 @@ impl World {
                     } else {
                         d.food.units() as i32
                     }
-                || !(1..=200).contains(&c.energy_capacity)
-                || !(1..=200).contains(&c.food_capacity)
-                || c.population != d.population
+                || !(1..=content
+                    .demographics
+                    .as_ref()
+                    .map_or(200, |d| d.maximum_capacity.units() as i32))
+                    .contains(&c.energy_capacity)
+                || !(1..=content
+                    .demographics
+                    .as_ref()
+                    .map_or(200, |d| d.maximum_capacity.units() as i32))
+                    .contains(&c.food_capacity)
+                || content.demographics.is_none() && c.population != d.population
                 || !(0..=1_000_000_000).contains(&c.energy_stock.units())
                 || !(0..=1_000_000_000).contains(&c.food_stock.units())
                 || [

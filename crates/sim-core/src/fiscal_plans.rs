@@ -305,8 +305,8 @@ impl World {
         planned.tax = targets.income_tax;
         planned.services = targets.services;
         planned.welfare = targets.welfare;
-        let baseline_forecast = c.forecast(d, content.income_taxes.as_ref());
-        let planned_forecast = planned.forecast(d, content.income_taxes.as_ref());
+        let baseline_forecast = c.forecast_for_content(d, content);
+        let planned_forecast = planned.forecast_for_content(d, content);
         let baseline_national_balance = c.national_daily_balance(d, &baseline_forecast);
         let planned_national_balance = planned.national_daily_balance(d, &planned_forecast);
         Ok(BudgetPreview {
@@ -613,7 +613,7 @@ impl World {
         }
         let c = &self.countries[id];
         let d = content.country(id).expect("country");
-        let f = c.forecast(d, content.income_taxes.as_ref());
+        let f = c.forecast_for_content(d, content);
         let balance = if content.rules >= 14 {
             c.national_daily_balance(d, &f).0
         } else {

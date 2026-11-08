@@ -9,6 +9,7 @@ mod charts;
 mod chronicle;
 mod commitments;
 mod constitutions;
+mod demographics;
 mod elections;
 mod executive_identity;
 mod financing;
@@ -1027,6 +1028,7 @@ impl GameApp {
             .public_report(&self.content, &self.selected)
             .expect("selected country");
         ui.heading(format!("{} · published country report", report.name));
+        demographics::show(ui, &self.content, w, &self.selected, Viewer::Observer);
         ui.label(format!(
             "Executive: {} · population {:.1}m · opening GDP {}m/year",
             report.executive,
@@ -1339,6 +1341,15 @@ impl GameApp {
             return;
         }
 
+        if let Some(world) = &self.world {
+            demographics::show(
+                ui,
+                &self.content,
+                world,
+                &self.selected,
+                Viewer::Government(world.player.clone()),
+            );
+        }
         ui.heading("Households, employment & needs");
         ui.label("Groups partition population and household cash without duplication. Profiles, employment responses and baskets are authored gameplay assumptions; group totals reconcile to national accounts.");
         let Some(w) = &self.world else {
@@ -1588,7 +1599,7 @@ impl GameApp {
             plan.expected_cash(),
             c.accounts.treasury.0
         ));
-        let latest = c.forecast(&d, self.content.income_taxes.as_ref());
+        let latest = c.forecast_for_content(&d, &self.content);
         let rate = latest.interest_accrual.as_ref().map_or_else(
             || format!("{}m/day", latest.daily_interest.0),
             |i| {

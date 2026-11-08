@@ -76,7 +76,7 @@ impl Analysis {
         selected: &mut CountryId,
     ) {
         ui.heading("Trends & country comparisons");
-        ui.label("Compare dated public review statistics. Archive series are separately labelled sample means. Private treasury history is available only for your government.");
+        ui.label("Compare dated published statistics. Archive series are separately labelled sample means. Private treasury history is available only for your government.");
         let Some(world) = world else {
             ui.label("Begin a campaign to collect observations. Countries without a release remain unknown.");
             return;
@@ -103,6 +103,7 @@ impl Analysis {
                 .selected_text(self.metric.label())
                 .show_ui(ui, |ui| {
                     for metric in [
+                        Metric::Population,
                         Metric::Approval,
                         Metric::Needs,
                         Metric::Debt,
@@ -134,6 +135,14 @@ impl Analysis {
         for id in &ids {
             if let Some(data) = charts::series(world, content, id, self.metric, self.horizon) {
                 series.push(data);
+                if self.metric == Metric::Population {
+                    series.extend(charts::population_intervals(
+                        world,
+                        content,
+                        id,
+                        self.horizon,
+                    ));
+                }
                 if let Some(archive) =
                     charts::archived_series(world, content, id, self.metric, self.horizon)
                 {
@@ -141,13 +150,13 @@ impl Analysis {
                 }
             } else {
                 ui.label(format!(
-                    "{}: no permission to inspect treasury history",
+                    "{}: no published observations or no permission for this metric",
                     id.0
                 ));
             }
         }
         self.chart.show(ui, self.metric, &series);
-        if world.rules >= 25 {
+        if world.rules >= 25 && self.metric != Metric::Population {
             egui::CollapsingHeader::new("Archived review sample coverage").show(ui, |ui| {
                 ui.small("Each bucket summarizes retired review samples from one calendar year. The oldest retained year can be partial. These means do not reconstruct daily history or annual accounts.");
                 for id in &ids {

@@ -196,7 +196,7 @@ impl World {
             c,
             &p.policy,
             value,
-            content.income_taxes.as_ref(),
+            content,
         );
         Ok(AmendmentPreview {
             fee,
@@ -592,8 +592,24 @@ impl World {
                     "income_tax" => vec![("income_tax", 10, 45, None)],
                     "services" => vec![("services", 4, 18, None)],
                     "welfare" => vec![("welfare", 0, 12, None)],
-                    "energy" => vec![("energy_capacity", 0, 200, Some(15))],
-                    "agriculture" => vec![("food_capacity", 0, 200, Some(15))],
+                    "energy" => vec![(
+                        "energy_capacity",
+                        0,
+                        content
+                            .demographics
+                            .as_ref()
+                            .map_or(200, |d| d.maximum_capacity.units() as i32),
+                        Some(15),
+                    )],
+                    "agriculture" => vec![(
+                        "food_capacity",
+                        0,
+                        content
+                            .demographics
+                            .as_ref()
+                            .map_or(200, |d| d.maximum_capacity.units() as i32),
+                        Some(15),
+                    )],
                     "administration" => vec![("administration", 0, 100, Some(8))],
                     "coalition" => vec![
                         ("legislative_support", 0, 100, Some(12)),

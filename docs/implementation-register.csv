@@ -36,12 +36,12 @@ P05-05,5,"Accounts, units and causal reporting","Currency creation/destruction, 
 P05-06,5,"Accounts, units and causal reporting","Every headline statistic exposes components, period, units, recent changes and relevant uncertainty.",partial
 P05-07,5,"Accounts, units and causal reporting",Forecasts are separate from realized accounts; expected revenue must not be spendable cash unless a financing mechanism exists.,partial
 P06-01,6,"Population, households and social groups","Aggregate cohorts by region, age band, employment/occupation, income and selected social attributes; do not simulate billions of individual people.",partial
-P06-02,6,"Population, households and social groups","Births, deaths, aging, household formation and migration balances.",proposed
+P06-02,6,"Population, households and social groups","Births, deaths, aging, household formation and migration balances.",partial
 P06-03,6,"Population, households and social groups","Income, savings, consumption baskets, housing costs, purchasing power, poverty, inequality and essential needs.",partial
 P06-04,6,"Population, households and social groups","Employment status, skills, education and health; people can move between cohorts without being duplicated.",partial
 P06-05,6,"Population, households and social groups","Political interests, issue salience, trust, perceived living standards and institutional satisfaction.",partial
 P06-06,6,"Population, households and social groups","Overlapping group membership: a person may be a worker, parent, religious adherent and union member. Avoid double-counting population across interest groups.",proposed
-P06-07,6,"Population, households and social groups",Public estimates can differ from world truth through census quality and statistical capacity.,proposed
+P06-07,6,"Population, households and social groups",Public estimates can differ from world truth through census quality and statistical capacity.,partial
 P07-01,7,"Production, consumption and domestic markets","Data-driven goods and services with units, substitutability, storage, perishability and essential-use priority.",partial
 P07-02,7,"Production, consumption and domestic markets","Sectors with labor, capital, energy and intermediate-input requirements; output limited by actual bottlenecks.",partial
 P07-03,7,"Production, consumption and domestic markets","Agriculture, extraction, manufacturing, construction and services represented by the same framework where appropriate.",proposed

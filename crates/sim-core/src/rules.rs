@@ -51,8 +51,12 @@ impl World {
         government.check(c, policy.as_str(), value)?;
         self.check_policy_technologies(content, country, policy)?;
         self.check_policy_laws(content, country, policy, value)?;
-        if policy == "energy" && c.energy_capacity >= 200
-            || policy == "agriculture" && c.food_capacity >= 200
+        let maximum_capacity = content
+            .demographics
+            .as_ref()
+            .map_or(200, |d| d.maximum_capacity.units() as i32);
+        if policy == "energy" && c.energy_capacity >= maximum_capacity
+            || policy == "agriculture" && c.food_capacity >= maximum_capacity
             || policy == "administration" && c.administration >= 100
             || policy == "coalition"
                 && c.legislative_support
@@ -95,8 +99,7 @@ impl World {
             .and_then(|days| days.checked_add(DaySpan::new((100 - c.administration) as u32 / 2)))
             .and_then(|days| days.checked_add(preparation))
             .ok_or("Implementation duration overflow")?;
-        let (annual, household_impacts) =
-            policy_forecast(d, c, policy, value, content.income_taxes.as_ref());
+        let (annual, household_impacts) = policy_forecast(d, c, policy, value, content);
         if content.commitments.is_some()
             && self
                 .day
@@ -475,10 +478,16 @@ impl World {
                 .day
                 .checked_add(DaySpan::new(1))
                 .ok_or("Campaign clock overflow")?;
+            if content.demographics.is_some() {
+                for id in &ids {
+                    self.review_budget(content, id);
+                }
+                self.step_demographics(content)?;
+            }
             for id in &ids {
                 // Fiscal-plan campaigns close the prior calendar year before any
                 // January decisions, delivery payments or recurring settlement.
-                if content.fiscal_plans.is_some() {
+                if content.fiscal_plans.is_some() && content.demographics.is_none() {
                     self.review_budget(content, id);
                 }
                 self.notice_technology_dates(content, id);
@@ -541,7 +550,8 @@ impl World {
                 .retain(|e| e.day.units() + 30 >= self.day.units());
             if self.day.units() >= (review_day).units() && !self.milestone_reported {
                 let c = self.player_country();
-                let won = c.report.food_coverage >= 90
+                let won = c.population.0 > 0
+                    && c.report.food_coverage >= 90
                     && c.report.energy_coverage >= 90
                     && c.approval >= 50
                     && c.arrears.0 == 0
@@ -613,8 +623,22 @@ impl World {
                 "income_tax" => c.tax = p.value,
                 "services" => c.services = p.value,
                 "welfare" => c.welfare = p.value,
-                "energy" => c.energy_capacity = (c.energy_capacity + 15).min(200),
-                "agriculture" => c.food_capacity = (c.food_capacity + 15).min(200),
+                "energy" => {
+                    c.energy_capacity = (c.energy_capacity + 15).min(
+                        content
+                            .demographics
+                            .as_ref()
+                            .map_or(200, |d| d.maximum_capacity.units() as i32),
+                    )
+                }
+                "agriculture" => {
+                    c.food_capacity = (c.food_capacity + 15).min(
+                        content
+                            .demographics
+                            .as_ref()
+                            .map_or(200, |d| d.maximum_capacity.units() as i32),
+                    )
+                }
                 "administration" => c.administration = (c.administration + 8).min(100),
                 "coalition" => {
                     c.legislative_support = (c.legislative_support + 12).min(100);
@@ -656,9 +680,20 @@ impl World {
             self.event(id,true,format!("Supply disruption: domestic food and energy capacity down {shock} points for 20 days. Imports require cash and have quantity limits."));
         }
         let c = &self.countries[id];
-        let demand = (c.population.0 / 1000) as i64;
+        let demand = if content.demographics.is_some() {
+            c.population.0.div_ceil(1000)
+        } else {
+            c.population.0 / 1000
+        } as i64;
         let energy_demand = Energy::new(demand).expect("validated population");
         let food_demand = Food::new(demand).expect("validated population");
+        let physical_basis = if content.demographics.is_some() {
+            (d.population.0 / 1000) as i64
+        } else {
+            demand
+        };
+        let energy_capacity_basis = Energy::new(physical_basis).expect("opening physical basis");
+        let food_capacity_basis = Food::new(physical_basis).expect("opening physical basis");
         let daily = (d.gdp.units() / 365).max(1);
         let market_rules = content.markets.as_ref();
         let energy_rule = market_rules.map(|rules| rules.good(GoodKind::Energy));
@@ -673,30 +708,38 @@ impl World {
             .map_or(10000, |markets| markets.food.next_price_bps.units());
         let opening_energy = c.energy_stock;
         let opening_food = c.food_stock;
-        let energy_produced = energy_demand
-            .scaled(i64::from((c.energy_capacity - shock).max(0)), 100)
-            .expect("bounded capacity")
-            .min(
-                energy_demand
-                    .scaled(
-                        i64::from(energy_rule.map_or(3, |rule| rule.storage_days.units())),
-                        1,
-                    )
-                    .expect("bounded demand")
-                    .saturating_sub(c.energy_stock),
-            );
-        let food_produced = food_demand
-            .scaled(i64::from((c.food_capacity - shock).max(0)), 100)
-            .expect("bounded capacity")
-            .min(
-                food_demand
-                    .scaled(
-                        i64::from(food_rule.map_or(11, |rule| rule.storage_days.units())),
-                        1,
-                    )
-                    .expect("bounded demand")
-                    .saturating_sub(c.food_stock),
-            );
+        let energy_produced = (if content.demographics.is_some() && c.population.0 == 0 {
+            Energy::new(0).unwrap()
+        } else {
+            energy_capacity_basis
+        })
+        .scaled(i64::from((c.energy_capacity - shock).max(0)), 100)
+        .expect("bounded capacity")
+        .min(
+            energy_capacity_basis
+                .scaled(
+                    i64::from(energy_rule.map_or(3, |rule| rule.storage_days.units())),
+                    1,
+                )
+                .expect("bounded demand")
+                .saturating_sub(c.energy_stock),
+        );
+        let food_produced = (if content.demographics.is_some() && c.population.0 == 0 {
+            Food::new(0).unwrap()
+        } else {
+            food_capacity_basis
+        })
+        .scaled(i64::from((c.food_capacity - shock).max(0)), 100)
+        .expect("bounded capacity")
+        .min(
+            food_capacity_basis
+                .scaled(
+                    i64::from(food_rule.map_or(11, |rule| rule.storage_days.units())),
+                    1,
+                )
+                .expect("bounded demand")
+                .saturating_sub(c.food_stock),
+        );
         let energy_available = c
             .energy_stock
             .checked_add(energy_produced)
@@ -709,7 +752,7 @@ impl World {
             if quantity == 0 {
                 return 0;
             }
-            let base_cost = (daily * quantity / demand / 5).max(1);
+            let base_cost = (daily * quantity / physical_basis / 5).max(1);
             let cost = (base_cost * i64::from(price) / 10000).max(1);
             let paid = world.pay(id, Firms, External, cost, reason);
             quantity * paid / cost
@@ -719,7 +762,7 @@ impl World {
             energy_demand
                 .saturating_sub(energy_available)
                 .min(
-                    energy_demand
+                    energy_capacity_basis
                         .scaled(
                             i64::from(
                                 energy_rule.map_or(2500, |rule| rule.import_limit_bps.units()),
@@ -738,7 +781,7 @@ impl World {
             food_demand
                 .saturating_sub(food_available)
                 .min(
-                    food_demand
+                    food_capacity_basis
                         .scaled(
                             i64::from(food_rule.map_or(3500, |rule| rule.import_limit_bps.units())),
                             10000,
@@ -777,7 +820,11 @@ impl World {
             .expect("bounded energy imports");
         let energy_used = energy_supply.min(energy_demand);
         let energy_coverage = energy_used.coverage(energy_demand);
-        let output = daily * i64::from(energy_coverage) / 100;
+        let output = if content.demographics.is_some() && self.countries[id].population.0 == 0 {
+            0
+        } else {
+            daily * i64::from(energy_coverage) / 100
+        };
         self.pay(
             id,
             External,
@@ -785,7 +832,7 @@ impl World {
             output * 15 / 100,
             "Service exports: external demand capped at 15% of realized output",
         );
-        let income_weights: Vec<_> = d.households.iter().map(|h| h.income_share).collect();
+        let income_weights = self.demographic_income_weights(content, id);
         let wages = self.pay_income(
             id,
             Firms,
@@ -802,7 +849,14 @@ impl World {
             let h = &self.countries[id].households[index];
             let assessment = content.income_taxes.as_ref().map(|rules| {
                 rules
-                    .assess(d, h.population, h.income, standard_rate, administration)
+                    .assess_for_population(
+                        d,
+                        h.population,
+                        h.income,
+                        standard_rate,
+                        administration,
+                        content.demographics.is_some(),
+                    )
                     .expect("validated income bands and bounded private income")
             });
             let due = assessment.as_ref().map_or_else(
@@ -837,8 +891,8 @@ impl World {
         }
         let interest_due = self.assess_interest(id).0;
         let c = &self.countries[id];
-        let services_due = crate::budget::daily_policy_spending(Money(daily), c.services).0;
-        let welfare_due = crate::budget::daily_policy_spending(Money(daily), c.welfare).0;
+        let mut services_due = crate::budget::daily_policy_spending(Money(daily), c.services).0;
+        let mut welfare_due = crate::budget::daily_policy_spending(Money(daily), c.welfare).0;
         let maintenance_due = daily
             * i64::from(
                 (c.energy_capacity - c.opening_energy_capacity).max(0)
@@ -858,6 +912,22 @@ impl World {
             .iter()
             .map(|h| i64::from(h.id == "public"))
             .collect();
+        let public_weights: Vec<_> = public_weights
+            .into_iter()
+            .enumerate()
+            .map(|(i, w)| {
+                if content.demographics.is_some()
+                    && self.countries[id].households[i].population.0 == 0
+                {
+                    0
+                } else {
+                    w
+                }
+            })
+            .collect();
+        if content.demographics.is_some() && public_weights.iter().all(|w| *w == 0) {
+            services_due = 0;
+        }
         let service_pay = self.pay_income(
             id,
             Treasury,
@@ -878,6 +948,22 @@ impl World {
                 }
             })
             .collect();
+        let welfare_weights: Vec<_> = welfare_weights
+            .into_iter()
+            .enumerate()
+            .map(|(i, w)| {
+                if content.demographics.is_some()
+                    && self.countries[id].households[i].population.0 == 0
+                {
+                    0
+                } else {
+                    w
+                }
+            })
+            .collect();
+        if content.demographics.is_some() && welfare_weights.iter().all(|w| *w == 0) {
+            welfare_due = 0;
+        }
         let welfare_pay = self.pay_income(
             id,
             Treasury,
@@ -930,8 +1016,16 @@ impl World {
         } else {
             vec![0; claims.len()]
         };
-        let service_claims = apportion(services_due - service_pay, &public_weights);
-        let welfare_claims = apportion(welfare_due - welfare_pay, &welfare_weights);
+        let service_claims = if public_weights.iter().any(|w| *w > 0) {
+            apportion(services_due - service_pay, &public_weights)
+        } else {
+            vec![0; public_weights.len()]
+        };
+        let welfare_claims = if welfare_weights.iter().any(|w| *w > 0) {
+            apportion(welfare_due - welfare_pay, &welfare_weights)
+        } else {
+            vec![0; welfare_weights.len()]
+        };
         for (index, h) in self
             .countries
             .get_mut(id)
@@ -983,7 +1077,11 @@ impl World {
         } else {
             (service_pay * i64::from(c.administration) / services_due) as i32
         };
-        for (h, definition) in c.households.iter_mut().zip(&d.households) {
+        let opening_groups = content
+            .demographics
+            .as_ref()
+            .map(|_| crate::households::initial_households(d, Money(0)));
+        for (index, (h, definition)) in c.households.iter_mut().zip(&d.households).enumerate() {
             let (paid, planned) = if h.id == "public" {
                 (
                     wages * definition.income_share / 100 + service_pay,
@@ -992,7 +1090,13 @@ impl World {
             } else {
                 (wages, daily * 70 / 100)
             };
-            h.employed.0 = h.working_age.0 * 90 / 100 * paid as u64 / planned.max(1) as u64;
+            h.employed.0 = if let Some(opening) = &opening_groups {
+                (u128::from(opening[index].employed.0.min(h.working_age.0)) * paid.max(0) as u128
+                    / planned.max(1) as u128)
+                    .min(u128::from(h.working_age.0)) as u64
+            } else {
+                h.working_age.0 * 90 / 100 * paid as u64 / planned.max(1) as u64
+            };
         }
         c.budget.revenue.0 += revenue;
         c.budget.payments.0 +=
@@ -1109,7 +1213,7 @@ impl World {
             .iter()
             .map(|h| h.approval as u64 * h.population.0)
             .sum::<u64>()
-            / c.population.0) as i32;
+            / c.population.0.max(1)) as i32;
         let owners = c
             .households
             .iter()
@@ -1366,9 +1470,25 @@ impl World {
                         || c.council_support < government.council_threshold + 10)
             {
                 "coalition"
-            } else if c.energy_capacity < 110 {
+            } else if c.energy_capacity
+                < if let Some(rules) = &content.demographics {
+                    (110_u128 * u128::from(c.population.0) / u128::from(d.population.0))
+                        .clamp(1, u128::from(rules.maximum_capacity.units()))
+                        as i32
+                } else {
+                    110
+                }
+            {
                 "energy"
-            } else if c.food_capacity < 100 {
+            } else if c.food_capacity
+                < if let Some(rules) = &content.demographics {
+                    (100_u128 * u128::from(c.population.0) / u128::from(d.population.0))
+                        .clamp(1, u128::from(rules.maximum_capacity.units()))
+                        as i32
+                } else {
+                    100
+                }
+            {
                 "agriculture"
             } else if c.administration < 85 {
                 "administration"
@@ -1410,8 +1530,9 @@ pub(crate) fn policy_forecast(
     c: &Country,
     policy: &PolicyId,
     value: i32,
-    taxes: Option<&IncomeTaxDefinition>,
+    content: &Content,
 ) -> (Money, Vec<HouseholdImpact>) {
+    let taxes = content.income_taxes.as_ref();
     if matches!(policy.as_str(), "income_tax" | "administration")
         && let Some(taxes) = taxes
     {
@@ -1420,22 +1541,30 @@ pub(crate) fn policy_forecast(
         } else {
             (c.tax, (c.administration + 8).min(100))
         };
-        let income = c.forecast_private_income(d);
+        let income = c.forecast_private_income_for_content(d, content);
         let impacts: Vec<_> = income
             .iter()
             .zip(&c.households)
             .zip(&d.households)
             .map(|((gross, h), definition)| {
                 let before = taxes
-                    .assess(d, h.population, Money(*gross), c.tax, c.administration)
+                    .assess_for_population(
+                        d,
+                        h.population,
+                        Money(*gross),
+                        c.tax,
+                        c.administration,
+                        content.demographics.is_some(),
+                    )
                     .expect("validated tax forecast");
                 let after = taxes
-                    .assess(
+                    .assess_for_population(
                         d,
                         h.population,
                         Money(*gross),
                         planned_tax,
                         planned_administration,
+                        content.demographics.is_some(),
                     )
                     .expect("validated tax forecast");
                 HouseholdImpact {

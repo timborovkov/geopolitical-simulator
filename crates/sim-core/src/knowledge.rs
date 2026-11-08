@@ -46,6 +46,8 @@ pub struct PublicCountryReport {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fiscal_plans: Option<Vec<PublishedFiscalPlan>>,
     pub population: Population,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub population_measurement: Option<crate::PublishedPopulationEstimate>,
     pub opening_gdp: Money,
     pub initial_data_quality: String,
     /// None means no statistical release yet; absence is not a zero observation.
@@ -121,7 +123,18 @@ impl World {
             territorial: self.published_territorial(content, id),
             undertakings: self.published_undertakings(id),
             fiscal_plans: self.published_fiscal_plans(id),
-            population: c.population,
+            population: self.demographics.as_ref().map_or(c.population, |state| {
+                state.archives[id]
+                    .measurements
+                    .last()
+                    .map_or(d.population, |m| m.published.population)
+            }),
+            population_measurement: self.demographics.as_ref().and_then(|state| {
+                state.archives[id]
+                    .measurements
+                    .last()
+                    .map(|m| m.published.clone())
+            }),
             opening_gdp: Money(d.gdp.units()),
             initial_data_quality: d.quality.clone(),
             archived_reviews: c

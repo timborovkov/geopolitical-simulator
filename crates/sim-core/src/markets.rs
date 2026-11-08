@@ -141,15 +141,23 @@ impl Markets {
         country: &crate::Country,
         day: crate::CampaignDay,
         start: crate::CampaignDay,
+        opening_reference: Option<crate::Population>,
     ) -> Result<(), String> {
         let day = day.units();
         let start = start.units();
+        let need = (if opening_reference.is_some() {
+            country.population.0.div_ceil(1000)
+        } else {
+            country.population.0 / 1000
+        }) as i64;
+        let capacity_need = opening_reference.map_or(need, |p| (p.0 / 1000) as i64);
         validate_quote(
             &self.energy,
             definition.good(GoodKind::Energy),
             crate::CampaignDay::new(day),
             crate::CampaignDay::new(start),
-            (country.population.0 / 1000) as i64,
+            need,
+            capacity_need,
             country.energy_stock.units(),
             [
                 country.report.energy_produced.units(),
@@ -168,7 +176,8 @@ impl Markets {
             definition.good(GoodKind::Food),
             crate::CampaignDay::new(day),
             crate::CampaignDay::new(start),
-            (country.population.0 / 1000) as i64,
+            need,
+            capacity_need,
             country.food_stock.units(),
             [
                 country.report.food_produced.units(),
@@ -192,6 +201,7 @@ fn validate_quote<Q: Copy>(
     day: crate::CampaignDay,
     start: crate::CampaignDay,
     need: i64,
+    capacity_need: i64,
     stored: i64,
     report: [i64; 4],
     reserve_release: Option<i64>,
@@ -239,12 +249,12 @@ fn validate_quote<Q: Copy>(
             + i128::from(imported)
             + i128::from(reserve_release.unwrap_or(0))
             != i128::from(supply)
-        || imported > need * i64::from(rule.import_limit_bps.units()) / 10000
+        || imported > capacity_need * i64::from(rule.import_limit_bps.units()) / 10000
         || delivered != supply.min(affordable)
         || loss != (supply - delivered) * i64::from(rule.loss_bps.units()) / 10000
         || closing != supply - delivered - loss
         || closing != stored
-        || closing > need * i64::from(rule.storage_days.units())
+        || closing > capacity_need * i64::from(rule.storage_days.units())
         || report != [produced, imported, delivered, loss]
         || next_market_price(last.price_bps, supply, affordable, rule)? != quote.next_price_bps
     {

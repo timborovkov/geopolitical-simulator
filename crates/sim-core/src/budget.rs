@@ -132,6 +132,50 @@ impl Country {
                 .collect::<Vec<_>>(),
         )
     }
+    pub(crate) fn population_income_weights(&self, d: &CountryDefinition) -> Vec<i64> {
+        let opening = crate::households::initial_households(d, Money(0));
+        d.households
+            .iter()
+            .zip(opening)
+            .map(|(profile, opening)| {
+                let population = self.household(&profile.id).expect("household").population.0;
+                if population == 0 || profile.income_share == 0 {
+                    return 0;
+                }
+                let weight = u128::from(population) * profile.income_share as u128 * 1_000_000
+                    / u128::from(opening.population.0.max(1));
+                weight.clamp(1, 1_000_000_000_000) as i64
+            })
+            .collect()
+    }
+    pub(crate) fn forecast_private_income_for_content(
+        &self,
+        d: &CountryDefinition,
+        content: &Content,
+    ) -> Vec<i64> {
+        if content.demographics.is_none() {
+            return self.forecast_private_income(d);
+        }
+        if self.population.0 == 0 {
+            return vec![0; self.households.len()];
+        }
+        let imports = content
+            .markets
+            .as_ref()
+            .expect("markets")
+            .good(GoodKind::Energy)
+            .import_limit_bps
+            .units();
+        let supply_bps = i128::from(self.energy_capacity) * 100 + i128::from(imports);
+        let coverage =
+            (supply_bps * i128::from(d.population.0) / i128::from(self.population.0)).min(10000);
+        let output = i128::from(d.gdp.units() / 365) * coverage / 10000;
+        let weights = self.population_income_weights(d);
+        if weights.iter().all(|w| *w == 0) {
+            return vec![0; weights.len()];
+        }
+        apportion((output * 70 / 100) as i64, &weights)
+    }
     pub(crate) fn national_daily_balance(
         &self,
         d: &CountryDefinition,
@@ -156,8 +200,25 @@ impl Country {
         d: &CountryDefinition,
         taxes: Option<&IncomeTaxDefinition>,
     ) -> BudgetForecast {
+        self.forecast_inner(d, taxes, None)
+    }
+    /// Uses explicit content rules for dynamic resident stocks; the preserved
+    /// two-argument API retains the fixed-population forecast.
+    pub fn forecast_for_content(&self, d: &CountryDefinition, content: &Content) -> BudgetForecast {
+        self.forecast_inner(d, content.income_taxes.as_ref(), Some(content))
+    }
+    fn forecast_inner(
+        &self,
+        d: &CountryDefinition,
+        taxes: Option<&IncomeTaxDefinition>,
+        content: Option<&Content>,
+    ) -> BudgetForecast {
+        let dynamic = content.is_some_and(|c| c.demographics.is_some());
         let daily = d.gdp.units() / 365;
-        let income = self.forecast_private_income(d);
+        let income = content.map_or_else(
+            || self.forecast_private_income(d),
+            |c| self.forecast_private_income_for_content(d, c),
+        );
         let revenue = income
             .iter()
             .enumerate()
@@ -172,12 +233,13 @@ impl Country {
                         .0
                     },
                     |t| {
-                        t.assess(
+                        t.assess_for_population(
                             d,
                             self.households[index].population,
                             Money(*amount),
                             self.tax,
                             self.administration,
+                            dynamic,
                         )
                         .expect("validated tax definition and bounded forecast")
                         .collectible
@@ -212,9 +274,25 @@ impl Country {
             interest_accrual,
             daily_revenue: Money(revenue),
             daily_spending: Money(
-                daily_policy_spending(Money(daily), self.services).0
-                    + daily_policy_spending(Money(daily), self.welfare).0
-                    + maintenance
+                if !dynamic
+                    || self
+                        .households
+                        .iter()
+                        .any(|h| h.id == "public" && h.population.0 > 0)
+                {
+                    daily_policy_spending(Money(daily), self.services).0
+                } else {
+                    0
+                } + if !dynamic
+                    || self
+                        .households
+                        .iter()
+                        .any(|h| (h.id == "workers" || h.id == "vulnerable") && h.population.0 > 0)
+                {
+                    daily_policy_spending(Money(daily), self.welfare).0
+                } else {
+                    0
+                } + maintenance
                     + self.regional_planned_spending(d),
             ),
         }
@@ -266,7 +344,7 @@ impl World {
             end_day: next_fiscal_end(self.day),
             opening_cash: c.accounts.treasury,
             opening_day_settled: content.fiscal_plans.as_ref().map(|_| true),
-            forecast: c.forecast(d, content.income_taxes.as_ref()),
+            forecast: c.forecast_for_content(d, content),
             revenue: Money(0),
             payments: Money(0),
             capital: Money(0),

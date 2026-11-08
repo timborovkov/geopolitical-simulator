@@ -114,7 +114,7 @@ impl World {
         if available < 0 {
             return Err("Invalid available treasury for funding outlook".into());
         }
-        let forecast = country.forecast(definition, content.income_taxes.as_ref());
+        let forecast = country.forecast_for_content(definition, content);
         let balance = country.national_daily_balance(definition, &forecast).0;
         let operating = forecast.daily_revenue.0
             - country.regional_tax_entitlement(forecast.daily_revenue.0)
@@ -139,7 +139,7 @@ impl World {
                 return Err("Hypothetical debt exceeds the supported principal range".into());
             }
             additional_interest = after_loan
-                .forecast(definition, content.income_taxes.as_ref())
+                .forecast_for_content(definition, content)
                 .daily_interest
                 .0
                 - forecast.daily_interest.0;
