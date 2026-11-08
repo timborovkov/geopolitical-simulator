@@ -8,6 +8,64 @@ pub fn material_hint(ui: &mut egui::Ui, plan: &ConstructionMaterialPlan) {
     ));
     ui.small("Delivery dates are earliest dates. Packages are allocated when funded programmes operate; current stocks are not reserved for this draft.");
 }
+/// Show time and physical availability separately for an owned pending programme.
+/// Current packages are observations, never reservations or delivery forecasts.
+pub fn pending_progress(
+    ui: &mut egui::Ui,
+    content: &Content,
+    world: &World,
+    project: &PolicyInstance,
+) {
+    let material = world
+        .construction_material_plan(
+            content,
+            Viewer::Government(world.player.clone()),
+            &world.player,
+            &project.policy,
+        )
+        .ok()
+        .flatten();
+    let date_label = if material.is_some() {
+        "earliest operation"
+    } else {
+        "operating due"
+    };
+    ui.label(format!(
+        "{} · consent {} · {date_label} {} · reserved {}m",
+        project.stage.label(),
+        date(project.consent_day),
+        date(project.due_day),
+        project.reserved.0
+    ));
+    let elapsed = world.day.units().saturating_sub(project.start_day.units()) as f32;
+    let duration = (project.due_day.units() - project.start_day.units()).max(1) as f32;
+    let progress = (elapsed / duration).clamp(0., 1.);
+    if let Some(material) = material {
+        let waiting = project.stage == PolicyStage::Implementing
+            && world.day >= project.due_day
+            && material.available.0 < material.required.0;
+        if waiting {
+            ui.strong("Waiting for construction packages");
+            ui.label(
+                "Minimum construction time has elapsed. Operation still needs the actual packages.",
+            );
+            let availability =
+                (material.available.0 as f32 / material.required.0.max(1) as f32).clamp(0., 1.);
+            ui.add(egui::ProgressBar::new(availability).text(format!(
+                "{} / {} available now",
+                material.available.0, material.required.0
+            )));
+        } else {
+            ui.add(egui::ProgressBar::new(progress).text(format!(
+                "Minimum construction time: {:.0}%",
+                progress * 100.
+            )));
+        }
+        material_hint(ui, &material);
+    } else {
+        ui.add(egui::ProgressBar::new(progress).show_percentage());
+    }
+}
 pub fn show(ui: &mut egui::Ui, content: &Content, world: &World, country: &CountryId) {
     if content.production.is_none() {
         return;
@@ -190,6 +248,166 @@ fn provenance(ui: &mut egui::Ui, report: &ProductionReport) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn waiting_fixture() -> (Content, World) {
+        let mut content = Content::from_json(include_str!(
+            "../../../data/synthetic-sector-production-test.json"
+        ))
+        .unwrap();
+        let id = CountryId("AUR".into());
+        let mut probe = World::new(&content, id.clone(), 17).unwrap();
+        probe.advance(&content, DaySpan::new(30)).unwrap();
+        let delay = probe
+            .preview(&content, &id, &"energy".into(), 1)
+            .unwrap()
+            .delay;
+        let required = u64::from(probe.day.units() + delay.units() + 40) * 10;
+        let production = content.production.as_mut().unwrap();
+        for weight in production.construction_policy_weights.values_mut() {
+            *weight = 1;
+        }
+        let opening = production.countries.get_mut(&id).unwrap();
+        opening.construction_unit = ProductionQuantity(required);
+        opening
+            .installed
+            .insert(SectorId("construction".into()), ProductionBatches(1));
+        opening
+            .storage
+            .get_mut(&production.assembly_good)
+            .unwrap()
+            .capacity = ProductionQuantity(required);
+        content.validate().unwrap();
+        let mut world = World::new(&content, id, 17).unwrap();
+        world.advance(&content, DaySpan::new(30)).unwrap();
+        world
+            .issue(
+                &content,
+                Action::Enact {
+                    policy: "energy".into(),
+                    value: 1,
+                },
+            )
+            .unwrap();
+        (content, world)
+    }
+    fn pending_text(content: &Content, world: &World, scale: f32) -> String {
+        let ctx = egui::Context::default();
+        ctx.set_zoom_factor(scale);
+        let mut panel = crate::commitments::Panel::default();
+        let mut text = String::new();
+        for frame in 0..5 {
+            let output = ctx.run(
+                egui::RawInput {
+                    focused: true,
+                    time: Some(frame as f64 / 60.),
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(900. / scale, 1000. / scale),
+                    )),
+                    ..Default::default()
+                },
+                |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| {
+                        assert!(panel.show(ui, content, world).is_none());
+                    });
+                },
+            );
+            text = output
+                .shapes
+                .iter()
+                .filter_map(|shape| match &shape.shape {
+                    egui::Shape::Text(text) => Some(text.galley.text()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+        }
+        text
+    }
+    #[test]
+    fn paid_material_shortage_replaces_complete_time_percentage_with_actual_availability() {
+        let (content, mut world) = waiting_fixture();
+        let project = world.player_country().projects[0].clone();
+        world
+            .advance(&content, project.due_day.elapsed_since(world.day).unwrap())
+            .unwrap();
+        world.validate(&content).unwrap();
+        let record = world.player_country().commitment(&project.id).unwrap();
+        assert_eq!(record.paid, project.cost);
+        assert_eq!(record.stage(), CommitmentStage::Implementing);
+        let plan = world
+            .construction_material_plan(
+                &content,
+                Viewer::Government(world.player.clone()),
+                &world.player,
+                &project.policy,
+            )
+            .unwrap()
+            .unwrap();
+        assert!(plan.available.0 < plan.required.0);
+        let before = sim_core::persistence::encode(&world, &content).unwrap();
+        for scale in [1., 1.4] {
+            let text = pending_text(&content, &world, scale);
+            assert!(text.contains("Waiting for construction packages"), "{text}");
+            assert!(text.contains("Minimum construction time has elapsed"));
+            assert!(text.contains(&format!(
+                "{} / {} available now",
+                plan.available.0, plan.required.0
+            )));
+            assert!(text.contains("earliest operation"));
+            assert!(!text.contains("operating due"));
+            assert!(
+                !text.contains("100%"),
+                "elapsed time is not completed material delivery: {text}"
+            );
+            assert_eq!(
+                sim_core::persistence::encode(&world, &content).unwrap(),
+                before
+            );
+        }
+    }
+    #[test]
+    fn material_programmes_show_conditional_time_before_consent_and_earlier_packs_keep_their_dates()
+    {
+        let (content, world) = waiting_fixture();
+        assert_eq!(
+            world.player_country().projects[0].stage,
+            PolicyStage::AwaitingConsent
+        );
+        let legacy = Content::bundled().unwrap();
+        let mut earlier = World::new(&legacy, CountryId("GBR".into()), 17).unwrap();
+        earlier.advance(&legacy, DaySpan::new(31)).unwrap();
+        earlier
+            .issue(
+                &legacy,
+                Action::Enact {
+                    policy: "energy".into(),
+                    value: 1,
+                },
+            )
+            .unwrap();
+        for scale in [1., 1.4] {
+            let before = sim_core::persistence::encode(&world, &content).unwrap();
+            let text = pending_text(&content, &world, scale);
+            assert!(text.contains("earliest operation"));
+            assert!(text.contains("Minimum construction time: 0%"));
+            assert!(text.contains("current stocks are not reserved"));
+            assert!(!text.contains("Waiting for construction packages"));
+            assert_eq!(
+                sim_core::persistence::encode(&world, &content).unwrap(),
+                before
+            );
+            let before = sim_core::persistence::encode(&earlier, &legacy).unwrap();
+            let text = pending_text(&legacy, &earlier, scale);
+            assert!(text.contains("operating due"));
+            assert!(!text.contains("earliest operation"));
+            assert!(!text.contains("Minimum construction time"));
+            assert!(!text.contains("assembly packages"));
+            assert_eq!(
+                sim_core::persistence::encode(&earlier, &legacy).unwrap(),
+                before
+            );
+        }
+    }
     fn fixture() -> (Content, World) {
         let content = Content::from_json(include_str!(
             "../../../data/synthetic-sector-production-test.json"

@@ -51,9 +51,7 @@ impl Panel {
         {
             ui.push_id(p.id,|ui| {egui::Frame::group(ui.style()).show(ui,|ui| {
                 ui.strong(format!("#{} · {} · level {}",p.id,content.policy(&p.policy).expect("policy").name,p.value));
-                ui.label(format!("{} · consent {} · operating due {} · reserved {}m",p.stage.label(),date(p.consent_day),date(p.due_day),p.reserved.0));
-                let progress=world.day.units().saturating_sub((p.start_day).units()) as f32/((p.due_day).units()-(p.start_day).units()).max(1) as f32;
-                ui.add(egui::ProgressBar::new(progress).show_percentage());
+                super::production::pending_progress(ui, content, world, p);
                 if p.stage==PolicyStage::AwaitingConsent && matches!(p.policy.as_str(),"income_tax"|"services"|"welfare") {
                     let value=self.levels.entry(p.id).or_insert(p.value);
                     let definition=content.policy(&p.policy).expect("policy");
