@@ -802,6 +802,9 @@ impl GameApp {
                     match World::new_scenario(&self.content,d.id.clone(),self.seed,self.scenario){Ok(w)=>{self.world=Some(w);self.money=(d.gdp.units()/100).max(1);self.status="Mandate started, paused. Advance a day to collect the first fiscal and supply report.".into();},Err(e)=>self.status=e}
                 }
             });
+            if self.content.production.is_some() {
+                ui.small("Population, overlapping social groups and infrastructure production use authored scenario assumptions. Funded construction needs actual materials; source details are available below.");
+            }
         }
 
         self.map.show(
@@ -2175,7 +2178,7 @@ fn main() -> eframe::Result {
             .map_err(|e| e.to_string())
             .and_then(|s| Content::from_json(&s))
     } else {
-        Content::bundled()
+        Content::recommended_bundled()
     };
     let content = content.unwrap_or_else(|error| {
         eprintln!("Cannot start: {error}");
@@ -2207,10 +2210,11 @@ mod interface_tests {
     #[test]
     fn first_launch_start_is_visible_and_starts_the_combined_default_at_two_scales() {
         for scale in [1., 1.4] {
-            let content = Content::bundled().unwrap();
+            let content = Content::recommended_bundled().unwrap();
             let ctx = egui::Context::default();
             let mut app =
                 GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+            app.seed = 17;
             ctx.set_zoom_factor(scale);
             let mut frame = |events| {
                 ctx.run(
@@ -2271,8 +2275,11 @@ mod interface_tests {
                     .is_empty()
             );
             assert!(!content.bookmark_offices(&world.player).is_empty());
-            assert_eq!(persistence::snapshot_schema(world), 29);
-            assert_eq!(app.save_path, "saves/campaign-v29.json");
+            assert_eq!(persistence::snapshot_schema(world), 32);
+            assert_eq!(world.hash(), 0x822a85d22e7745ed);
+            assert!(world.demographics.is_some());
+            assert!(world.production.is_some());
+            assert_eq!(app.save_path, "saves/campaign-v32.json");
             assert_eq!(app.speed, 0);
             assert!(app.pending.is_none());
         }
@@ -3153,7 +3160,10 @@ mod interface_tests {
         let expected_new = setup.prepare().unwrap().hash();
         app.begin_new_campaign(&setup, true).unwrap();
         assert_eq!(app.world.as_ref().unwrap().hash(), expected_new);
-        assert_eq!(app.content.rules, RULES_VERSION);
+        assert_eq!(
+            app.content.rules,
+            Content::recommended_bundled().unwrap().rules
+        );
         assert_eq!(app.selected.0, "CHN");
         assert_eq!(app.speed, 0);
         let archive = dir.join("current.json.before-new-campaign-1");

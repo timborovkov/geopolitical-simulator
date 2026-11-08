@@ -3,7 +3,8 @@ use crate::*;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-/// Default new-game rules; each campaign retains its content's explicit version.
+/// Preserved governing-starter rules used by Content::bundled. New clients
+/// select Content::recommended_bundled; each campaign retains its explicit rules.
 pub const RULES_VERSION: u32 = 28;
 pub const MAX_DAY: u32 = 36_525;
 /// Money is in millions of constant-2000 USD-equivalent game credits.

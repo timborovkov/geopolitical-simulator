@@ -1468,7 +1468,7 @@ fn run() -> Result<(), String> {
     let mut content = if let Some(path) = content_path {
         Content::from_json(&std::fs::read_to_string(path).map_err(|e| e.to_string())?)?
     } else {
-        Content::bundled()?
+        Content::recommended_bundled()?
     };
     let mut world = if let Some(path) = load_path {
         if bundled_catalog {

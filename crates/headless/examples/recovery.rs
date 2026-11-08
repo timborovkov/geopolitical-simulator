@@ -268,7 +268,7 @@ fn run() -> Result<(), String> {
     let content = if let Some(path) = content_path {
         Content::from_json(&std::fs::read_to_string(path).map_err(|error| error.to_string())?)?
     } else {
-        Content::bundled()?
+        Content::recommended_bundled()?
     };
     for definition in &content.countries {
         let country = definition.id.0.as_str();

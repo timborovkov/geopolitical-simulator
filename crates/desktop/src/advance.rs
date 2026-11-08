@@ -133,16 +133,26 @@ mod tests {
     }
     #[test]
     fn worker_matches_the_same_number_of_synchronous_steps() {
-        let c = Content::bundled().unwrap();
-        let w = World::new(&c, CountryId("GBR".into()), 6).unwrap();
-        let job = AdvanceJob::start(w.clone(), c.clone(), DaySpan::new(70), false).unwrap();
-        let outcome = job
-            .receiver
-            .recv_timeout(std::time::Duration::from_secs(10))
-            .unwrap();
-        let mut sync = w;
-        sync.advance(&c, sim_core::DaySpan::new(70)).unwrap();
-        assert_eq!(outcome.world.hash(), sync.hash());
+        for c in [
+            Content::bundled().unwrap(),
+            Content::recommended_bundled().unwrap(),
+        ] {
+            let w = World::new(&c, CountryId("GBR".into()), 6).unwrap();
+            let expected_day = w.day.checked_add(DaySpan::new(70)).unwrap();
+            let job = AdvanceJob::start(w.clone(), c.clone(), DaySpan::new(70), false).unwrap();
+            // This bounds a test harness wait, not simulation performance.
+            // CPU rendering checks and other campaigns run concurrently in CI.
+            let outcome = job
+                .receiver
+                .recv_timeout(std::time::Duration::from_secs(60))
+                .expect("Background stepping should finish within the harness deadline");
+            assert!(outcome.error.is_none(), "{:?}", outcome.error);
+            assert!(!outcome.stopped_for_event);
+            assert_eq!(outcome.world.day, expected_day);
+            let mut sync = w;
+            sync.advance(&c, DaySpan::new(70)).unwrap();
+            assert_eq!(outcome.world.hash(), sync.hash());
+        }
     }
     #[test]
     fn an_important_event_on_the_final_requested_day_still_requests_pause() {

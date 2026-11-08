@@ -221,8 +221,14 @@ pub struct Content {
     pub income_taxes: Option<crate::IncomeTaxDefinition>,
 }
 impl Content {
+    /// Preserved governing starter for existing callers and compatibility fixtures.
     pub fn bundled() -> Result<Self, String> {
         Self::governing_institutions_bundled()
+    }
+    /// Recommended new campaigns combine government, population, social groups
+    /// and infrastructure production. Existing saves retain their exact pack.
+    pub fn recommended_bundled() -> Result<Self, String> {
+        Self::production_bundled()
     }
     /// Authored auxiliary infrastructure recipes, not historical national output.
     pub fn production_bundled() -> Result<Self, String> {

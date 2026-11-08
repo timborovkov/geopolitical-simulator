@@ -280,3 +280,26 @@ fn versioned_production_preserves_opening_facts_and_rejects_silent_old_format_re
             .contains("32")
     );
 }
+
+#[test]
+fn recommended_new_world_keeps_opening_inputs_and_preserved_governing_api_while_enabling_connected_systems()
+ {
+    let content = Content::recommended_bundled().unwrap();
+    let preserved = Content::bundled().unwrap();
+    assert_eq!(preserved.rules, 28);
+    assert_eq!(content.rules, 31);
+    assert_eq!(content.countries, preserved.countries);
+    assert_eq!(content.policies, preserved.policies);
+    assert_eq!(content.facts, preserved.facts);
+    assert!(content.demographics.is_some());
+    assert!(content.social_memberships.is_some());
+    assert!(content.production.is_some());
+    let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+    // Independently measured with the preceding published production release.
+    assert_eq!(world.hash(), 0x822a85d22e7745ed);
+    assert_eq!(persistence::snapshot_schema(&world), 32);
+    assert_eq!(
+        Content::bundled_for_hash(preserved.hash()).unwrap(),
+        preserved
+    );
+}
