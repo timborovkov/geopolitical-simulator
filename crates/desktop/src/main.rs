@@ -27,6 +27,7 @@ mod markets;
 mod navigation;
 mod new_game;
 mod party_preferences;
+mod production;
 mod reserves;
 mod settings;
 mod social_memberships;
@@ -1035,6 +1036,7 @@ impl GameApp {
         ui.heading(format!("{} · published country report", report.name));
         demographics::show(ui, &self.content, w, &self.selected, Viewer::Observer);
         social_memberships::show_public(ui, &self.content, w, &self.selected);
+        production::show_public(ui, &self.content, w, &self.selected);
         ui.label(format!(
             "Executive: {} · population {:.1}m · opening GDP {}m/year",
             report.executive,
@@ -1235,6 +1237,9 @@ impl GameApp {
                     ui.strong("Direct household income change after delivery · forecast m/day");
                     for impact in &preview.household_impacts {ui.label(format!("{}: {:+}m",impact.group,impact.daily_disposable_change.0));}
                     ui.label(preview.explanation);
+                    if let Ok(Some(plan)) = w.construction_material_plan(&self.content, Viewer::Government(w.player.clone()), &self.selected, &self.policy) {
+                        production::material_hint(ui, &plan);
+                    }
                 });
                 if ui
                     .button(
@@ -1493,6 +1498,7 @@ impl GameApp {
             return;
         };
         let c = &w.countries[&self.selected];
+        production::show(ui, &self.content, w, &self.selected);
         self.cashflows.show(ui, &self.content, w, &self.selected);
         markets::show(ui, &self.content, w, &self.selected);
         let d = self

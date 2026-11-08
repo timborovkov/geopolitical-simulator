@@ -451,6 +451,7 @@ impl World {
             return Err("Advance 0..3660 days within the 100-year campaign limit".into());
         }
         self.validate_event_references_for_content(content, content_hash)?;
+        self.validate_production(content)?;
         for _ in 0..days {
             self.event_transaction_for_content(content, content_hash, |world| {
                 world.advance_days(content, crate::DaySpan::new(1))
@@ -510,9 +511,12 @@ impl World {
                 self.resolve_budget_bills(content, id);
                 self.resolve_consents(content, id);
                 self.resolve_borrowing(content, id);
-                self.complete_projects(content, id);
+                self.complete_projects(content, id, false)?;
                 self.review_reserves(content, id);
-                self.settle(content, id);
+                self.settle(content, id)?;
+                if content.production.is_some() {
+                    self.complete_projects(content, id, true)?;
+                }
                 self.evaluate_commitments(id);
                 self.evaluate_undertakings(content, id);
                 if content.fiscal_plans.is_none() {
@@ -602,18 +606,49 @@ impl World {
             .elapsed_since(start)
             .expect("Ordered campaign clock"))
     }
-    fn complete_projects(&mut self, content: &Content, id: &CountryId) {
+    fn complete_projects(
+        &mut self,
+        content: &Content,
+        id: &CountryId,
+        material_phase: bool,
+    ) -> Result<(), String> {
+        let mut available = self.construction_available(content, id).map_or(0, |q| q.0);
+        let mut blocked = Vec::new();
         let c = self.countries.get_mut(id).expect("country");
+        if content.production.is_some() {
+            c.projects.sort_by_key(|p| p.id);
+        }
         let mut completed = Vec::new();
         c.projects.retain(|p| {
-            if p.stage == PolicyStage::Implementing && p.due_day <= self.day {
+            let needed = content.production.as_ref().and_then(|definition| {
+                definition
+                    .construction_required(id, &p.policy)
+                    .expect("validated construction quote")
+            });
+            if p.stage == PolicyStage::Implementing
+                && p.due_day <= self.day
+                && needed.is_some() == material_phase
+            {
+                if let Some(needed) = needed {
+                    if needed.0 > available {
+                        if p.due_day == self.day {
+                            blocked.push((p.id, p.policy.clone()));
+                        }
+                        return true;
+                    }
+                    available -= needed.0;
+                }
                 completed.push(p.clone());
                 false
             } else {
                 true
             }
         });
+        for (project, policy) in blocked {
+            self.event(id, true, format!("{policy} commitment #{project} is funded but awaits prefabricated assembly packages. Actual operation follows physical material delivery."));
+        }
         for p in completed {
+            self.consume_construction(content, id, &p)?;
             let before = content
                 .commitments
                 .as_ref()
@@ -660,8 +695,9 @@ impl World {
                 ),
             );
         }
+        Ok(())
     }
-    fn settle(&mut self, content: &Content, id: &CountryId) {
+    fn settle(&mut self, content: &Content, id: &CountryId) -> Result<(), String> {
         let d = content.country(id).expect("definition");
         for h in &mut self.countries.get_mut(id).expect("country").households {
             h.income = Money(0);
@@ -708,12 +744,17 @@ impl World {
             .map_or(10000, |markets| markets.food.next_price_bps.units());
         let opening_energy = c.energy_stock;
         let opening_food = c.food_stock;
+        let maintenance_readiness = self.production_maintenance(id);
+        let maintained_energy = c.energy_capacity.min(c.opening_energy_capacity)
+            + (c.energy_capacity - c.opening_energy_capacity).max(0) * maintenance_readiness / 100;
+        let maintained_food = c.food_capacity.min(c.opening_food_capacity)
+            + (c.food_capacity - c.opening_food_capacity).max(0) * maintenance_readiness / 100;
         let energy_produced = (if content.demographics.is_some() && c.population.0 == 0 {
             Energy::new(0).unwrap()
         } else {
             energy_capacity_basis
         })
-        .scaled(i64::from((c.energy_capacity - shock).max(0)), 100)
+        .scaled(i64::from((maintained_energy - shock).max(0)), 100)
         .expect("bounded capacity")
         .min(
             energy_capacity_basis
@@ -729,7 +770,7 @@ impl World {
         } else {
             food_capacity_basis
         })
-        .scaled(i64::from((c.food_capacity - shock).max(0)), 100)
+        .scaled(i64::from((maintained_food - shock).max(0)), 100)
         .expect("bounded capacity")
         .min(
             food_capacity_basis
@@ -1072,11 +1113,6 @@ impl World {
         c.arrears_external.0 += interest_due - interest - paid_external;
         c.arrears_firms.0 += maintenance_due - maintenance - paid_firms;
         c.arrears.0 += unpaid - arrears_paid;
-        let service_delivery = if services_due == 0 {
-            0
-        } else {
-            (service_pay * i64::from(c.administration) / services_due) as i32
-        };
         let opening_groups = content
             .demographics
             .as_ref()
@@ -1098,6 +1134,25 @@ impl World {
                 h.working_age.0 * 90 / 100 * paid as u64 / planned.max(1) as u64
             };
         }
+        let service_input_percent = self.settle_production(
+            content,
+            id,
+            ProductionFunding {
+                private_income_paid: Money(wages),
+                service_due: Money(services_due),
+                service_paid: Money(service_pay),
+                maintenance_due: Money(maintenance_due),
+                maintenance_paid: Money(maintenance),
+            },
+        )?;
+        let c = self.countries.get_mut(id).expect("country");
+        let service_delivery = if services_due == 0 {
+            0
+        } else {
+            (service_pay * i64::from(c.administration) / services_due) as i32
+                * service_input_percent
+                / 100
+        };
         c.budget.revenue.0 += revenue;
         c.budget.payments.0 +=
             service_pay + welfare_pay + maintenance + arrears_paid + interest + regional_payments;
@@ -1171,6 +1226,7 @@ impl World {
         if unpaid > 0 && previous_arrears == 0 {
             self.event(id,true,"Treasury cannot meet unreserved obligations: reduced payments and recorded arrears. Borrow or adjust spending; reserved policy capital is protected.");
         }
+        Ok(())
     }
     fn politics(&mut self, content: &Content, id: &CountryId) -> Result<(), String> {
         let d = content.country(id).expect("definition");

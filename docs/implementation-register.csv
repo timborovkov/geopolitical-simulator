@@ -44,7 +44,7 @@ P06-06,6,"Population, households and social groups","Overlapping group membershi
 P06-07,6,"Population, households and social groups",Public estimates can differ from world truth through census quality and statistical capacity.,partial
 P07-01,7,"Production, consumption and domestic markets","Data-driven goods and services with units, substitutability, storage, perishability and essential-use priority.",partial
 P07-02,7,"Production, consumption and domestic markets","Sectors with labor, capital, energy and intermediate-input requirements; output limited by actual bottlenecks.",partial
-P07-03,7,"Production, consumption and domestic markets","Agriculture, extraction, manufacturing, construction and services represented by the same framework where appropriate.",proposed
+P07-03,7,"Production, consumption and domestic markets","Agriculture, extraction, manufacturing, construction and services represented by the same framework where appropriate.",partial
 P07-04,7,"Production, consumption and domestic markets","Prices, wages, demand response, production costs, profitability, investment, capacity utilization and closures.",partial
 P07-05,7,"Production, consumption and domestic markets","Stockpiles, shortages, rationing, strategic reserves, imports and exports through a bounded external-market counterpart with explicit cash settlement and supply limits. Initial credit exists only through modeled debt records; full banking and trade refine these rules later.",partial
 P07-06,7,"Production, consumption and domestic markets",Distinguish desired consumption from affordable demand and delivered consumption.,partial

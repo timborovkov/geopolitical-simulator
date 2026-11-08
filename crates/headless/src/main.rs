@@ -166,7 +166,7 @@ fn play(
                 "quit" | "exit" => return Ok(()),
                 "help" => {
                     println!(
-                        "social-groups [COUNTRY [GROUP...]] | population [COUNTRY] | institutions | command-context ID | executive | laws | plan-laws POLICY VALUE | preview-law ID | propose-law ID | withdraw-law BILL\nreserves | preview-reserve energy|food DAYS | procure-reserve energy|food DAYS | cancel-reserve ID\nstatus | countries | policies | party-preferences [COUNTRY] | party-alignment | sovereignty [COUNTRY] | technologies [POLICY] | preview POLICY VALUE | plan-policy POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nincome-tax-bands | income-tax-report | preview-income-tax STANDARD_RATE\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitment ID | commitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\ncash-retention | preview-retention MILLIONS DAYS | retain-cash MILLIONS DAYS | release-cash ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | public-report COUNTRY | events [COUNTRY] | event COUNTRY#NUMBER | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
+                        "production [COUNTRY] | social-groups [COUNTRY [GROUP...]] | population [COUNTRY] | institutions | command-context ID | executive | laws | plan-laws POLICY VALUE | preview-law ID | propose-law ID | withdraw-law BILL\nreserves | preview-reserve energy|food DAYS | procure-reserve energy|food DAYS | cancel-reserve ID\nstatus | countries | policies | party-preferences [COUNTRY] | party-alignment | sovereignty [COUNTRY] | technologies [POLICY] | preview POLICY VALUE | plan-policy POLICY VALUE | enact POLICY VALUE\nadvance DAYS (max 3660) | until YYYY-MM-DD | next | borrow MILLIONS | repay MILLIONS\nincome-tax-bands | income-tax-report | preview-income-tax STANDARD_RATE\nfiscal-plans | preview-budget YEAR TAX SERVICES WELFARE | propose-budget YEAR TAX SERVICES WELFARE | withdraw-budget ID\nundertaking-templates | undertakings | preview-undertaking TEMPLATE [PROJECT] | declare-undertaking TEMPLATE [PROJECT] | withdraw-undertaking ID\nterritory | preview-territory FORM lawful|contested | reform-territory FORM lawful|contested | withdraw-territory ID | preview-requisition REGION MILLIONS | requisition REGION MILLIONS\nregions | preview-region-grant REGION BOOST DAYS | region-grant REGION BOOST DAYS | preview-region-services REGION LEVEL | region-services REGION LEVEL | cancel-region ID\nelections | preview-election | request-election | withdraw-election ID\ncabinet | appoint OFFICE PERSON | preview-appointment OFFICE PERSON | dismiss OFFICE | preview-dismissal OFFICE | cancel-appointment ID\nconstitutions | preview-constitution FORM lawful|contested | reconstitute FORM lawful|contested | withdraw-constitution ID\ncommitment ID | commitments | amend ID LEVEL | preview-amend ID LEVEL | withdraw ID | preview-withdraw ID\ncash-retention | preview-retention MILLIONS DAYS | retain-cash MILLIONS DAYS | release-cash ID\nfinance | outlook [DAYS] | preview-loan MILLIONS | emergency-borrow MILLIONS | cancel-loan ID\nhouseholds | budget | data | public-report COUNTRY | events [COUNTRY] | event COUNTRY#NUMBER | ledger | history | parties | save PATH | load PATH | replay | quit\nObjective at five years: energy/food ≥90%, approval ≥50%, no arrears, debt ≤opening GDP."
                     );
                     if world.event_sequences.is_some() {println!("event COUNTRY#NUMBER · inspect one of your government's retained entries; references belong to this campaign. Accepted command replies identify their immediate outcome entries.");}
                     if content.finance.as_ref().is_some_and(|rules|rules.maturity_days.is_some()) {
@@ -1108,6 +1108,44 @@ fn play(
                             e.amount.0,
                             e.reason
                         );
+                    }
+                }
+                "production" => {
+                    let id = words.get(1).map_or_else(|| world.player.clone(), |id| CountryId((*id).into()));
+                    match world.production_report(content, Viewer::Government(world.player.clone()), &id)? {
+                        Some(report) => {
+                            println!("{} · infrastructure production · {} / {}", id.0, report.source, report.source_version);
+                            if let Some(owned) = report.owned {
+                                println!("Current auxiliary stocks on {}. Each good has its own model unit; civilian Food/Energy remain separate.", date(report.day));
+                                for (id, stock) in &owned.inventory.positions {
+                                    let good = &report.goods[id];
+                                    println!("{}: {} / {} · {}", good.name, stock.quantity.0, owned.storage[id].capacity.0, good.unit);
+                                }
+                                if let Some(last) = &owned.last {
+                                    println!("Paid network worker-days used {} / {}; existing private income paid {}m", last.physical.production.labor_available.0 - last.physical.production.labor_unused.0, last.physical.production.labor_available.0, last.funding.private_income_paid.0);
+                                    println!("Service inputs {} / {}; maintenance {} / {}; expanded-capacity readiness next day {}%", last.service_delivered.0, last.service_required.0, last.maintenance_delivered.0, last.maintenance_required.0, last.maintenance_percent);
+                                    for sector in &last.physical.production.sectors {
+                                        let name = report.sectors.iter().find(|s| s.id == sector.sector).map_or(sector.sector.0.as_str(), |s| s.name.as_str());
+                                        println!("{name}: {} / {} requested batches", sector.produced.0, sector.requested.0);
+                                        for limit in sector.limits.iter().filter(|limit| limit.binding) {
+                                            let name = match &limit.constraint {
+                                                ProductionConstraint::InstalledCapacity => "Installed capacity".into(),
+                                                ProductionConstraint::Labor => "Paid worker-days".into(),
+                                                ProductionConstraint::Capital(id) => format!("Capital services ({})", id.0.replace('_', " ")),
+                                                ProductionConstraint::Input(id) => report.goods[id].name.clone(),
+                                            };
+                                            println!("  Limiting {name}: {} batches", limit.maximum_batches.0);
+                                        }
+                                    }
+                                }
+                                for project in &owned.pending {
+                                    let status = if project.stage == PolicyStage::Implementing && project.earliest_day <= report.day && project.materials.available.0 < project.materials.required.0 { "Waiting for packages" } else { "Pending" };
+                                    println!("{} · commitment #{} · {status} · earliest {} · packages {} required / {} stored (allocated at delivery)", project.name, project.commitment, date(project.earliest_day), project.materials.required.0, project.materials.available.0);
+                                }
+                            } else { println!("No current industrial stocks or staffing are published. Missing observations are not zero stocks."); }
+                            println!("{}", report.description);
+                        }
+                        None => println!("This preserved pack has no auxiliary infrastructure network."),
                     }
                 }
                 "social-groups" => {

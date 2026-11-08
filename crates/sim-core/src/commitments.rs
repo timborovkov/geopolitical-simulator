@@ -581,8 +581,15 @@ impl World {
                 .find(|m| m.stage == CommitmentStage::Operating);
             if let Some(m) = operating {
                 expected.push(CommitmentStage::Operating);
+                let material_delivery = content.production.as_ref().is_some_and(|production| {
+                    production.construction_policy_weights.contains_key(policy)
+                });
                 if !funded
-                    || m.day != r.project.due_day
+                    || if material_delivery {
+                        m.day < r.project.due_day
+                    } else {
+                        m.day != r.project.due_day
+                    }
                     || r.approval_at_delivery.is_none()
                     || r.direct_effects.is_empty()
                 {

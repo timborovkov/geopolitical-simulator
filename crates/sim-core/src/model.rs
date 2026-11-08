@@ -406,6 +406,8 @@ impl Scenario {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct World {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub production: Option<crate::NationalProduction>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub demographics: Option<crate::DemographyState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub event_sequences: Option<BTreeMap<CountryId, u64>>,
@@ -622,6 +624,7 @@ impl World {
             })
             .collect();
         let mut world = Self {
+            production: None,
             demographics: None,
             rules: content.rules,
             content_hash: content.hash(),
@@ -646,6 +649,7 @@ impl World {
             milestone_reported: false,
         };
         world.seed_demographics(content)?;
+        world.seed_production(content)?;
         world.seed_executive_identities(content)?;
         for (id, country) in &mut world.countries {
             country.budget.forecast =
@@ -799,6 +803,7 @@ impl World {
             return Err("Invalid world clock, player, roster or command sequence".into());
         }
         self.validate_demographics(content)?;
+        self.validate_production(content)?;
         self.validate_event_references(content)?;
         let mut previous_day = start_day;
         for (index, entry) in self.journal.iter().enumerate() {
@@ -1277,13 +1282,24 @@ impl World {
                 let p = content
                     .policy(&project.policy)
                     .ok_or("Missing pending policy definition")?;
+                let waiting_for_material = project.stage == PolicyStage::Implementing
+                    && content.production.as_ref().is_some_and(|definition| {
+                        definition
+                            .construction_required(id, &project.policy)
+                            .ok()
+                            .flatten()
+                            .is_some_and(|required| {
+                                self.construction_available(content, id)
+                                    .is_some_and(|available| available.0 < required.0)
+                            })
+                    });
                 if !pending.insert(&project.policy)
                     || project.id.0 >= self.next_project
                     || project.reserved.0 < 0
                     || (project.stage == PolicyStage::AwaitingConsent
                         && project.consent_day <= self.day)
                     || (project.stage == PolicyStage::Implementing && project.reserved.0 != 0)
-                    || project.due_day <= self.day
+                    || project.due_day <= self.day && !waiting_for_material
                     || project.due_day > crate::CampaignDay::new(MAX_DAY + 1000)
                     || !(p.min..=p.max).contains(&project.value)
                 {
