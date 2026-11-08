@@ -91,7 +91,11 @@ impl ProductionDefinition {
                 *weight == 0
                     || *weight > 100000
                     || content.policy(id).is_none()
-                    || !matches!(id.as_str(), "energy" | "agriculture" | "administration")
+                    || !(matches!(id.as_str(), "energy" | "agriculture" | "administration")
+                        || content
+                            .industry
+                            .as_ref()
+                            .is_some_and(|d| d.policies.contains_key(id)))
             })
         {
             return Err("Production definitions need exact attributed country/good/policy coverage and bounded worker allocation".into());

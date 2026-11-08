@@ -118,6 +118,11 @@ impl Panel {
 
 pub(crate) fn effect_label(field: &str) -> &str {
     match field {
+        "industry_level:agriculture" => "Industrial biomass investment level",
+        "industry_level:extraction" => "Feedstock extraction investment level",
+        "industry_level:manufacturing" => "Tools and materials investment level",
+        "industry_level:construction" => "Package construction investment level",
+        "industry_level:services" => "Contracted service investment level",
         "income_tax" => "Income-tax policy setting (%)",
         "services" => "Services (% of GDP)",
         "welfare" => "Welfare (% of GDP)",

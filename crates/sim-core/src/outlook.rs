@@ -191,6 +191,10 @@ impl World {
                     - i128::from(final_interest.0.0)
                     - i128::from(due);
             }
+            if let Some(upkeep) = &forecast.industry_upkeep {
+                baseline += i128::from(upkeep.due(DaySpan::new(1))?.0) * i128::from(offset)
+                    - i128::from(upkeep.due(DaySpan::new(offset))?.0);
+            }
             let mut if_approved = baseline;
             if let Some(assumption) =
                 loan.filter(|assumption| day >= (assumption.decision_day).units())
@@ -236,7 +240,11 @@ impl World {
                 .as_ref()
                 .map(|interest| InterestOutlook {
                     national_daily_numerator: operating * i64::from(INTEREST_DENOMINATOR)
-                        - interest.daily_numerator as i64,
+                        - interest.daily_numerator as i64
+                        + forecast
+                            .industry_upkeep
+                            .as_ref()
+                            .map_or(0, |p| p.rounding_adjustment()),
                     additional_daily_numerator: loan
                         .map_or(0, |l| l.amount.0 as u64 * u64::from(INTEREST_RATE_BPS)),
                     without_loan_due: final_interest.0,

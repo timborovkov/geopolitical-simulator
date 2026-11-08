@@ -332,6 +332,16 @@ impl GameApp {
             };
         }
     }
+    fn refresh_policy_selection(&mut self) {
+        if self.content.policy(&self.policy).is_none() {
+            self.policy = "energy".into();
+            self.value = self
+                .content
+                .policy(&self.policy)
+                .expect("validated base policy")
+                .min;
+        }
+    }
     fn load(&mut self) {
         if self.pending.is_some() {
             self.pause();
@@ -348,6 +358,7 @@ impl GameApp {
         match loaded {
             Ok((content, w)) => {
                 self.content = content;
+                self.refresh_policy_selection();
                 self.selected = w.player.clone();
                 self.target_date = date(sim_core::CampaignDay::new(
                     (w.day.units() + 30).min(MAX_DAY),
@@ -2055,6 +2066,7 @@ impl GameApp {
                 match restored {
                     Ok((content, world)) => {
                         self.content = content;
+                        self.refresh_policy_selection();
                         self.selected = world.player.clone();
                         self.target_date = date(sim_core::CampaignDay::new(
                             (world.day.units() + 30).min(MAX_DAY),
@@ -4674,6 +4686,156 @@ mod interface_tests {
             app.inspect_required_law(LawId("high_service_authority".into()));
             assert!(app.tab == Tab::Policies);
             assert_eq!(app.world.as_ref().unwrap(), &world);
+        }
+    }
+}
+
+#[cfg(test)]
+mod industry_loading_tests {
+    use super::*;
+
+    fn frame(
+        ctx: &egui::Context,
+        app: &mut GameApp,
+        scale: f32,
+        events: Vec<egui::Event>,
+    ) -> egui::FullOutput {
+        ctx.run(
+            egui::RawInput {
+                focused: true,
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(1440. / scale, 940. / scale),
+                )),
+                events,
+                ..Default::default()
+            },
+            |ctx| app.render(ctx),
+        )
+    }
+
+    #[test]
+    fn earlier_pack_load_replaces_unavailable_industry_selection_and_preserves_valid_drafts() {
+        let industry = Content::industry_bundled().unwrap();
+        for scale in [1., 1.4] {
+            for older in [
+                Content::recommended_bundled().unwrap(),
+                Content::classic_bundled().unwrap(),
+            ] {
+                for (selection, value, expected) in [
+                    ("industry_construction", 1, "energy"),
+                    ("services", 10, "services"),
+                ] {
+                    let dir = std::env::temp_dir().join(format!(
+                        "geosim-ui-industry-load-{}-{}-{}-{}",
+                        std::process::id(),
+                        scale,
+                        older.rules,
+                        selection
+                    ));
+                    std::fs::create_dir_all(&dir).unwrap();
+                    let path = dir.join("campaign.json");
+                    let old_world = World::new(&older, CountryId("GBR".into()), 17).unwrap();
+                    persistence::save(&path, &old_world, &older).unwrap();
+                    let original = std::fs::read(&path).unwrap();
+                    let ctx = egui::Context::default();
+                    let mut app = GameApp::from_context(
+                        &ctx,
+                        industry.clone(),
+                        settings::Preferences::default(),
+                    );
+                    ctx.set_zoom_factor(scale);
+                    app.bundled_catalog = true;
+                    app.world = Some(World::new(&industry, CountryId("GBR".into()), 17).unwrap());
+                    app.policy = selection.into();
+                    app.value = value;
+                    app.tab = Tab::Policies;
+                    app.save_path = path.display().to_string();
+                    app.load();
+                    frame(&ctx, &mut app, scale, vec![]);
+                    assert_eq!(app.content.hash(), older.hash());
+                    assert_eq!(app.policy.as_str(), expected);
+                    assert_eq!(app.value, value);
+                    assert_eq!(app.world.as_ref().unwrap(), &old_world);
+                    assert_eq!(std::fs::read(&path).unwrap(), original);
+                    std::fs::remove_dir_all(dir).unwrap();
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn earlier_backup_restore_replaces_industry_selection_before_render_and_preserves_originals() {
+        let industry = Content::industry_bundled().unwrap();
+        let older = Content::recommended_bundled().unwrap();
+        for scale in [1., 1.4] {
+            let dir = std::env::temp_dir().join(format!(
+                "geosim-ui-industry-recovery-{}-{}",
+                std::process::id(),
+                scale
+            ));
+            std::fs::create_dir_all(&dir).unwrap();
+            let primary = dir.join("campaign.json");
+            let backup = primary.with_extension("json.bak");
+            let old_world = World::new(&older, CountryId("GBR".into()), 17).unwrap();
+            persistence::save(&backup, &old_world, &older).unwrap();
+            let original_backup = std::fs::read(&backup).unwrap();
+            let damaged = b"controlled damaged primary";
+            std::fs::write(&primary, damaged).unwrap();
+            let ctx = egui::Context::default();
+            let mut app =
+                GameApp::from_context(&ctx, industry.clone(), settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            app.bundled_catalog = true;
+            app.world = Some(World::new(&industry, CountryId("GBR".into()), 17).unwrap());
+            app.policy = "industry_services".into();
+            app.value = 1;
+            app.tab = Tab::Policies;
+            app.save_path = primary.display().to_string();
+            app.inspect_recovery();
+            frame(&ctx, &mut app, scale, vec![]);
+            let output = frame(&ctx, &mut app, scale, vec![]);
+            let point = output
+                .shapes
+                .iter()
+                .find_map(|shape| match &shape.shape {
+                    egui::Shape::Text(text)
+                        if text.galley.text().starts_with("Restore Backup from ") =>
+                    {
+                        let rect = egui::Rect::from_min_size(text.pos, text.galley.size());
+                        shape.clip_rect.contains_rect(rect).then_some(rect.center())
+                    }
+                    _ => None,
+                })
+                .expect("Reviewed older backup must offer a visible restore action");
+            for pressed in [true, false] {
+                frame(
+                    &ctx,
+                    &mut app,
+                    scale,
+                    vec![
+                        egui::Event::PointerMoved(point),
+                        egui::Event::PointerButton {
+                            pos: point,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ],
+                );
+            }
+            assert_eq!(app.content.hash(), older.hash());
+            assert_eq!(app.policy.as_str(), "energy");
+            assert_eq!(app.value, 1);
+            assert_eq!(app.world.as_ref().unwrap(), &old_world);
+            assert!(app.recovery.is_empty());
+            assert!(app.status.contains("Recovered snapshot"));
+            assert_eq!(std::fs::read(&primary).unwrap(), original_backup);
+            assert_eq!(std::fs::read(&backup).unwrap(), original_backup);
+            assert!(std::fs::read_dir(&dir).unwrap().any(|entry| {
+                std::fs::read(entry.unwrap().path()).is_ok_and(|bytes| bytes == damaged)
+            }));
+            std::fs::remove_dir_all(dir).unwrap();
         }
     }
 }

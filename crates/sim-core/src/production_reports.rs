@@ -31,7 +31,18 @@ pub struct ProductionSectorReference {
     pub industry: IndustryKind,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct OwnedIndustryReport {
+    pub levels: BTreeMap<SectorId, u32>,
+    pub maximum_levels: u32,
+    pub nominal: IndustryAssets,
+    pub effective: IndustryAssets,
+    pub maintenance_readiness: i32,
+    pub upkeep: IndustryUpkeepProjection,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OwnedProductionReport {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub industry: Option<OwnedIndustryReport>,
     pub inventory: ProductionInventory,
     pub storage: BTreeMap<GoodId, ProductionStorageRule>,
     pub worker_share: BasisPoints,
@@ -135,7 +146,26 @@ impl World {
                 }
             }
             pending.sort_by_key(|project| project.commitment);
+            let industry = if let (Some(def), Some(state)) = (&content.industry, &country.industry)
+            {
+                Some(OwnedIndustryReport {
+                    levels: state.levels.clone(),
+                    maximum_levels: def.maximum_levels,
+                    nominal: def.assets(definition, id, &state.levels, 100)?,
+                    effective: def.assets(
+                        definition,
+                        id,
+                        &state.levels,
+                        self.production_maintenance(id),
+                    )?,
+                    maintenance_readiness: self.production_maintenance(id),
+                    upkeep: state.upkeep_projection(content.country(id).ok_or("Industry GDP")?.gdp),
+                })
+            } else {
+                None
+            };
             Some(OwnedProductionReport {
+                industry,
                 inventory: state.inventory.clone(),
                 storage: definition.countries[id].storage.clone(),
                 worker_share: definition.worker_share,

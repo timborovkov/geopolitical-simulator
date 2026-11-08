@@ -142,6 +142,8 @@ pub struct Observation {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Country {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub industry: Option<crate::IndustryInvestmentState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub executive_identity: Option<ExecutiveIdentityState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub legislation: Option<LegislationState>,
@@ -498,6 +500,10 @@ impl World {
                 (
                     d.id.clone(),
                     Country {
+                        industry: content
+                            .industry
+                            .as_ref()
+                            .map(IndustryInvestmentState::opening),
                         executive_identity: None,
                         legislation: content
                             .legislation
@@ -520,6 +526,7 @@ impl World {
                             opening_cash: accounts.treasury,
                             opening_day_settled: content.fiscal_plans.as_ref().map(|_| false),
                             forecast: BudgetForecast {
+                                industry_upkeep: None,
                                 interest_accrual: None,
                                 daily_revenue: crate::income_taxes::flat_withholding(
                                     Money(d.gdp.units() / 365 * 70 / 100),
@@ -804,6 +811,7 @@ impl World {
             return Err("Invalid world clock, player, roster or command sequence".into());
         }
         self.validate_demographics(content)?;
+        self.validate_industry(content)?;
         self.validate_production(content)?;
         self.validate_event_references(content)?;
         let mut previous_day = start_day;
@@ -1245,6 +1253,7 @@ impl World {
                         .as_ref()
                         .map(|_| c.budget.start_day != start_day)
                 || (content.rules >= 17) != c.budget.forecast.interest_accrual.is_some()
+                || (content.rules >= 32) != c.budget.forecast.industry_upkeep.is_some()
                 || !c.budget.valid_ranges()
                 || c.budget.expected_cash() != c.accounts.treasury.0
                 || c.budget_reviews.iter().any(|r| {
@@ -1255,6 +1264,7 @@ impl World {
                                 .as_ref()
                                 .map(|_| r.period.start_day != start_day)
                         || (content.rules >= 17) != r.period.forecast.interest_accrual.is_some()
+                        || (content.rules >= 32) != r.period.forecast.industry_upkeep.is_some()
                         || !r.period.valid_ranges()
                         || r.period.expected_cash() != r.closing_cash.0
                 })

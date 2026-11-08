@@ -12,6 +12,8 @@ pub(crate) fn daily_policy_spending(daily_gdp: Money, level: i32) -> Money {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BudgetForecast {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub industry_upkeep: Option<IndustryUpkeepProjection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub interest_accrual: Option<InterestProjection>,
     pub daily_revenue: Money,
     pub daily_spending: Money,
@@ -19,6 +21,18 @@ pub struct BudgetForecast {
     pub daily_interest: Money,
 }
 impl BudgetForecast {
+    /// Fixed daily assumptions plus exact carried industrial upkeep, avoiding
+    /// multiplication of a rounded one-day installment.
+    pub fn spending_for(&self, days: DaySpan) -> Money {
+        let base = self.daily_spending.0 * i64::from(days.units());
+        self.industry_upkeep.as_ref().map_or(Money(base), |p| {
+            Money(
+                base - p.due(DaySpan::new(1)).expect("valid industry projection").0
+                    * i64::from(days.units())
+                    + p.due(days).expect("valid industry projection").0,
+            )
+        })
+    }
     pub fn valid(&self) -> bool {
         [
             self.daily_revenue.0,
@@ -27,6 +41,11 @@ impl BudgetForecast {
         ]
         .iter()
         .all(|v| (0..=1_000_000_000).contains(v))
+            && self.industry_upkeep.as_ref().is_none_or(|p| {
+                p.valid()
+                    && p.due(DaySpan::new(1))
+                        .is_ok_and(|due| due.0 <= self.daily_spending.0)
+            })
             && self.interest_accrual.as_ref().is_none_or(|p| {
                 p.valid()
                     && self.daily_interest == p.due(crate::DaySpan::new(1)).unwrap_or(Money(-1))
@@ -90,9 +109,8 @@ impl BudgetPeriod {
             - (self.start_day).units()
             - u32::from(self.opening_day_settled == Some(false));
         if let Some(interest) = &self.forecast.interest_accrual {
-            return self.opening_cash.0
-                + i64::from(days)
-                    * (self.forecast.daily_revenue.0 - self.forecast.daily_spending.0)
+            return self.opening_cash.0 + i64::from(days) * self.forecast.daily_revenue.0
+                - self.forecast.spending_for(DaySpan::new(days)).0
                 - interest
                     .due(crate::DaySpan::new(days))
                     .expect("validated budget projection")
@@ -187,8 +205,12 @@ impl Country {
             + self.regional_planned_spending(d);
         if let Some(interest) = &forecast.interest_accrual {
             Money(
-                (operating * i64::from(INTEREST_DENOMINATOR) - interest.daily_numerator as i64)
-                    .div_euclid(i64::from(INTEREST_DENOMINATOR)),
+                (operating * i64::from(INTEREST_DENOMINATOR) - interest.daily_numerator as i64
+                    + forecast
+                        .industry_upkeep
+                        .as_ref()
+                        .map_or(0, |p| p.rounding_adjustment()))
+                .div_euclid(i64::from(INTEREST_DENOMINATOR)),
             )
         } else {
             Money(operating - forecast.daily_interest.0)
@@ -263,7 +285,12 @@ impl Country {
                 InterestProjection::new(self.debt, state.remainder)
                     .expect("validated principal and interest remainder")
             });
+        let industry_upkeep = self.industry.as_ref().map(|s| s.upkeep_projection(d.gdp));
+        let industry_due = industry_upkeep.as_ref().map_or(0, |p| {
+            p.due(DaySpan::new(1)).expect("validated industry upkeep").0
+        });
         BudgetForecast {
+            industry_upkeep,
             daily_interest: interest_accrual.as_ref().map_or_else(
                 || crate::interest::minimum_daily_interest(self.debt),
                 |p| {
@@ -293,6 +320,7 @@ impl Country {
                 } else {
                     0
                 } + maintenance
+                    + industry_due
                     + self.regional_planned_spending(d),
             ),
         }

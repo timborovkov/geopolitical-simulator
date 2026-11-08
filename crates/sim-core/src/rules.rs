@@ -51,6 +51,22 @@ impl World {
         government.check(c, policy.as_str(), value)?;
         self.check_policy_technologies(content, country, policy)?;
         self.check_policy_laws(content, country, policy, value)?;
+        if let Some(sector) = content
+            .industry
+            .as_ref()
+            .and_then(|d| d.policies.get(policy))
+        {
+            let state = c.industry.as_ref().ok_or("Missing industrial capacity")?;
+            if state.levels[sector]
+                >= content
+                    .industry
+                    .as_ref()
+                    .expect("definition")
+                    .maximum_levels
+            {
+                return Err("Already at the industry investment ceiling".into());
+            }
+        }
         let maximum_capacity = content
             .demographics
             .as_ref()
@@ -138,7 +154,12 @@ impl World {
                 } else {
                     "current collection"
                 }
-            ) + &party_feedback
+            ) + &content.industry.as_ref().and_then(|definition|definition.policies.get(policy).map(|sector|{
+                let state=c.industry.as_ref().expect("industry state");
+                let nominal=definition.assets(content.production.as_ref().expect("production"),country,&state.levels,100).expect("validated industry assets");
+                let step=definition.countries[country][sector].0;
+                format!(" Investment level {} -> {} of {}; nominal installed capacity {} -> {} batches. Added equipment can produce from the day after actual commissioning. Each added level incurs {} basis points of opening annual GDP in maintenance per 365 days, with fractional carry, and one country-specific maintenance input unit each day. Other input, paid labor and maintenance bottlenecks remain binding.",state.levels[sector],state.levels[sector]+1,definition.maximum_levels,nominal.installed[sector].0,nominal.installed[sector].0+step,definition.maintenance_bps_per_level.units())
+            })).unwrap_or_default() + &party_feedback
                 + &if content.cabinet.is_some() {
                     format!(
                         " Portfolio preparation adds {preparation} days. An approved minister can reduce preparation for future proposals; existing deadlines are retained."
@@ -680,7 +701,21 @@ impl World {
                     c.elite_support = (c.elite_support + 12).min(100);
                     c.council_support = (c.council_support + 12).min(100);
                 }
-                _ => unreachable!("validated policy"),
+                _ => {
+                    let sector = content
+                        .industry
+                        .as_ref()
+                        .and_then(|d| d.policies.get(&p.policy))
+                        .ok_or("Unknown industry policy")?;
+                    let level = c
+                        .industry
+                        .as_mut()
+                        .ok_or("Missing industry state")?
+                        .levels
+                        .get_mut(sector)
+                        .ok_or("Missing industry sector")?;
+                    *level = level.checked_add(1).ok_or("Industry level overflow")?;
+                }
             }
             if let Some(before) = before {
                 self.record_delivery(content, id, &p, &before);
@@ -930,6 +965,8 @@ impl World {
         if content.rules >= 15 {
             self.settle_maturities(id);
         }
+        let industry_opening = self.industry_factors(id);
+        let industry_upkeep = self.assess_industry_upkeep(content, id)?.0;
         let interest_due = self.assess_interest(id).0;
         let c = &self.countries[id];
         let mut services_due = crate::budget::daily_policy_spending(Money(daily), c.services).0;
@@ -940,7 +977,8 @@ impl World {
                     + (c.food_capacity - c.opening_food_capacity).max(0),
             )
             / 15
-            / 1000;
+            / 1000
+            + industry_upkeep;
         let interest = self.pay(
             id,
             Treasury,
@@ -1144,6 +1182,7 @@ impl World {
                 maintenance_due: Money(maintenance_due),
                 maintenance_paid: Money(maintenance),
             },
+            industry_opening,
         )?;
         let c = self.countries.get_mut(id).expect("country");
         let service_delivery = if services_due == 0 {
@@ -1463,6 +1502,9 @@ impl World {
         self.ai_legislation(content, id);
         self.ai_budget_turn(content, id);
         self.ai_undertaking_turn(content, id);
+        if self.ai_industry_investment(content, id) {
+            return;
+        }
         let c = &self.countries[id];
         let d = content.country(id).expect("country");
         let government = self
@@ -1646,6 +1688,20 @@ pub(crate) fn policy_forecast(
         "services" => d.gdp.units() * i64::from(value - c.services) / 100,
         "welfare" => d.gdp.units() * i64::from(value - c.welfare) / 100,
         "energy" | "agriculture" => d.gdp.units() / 1000,
+        _ if content
+            .industry
+            .as_ref()
+            .is_some_and(|i| i.policies.contains_key(policy)) =>
+        {
+            d.gdp.units()
+                * content
+                    .industry
+                    .as_ref()
+                    .expect("industry")
+                    .maintenance_bps_per_level
+                    .units_i64()
+                / 10000
+        }
         _ => 0,
     };
     let daily = d.gdp.units() / 365;

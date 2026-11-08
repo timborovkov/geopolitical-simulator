@@ -20,6 +20,8 @@ pub struct CapitalMaterialUse {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct NationalProductionDay {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub industry_opening: Option<IndustryOpeningFactors>,
     pub physical: ProductionInventoryDay,
     pub request: ProductionDayRequest,
     pub funding: ProductionFunding,
@@ -106,6 +108,7 @@ impl World {
         content: &Content,
         id: &CountryId,
         funding: ProductionFunding,
+        industry_opening: Option<IndustryOpeningFactors>,
     ) -> Result<i32, String> {
         let Some(definition) = &content.production else {
             return Ok(100);
@@ -123,6 +126,14 @@ impl World {
         let country = &self.countries[id];
         let opening = &definition.countries[id];
         let framework = definition.framework_for(id)?;
+        let assets = match (&content.industry, &industry_opening) {
+            (Some(d), Some(f)) => d.assets(definition, id, &f.levels, f.maintenance_readiness)?,
+            (None, None) => IndustryAssets {
+                installed: opening.installed.clone(),
+                capital: opening.capital.clone(),
+            },
+            _ => return Err("Missing industrial opening factors".into()),
+        };
         let state = self
             .production
             .as_ref()
@@ -169,7 +180,19 @@ impl World {
         };
         let extra = (country.energy_capacity - country.opening_energy_capacity).max(0) as u64
             + (country.food_capacity - country.opening_food_capacity).max(0) as u64;
-        let maintenance_required = quote(opening.maintenance_units_per_step.0, extra, 15)?;
+        let maintenance_required = quote(opening.maintenance_units_per_step.0, extra, 15)?
+            .checked_add(
+                opening
+                    .maintenance_units_per_step
+                    .0
+                    .checked_mul(
+                        industry_opening
+                            .as_ref()
+                            .map_or(0, |f| f.levels.values().map(|n| u64::from(*n)).sum()),
+                    )
+                    .ok_or("Industrial maintenance overflow")?,
+            )
+            .ok_or("Industrial maintenance overflow")?;
         let funded_maintenance = if funding.maintenance_due.0 == 0 {
             maintenance_required
         } else {
@@ -203,10 +226,12 @@ impl World {
             capacities.insert(
                 sector.clone(),
                 SectorCapacity {
-                    installed_batches: opening.installed[sector],
-                    requested_batches: ProductionBatches(
-                        requested.min(opening.installed[sector].0),
-                    ),
+                    installed_batches: assets.installed[sector],
+                    requested_batches: ProductionBatches(if industry_opening.is_some() {
+                        requested
+                    } else {
+                        requested.min(opening.installed[sector].0)
+                    }),
                 },
             );
         }
@@ -219,7 +244,7 @@ impl World {
             capacities,
             workers,
             labor,
-            capital: opening.capital.clone(),
+            capital: assets.capital,
             imports: zeros.clone(),
             exports: zeros.clone(),
             final_use: zeros,
@@ -259,6 +284,7 @@ impl World {
             .expect("country");
         state.inventory = inventory;
         state.last = Some(NationalProductionDay {
+            industry_opening,
             physical,
             request,
             funding,
@@ -364,6 +390,44 @@ impl World {
                     .ok_or("Production worker overflow")
             })?);
             let daily = (content.country(id).ok_or("Country definition")?.gdp.units() / 365).max(1);
+            let assets = match (&content.industry, &last.industry_opening) {
+                (None, None) => IndustryAssets {
+                    installed: definition.countries[id].installed.clone(),
+                    capital: definition.countries[id].capital.clone(),
+                },
+                (Some(industry), Some(factors)) => {
+                    let state = country.industry.as_ref().ok_or("Missing industry state")?;
+                    let mut opening = state.levels.clone();
+                    for record in country.commitments.as_deref().unwrap_or_default() {
+                        if let Some(sector) = industry.policies.get(&record.project.policy)
+                            && record
+                                .milestones
+                                .iter()
+                                .any(|m| m.stage == CommitmentStage::Operating && m.day == self.day)
+                        {
+                            let n = opening.get_mut(sector).ok_or("Industry sector")?;
+                            *n = n.checked_sub(1).ok_or("Industry operating attribution")?;
+                        }
+                    }
+                    if factors.levels != opening {
+                        return Err(
+                            "Industry settlement predates today\'s actual commissioning".into()
+                        );
+                    }
+                    let projection = IndustryUpkeepProjection {
+                        gdp: content.country(id).ok_or("Industry definition")?.gdp,
+                        levels: opening.values().sum(),
+                        rate: state.maintenance_bps_per_level,
+                        opening_remainder: factors.upkeep_opening_remainder,
+                    };
+                    let (due, carry) = projection.assessment(DaySpan::new(1))?;
+                    if carry != state.upkeep_remainder || due.0 > last.funding.maintenance_due.0 {
+                        return Err("Industry upkeep receipt/carry mismatch".into());
+                    }
+                    industry.assets(definition, id, &opening, factors.maintenance_readiness)?
+                }
+                _ => return Err("Industry receipt differs from pinned rules".into()),
+            };
             let funding = &last.funding;
             if last.physical.day != self.day
                 || funding.private_income_paid != country.report.wages
@@ -391,10 +455,11 @@ impl World {
                 || last.service_delivered.0 > last.service_required.0
                 || last.maintenance_delivered.0 > last.maintenance_required.0
                 || last.request.capacities.keys().ne(framework.sectors.keys())
-                || last.request.capital != definition.countries[id].capital
+                || last.request.capital != assets.capital
                 || last.request.capacities.iter().any(|(sector, cap)| {
-                    cap.installed_batches != definition.countries[id].installed[sector]
-                        || cap.requested_batches.0 > cap.installed_batches.0
+                    cap.installed_batches != assets.installed[sector]
+                        || content.industry.is_none()
+                            && cap.requested_batches.0 > cap.installed_batches.0
                 })
                 || last.capital_uses.len() > content.policies.len()
                 || last.physical.storage.keys().ne(framework.goods.keys())
@@ -555,26 +620,29 @@ impl World {
                         .ok_or("Production date precedes opening")?
                         .units(),
                 );
-                let production_bound = framework
-                    .sectors
-                    .iter()
-                    .fold(0_u128, |sum, (sector, recipe)| {
-                        sum.saturating_add(
-                            u128::from(definition.countries[id].installed[sector].0)
-                                * u128::from(recipe.outputs_per_batch.get(good).map_or(0, |q| q.0)),
-                        )
-                    })
-                    .saturating_mul(elapsed);
+                let production_bound =
+                    framework
+                        .sectors
+                        .iter()
+                        .fold(0_u128, |sum, (sector, recipe)| {
+                            sum.saturating_add(
+                                self.industry_capacity_days(content, id, sector, elapsed)
+                                    .saturating_mul(u128::from(
+                                        recipe.outputs_per_batch.get(good).map_or(0, |q| q.0),
+                                    )),
+                            )
+                        });
                 let input_bound = framework
                     .sectors
                     .iter()
                     .fold(0_u128, |sum, (sector, recipe)| {
                         sum.saturating_add(
-                            u128::from(definition.countries[id].installed[sector].0)
-                                * u128::from(recipe.inputs_per_batch.get(good).map_or(0, |q| q.0)),
+                            self.industry_capacity_days(content, id, sector, elapsed)
+                                .saturating_mul(u128::from(
+                                    recipe.inputs_per_batch.get(good).map_or(0, |q| q.0),
+                                )),
                         )
-                    })
-                    .saturating_mul(elapsed);
+                    });
                 if u128::from(stock.totals.produced.0) > production_bound
                     || u128::from(stock.totals.industrial_use.0) > input_bound
                 {

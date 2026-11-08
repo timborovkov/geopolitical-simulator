@@ -371,6 +371,16 @@ impl World {
         let Some(records) = &mut c.commitments else {
             return;
         };
+        let industry_effect = content
+            .industry
+            .as_ref()
+            .and_then(|d| d.policies.get(&project.policy))
+            .map(|sector| {
+                let before =
+                    before.industry.as_ref().expect("industry before").levels[sector] as i32;
+                let after = c.industry.as_ref().expect("industry after").levels[sector] as i32;
+                (format!("industry_level:{}", sector.0), before, after)
+            });
         let effects = match project.policy.as_str() {
             "income_tax" => vec![("income_tax", before.tax, c.tax)],
             "services" => vec![("services", before.services, c.services)],
@@ -387,7 +397,11 @@ impl World {
                 ("elite_support", before.elite_support, c.elite_support),
                 ("council_support", before.council_support, c.council_support),
             ],
-            _ => unreachable!("validated policy"),
+            _ => {
+                let (field, before, after) =
+                    industry_effect.as_ref().expect("validated industry policy");
+                vec![(field.as_str(), *before, *after)]
+            }
         };
         if matches!(
             project.policy.as_str(),
@@ -595,6 +609,11 @@ impl World {
                 {
                     return Err("Invalid commitment delivery record".into());
                 }
+                let industry_effect = content.industry.as_ref().and_then(|d| {
+                    d.policies
+                        .get(policy)
+                        .map(|s| (format!("industry_level:{}", s.0), d.maximum_levels as i32))
+                });
                 let valid_effects: Vec<_> = match policy.as_str() {
                     "income_tax" => vec![("income_tax", 10, 45, None)],
                     "services" => vec![("services", 4, 18, None)],
@@ -623,7 +642,12 @@ impl World {
                         ("elite_support", 0, 100, Some(12)),
                         ("council_support", 0, 100, Some(12)),
                     ],
-                    _ => return Err("Unknown direct policy effect".into()),
+                    _ => {
+                        let (field, max) = industry_effect
+                            .as_ref()
+                            .ok_or("Unknown direct policy effect")?;
+                        vec![(field.as_str(), 0, *max, Some(1))]
+                    }
                 };
                 if r.direct_effects.len() != valid_effects.len()
                     || r.direct_effects.iter().zip(valid_effects).any(
