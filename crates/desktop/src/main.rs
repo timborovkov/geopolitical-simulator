@@ -29,6 +29,7 @@ mod new_game;
 mod party_preferences;
 mod reserves;
 mod settings;
+mod social_memberships;
 mod sovereignty;
 mod subnational;
 mod technologies;
@@ -81,6 +82,7 @@ struct GameApp {
     undertaking_panel: undertakings::Panel,
     fiscal_panel: fiscal_plans::Panel,
     legislation_panel: legislation::Panel,
+    social_panel: social_memberships::Panel,
     cabinet_panel: cabinet::Panel,
     subnational_panel: subnational::Panel,
     sort_gdp: bool,
@@ -158,6 +160,7 @@ impl GameApp {
             undertaking_panel: undertakings::Panel::default(),
             fiscal_panel: fiscal_plans::Panel::default(),
             legislation_panel: legislation::Panel::default(),
+            social_panel: social_memberships::Panel::default(),
             cabinet_panel: cabinet::Panel::default(),
             subnational_panel: subnational::Panel::default(),
             sort_gdp: false,
@@ -353,6 +356,7 @@ impl GameApp {
                 self.undertaking_panel = undertakings::Panel::default();
                 self.fiscal_panel = fiscal_plans::Panel::default();
                 self.legislation_panel = legislation::Panel::default();
+                self.social_panel = social_memberships::Panel::default();
                 self.walkthrough = walkthrough::Panel::default();
                 self.cash_management = cash_management::Panel::default();
                 self.event_browser = chronicle::Panel::default();
@@ -464,6 +468,7 @@ impl GameApp {
         self.undertaking_panel = undertakings::Panel::default();
         self.fiscal_panel = fiscal_plans::Panel::default();
         self.legislation_panel = legislation::Panel::default();
+        self.social_panel = social_memberships::Panel::default();
         self.cabinet_panel = cabinet::Panel::default();
         self.cashflows = cashflows::CashFlows::default();
         self.inspector = inspector::Inspector::default();
@@ -1029,6 +1034,7 @@ impl GameApp {
             .expect("selected country");
         ui.heading(format!("{} · published country report", report.name));
         demographics::show(ui, &self.content, w, &self.selected, Viewer::Observer);
+        social_memberships::show_public(ui, &self.content, w, &self.selected);
         ui.label(format!(
             "Executive: {} · population {:.1}m · opening GDP {}m/year",
             report.executive,
@@ -1336,12 +1342,14 @@ impl GameApp {
             }
         }
     }
-    fn society(&self, ui: &mut egui::Ui) {
+    fn society(&mut self, ui: &mut egui::Ui) {
         if self.foreign_report(ui) {
             return;
         }
 
         if let Some(world) = &self.world {
+            self.social_panel
+                .show(ui, &self.content, world, &self.selected);
             demographics::show(
                 ui,
                 &self.content,
@@ -2047,6 +2055,7 @@ impl GameApp {
                         self.undertaking_panel = undertakings::Panel::default();
                         self.fiscal_panel = fiscal_plans::Panel::default();
                         self.legislation_panel = legislation::Panel::default();
+                        self.social_panel = social_memberships::Panel::default();
                         self.walkthrough = walkthrough::Panel::default();
                         self.cash_management = cash_management::Panel::default();
                         self.event_browser = chronicle::Panel::default();
@@ -4476,6 +4485,70 @@ mod interface_tests {
             .remove(0);
         assert_eq!(app.map.camera.longitude, target.bounds.center().x);
         assert_eq!(app.map.camera.latitude, target.bounds.center().y);
+    }
+    #[test]
+    fn social_checkbox_space_toggles_membership_without_starting_time() {
+        fn click(ctx: &egui::Context, app: &mut GameApp, scale: f32, label: &str) {
+            let output = editor_shortcut_frame(ctx, app, scale, vec![]);
+            let pos = editor_shortcut_point(&output, label);
+            for pressed in [true, false] {
+                let _ = editor_shortcut_frame(
+                    ctx,
+                    app,
+                    scale,
+                    vec![
+                        egui::Event::PointerMoved(pos),
+                        egui::Event::PointerButton {
+                            pos,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: Default::default(),
+                        },
+                    ],
+                );
+            }
+        }
+        let content = Content::from_json(include_str!(
+            "../../../data/synthetic-overlapping-memberships-test.json"
+        ))
+        .unwrap();
+        let world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
+        for scale in [1., 1.4] {
+            let ctx = egui::Context::default();
+            let mut app =
+                GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+            ctx.set_zoom_factor(scale);
+            app.world = Some(world.clone());
+            app.selected = world.player.clone();
+            app.tab = Tab::Society;
+            for _ in 0..4 {
+                let _ = editor_shortcut_frame(&ctx, &mut app, scale, vec![]);
+            }
+            click(&ctx, &mut app, scale, "Social groups & overlap");
+            for _ in 0..4 {
+                let _ = editor_shortcut_frame(&ctx, &mut app, scale, vec![]);
+            }
+            click(&ctx, &mut app, scale, "Employed residents");
+            assert!(ctx.wants_keyboard_input());
+            let output = editor_shortcut_frame(
+                &ctx,
+                &mut app,
+                scale,
+                editor_shortcut_keys(egui::Key::Space, None, true),
+            );
+            assert!(output.shapes.iter().any(|shape| {
+                match &shape.shape {
+                    egui::Shape::Text(text) => text
+                        .galley
+                        .text()
+                        .contains("Select at least one group to inspect overlap"),
+                    _ => false,
+                }
+            }));
+            assert_eq!(app.speed, 0);
+            assert!(app.pending.is_none());
+            assert_eq!(app.world.as_ref().unwrap(), &world);
+        }
     }
     #[test]
     fn statutory_policy_link_focuses_permission_and_back_preserves_the_draft_without_orders() {
