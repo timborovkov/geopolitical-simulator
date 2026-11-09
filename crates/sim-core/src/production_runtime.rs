@@ -399,14 +399,16 @@ impl World {
                     let state = country.industry.as_ref().ok_or("Missing industry state")?;
                     let mut opening = state.levels.clone();
                     for record in country.commitments.as_deref().unwrap_or_default() {
-                        if let Some(sector) = industry.policies.get(&record.project.policy)
+                        if let Some((sector, delta)) = industry.effect(&record.project.policy)
                             && record
                                 .milestones
                                 .iter()
                                 .any(|m| m.stage == CommitmentStage::Operating && m.day == self.day)
                         {
                             let n = opening.get_mut(sector).ok_or("Industry sector")?;
-                            *n = n.checked_sub(1).ok_or("Industry operating attribution")?;
+                            *n = n
+                                .checked_add_signed(-delta)
+                                .ok_or("Industry operating attribution")?;
                         }
                     }
                     if factors.levels != opening {

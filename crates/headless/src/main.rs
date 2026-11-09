@@ -1118,6 +1118,7 @@ fn play(
                             if let Some(owned) = report.owned {
                                 println!("Current auxiliary stocks on {}. Each good has its own model unit; civilian Food/Energy remain separate.", date(report.day));
                                 if let Some(industry)=&owned.industry {
+                                    if let Some(retirement)=&industry.retirement { println!("{}", retirement.description); }
                                     println!("Public industry equipment: {}% readiness next day; upkeep {}m next day / {}m over 365 days",industry.maintenance_readiness,industry.upkeep.due(DaySpan::new(1))?.0,industry.upkeep.due(DaySpan::new(365))?.0);
                                     for sector in &report.sectors {println!("{}: level {}/{}; nominal {} batches / effective next day {} batches",sector.name,industry.levels[&sector.id],industry.maximum_levels,industry.nominal.installed[&sector.id].0,industry.effective.installed[&sector.id].0);}
                                 }

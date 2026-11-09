@@ -11,11 +11,34 @@ pub struct IndustryInvestmentDefinition {
     pub source_version: String,
     pub description: String,
     pub policies: BTreeMap<PolicyId, SectorId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retirement: Option<IndustryRetirementDefinition>,
     pub maximum_levels: u32,
     pub maintenance_bps_per_level: BasisPoints,
     pub countries: BTreeMap<CountryId, BTreeMap<SectorId, ProductionBatches>>,
 }
+/// Attributed public decommissioning policies; opening equipment cannot be retired.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct IndustryRetirementDefinition {
+    pub source: String,
+    pub source_version: String,
+    pub description: String,
+    pub policies: BTreeMap<PolicyId, SectorId>,
+}
 impl IndustryInvestmentDefinition {
+    pub fn effect(&self, policy: &PolicyId) -> Option<(&SectorId, i32)> {
+        self.policies
+            .get(policy)
+            .map(|sector| (sector, 1))
+            .or_else(|| {
+                self.retirement
+                    .as_ref()?
+                    .policies
+                    .get(policy)
+                    .map(|sector| (sector, -1))
+            })
+    }
+
     pub fn validate(&self, content: &Content) -> Result<(), String> {
         let production = content
             .production
@@ -44,6 +67,33 @@ impl IndustryInvestmentDefinition {
                 return Err(
                     "Industry investment needs an explicit costed material-consuming policy".into(),
                 );
+            }
+        }
+        if self.retirement.is_some() != (content.rules == 33) {
+            return Err("Public retirement requires rules/content 33".into());
+        }
+        if let Some(retirement) = &self.retirement {
+            if retirement.description.trim().is_empty()
+                || retirement.description.len() > 4096
+                || retirement.source_version.trim().is_empty()
+                || !content.sources.iter().any(|s| s.id == retirement.source)
+                || retirement.policies.len() != self.policies.len()
+                || retirement.policies.values().collect::<BTreeSet<_>>()
+                    != self.policies.values().collect()
+            {
+                return Err("Retirement needs attributed exact sector coverage".into());
+            }
+            for (policy, sector) in &retirement.policies {
+                let p = content.policy(policy).ok_or("Missing retirement policy")?;
+                if policy.as_str() != format!("retire_industry_{}", sector.0)
+                    || p.cost_bps.units() == 0
+                    || production.construction_policy_weights.contains_key(policy)
+                {
+                    return Err(
+                        "Retirement needs a paid policy without construction refunds or packages"
+                            .into(),
+                    );
+                }
             }
         }
         for (id, steps) in &self.countries {
@@ -246,31 +296,99 @@ impl World {
     ) -> u128 {
         let production = content.production.as_ref().expect("production");
         let mut result = u128::from(production.countries[id].installed[sector].0) * elapsed;
+        let mut retired = 0;
         if let Some(definition) = &content.industry {
             for record in self.countries[id]
                 .commitments
                 .as_deref()
                 .unwrap_or_default()
             {
-                if definition.policies.get(&record.project.policy) == Some(sector)
+                if let Some((effect_sector, delta)) = definition.effect(&record.project.policy)
+                    && effect_sector == sector
                     && let Some(op) = record
                         .milestones
                         .iter()
                         .find(|m| m.stage == CommitmentStage::Operating)
                 {
-                    result += u128::from(definition.countries[id][sector].0)
+                    let change = u128::from(definition.countries[id][sector].0)
                         * u128::from(
                             self.day
                                 .elapsed_since(op.day)
                                 .expect("ordered operation")
                                 .units(),
                         );
+                    if delta > 0 {
+                        result += change;
+                    } else {
+                        retired += change;
+                    }
                 }
             }
         }
         result
+            .checked_sub(retired)
+            .expect("validated net industry capacity history")
+    }
+    fn ai_industry_retirement(&mut self, content: &Content, id: &CountryId) -> bool {
+        let Some(definition) = &content.industry else {
+            return false;
+        };
+        let Some(retirement) = &definition.retirement else {
+            return false;
+        };
+        let Some(last) = self
+            .production
+            .as_ref()
+            .and_then(|p| p.countries.get(id))
+            .and_then(|p| p.last.as_ref())
+        else {
+            return false;
+        };
+        // Use actual settlement evidence, not an assumed profit or invented salvage value.
+        if last.maintenance_percent == 100
+            && last.funding.maintenance_paid == last.funding.maintenance_due
+        {
+            return false;
+        }
+        let opening = &content
+            .production
+            .as_ref()
+            .expect("industry production")
+            .countries[id];
+        let choice = retirement.policies.iter().find_map(|(policy, sector)| {
+            let receipt = last
+                .physical
+                .production
+                .sectors
+                .iter()
+                .find(|r| &r.sector == sector)?;
+            if self.countries[id].industry.as_ref()?.levels[sector] == 0
+                || receipt.produced.0 > opening.installed[sector].0
+            {
+                return None;
+            }
+            let preview = self.preview(content, id, policy, 1).ok()?;
+            (self.countries[id].available_cash().0
+                >= preview.cost.0 + content.country(id)?.gdp.units() / 100)
+                .then(|| policy.clone())
+        });
+        let Some(policy) = choice else {
+            return false;
+        };
+        let command = self.command(id.clone(), Action::Enact { policy, value: 1 });
+        if self
+            .apply(content, command, crate::developer::CommandOrigin::Ai)
+            .is_err()
+        {
+            return false;
+        }
+        self.event(id, false, "AI proposed paid retirement of an unused public addition after observed maintenance shortfall through ordinary authority, funding and consent.");
+        true
     }
     pub(crate) fn ai_industry_investment(&mut self, content: &Content, id: &CountryId) -> bool {
+        if self.ai_industry_retirement(content, id) {
+            return true;
+        }
         let Some(definition) = &content.industry else {
             return false;
         };
@@ -400,34 +518,45 @@ impl World {
                 .unwrap_or_default()
                 .iter()
                 .filter_map(|record| {
-                    let sector = definition.policies.get(&record.project.policy)?;
+                    let (sector, delta) = definition.effect(&record.project.policy)?;
                     let operation = record
                         .milestones
                         .iter()
                         .find(|m| m.stage == CommitmentStage::Operating)?;
-                    Some((operation.day, record.id, sector, record))
+                    Some((operation.day, record.id, sector, delta, record))
                 })
                 .collect();
-            deliveries.sort_by_key(|(day, id, _, _)| (*day, *id));
-            for (operation, _, sector, record) in deliveries {
+            deliveries.sort_by_key(|(day, id, _, _, _)| (*day, *id));
+            let mut peak_levels = 0;
+            for (operation, _, sector, delta, record) in deliveries {
                 let before = levels.get_mut(sector).ok_or("Industry sector")?;
                 if record.direct_effects.len() != 1
                     || record.direct_effects[0].field != format!("industry_level:{}", sector.0)
                     || record.direct_effects[0].before != *before as i32
-                    || record.direct_effects[0].after != *before as i32 + 1
+                    || record.direct_effects[0].after != *before as i32 + delta
                 {
                     return Err(
                         "Industry direct effects differ from ordered operating asset history"
                             .into(),
                     );
                 }
-                *before = before.checked_add(1).ok_or("Industry level overflow")?;
-                level_days += u128::from(
+                *before = before
+                    .checked_add_signed(delta)
+                    .filter(|n| *n <= definition.maximum_levels)
+                    .ok_or("Industry level outside paid capacity bounds")?;
+                peak_levels = peak_levels.max(levels.values().sum::<u32>());
+                let elapsed = u128::from(
                     self.day
                         .elapsed_since(operation)
                         .ok_or("Industry operation chronology")?
                         .units(),
                 );
+                level_days = if delta > 0 {
+                    level_days.checked_add(elapsed)
+                } else {
+                    level_days.checked_sub(elapsed)
+                }
+                .ok_or("Industry level-day chronology")?;
             }
             let expected_carry =
                 (u128::from(content.country(id).ok_or("Industry GDP")?.gdp.units() as u64)
@@ -449,7 +578,7 @@ impl World {
                 if !projection.valid()
                     || projection.gdp != content.country(id).ok_or("Industry GDP")?.gdp
                     || projection.rate != definition.maintenance_bps_per_level
-                    || projection.levels > state.level_count()
+                    || projection.levels > peak_levels
                 {
                     return Err("Industrial forecast differs from pinned assets and rates".into());
                 }

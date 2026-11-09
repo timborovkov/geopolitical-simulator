@@ -51,20 +51,23 @@ impl World {
         government.check(c, policy.as_str(), value)?;
         self.check_policy_technologies(content, country, policy)?;
         self.check_policy_laws(content, country, policy, value)?;
-        if let Some(sector) = content
-            .industry
-            .as_ref()
-            .and_then(|d| d.policies.get(policy))
-        {
+        if let Some((sector, delta)) = content.industry.as_ref().and_then(|d| d.effect(policy)) {
+            let definition = content.industry.as_ref().expect("industry definition");
             let state = c.industry.as_ref().ok_or("Missing industrial capacity")?;
-            if state.levels[sector]
-                >= content
-                    .industry
-                    .as_ref()
-                    .expect("definition")
-                    .maximum_levels
-            {
+            if delta > 0 && state.levels[sector] >= definition.maximum_levels {
                 return Err("Already at the industry investment ceiling".into());
+            }
+            if delta < 0 && state.levels[sector] == 0 {
+                return Err("No paid additional industry capacity to retire; opening equipment is protected".into());
+            }
+            if definition.retirement.is_some()
+                && c.projects.iter().any(|p| {
+                    definition
+                        .effect(&p.policy)
+                        .is_some_and(|(s, _)| s == sector)
+                })
+            {
+                return Err("This sector already has a pending investment or retirement".into());
             }
         }
         let maximum_capacity = content
@@ -154,10 +157,13 @@ impl World {
                 } else {
                     "current collection"
                 }
-            ) + &content.industry.as_ref().and_then(|definition|definition.policies.get(policy).map(|sector|{
+            ) + &content.industry.as_ref().and_then(|definition|definition.effect(policy).map(|(sector, delta)|{
                 let state=c.industry.as_ref().expect("industry state");
                 let nominal=definition.assets(content.production.as_ref().expect("production"),country,&state.levels,100).expect("validated industry assets");
                 let step=definition.countries[country][sector].0;
+                if delta < 0 {
+                    return format!(" Retire one paid additional level: {} -> {} of {}; nominal capacity {} -> {} batches. The reduction in capacity and maintenance starts the day after actual retirement. No cash proceeds, construction refunds or returned packages; outstanding maintenance claims and fractional carry remain due. Opening equipment is protected.", state.levels[sector], state.levels[sector]-1, definition.maximum_levels, nominal.installed[sector].0, nominal.installed[sector].0-step);
+                }
                 format!(" Investment level {} -> {} of {}; nominal installed capacity {} -> {} batches. Added equipment can produce from the day after actual commissioning. Each added level incurs {} basis points of opening annual GDP in maintenance per 365 days, with fractional carry, and one country-specific maintenance input unit each day. Other input, paid labor and maintenance bottlenecks remain binding.",state.levels[sector],state.levels[sector]+1,definition.maximum_levels,nominal.installed[sector].0,nominal.installed[sector].0+step,definition.maintenance_bps_per_level.units())
             })).unwrap_or_default() + &party_feedback
                 + &if content.cabinet.is_some() {
@@ -472,6 +478,9 @@ impl World {
             return Err("Advance 0..3660 days within the 100-year campaign limit".into());
         }
         self.validate_event_references_for_content(content, content_hash)?;
+        if content.rules >= 33 {
+            self.validate_industry(content)?;
+        }
         self.validate_production(content)?;
         for _ in 0..days {
             self.event_transaction_for_content(content, content_hash, |world| {
@@ -648,7 +657,13 @@ impl World {
             });
             if p.stage == PolicyStage::Implementing
                 && p.due_day <= self.day
-                && needed.is_some() == material_phase
+                && (needed.is_some()
+                    || content
+                        .industry
+                        .as_ref()
+                        .and_then(|d| d.effect(&p.policy))
+                        .is_some_and(|(_, delta)| delta < 0))
+                    == material_phase
             {
                 if let Some(needed) = needed {
                     if needed.0 > available {
@@ -702,10 +717,10 @@ impl World {
                     c.council_support = (c.council_support + 12).min(100);
                 }
                 _ => {
-                    let sector = content
+                    let (sector, delta) = content
                         .industry
                         .as_ref()
-                        .and_then(|d| d.policies.get(&p.policy))
+                        .and_then(|d| d.effect(&p.policy))
                         .ok_or("Unknown industry policy")?;
                     let level = c
                         .industry
@@ -714,7 +729,9 @@ impl World {
                         .levels
                         .get_mut(sector)
                         .ok_or("Missing industry sector")?;
-                    *level = level.checked_add(1).ok_or("Industry level overflow")?;
+                    *level = level
+                        .checked_add_signed(delta)
+                        .ok_or("Industry level overflow")?;
                 }
             }
             if let Some(before) = before {
@@ -1691,9 +1708,17 @@ pub(crate) fn policy_forecast(
         _ if content
             .industry
             .as_ref()
-            .is_some_and(|i| i.policies.contains_key(policy)) =>
+            .is_some_and(|i| i.effect(policy).is_some()) =>
         {
-            d.gdp.units()
+            i64::from(
+                content
+                    .industry
+                    .as_ref()
+                    .expect("industry")
+                    .effect(policy)
+                    .expect("industry policy")
+                    .1,
+            ) * d.gdp.units()
                 * content
                     .industry
                     .as_ref()

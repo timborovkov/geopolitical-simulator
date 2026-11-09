@@ -374,8 +374,8 @@ impl World {
         let industry_effect = content
             .industry
             .as_ref()
-            .and_then(|d| d.policies.get(&project.policy))
-            .map(|sector| {
+            .and_then(|d| d.effect(&project.policy))
+            .map(|(sector, _)| {
                 let before =
                     before.industry.as_ref().expect("industry before").levels[sector] as i32;
                 let after = c.industry.as_ref().expect("industry after").levels[sector] as i32;
@@ -610,9 +610,13 @@ impl World {
                     return Err("Invalid commitment delivery record".into());
                 }
                 let industry_effect = content.industry.as_ref().and_then(|d| {
-                    d.policies
-                        .get(policy)
-                        .map(|s| (format!("industry_level:{}", s.0), d.maximum_levels as i32))
+                    d.effect(policy).map(|(s, delta)| {
+                        (
+                            format!("industry_level:{}", s.0),
+                            d.maximum_levels as i32,
+                            delta,
+                        )
+                    })
                 });
                 let valid_effects: Vec<_> = match policy.as_str() {
                     "income_tax" => vec![("income_tax", 10, 45, None)],
@@ -643,10 +647,15 @@ impl World {
                         ("council_support", 0, 100, Some(12)),
                     ],
                     _ => {
-                        let (field, max) = industry_effect
+                        let (field, max, delta) = industry_effect
                             .as_ref()
                             .ok_or("Unknown direct policy effect")?;
-                        vec![(field.as_str(), 0, *max, Some(1))]
+                        vec![(
+                            field.as_str(),
+                            if *delta < 0 { 1 } else { 0 },
+                            *max,
+                            Some(*delta),
+                        )]
                     }
                 };
                 if r.direct_effects.len() != valid_effects.len()

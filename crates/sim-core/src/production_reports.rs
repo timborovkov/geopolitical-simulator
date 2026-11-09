@@ -32,6 +32,8 @@ pub struct ProductionSectorReference {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OwnedIndustryReport {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retirement: Option<IndustryRetirementDefinition>,
     pub levels: BTreeMap<SectorId, u32>,
     pub maximum_levels: u32,
     pub nominal: IndustryAssets,
@@ -149,6 +151,7 @@ impl World {
             let industry = if let (Some(def), Some(state)) = (&content.industry, &country.industry)
             {
                 Some(OwnedIndustryReport {
+                    retirement: def.retirement.clone(),
                     levels: state.levels.clone(),
                     maximum_levels: def.maximum_levels,
                     nominal: def.assets(definition, id, &state.levels, 100)?,

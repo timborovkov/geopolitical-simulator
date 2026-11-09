@@ -672,6 +672,7 @@ fn validate_stock<Q: Copy>(
     s: &ReserveStock<Q>,
     units: impl Fn(Q) -> i64,
     need: i64,
+    daily_need: i64,
     rules: &ReserveDefinition,
     day: crate::CampaignDay,
     start: crate::CampaignDay,
@@ -712,11 +713,11 @@ fn validate_stock<Q: Copy>(
             .iter()
             .any(|v| !(0..=1_000_000_000).contains(v))
         || opening > need * i64::from(rules.capacity_days.units())
-        || used > opening.min(need)
-        || used != opening.min((need - (supply - used)).max(0))
+        || used > opening.min(daily_need)
+        || used != opening.min((daily_need - (supply - used)).max(0))
         || bought != purchased_today
         || bought + imports > need * i64::from(import_bps) / 10000
-        || (bought > 0 && supply < need)
+        || (bought > 0 && supply < daily_need)
         || loss != (opening - used + bought) * i64::from(loss_bps) / 10000
         || opening - used + bought - loss != stored
         || units(f.closing) != stored
@@ -859,6 +860,11 @@ impl World {
             &state.energy,
             Energy::units,
             need,
+            quotes
+                .energy
+                .last
+                .as_ref()
+                .map_or(need, |x| x.physical_need.units()),
             rules,
             self.day,
             content.start_day()?,
@@ -872,6 +878,11 @@ impl World {
             &state.food,
             Food::units,
             need,
+            quotes
+                .food
+                .last
+                .as_ref()
+                .map_or(need, |x| x.physical_need.units()),
             rules,
             self.day,
             content.start_day()?,
@@ -881,5 +892,55 @@ impl World {
             f.import_limit_bps.units(),
             bought(GoodKind::Food),
         )
+    }
+}
+
+#[cfg(test)]
+mod growing_demand_tests {
+    use super::*;
+    #[test]
+    fn actual_daily_need_drives_release_without_expanding_the_opening_import_quota() {
+        // Reproduced at day 280: population growth increases consumption to
+        // 1006 while the authored opening import limit remains 350 units.
+        let rules = Content::recommended_bundled().unwrap().reserves.unwrap();
+        let stock = ReserveStock {
+            stored: Food::new(398).unwrap(),
+            purchased: Food::new(1000).unwrap(),
+            released: Food::new(258).unwrap(),
+            lost: Food::new(344).unwrap(),
+            last: Some(ReserveFlow {
+                day: CampaignDay::new(280),
+                opening: Food::new(428).unwrap(),
+                purchased: Food::new(0).unwrap(),
+                released: Food::new(26).unwrap(),
+                loss: Food::new(4).unwrap(),
+                closing: Food::new(398).unwrap(),
+            }),
+        };
+        let check = |daily_need, imports| {
+            validate_stock(
+                &stock,
+                Food::units,
+                1000,
+                daily_need,
+                &rules,
+                CampaignDay::new(280),
+                CampaignDay::new(0),
+                100,
+                imports,
+                1006,
+                3500,
+                0,
+            )
+        };
+        check(1006, 350).unwrap();
+        assert!(
+            check(1000, 350).is_err(),
+            "Opening demand cannot certify today's release"
+        );
+        assert!(
+            check(1006, 351).is_err(),
+            "Growing demand grants no additional import quota"
+        );
     }
 }

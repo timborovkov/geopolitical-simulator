@@ -104,6 +104,9 @@ fn inner(ui: &mut egui::Ui, report: &ProductionReport) {
     ui.small("Authored infrastructure inputs; national civilian food and energy remain separate. Stocks below use each row's own model unit.");
     if let Some(industry) = &owned.industry {
         ui.strong("Public industry capacity");
+        if let Some(retirement) = &industry.retirement {
+            ui.label(&retirement.description);
+        }
         ui.label(format!(
             "Added equipment readiness next day {}% · upkeep next day {}m / next 365 days {}m",
             industry.maintenance_readiness,
@@ -564,54 +567,62 @@ mod industry_tests {
     #[test]
     fn industry_capacity_and_upkeep_are_read_only_and_hidden_from_foreign_inspection_at_two_scales()
     {
-        let content = Content::industry_bundled().unwrap();
-        let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
-        let before = sim_core::persistence::encode(&world, &content).unwrap();
-        for scale in [1., 1.4] {
-            let ctx = egui::Context::default();
-            ctx.set_zoom_factor(scale);
-            for (viewer, owned) in [
-                (Viewer::Government(world.player.clone()), true),
-                (Viewer::Observer, false),
-            ] {
-                let report = world
-                    .production_report(&content, viewer, &world.player)
-                    .unwrap()
-                    .unwrap();
-                let output = ctx.run(
-                    egui::RawInput {
-                        screen_rect: Some(egui::Rect::from_min_size(
-                            egui::Pos2::ZERO,
-                            egui::vec2(1440. / scale, 940. / scale),
-                        )),
-                        ..Default::default()
-                    },
-                    |ctx| {
-                        egui::CentralPanel::default().show(ctx, |ui| inner(ui, &report));
-                    },
-                );
-                let texts = output
-                    .shapes
-                    .iter()
-                    .filter_map(|s| match &s.shape {
-                        egui::Shape::Text(t) => Some(t.galley.text().to_owned()),
-                        _ => None,
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                assert_eq!(texts.contains("Public industry capacity"), owned);
-                assert_eq!(texts.contains("investment levels"), owned);
-                if owned {
-                    assert!(texts.contains("upkeep next day"));
-                    assert!(texts.contains("effective next day"));
-                } else {
-                    assert!(!texts.contains("nominal"));
-                    assert!(!texts.contains("upkeep"));
+        for content in [
+            Content::industry_bundled().unwrap(),
+            Content::industry_lifecycle_bundled().unwrap(),
+        ] {
+            let world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+            let before = sim_core::persistence::encode(&world, &content).unwrap();
+            for scale in [1., 1.4] {
+                let ctx = egui::Context::default();
+                ctx.set_zoom_factor(scale);
+                for (viewer, owned) in [
+                    (Viewer::Government(world.player.clone()), true),
+                    (Viewer::Observer, false),
+                ] {
+                    let report = world
+                        .production_report(&content, viewer, &world.player)
+                        .unwrap()
+                        .unwrap();
+                    let output = ctx.run(
+                        egui::RawInput {
+                            screen_rect: Some(egui::Rect::from_min_size(
+                                egui::Pos2::ZERO,
+                                egui::vec2(1440. / scale, 940. / scale),
+                            )),
+                            ..Default::default()
+                        },
+                        |ctx| {
+                            egui::CentralPanel::default().show(ctx, |ui| inner(ui, &report));
+                        },
+                    );
+                    let texts = output
+                        .shapes
+                        .iter()
+                        .filter_map(|s| match &s.shape {
+                            egui::Shape::Text(t) => Some(t.galley.text().to_owned()),
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    assert_eq!(texts.contains("Public industry capacity"), owned);
+                    assert_eq!(
+                        texts.contains("Opening equipment cannot be retired"),
+                        owned && content.rules == 33
+                    );
+                    assert_eq!(texts.contains("investment levels"), owned);
+                    if owned {
+                        assert!(texts.contains("upkeep next day"));
+                        assert!(texts.contains("effective next day"));
+                    } else {
+                        assert!(!texts.contains("nominal"));
+                        assert!(!texts.contains("upkeep"));
+                    }
+                    assert_eq!(
+                        sim_core::persistence::encode(&world, &content).unwrap(),
+                        before
+                    );
                 }
-                assert_eq!(
-                    sim_core::persistence::encode(&world, &content).unwrap(),
-                    before
-                );
             }
         }
     }
