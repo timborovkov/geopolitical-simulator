@@ -202,6 +202,7 @@ pub fn component_hashes(world: &World) -> Result<Vec<ReplayComponentHash>, Strin
                     "opening_food_capacity",
                     "markets",
                     "reserves",
+                    "industrial_trade",
                 ],
             ),
             (

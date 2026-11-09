@@ -142,6 +142,8 @@ pub struct Observation {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Country {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub industrial_trade: Option<crate::IndustrialTradeState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub industry: Option<crate::IndustryInvestmentState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub executive_identity: Option<ExecutiveIdentityState>,
@@ -233,6 +235,19 @@ impl Country {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
+    OrderIndustrialTrade {
+        good: GoodId,
+        direction: IndustrialTradeDirection,
+        quantity: ProductionQuantity,
+    },
+    /// Industrial contracts have a separate identity from civilian reserve orders.
+    /// ```compile_fail
+    /// use sim_core::{Action, ReserveOrderId};
+    /// let action = Action::CancelIndustrialTrade { request: ReserveOrderId(1) };
+    /// ```
+    CancelIndustrialTrade {
+        request: IndustrialTradeId,
+    },
     ProposeLaw {
         law: LawId,
     },
@@ -500,6 +515,10 @@ impl World {
                 (
                     d.id.clone(),
                     Country {
+                        industrial_trade: content
+                            .industrial_trade
+                            .as_ref()
+                            .map(|_| IndustrialTradeState::default()),
                         industry: content
                             .industry
                             .as_ref()
@@ -521,6 +540,7 @@ impl World {
                             .map(|days| (start_day).units() + days.units()))
                         .map(crate::CampaignDay::new),
                         budget: BudgetPeriod {
+                            industrial_exports: content.industrial_trade.as_ref().map(|_| Money(0)),
                             start_day,
                             end_day: crate::budget::next_fiscal_end(start_day),
                             opening_cash: accounts.treasury,
@@ -810,6 +830,7 @@ impl World {
         {
             return Err("Invalid world clock, player, roster or command sequence".into());
         }
+        self.validate_industrial_trade(content)?;
         self.validate_demographics(content)?;
         self.validate_industry(content)?;
         self.validate_production(content)?;
@@ -819,6 +840,22 @@ impl World {
             self.validate_governing_context(content, entry)?;
             let command = &entry.command;
             let valid_action = match &command.action {
+                Action::OrderIndustrialTrade { good, quantity, .. } => {
+                    content
+                        .industrial_trade
+                        .as_ref()
+                        .is_some_and(|d| d.goods.contains_key(good))
+                        && quantity.0 > 0
+                }
+                Action::CancelIndustrialTrade { request } => {
+                    content.industrial_trade.is_some()
+                        && request.0 > 0
+                        && request.0 < command.id.0
+                        && self.journal.get(request.0 as usize - 1).is_some_and(|e| {
+                            e.command.issuer == command.issuer
+                                && matches!(e.command.action, Action::OrderIndustrialTrade { .. })
+                        })
+                }
                 Action::ProposeLaw { law } => content
                     .legislation
                     .as_ref()
@@ -1242,6 +1279,12 @@ impl World {
                             .map_or(Money(0), LegislationState::reserved_cash)
                             .0,
                     )
+                    + i128::from(
+                        c.industrial_trade
+                            .as_ref()
+                            .map_or(Money(0), IndustrialTradeState::reserved_cash)
+                            .0,
+                    )
                     != i128::from(c.committed_cash.0)
                 || c.budget.start_day < start_day
                 || c.budget.start_day > self.day
@@ -1254,6 +1297,7 @@ impl World {
                         .map(|_| c.budget.start_day != start_day)
                 || (content.rules >= 17) != c.budget.forecast.interest_accrual.is_some()
                 || (content.rules >= 32) != c.budget.forecast.industry_upkeep.is_some()
+                || (content.rules >= 34) != c.budget.industrial_exports.is_some()
                 || !c.budget.valid_ranges()
                 || c.budget.expected_cash() != c.accounts.treasury.0
                 || c.budget_reviews.iter().any(|r| {
@@ -1265,6 +1309,7 @@ impl World {
                                 .map(|_| r.period.start_day != start_day)
                         || (content.rules >= 17) != r.period.forecast.interest_accrual.is_some()
                         || (content.rules >= 32) != r.period.forecast.industry_upkeep.is_some()
+                        || (content.rules >= 34) != r.period.industrial_exports.is_some()
                         || !r.period.valid_ranges()
                         || r.period.expected_cash() != r.closing_cash.0
                 })

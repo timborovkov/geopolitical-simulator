@@ -54,6 +54,9 @@ impl BudgetForecast {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BudgetPeriod {
+    /// Realized auxiliary-stock sale receipts; separate from recurring tax revenue.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub industrial_exports: Option<Money>,
     pub start_day: crate::CampaignDay,
     pub end_day: crate::CampaignDay,
     pub opening_cash: Money,
@@ -82,10 +85,16 @@ impl BudgetPeriod {
             ]
             .iter()
             .all(|v| (0..=1_000_000_000_000).contains(v))
+            && self
+                .industrial_exports
+                .is_none_or(|m| (0..=1_000_000_000_000).contains(&m.0))
             && self.forecast.valid()
     }
     pub fn expected_cash(&self) -> i64 {
-        self.opening_cash.0 + self.revenue.0 + self.borrowing.0
+        self.opening_cash.0
+            + self.revenue.0
+            + self.borrowing.0
+            + self.industrial_exports.unwrap_or(Money(0)).0
             - self.payments.0
             - self.capital.0
             - self.principal_repaid.0
@@ -368,6 +377,7 @@ impl World {
             c.arrears.0
         );
         c.budget = BudgetPeriod {
+            industrial_exports: content.industrial_trade.as_ref().map(|_| Money(0)),
             start_day: self.day,
             end_day: next_fiscal_end(self.day),
             opening_cash: c.accounts.treasury,

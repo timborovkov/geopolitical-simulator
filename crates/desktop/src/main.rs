@@ -20,6 +20,7 @@ mod governing_institutions;
 mod help;
 mod hydrology;
 mod income_taxes;
+mod industrial_trade;
 mod inspector;
 mod legislation;
 mod map;
@@ -1512,6 +1513,7 @@ impl GameApp {
             return;
         };
         let c = &w.countries[&self.selected];
+        let industrial_trade_action = industrial_trade::show(ui, &self.content, w, &self.selected);
         production::show(ui, &self.content, w, &self.selected);
         self.cashflows.show(ui, &self.content, w, &self.selected);
         markets::show(ui, &self.content, w, &self.selected);
@@ -1627,6 +1629,9 @@ impl GameApp {
             plan.expected_cash(),
             c.accounts.treasury.0
         ));
+        if let Some(exports) = plan.industrial_exports {
+            ui.label(format!("Industrial asset sale receipts: {}m, separate from tax revenue and forecast income.",exports.0));
+        }
         let latest = c.forecast_for_content(&d, &self.content);
         let rate = latest.interest_accrual.as_ref().map_or_else(
             || format!("{}m/day", latest.daily_interest.0),
@@ -1642,6 +1647,12 @@ impl GameApp {
         ui.small("Forecast differences reflect supply shocks, rounded tax collection, policy changes and cash-constrained private income. Arrears and capital payments are shown separately.");
         egui::CollapsingHeader::new("Closed fiscal periods").show(ui, |ui| {
             for review in c.budget_reviews.iter().rev() {
+                if let Some(exports) = review.period.industrial_exports {
+                    ui.label(format!(
+                        "Industrial asset sale receipts {}m (separate from taxes)",
+                        exports.0
+                    ));
+                }
                 ui.label(format!(
                     "{}: revenue {}m, payments {}m, capital {}m, closing cash {}m, arrears {}m",
                     date(review.period.end_day),
@@ -1695,6 +1706,9 @@ impl GameApp {
                     e.reason
                 ));
             }
+        }
+        if let Some(action) = industrial_trade_action {
+            self.issue(action);
         }
         if let Some(action) = finance_action {
             self.issue(action);

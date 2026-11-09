@@ -269,10 +269,14 @@ impl World {
             definition.service_good.clone(),
             ProductionQuantity(service_delivered + maintenance_delivered),
         );
-        let (inventory, physical) =
-            state
-                .inventory
-                .apply_day(&framework, &opening.storage, &request)?;
+        if content.industrial_trade.is_some() {
+            let trade = self.settle_industrial_trade(content, id, &plan, &request.final_use)?;
+            request.imports = trade.imports;
+            request.exports = trade.exports;
+        }
+        let (inventory, physical) = self.production.as_ref().expect("production").countries[id]
+            .inventory
+            .apply_day(&framework, &opening.storage, &request)?;
         let service_percent = fraction(service_delivered, service_required);
         let maintenance_percent = fraction(maintenance_delivered, maintenance_required);
         let state = self
@@ -541,8 +545,8 @@ impl World {
                     0
                 };
                 if flow.closing.0.checked_sub(used) != Some(stock.quantity.0)
-                    || stock.totals.imported.0 != 0
-                    || stock.totals.exported.0 != 0
+                    || content.industrial_trade.is_none()
+                        && (stock.totals.imported.0 != 0 || stock.totals.exported.0 != 0)
                     || good != &definition.assembly_good
                         && good != &definition.service_good
                         && stock.totals.final_use.0 != 0
@@ -558,10 +562,10 @@ impl World {
                             flow.closing_loss_carry
                         }
                     || flow.after_production != last.physical.production.goods[good].closing
-                    || flow.imports.0 != 0
-                    || flow.exports.0 != 0
-                    || last.request.imports.get(good) != Some(&ProductionQuantity(0))
-                    || last.request.exports.get(good) != Some(&ProductionQuantity(0))
+                    || content.industrial_trade.is_none()
+                        && (flow.imports.0 != 0 || flow.exports.0 != 0)
+                    || last.request.imports.get(good) != Some(&flow.imports)
+                    || last.request.exports.get(good) != Some(&flow.exports)
                     || last.request.final_use.get(good) != Some(&flow.final_use)
                     || flow.final_use.0
                         != if good == &definition.service_good {
@@ -572,8 +576,9 @@ impl World {
                         } else {
                             0
                         }
-                    || u128::from(flow.after_production.0)
-                        != u128::from(flow.final_use.0)
+                    || u128::from(flow.after_production.0) + u128::from(flow.imports.0)
+                        != u128::from(flow.exports.0)
+                            + u128::from(flow.final_use.0)
                             + u128::from(flow.discarded.0)
                             + u128::from(flow.spoiled.0)
                             + u128::from(flow.closing.0)
@@ -584,7 +589,9 @@ impl World {
                 let remaining = flow
                     .after_production
                     .0
-                    .checked_sub(flow.final_use.0)
+                    .checked_add(flow.imports.0)
+                    .and_then(|n| n.checked_sub(flow.exports.0))
+                    .and_then(|n| n.checked_sub(flow.final_use.0))
                     .ok_or("Excess production final use")?;
                 let stored = remaining.min(rule.capacity.0);
                 let numerator = u128::from(stored) * u128::from(rule.loss_bps.units())

@@ -69,8 +69,8 @@ impl IndustryInvestmentDefinition {
                 );
             }
         }
-        if self.retirement.is_some() != (content.rules == 33) {
-            return Err("Public retirement requires rules/content 33".into());
+        if self.retirement.is_some() != (content.rules >= 33) {
+            return Err("Public retirement requires rules/content 33 or later".into());
         }
         if let Some(retirement) = &self.retirement {
             if retirement.description.trim().is_empty()

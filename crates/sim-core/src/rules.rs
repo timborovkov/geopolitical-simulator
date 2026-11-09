@@ -244,6 +244,21 @@ impl World {
             .and_then(|sequences| sequences.get(&outcome_country))
             .copied();
         match &command.action {
+            Action::OrderIndustrialTrade {
+                good,
+                direction,
+                quantity,
+            } => self.order_industrial_trade(
+                content,
+                &id,
+                IndustrialTradeId(command.id.0),
+                good,
+                *direction,
+                *quantity,
+            )?,
+            Action::CancelIndustrialTrade { request } => {
+                self.cancel_industrial_trade(&id, *request)?
+            }
             Action::ProposeLaw { law } => {
                 self.propose_law(content, &id, LawBillId(command.id.0), law)?
             }
@@ -478,6 +493,7 @@ impl World {
             return Err("Advance 0..3660 days within the 100-year campaign limit".into());
         }
         self.validate_event_references_for_content(content, content_hash)?;
+        self.validate_industrial_trade(content)?;
         if content.rules >= 33 {
             self.validate_industry(content)?;
         }
@@ -543,6 +559,7 @@ impl World {
                 self.resolve_borrowing(content, id);
                 self.complete_projects(content, id, false)?;
                 self.review_reserves(content, id);
+                self.review_industrial_trade(content, id)?;
                 self.settle(content, id)?;
                 if content.production.is_some() {
                     self.complete_projects(content, id, true)?;
@@ -1215,7 +1232,14 @@ impl World {
         c.report = DailyReport {
             revenue: Money(revenue),
             spending: Money(
-                service_pay + welfare_pay + maintenance + arrears_paid + regional_payments,
+                service_pay
+                    + welfare_pay
+                    + maintenance
+                    + arrears_paid
+                    + regional_payments
+                    + c.industrial_trade.as_ref().map_or(0, |s| {
+                        s.daily_cash(self.day, IndustrialTradeDirection::Import).0
+                    }),
             ),
             interest: Money(interest),
             unpaid: Money(unpaid),
@@ -1509,6 +1533,7 @@ impl World {
     }
     fn ai_turn(&mut self, content: &Content, id: &CountryId) {
         self.ai_reserves(content, id);
+        self.ai_industrial_trade(content, id);
         if self.ai_cash_management(content, id) {
             return;
         }
