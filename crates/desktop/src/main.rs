@@ -2,6 +2,7 @@ mod administrative;
 mod advance;
 mod analysis;
 mod briefing;
+mod business_statement;
 mod cabinet;
 mod cash_management;
 mod cashflows;
@@ -1513,6 +1514,7 @@ impl GameApp {
             return;
         };
         let c = &w.countries[&self.selected];
+        business_statement::show(ui, &self.content, w, &self.selected);
         let industrial_trade_action = industrial_trade::show(ui, &self.content, w, &self.selected);
         production::show(ui, &self.content, w, &self.selected);
         self.cashflows.show(ui, &self.content, w, &self.selected);

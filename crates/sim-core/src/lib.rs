@@ -2,6 +2,7 @@
 mod ai_inspection;
 mod annual_gdp;
 mod budget;
+mod business_statement;
 mod cabinet;
 mod calendar;
 mod campaign_clock;
@@ -64,6 +65,7 @@ mod units;
 pub use ai_inspection::*;
 pub use annual_gdp::*;
 pub use budget::*;
+pub use business_statement::*;
 pub use cabinet::*;
 pub use calendar::*;
 pub use campaign_clock::*;
