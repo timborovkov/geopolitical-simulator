@@ -196,6 +196,7 @@ impl World {
         if self.content_hash != content.hash() {
             return Err("Command content pack differs from campaign".into());
         }
+        self.validate_business_cash_accounts(content)?;
         if command.id != self.next_command || command.day != self.day {
             return Err("Stale or duplicate command: refresh the current state".into());
         }
@@ -467,6 +468,7 @@ impl World {
             budget_bill,
         });
         self.next_command = next_command;
+        self.validate_business_cash_accounts(content)?;
         Ok(())
     }
     /// Advance complete daily ticks in stable country-ID order.
@@ -494,6 +496,7 @@ impl World {
         }
         self.validate_event_references_for_content(content, content_hash)?;
         self.validate_industrial_trade(content)?;
+        self.validate_business_accounts(content)?;
         if content.rules >= 33 {
             self.validate_industry(content)?;
         }
@@ -597,6 +600,7 @@ impl World {
                     }
                 }
             }
+            self.validate_business_accounts(content)?;
             self.ledger
                 .retain(|e| e.day.units() + 30 >= self.day.units());
             if self.day.units() >= (review_day).units() && !self.milestone_reported {
@@ -950,6 +954,7 @@ impl World {
             &income_weights,
             "Private household income",
         );
+        self.distribute_business_cash(content, id)?;
         let c = &self.countries[id];
         let standard_rate = c.tax;
         let administration = c.administration;

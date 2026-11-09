@@ -325,7 +325,15 @@ impl World {
             gross += i128::from(line.assessment.gross.0);
             paid += i128::from(line.paid.0);
         }
-        if gross != i128::from(c.report.wages.0) || paid != i128::from(c.report.revenue.0) {
+        let owner_distributions = c
+            .business
+            .as_ref()
+            .and_then(|b| b.last_decision.as_ref())
+            .filter(|decision| decision.day == self.day)
+            .map_or(0, |decision| decision.paid.0);
+        if gross != i128::from(c.report.wages.0) + i128::from(owner_distributions)
+            || paid != i128::from(c.report.revenue.0)
+        {
             return Err(
                 "Private income and collected revenue do not reconcile to tax reporting".into(),
             );

@@ -146,14 +146,14 @@ P18-05,18,"Trade, investment and commercial policy","Sanctions by finance, trade
 P18-06,18,"Trade, investment and commercial policy","Supply-chain dependencies, commodity shocks, strategic stockpiles and substitution.",proposed
 P18-07,18,"Trade, investment and commercial policy","Negotiated contracts with quantity, quality, price rule, delivery, term, penalties and force-majeure conditions.",proposed
 P18-08,18,"Trade, investment and commercial policy",Aid shipments and military supply use the same delivery constraints where appropriate.,proposed
-P19-01,19,"Firms, ownership and industrial policy","Aggregate ordinary enterprises; explicit strategic firms where ownership, procurement or market power matters.",proposed
-P19-02,19,"Firms, ownership and industrial policy","Public/private/mixed/cooperative and worker-owned enterprises, ownership conversion, nationalization, privatization, shares, dividends and liabilities.",proposed
+P19-01,19,"Firms, ownership and industrial policy","Aggregate ordinary enterprises; explicit strategic firms where ownership, procurement or market power matters.",partial
+P19-02,19,"Firms, ownership and industrial policy","Public/private/mixed/cooperative and worker-owned enterprises, ownership conversion, nationalization, privatization, shares, dividends and liabilities.",partial
 P19-03,19,"Firms, ownership and industrial policy","Market share, competition, anti-trust, subsidies, procurement, industrial strategy and research support.",proposed
 P19-04,19,"Firms, ownership and industrial policy","Firm investment, employment, wages, pricing, insolvency, mergers, acquisitions and foreign subsidiaries.",proposed
 P19-05,19,"Firms, ownership and industrial policy","Banking exposure, stock-market valuations and government financial interests.",proposed
 P19-06,19,"Firms, ownership and industrial policy","Corruption, lobbying, procurement fraud and regulatory capture tied to institutions and investigations.",proposed
 P19-07,19,"Firms, ownership and industrial policy",Tourism and cultural-sector firms reuse the same business rules.,proposed
-P19-08,19,"Firms, ownership and industrial policy","Corporate AI has solvency, profitability, investment and compliance constraints; it does not exist purely to satisfy government orders.",proposed
+P19-08,19,"Firms, ownership and industrial policy","Corporate AI has solvency, profitability, investment and compliance constraints; it does not exist purely to satisfy government orders.",partial
 P20-01,20,"Unions, civil society, media and domestic power","Labor unions, employer associations, farmers, landowners, religious organizations, NGOs and professional groups.",proposed
 P20-02,20,"Unions, civil society, media and domestic power","Military, security services, business elites and regional power centers with distinct resources and institutional access.",proposed
 P20-03,20,"Unions, civil society, media and domestic power","Membership, organization strength, funding, public trust, demands and issue priorities.",proposed

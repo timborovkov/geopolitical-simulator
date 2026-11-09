@@ -142,6 +142,8 @@ pub struct Observation {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Country {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub business: Option<crate::BusinessSector>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub industrial_trade: Option<crate::IndustrialTradeState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub industry: Option<crate::IndustryInvestmentState>,
@@ -515,6 +517,10 @@ impl World {
                 (
                     d.id.clone(),
                     Country {
+                        business: content
+                            .businesses
+                            .as_ref()
+                            .map(|_| BusinessSector::opening(&d.id, accounts.firms)),
                         industrial_trade: content
                             .industrial_trade
                             .as_ref()
@@ -777,6 +783,7 @@ impl World {
             amount
         };
         let paid = c.accounts.transfer(from, to, requested);
+        c.record_business_transfer(from, to, paid);
         if from == Account::Households && paid > 0 {
             let split = apportion(
                 paid,
@@ -1211,6 +1218,7 @@ impl World {
             {
                 return Err("Household creditor claims do not reconcile".into());
             }
+            c.validate_business(self, content)?;
             if c.households.len() != d.households.len()
                 || c.households
                     .iter()

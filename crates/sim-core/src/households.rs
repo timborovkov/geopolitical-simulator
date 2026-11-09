@@ -103,6 +103,7 @@ impl World {
             to,
             amount.max(0).min(c.households[index].cash.0),
         );
+        c.record_business_transfer(Account::Households, to, paid);
         c.households[index].cash.0 -= paid;
         if paid > 0 {
             self.ledger.push(LedgerEntry {

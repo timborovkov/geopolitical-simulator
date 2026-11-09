@@ -55,6 +55,7 @@ fn body(ui: &mut egui::Ui, content: &Content, world: &World, country: &CountryId
         ui.label("Business accounts are not published for this government.");
         return;
     };
+    show_ownership(ui, content, world, country);
     let previous = inspection.days;
     ui.horizontal_wrapped(|ui| {
         for (days, label) in [(1, "Current day"), (7, "Last 7 days"), (30, "Last 30 days")] {
@@ -266,6 +267,43 @@ fn chart(ui: &mut egui::Ui, days: &[BusinessCashDay], inspection: &mut Inspectio
     ui.label("Receipts (circles) · Payments (squares) · daily settled flows. Point at a day, or click and use Left/Right.");
 }
 
+fn show_ownership(ui: &mut egui::Ui, content: &Content, world: &World, country: &CountryId) {
+    let Some(definition) = &content.businesses else {
+        return;
+    };
+    let Ok(report) =
+        world.business_ownership_report(content, Viewer::Government(world.player.clone()), country)
+    else {
+        return;
+    };
+    let Some(business) = report.owned else {
+        return;
+    };
+    egui::Frame::group(ui.style()).show(ui, |ui| {
+        ui.strong("Household-owned civilian businesses");
+        ui.label(format!("{} · operating receipts {}m · business payments {}m · excluded government receipts {}m", business.id.0, business.operating_receipts.0, business.payments.0, business.public_receipts.0));
+        ui.label(format!("Undistributed operating cash {:+}m · owner distributions to date {}m",business.undistributed_cash().0,business.distributions.0));
+        ui.small("Operating cash is household/external receipts less all payments, including distributions. Opening cash and every government receipt are excluded. This is not accrual profit. Public industrial assets remain public.");
+        let elapsed = world.day.units()-content.start_day().expect("bookmark").units();
+        ui.label(format!("Autonomous review every 30 elapsed days · next {} · share at most {:.0}% of positive earned cash, while retaining trailing 30-day payments",date(CampaignDay::new(world.day.units()+30-elapsed%30)), f64::from(definition.distribution_bps.units())/100.));
+        if let Some(decision) = &business.last_decision {
+            ui.label(format!("Last decision {}: cash {}m · protected payment buffer {}m · earned cash {:+}m · paid {}m",date(decision.day),decision.opening_cash.0,decision.protected_cash.0,decision.undistributed_cash.0,decision.paid.0));
+            ui.label(decision.reason.explanation());
+        } else {ui.label("Awaiting the first autonomous business review.");}
+        egui::ScrollArea::horizontal().id_salt("business_owners").show(ui, |ui| {
+            egui::Grid::new("business_owners_table").striped(true).show(ui, |ui| {
+                for label in ["Owning household group", "Ownership weight", "Last payment m"] {ui.strong(label);} ui.end_row();
+                for (index,h) in content.country(country).expect("country").households.iter().enumerate() {
+                    ui.label(&h.name); ui.label(h.savings_share.to_string());
+                    ui.label(business.last_decision.as_ref().map_or_else(|| "Awaiting review".into(),|d|d.owners[index].amount.0.to_string())); ui.end_row();
+                }
+            });
+        });
+        ui.small("Fixed ownership uses the authored opening savings weights. Distributions stop if an owning cohort has no residents; ownership is not reassigned. Owner payments enter ordinary household income withholding. Government has no payout command.");
+        ui.collapsing("Business ownership assumptions", |ui|{ui.label(format!("{} · {}",definition.source,definition.source_version));ui.label(&definition.description);});
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -299,6 +337,29 @@ mod tests {
             }
         }
         (text, button)
+    }
+    #[test]
+    fn ownership_and_autonomous_decision_are_private_and_read_only_at_both_scales() {
+        let content = Content::businesses_bundled().unwrap();
+        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        world.advance(&content, DaySpan::new(30)).unwrap();
+        let before = persistence::encode(&world, &content).unwrap();
+        for scale in [1.0, 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let mut text = String::new();
+            for _ in 0..3 {
+                text = render(&ctx, &content, &world, &world.player, vec![]).0;
+            }
+            assert!(text.contains("Household-owned civilian businesses"));
+            assert!(text.contains("Last decision 2000-01-31"));
+            assert!(text.contains("Undistributed operating cash"));
+            assert!(text.contains("This is not accrual profit"));
+            let (foreign, _) = render(&ctx, &content, &world, &CountryId("USA".into()), vec![]);
+            assert!(!foreign.contains("Undistributed operating cash"));
+            assert!(!foreign.contains("Ownership weight"));
+        }
+        assert_eq!(persistence::encode(&world, &content).unwrap(), before);
     }
     #[test]
     fn actual_period_controls_and_foreign_inspection_preserve_campaign_bytes_at_both_scales() {
