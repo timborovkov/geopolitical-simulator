@@ -218,7 +218,7 @@ mod tests {
             .unwrap()
             .id
             .clone();
-        let old = Content::recommended_bundled().unwrap();
+        let old = Content::production_bundled().unwrap();
         let old_world = World::new(&old, world.player.clone(), 17).unwrap();
         for scale in [1., 1.4] {
             let ctx = egui::Context::default();

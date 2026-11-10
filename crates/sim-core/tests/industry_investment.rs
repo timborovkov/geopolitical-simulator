@@ -97,7 +97,7 @@ fn investment_definitions_and_installed_history_refuse_invention_and_legacy_inje
         .levels
         .insert(SectorId("construction".into()), 1);
     assert!(world.validate(&content).is_err());
-    let mut raw = serde_json::to_value(Content::recommended_bundled().unwrap()).unwrap();
+    let mut raw = serde_json::to_value(Content::production_bundled().unwrap()).unwrap();
     raw["industry"] = serde_json::to_value(content.industry.as_ref().unwrap()).unwrap();
     assert!(Content::from_json(&raw.to_string()).is_err());
     let mut raw = serde_json::to_value(&content).unwrap();
@@ -532,7 +532,7 @@ fn huge_nominal_capacity_does_not_overflow_when_actual_output_is_limited_by_one_
 #[test]
 fn optional_industry_preserves_the_entire_opening_world_after_removing_only_new_asset_and_forecast_fields()
  {
-    let old_content = Content::recommended_bundled().unwrap();
+    let old_content = Content::production_bundled().unwrap();
     let new_content = Content::industry_bundled().unwrap();
     assert_eq!(old_content.countries, new_content.countries);
     assert_eq!(old_content.facts, new_content.facts);

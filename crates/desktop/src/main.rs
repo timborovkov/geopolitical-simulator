@@ -779,23 +779,31 @@ impl GameApp {
             {
                 ui.label("The five-year review also requires no overdue loan principal. Check debt dates before committing cash.");
             }
-            ui.horizontal_wrapped(|ui| {
-                metric(
-                    ui,
-                    "Population",
-                    format!("{:.1} million", d.population.0 as f64 / 1_000_000.0),
-                );
-                metric(
-                    ui,
-                    "Opening GDP",
-                    format!("{}m credits/year", d.gdp.units()),
-                );
-                metric(
-                    ui,
-                    "Energy / food",
-                    format!("{}% / {}% domestic", d.energy, d.food),
-                );
-                metric(ui, "Collection capacity", format!("{}%", d.capacity));
+            let columns = if ui.available_width() >= 900.0 {
+                4
+            } else if ui.available_width() >= 400.0 {
+                2
+            } else {
+                1
+            };
+            ui.columns(columns, |cells| {
+                for (index, (label, value)) in [
+                    (
+                        "Population",
+                        format!("{:.1} million", d.population.0 as f64 / 1_000_000.0),
+                    ),
+                    ("Opening GDP", format!("{}m credits/year", d.gdp.units())),
+                    (
+                        "Energy / food",
+                        format!("{}% / {}% domestic", d.energy, d.food),
+                    ),
+                    ("Collection capacity", format!("{}%", d.capacity)),
+                ]
+                .into_iter()
+                .enumerate()
+                {
+                    metric(&mut cells[index % columns], label, value);
+                }
             });
             ui.label(format!("Governing route: {}. Policy construction and fiscal constraints apply in every regime.",d.government.label()));
             egui::ComboBox::from_label("Scenario")
@@ -2265,6 +2273,22 @@ mod interface_tests {
             frame(vec![]);
             frame(vec![]);
             let output = frame(vec![]);
+            for label in [
+                "Population",
+                "Opening GDP",
+                "Energy / food",
+                "Collection capacity",
+            ] {
+                assert!(
+                    output.shapes.iter().any(|shape| match &shape.shape {
+                        egui::Shape::Text(text) if text.galley.text() == label => shape
+                            .clip_rect
+                            .contains_rect(egui::Rect::from_min_size(text.pos, text.galley.size())),
+                        _ => false,
+                    }),
+                    "Opening statistic must be visible at scale {scale}: {label}"
+                );
+            }
             let point = output
                 .shapes
                 .iter()
@@ -2307,11 +2331,11 @@ mod interface_tests {
                     .is_empty()
             );
             assert!(!content.bookmark_offices(&world.player).is_empty());
-            assert_eq!(persistence::snapshot_schema(world), 32);
-            assert_eq!(world.hash(), 0x822a85d22e7745ed);
+            assert_eq!(persistence::snapshot_schema(world), 39);
+            assert_eq!(world.hash(), 0xb1a34e0e7596b9a9);
             assert!(world.demographics.is_some());
             assert!(world.production.is_some());
-            assert_eq!(app.save_path, "saves/campaign-v32.json");
+            assert_eq!(app.save_path, "saves/campaign-v39.json");
             assert_eq!(app.speed, 0);
             assert!(app.pending.is_none());
         }
@@ -4739,7 +4763,7 @@ mod industry_loading_tests {
         let industry = Content::industry_bundled().unwrap();
         for scale in [1., 1.4] {
             for older in [
-                Content::recommended_bundled().unwrap(),
+                Content::production_bundled().unwrap(),
                 Content::classic_bundled().unwrap(),
             ] {
                 for (selection, value, expected) in [
@@ -4787,7 +4811,7 @@ mod industry_loading_tests {
     #[test]
     fn earlier_backup_restore_replaces_industry_selection_before_render_and_preserves_originals() {
         let industry = Content::industry_bundled().unwrap();
-        let older = Content::recommended_bundled().unwrap();
+        let older = Content::production_bundled().unwrap();
         for scale in [1., 1.4] {
             let dir = std::env::temp_dir().join(format!(
                 "geosim-ui-industry-recovery-{}-{}",

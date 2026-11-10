@@ -23,9 +23,9 @@ mod tests {
     fn default_setup_preserves_governing_and_history_starters_with_separate_files_at_two_scales() {
         let choices = [
             (
-                "Optional · business finance",
-                Content::business_finance_bundled as fn() -> Result<Content, String>,
-                39,
+                "Earlier · population & production",
+                Content::production_bundled as fn() -> Result<Content, String>,
+                32,
                 true,
             ),
             (
@@ -77,8 +77,11 @@ mod tests {
                 let ctx = egui::Context::default();
                 ctx.set_zoom_factor(scale);
                 let mut setup = Setup::new(&content, &CountryId("GBR".into()), 17, true).unwrap();
-                assert_eq!(setup.content.rules, 31);
-                assert_eq!(setup.save_path, "saves/campaign-v32.json");
+                assert_eq!(setup.content.rules, 38);
+                assert_eq!(setup.save_path, "saves/campaign-v39.json");
+                if scale == 1.4 {
+                    setup.save_path = "saves/my-government.json".into();
+                }
                 let mut frame = |events| {
                     ctx.run(
                         egui::RawInput {
@@ -113,7 +116,7 @@ mod tests {
                 };
                 frame(vec![]);
                 frame(vec![]);
-                let point = locate(&frame(vec![]), "Default · population & production");
+                let point = locate(&frame(vec![]), "Earlier campaign systems");
                 for pressed in [true, false] {
                     frame(vec![
                         egui::Event::PointerMoved(point),
@@ -125,7 +128,45 @@ mod tests {
                         },
                     ]);
                 }
-                let point = locate(&frame(vec![]), label);
+                for _ in 0..20 {
+                    frame(vec![]);
+                }
+                let point = locate(&frame(vec![]), "Recommended · integrated campaign");
+                for pressed in [true, false] {
+                    frame(vec![
+                        egui::Event::PointerMoved(point),
+                        egui::Event::PointerButton {
+                            pos: point,
+                            button: egui::PointerButton::Primary,
+                            pressed,
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ]);
+                }
+                let mut output = frame(vec![]);
+                let mut found = None;
+                for _ in 0..15 {
+                    found = output.shapes.iter().find_map(|shape| match &shape.shape {
+                        egui::Shape::Text(text) if text.galley.text() == label => {
+                            let rect = egui::Rect::from_min_size(text.pos, text.galley.size());
+                            shape.clip_rect.contains_rect(rect).then_some(rect.center())
+                        }
+                        _ => None,
+                    });
+                    if found.is_some() {
+                        break;
+                    }
+                    output = frame(vec![
+                        egui::Event::PointerMoved(point + egui::vec2(50., 65.)),
+                        egui::Event::MouseWheel {
+                            unit: egui::MouseWheelUnit::Point,
+                            delta: egui::vec2(0., -70.),
+                            modifiers: egui::Modifiers::NONE,
+                        },
+                    ]);
+                }
+                let point =
+                    found.unwrap_or_else(|| panic!("Visible archived choice missing: {label}"));
                 for pressed in [true, false] {
                     frame(vec![
                         egui::Event::PointerMoved(point),
@@ -139,7 +180,14 @@ mod tests {
                 }
                 frame(vec![]);
                 assert_eq!(setup.content.hash(), factory().unwrap().hash());
-                assert_eq!(setup.save_path, format!("saves/campaign-v{schema}.json"));
+                assert_eq!(
+                    setup.save_path,
+                    if scale == 1.4 {
+                        "saves/my-government.json".into()
+                    } else {
+                        format!("saves/campaign-v{schema}.json")
+                    }
+                );
                 let world = setup.prepare().unwrap();
                 world.validate(&setup.content).unwrap();
                 assert_eq!(persistence::snapshot_schema(&world), schema);
@@ -188,7 +236,7 @@ enum Pack {
     IndustrialTrade,
     Businesses,
     Consumption,
-    BusinessFinance,
+    Production,
     BusinessCosts,
     StatisticalHistory,
     ExecutiveIdentities,
@@ -298,17 +346,18 @@ impl Setup {
                 if active { ui.label("Starting replaces the active campaign. Save and start keeps a permanent archive of its current state. Starting without saving discards unsaved progress."); }
                 if active { ui.label(format!("Save active campaign to: {current_save_path}. A separate archived snapshot will also be retained.")); }
                 if self.bundled_catalog {
+                    ui.collapsing("Earlier campaign systems", |ui| {
                     let previous = self.pack;
-                    let pack_label = match self.pack { Pack::BusinessFinance => "Optional · business finance", Pack::BusinessCosts => "Optional · business production costs", Pack::Consumption => "Optional · delivered household consumption", Pack::Businesses => "Optional · household-owned businesses", Pack::IndustrialTrade => "Optional · industrial imports & exports", Pack::IndustryLifecycle => "Optional · public industry lifecycle", Pack::IndustryInvestment => "Optional · public industry investment", Pack::GoverningInstitutions => "Earlier · integrated government", Pack::SocialMemberships => "Earlier · overlapping social groups", Pack::Demographics => "Earlier · authored population change", Pack::StatisticalHistory => "Earlier · history and opening references", Pack::ExecutiveIdentities => "Live executive identities", Pack::Current => "Default · population & production", Pack::Legislation => "Authored statutory authority", Pack::BookmarkIdentities => "Optional · dated opening references", Pack::StableElections => "Earlier · stable political selection", Pack::ProgrammeEvents => "Earlier · linked programme outcomes", Pack::EventReferences => "Earlier · stable chronicle references", Pack::Reserve => "Earlier · national commodity reserves", Pack::Party => "Earlier · party policy preferences", Pack::Technology => "Earlier · technology prerequisites", Pack::Interest => "Earlier · carried debt interest", Pack::Cash => "Earlier · temporary cash retention", Pack::DatedDebt => "Earlier · dated loan principal", Pack::NationalFiscal => "Earlier · national fiscal reviews", Pack::Income => "Earlier · progressive private-income bands", Pack::Fiscal => "Earlier · annual and supplementary budgets", Pack::Undertaking => "Earlier · delivery undertakings", Pack::Territorial => "Earlier · territorial government", Pack::Observed => "Earlier · expanded observations", Pack::Electoral => "Earlier · electoral mandates", Pack::Cabinet => "Earlier · ministries and policies", Pack::Commitment => "Earlier · policy commitments", Pack::Constitution => "Earlier · political transitions", Pack::Finance => "Earlier · borrowing and prices", Pack::Market => "Earlier · prices only", _ => "Classic · fixed prices" };
+                    let pack_label = match self.pack { Pack::Production => "Earlier · population & production", Pack::BusinessCosts => "Optional · business production costs", Pack::Consumption => "Optional · delivered household consumption", Pack::Businesses => "Optional · household-owned businesses", Pack::IndustrialTrade => "Optional · industrial imports & exports", Pack::IndustryLifecycle => "Optional · public industry lifecycle", Pack::IndustryInvestment => "Optional · public industry investment", Pack::GoverningInstitutions => "Earlier · integrated government", Pack::SocialMemberships => "Earlier · overlapping social groups", Pack::Demographics => "Earlier · authored population change", Pack::StatisticalHistory => "Earlier · history and opening references", Pack::ExecutiveIdentities => "Live executive identities", Pack::Current => "Recommended · integrated campaign", Pack::Legislation => "Authored statutory authority", Pack::BookmarkIdentities => "Optional · dated opening references", Pack::StableElections => "Earlier · stable political selection", Pack::ProgrammeEvents => "Earlier · linked programme outcomes", Pack::EventReferences => "Earlier · stable chronicle references", Pack::Reserve => "Earlier · national commodity reserves", Pack::Party => "Earlier · party policy preferences", Pack::Technology => "Earlier · technology prerequisites", Pack::Interest => "Earlier · carried debt interest", Pack::Cash => "Earlier · temporary cash retention", Pack::DatedDebt => "Earlier · dated loan principal", Pack::NationalFiscal => "Earlier · national fiscal reviews", Pack::Income => "Earlier · progressive private-income bands", Pack::Fiscal => "Earlier · annual and supplementary budgets", Pack::Undertaking => "Earlier · delivery undertakings", Pack::Territorial => "Earlier · territorial government", Pack::Observed => "Earlier · expanded observations", Pack::Electoral => "Earlier · electoral mandates", Pack::Cabinet => "Earlier · ministries and policies", Pack::Commitment => "Earlier · policy commitments", Pack::Constitution => "Earlier · political transitions", Pack::Finance => "Earlier · borrowing and prices", Pack::Market => "Earlier · prices only", _ => "Classic · fixed prices" };
                     egui::ComboBox::from_label("World pack").height(320.0).selected_text(pack_label).show_ui(ui, |ui| {
-                        ui.selectable_value(&mut self.pack, Pack::Current, "Default · population & production");
-                        ui.selectable_value(&mut self.pack, Pack::BusinessFinance, "Optional · business finance");
+                        ui.selectable_value(&mut self.pack, Pack::Current, "Recommended · integrated campaign");
                         ui.selectable_value(&mut self.pack, Pack::BusinessCosts, "Optional · business production costs");
                         ui.selectable_value(&mut self.pack, Pack::Consumption, "Optional · delivered household consumption");
                         ui.selectable_value(&mut self.pack, Pack::Businesses, "Optional · household-owned businesses");
                         ui.selectable_value(&mut self.pack, Pack::IndustrialTrade, "Optional · industrial imports & exports");
                         ui.selectable_value(&mut self.pack, Pack::IndustryLifecycle, "Optional · public industry lifecycle");
                         ui.selectable_value(&mut self.pack, Pack::IndustryInvestment, "Optional · public industry investment");
+                        ui.selectable_value(&mut self.pack, Pack::Production, "Earlier · population & production");
                         ui.selectable_value(&mut self.pack, Pack::GoverningInstitutions, "Earlier · integrated government");
                         ui.selectable_value(&mut self.pack, Pack::Demographics, "Earlier · authored population change");
                         ui.selectable_value(&mut self.pack, Pack::SocialMemberships, "Earlier · overlapping social groups");
@@ -341,7 +390,7 @@ impl Setup {
                     });
                     if self.pack != previous {
                         let old_default = default_save_path(&self.content);
-                        match match self.pack { Pack::BusinessFinance => Content::business_finance_bundled(), Pack::BusinessCosts => Content::business_costs_bundled(), Pack::Consumption => Content::consumption_bundled(), Pack::Businesses => Content::businesses_bundled(), Pack::IndustrialTrade => Content::industrial_trade_bundled(), Pack::IndustryLifecycle => Content::industry_lifecycle_bundled(), Pack::IndustryInvestment => Content::industry_bundled(), Pack::GoverningInstitutions => Content::governing_institutions_bundled(), Pack::SocialMemberships => Content::social_memberships_bundled(), Pack::Demographics => Content::demographic_bundled(), Pack::StatisticalHistory => Content::statistical_history_bundled(), Pack::ExecutiveIdentities => Content::executive_identities_bundled(), Pack::Legislation => Content::legislation_bundled(), Pack::BookmarkIdentities => Content::bookmark_identities_bundled(), Pack::StableElections => Content::stable_elections_bundled(), Pack::ProgrammeEvents => Content::programme_events_bundled(), Pack::EventReferences => Content::event_reference_bundled(), Pack::Reserve => Content::reserve_bundled(), Pack::Party => Content::party_bundled(), Pack::Technology => Content::technology_bundled(), Pack::Interest => Content::interest_bundled(), Pack::Cash => Content::cash_bundled(), Pack::DatedDebt => Content::debt_bundled(), Pack::NationalFiscal => Content::national_fiscal_bundled(), Pack::Income => Content::income_bundled(), Pack::Fiscal => Content::fiscal_bundled(), Pack::Undertaking => Content::undertaking_bundled(), Pack::Territorial => Content::territorial_bundled(), Pack::Observed => Content::observed_bundled(), Pack::Electoral => Content::electoral_bundled(), Pack::Cabinet => Content::cabinet_bundled(), Pack::Classic => Content::classic_bundled(), Pack::Commitment => Content::commitment_bundled(), Pack::Constitution => Content::constitution_bundled(), Pack::Finance => Content::finance_bundled(), Pack::Market => Content::market_bundled(), _ => Content::recommended_bundled() } {
+                        match match self.pack { Pack::Production => Content::production_bundled(), Pack::BusinessCosts => Content::business_costs_bundled(), Pack::Consumption => Content::consumption_bundled(), Pack::Businesses => Content::businesses_bundled(), Pack::IndustrialTrade => Content::industrial_trade_bundled(), Pack::IndustryLifecycle => Content::industry_lifecycle_bundled(), Pack::IndustryInvestment => Content::industry_bundled(), Pack::GoverningInstitutions => Content::governing_institutions_bundled(), Pack::SocialMemberships => Content::social_memberships_bundled(), Pack::Demographics => Content::demographic_bundled(), Pack::StatisticalHistory => Content::statistical_history_bundled(), Pack::ExecutiveIdentities => Content::executive_identities_bundled(), Pack::Legislation => Content::legislation_bundled(), Pack::BookmarkIdentities => Content::bookmark_identities_bundled(), Pack::StableElections => Content::stable_elections_bundled(), Pack::ProgrammeEvents => Content::programme_events_bundled(), Pack::EventReferences => Content::event_reference_bundled(), Pack::Reserve => Content::reserve_bundled(), Pack::Party => Content::party_bundled(), Pack::Technology => Content::technology_bundled(), Pack::Interest => Content::interest_bundled(), Pack::Cash => Content::cash_bundled(), Pack::DatedDebt => Content::debt_bundled(), Pack::NationalFiscal => Content::national_fiscal_bundled(), Pack::Income => Content::income_bundled(), Pack::Fiscal => Content::fiscal_bundled(), Pack::Undertaking => Content::undertaking_bundled(), Pack::Territorial => Content::territorial_bundled(), Pack::Observed => Content::observed_bundled(), Pack::Electoral => Content::electoral_bundled(), Pack::Cabinet => Content::cabinet_bundled(), Pack::Classic => Content::classic_bundled(), Pack::Commitment => Content::commitment_bundled(), Pack::Constitution => Content::constitution_bundled(), Pack::Finance => Content::finance_bundled(), Pack::Market => Content::market_bundled(), _ => Content::recommended_bundled() } {
                             Ok(content) => {
                                 if content.country(&self.player).is_none() { self.player = content.countries[0].id.clone(); }
                                 if self.save_path == old_default { self.save_path = default_save_path(&content); }
@@ -351,12 +400,21 @@ impl Setup {
                             Err(error) => { self.pack = previous; self.error = Some(error); }
                         }
                     }
+                    });
                 } else { ui.label(format!("Pinned world pack: {}", self.content.name)); }
-                ui.label(format!("{} · bookmark {}", self.content.name, self.content.start));
+                if self.pack == Pack::Current {
+                    ui.strong("A New Century · integrated campaign");
+                    ui.label("Govern institutions, build industry, meet household needs and manage public finances. Businesses earn income and retain cash for their commitments.");
+                } else { ui.strong(&self.content.name); }
+                ui.label(format!("{} playable countries · starts {}", self.content.countries.len(), self.content.start));
+                ui.collapsing("Campaign systems & assumptions", |ui| {
                 if self.content.production.is_some() { ui.label("Infrastructure sectors use paid worker-days, equipment and stored inputs. Funded construction needs actual assembly packages; service inputs and maintenance can constrain delivery. These auxiliary quantities are authored assumptions, separate from civilian food and energy."); }
                 if self.content.social_memberships.is_some() { ui.label("Social groups can overlap while each resident stays in one population account. Household inspection compares any/every selected membership through authored joint profiles; these are not observed national memberships or extra votes, cash or powers."); }
                 if self.content.demographics.is_some() { ui.label("Authored population change: residents and family units evolve; opening physical capacity stays fixed until funded construction. Statistical releases are dated estimates. These rates and migration corridors are scenario assumptions, not historical national vital statistics."); }
                 if self.content.legislation.is_some() { ui.label("Higher service targets may need an enacted law. Laws, programme funding and delivery are separate decisions."); }
+                    ui.label(format!("Loaded scenario: {}", self.content.name));
+                    if self.content.business_finance.is_some() { ui.label("Industry, delivered household consumption and earnings-based business payouts are enabled. Businesses protect unfinished client advances; private investment and formal insolvency remain unfinished."); }
+                });
                 egui::ComboBox::from_label("Country").selected_text(&self.content.country(&self.player).expect("selected country").name).show_ui(ui, |ui| {
                     for country in &self.content.countries { ui.selectable_value(&mut self.player, country.id.clone(), format!("{} · {}", country.id.0, country.name)); }
                 });
@@ -369,6 +427,7 @@ impl Setup {
                     ui.selectable_value(&mut self.scenario, Scenario::FiscalSupplyCrisis, "Fiscal and supply crisis (authored)");
                 });
                 if self.scenario == Scenario::FiscalSupplyCrisis { ui.label("Crisis starts with reduced supply/administration, low tax, high spending and weak approval. GDP and population observations are retained."); }
+                ui.label("Five-year objective: energy and food at least 90%, approval at least 50%, no arrears or overdue loan principal, and debt no greater than opening GDP.");
                 ui.label(format!("Five-year review: {}. Country play continues afterward.", date(self.content.review_day().expect("validated content"))));
                 ui.label("New campaign save path");
                 ui.text_edit_singleline(&mut self.save_path);

@@ -237,12 +237,12 @@ impl Content {
     pub fn bundled() -> Result<Self, String> {
         Self::governing_institutions_bundled()
     }
-    /// Recommended new campaigns combine government, population, social groups
-    /// and infrastructure production. Existing saves retain their exact pack.
+    /// Recommended new campaigns combine the tested government, population,
+    /// production, consumption and business-finance systems. Old saves retain their pack.
     pub fn recommended_bundled() -> Result<Self, String> {
-        Self::production_bundled()
+        Self::business_finance_bundled()
     }
-    /// Optional paid public equipment exercise; the recommended campaign remains pinned.
+    /// Preserved paid public equipment exercise.
     pub fn industry_bundled() -> Result<Self, String> {
         Self::from_json(include_str!(
             "../../../data/initial-2000-industry-investment.json"

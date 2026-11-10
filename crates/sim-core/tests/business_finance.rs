@@ -109,7 +109,7 @@ fn malformed_checkpoints_refuse_advance_and_commands_atomically() {
     }
 }
 #[test]
-fn payout_checkpoint_is_private_and_new_bundle_keeps_default_unchanged() {
+fn payout_checkpoint_is_private_and_current_bundle_resolves_exactly() {
     let (c, mut w) = fixture();
     w.advance(&c, DaySpan::new(30)).unwrap();
     let before = persistence::encode(&w, &c).unwrap();
@@ -128,7 +128,7 @@ fn payout_checkpoint_is_private_and_new_bundle_keeps_default_unchanged() {
     assert_eq!(before, persistence::encode(&w, &c).unwrap());
     let bundled = Content::business_finance_bundled().unwrap();
     assert_eq!(bundled, Content::bundled_for_hash(bundled.hash()).unwrap());
-    assert_eq!(Content::recommended_bundled().unwrap().rules, 31);
+    assert_eq!(Content::recommended_bundled().unwrap(), bundled);
     let mut missing = c.clone();
     missing.business_finance = None;
     assert!(missing.validate().is_err());

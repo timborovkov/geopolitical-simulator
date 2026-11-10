@@ -282,9 +282,8 @@ fn versioned_production_preserves_opening_facts_and_rejects_silent_old_format_re
 }
 
 #[test]
-fn recommended_new_world_keeps_opening_inputs_and_preserved_governing_api_while_enabling_connected_systems()
- {
-    let content = Content::recommended_bundled().unwrap();
+fn preserved_production_world_keeps_opening_inputs_and_governing_api() {
+    let content = Content::production_bundled().unwrap();
     let preserved = Content::bundled().unwrap();
     assert_eq!(preserved.rules, 28);
     assert_eq!(content.rules, 31);
@@ -302,4 +301,30 @@ fn recommended_new_world_keeps_opening_inputs_and_preserved_governing_api_while_
         Content::bundled_for_hash(preserved.hash()).unwrap(),
         preserved
     );
+}
+
+#[test]
+fn recommended_starter_combines_all_delivered_systems_without_rewriting_either_predecessor() {
+    let c = Content::recommended_bundled().unwrap();
+    assert_eq!(c, Content::business_finance_bundled().unwrap());
+    assert!(c.production.is_some() && c.industry.is_some() && c.industrial_trade.is_some());
+    assert!(
+        c.businesses.is_some()
+            && c.consumption.is_some()
+            && c.business_costs.is_some()
+            && c.business_finance.is_some()
+    );
+    let w = World::new(&c, CountryId("GBR".into()), 17).unwrap();
+    // Measured with the previously published optional-finance release.
+    assert_eq!(w.hash(), 0xb1a34e0e7596b9a9);
+    assert_eq!(persistence::snapshot_schema(&w), 39);
+    for old in [
+        Content::production_bundled().unwrap(),
+        Content::bundled().unwrap(),
+    ] {
+        assert_eq!(Content::bundled_for_hash(old.hash()).unwrap(), old);
+        let old_world = World::new(&old, CountryId("GBR".into()), 17).unwrap();
+        let bytes = persistence::encode(&old_world, &old).unwrap();
+        assert_eq!(persistence::decode(&bytes, &old).unwrap(), old_world);
+    }
 }
