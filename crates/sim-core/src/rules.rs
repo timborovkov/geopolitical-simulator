@@ -182,8 +182,17 @@ impl World {
         origin: CommandOrigin,
     ) -> Result<(), String> {
         if self.rules >= 22 {
-            return self
-                .event_transaction(content, |world| world.apply_inner(content, command, origin));
+            return self.event_transaction(content, |world| {
+                let external = matches!(origin, CommandOrigin::Player | CommandOrigin::Developer);
+                if external {
+                    world.validate_business_costs(content)?;
+                }
+                world.apply_inner(content, command, origin)?;
+                if external {
+                    world.validate_business_costs(content)?;
+                }
+                Ok(())
+            });
         }
         self.apply_inner(content, command, origin)
     }
@@ -498,6 +507,7 @@ impl World {
         self.validate_industrial_trade(content)?;
         self.validate_business_accounts(content)?;
         self.validate_consumption(content)?;
+        self.validate_business_costs(content)?;
         if content.rules >= 33 {
             self.validate_industry(content)?;
         }
@@ -525,6 +535,7 @@ impl World {
         let review_day = content.review_day()?;
         let ids: Vec<_> = self.countries.keys().cloned().collect();
         for _ in 0..days {
+            self.begin_business_cost_day(content)?;
             self.day = self
                 .day
                 .checked_add(DaySpan::new(1))
@@ -603,6 +614,7 @@ impl World {
             }
             self.validate_business_accounts(content)?;
             self.validate_consumption(content)?;
+            self.validate_business_costs(content)?;
             self.ledger
                 .retain(|e| e.day.units() + 30 >= self.day.units());
             if self.day.units() >= (review_day).units() && !self.milestone_reported {
@@ -873,6 +885,7 @@ impl World {
             let paid = world.pay(id, Firms, External, cost, reason);
             quantity * paid / cost
         };
+        let import_opening_cash = self.countries[id].accounts.firms;
         let energy_imported = Energy::new(buy_import(
             self,
             energy_demand
@@ -892,6 +905,8 @@ impl World {
             "Bounded energy imports",
         ))
         .expect("nonnegative imports");
+        let energy_import_cost = Money(import_opening_cash.0 - self.countries[id].accounts.firms.0);
+        let food_import_opening_cash = self.countries[id].accounts.firms;
         let food_imported = Food::new(buy_import(
             self,
             food_demand
@@ -909,6 +924,8 @@ impl World {
             "Bounded food imports",
         ))
         .expect("nonnegative imports");
+        let food_import_cost =
+            Money(food_import_opening_cash.0 - self.countries[id].accounts.firms.0);
         let energy_released = Energy::new(
             self.release_reserve(
                 id,
@@ -1310,6 +1327,7 @@ impl World {
             .expect("validated price quantities");
         }
         self.finish_reserve_day(content, id);
+        self.settle_business_costs(content, id, energy_import_cost, food_import_cost)?;
         if unpaid > 0 && previous_arrears == 0 {
             self.event(id,true,"Treasury cannot meet unreserved obligations: reduced payments and recorded arrears. Borrow or adjust spending; reserved policy capital is protected.");
         }

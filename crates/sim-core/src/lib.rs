@@ -2,6 +2,7 @@
 mod ai_inspection;
 mod annual_gdp;
 mod budget;
+mod business_costs;
 mod business_statement;
 mod businesses;
 mod cabinet;
@@ -67,6 +68,7 @@ mod units;
 pub use ai_inspection::*;
 pub use annual_gdp::*;
 pub use budget::*;
+pub use business_costs::*;
 pub use business_statement::*;
 pub use businesses::*;
 pub use cabinet::*;

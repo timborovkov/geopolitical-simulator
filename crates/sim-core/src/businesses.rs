@@ -133,7 +133,7 @@ impl Country {
             };
         };
         if content.businesses.is_none()
-            || !matches!(world.rules, 35..=36)
+            || !matches!(world.rules, 35..=37)
             || b.id != BusinessId(format!("{}:civilian-enterprises", self.id.0))
             || [
                 b.opening_cash,

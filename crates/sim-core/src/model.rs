@@ -142,6 +142,8 @@ pub struct Observation {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Country {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub business_costs: Option<crate::BusinessCostBook>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub business: Option<crate::BusinessSector>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub industrial_trade: Option<crate::IndustrialTradeState>,
@@ -517,6 +519,10 @@ impl World {
                 (
                     d.id.clone(),
                     Country {
+                        business_costs: content
+                            .business_costs
+                            .as_ref()
+                            .map(|_| BusinessCostBook::default()),
                         business: content
                             .businesses
                             .as_ref()
@@ -828,6 +834,7 @@ impl World {
         if self.rules != content.rules || self.content_hash != content.hash() {
             return Err("Rules or content pack mismatch".into());
         }
+        self.validate_business_costs(content)?;
         let start_day = content.start_day()?;
         if self.day.units() < (start_day).units()
             || self.day.units() > MAX_DAY

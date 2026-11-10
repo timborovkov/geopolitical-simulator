@@ -1,0 +1,4804 @@
+{
+  "schema": 37,
+  "id": "synthetic-business-costs-v37",
+  "name": "Fictional business production costs",
+  "start": "2000-01-01",
+  "description": "Authored progressive withholding on actually received private income, using a representative resident within each cohort and 365-day annualisation relative to opening GDP per resident. The existing income-tax policy sets a standard marginal reference rate; source-defined bands scale it. Public/local wages and welfare are outside this private-income base. Collection capacity affects actual withholding; potential tax is not treasury cash or an arrears claim. No historical tax filing law, intra-cohort distribution or other tax bases are claimed. Fiscal AI reviews use the national daily balance after protected local claims, while earlier rules retain their original consolidated trigger. Authority, available cash, fees, review and real programme delivery remain ordinary shared constraints. This is an authored bounded heuristic, not historical government behavior or optimal economic planning. Newly disbursed loans have an authored 180-day bullet maturity. Opening debt remains a perpetual calibration, not a historical issuance. Scheduled principal uses available national cash after protected local claims and reservations, before interest and national purchases. Unpaid matured principal remains outstanding without being duplicated as operating arrears. Separate ordinary borrowing can fund repayment but is not guaranteed refinancing. No historical maturity curve, default/restructuring, FX or market pricing is claimed. Temporary cash retention protects only actual national cash after capital/local reservations, up to 1% opening GDP for at most 90 days. Approval falls by three points; a 90-day reuse cooldown applies from creation. Release, expiry or government change ends protection without cancelling any obligation or granting spending authority. Debt interest accrues at fixed 4% actual/365 on outstanding principal after scheduled principal settlement. Fractions carry without compounding; only whole reporting units become due. Cash payments and unpaid whole-unit external arrears reconcile separately. A sub-unit remainder survives retirement of principal and is not cash or spending authority. Taxes, wages, purchases and prices still use whole million-credit units. Grid programme commissioning is unavailable before 2000-01-31 in this fictional scenario. Agronomic planning is already eligible. Eligibility permits an ordinary proposal; it grants no research, adopted technology, cash, capacity or shortened construction. All prerequisites, governing backing, full funding and delivery remain necessary. Full research and adoption dynamics remain outside this scenario. Fictional legal sovereignty, occupation, civil administration, disputed claims and directional recognition are independently attributed bookmark references. Future records select later bookmarks, never force a campaign transfer. Unknown records are explicit; absent recognition means unknown. No military, diplomatic, revenue, border or map-geometry effects are granted. Economic preferences use explicit fiscal target ranges and importance weights, independently of ideology labels. Operating policy distance can lower the backing target for a governing coalition or ruling-party leadership, with gradual existing political reviews. Unknown positions create no pressure and remain identified. Aurora uses parliamentary coalition seats; Boreal begins under party-council leadership; Coral's royal route has advisory positions only. Positions grant no cash, votes, consent exemption or extra powers. Other preference dimensions and party organization remain unfinished. National food and energy reserves start empty. Ordinary consent and paid administration authorize fixed quoted-price import contracts, with full purchase cash reserved. Gradual procurement uses only import capacity remaining after civilian physical needs; no goods are created by proposal or consent. Stored goods cover post-import physical shortfalls automatically, while household affordability still applies. Food stocks spoil at the market storage rate; expiry or cancellation releases only unspent purchase reservations. Energy units are generic model equivalents, not a claim about electrical storage or fuel technologies. Events have stable country-scoped references across filtering, retention and save/load. Only a government's own retained events are available through reference lookup. An expired reference is not reused. Event reference exhaustion rejects a command or rolls back the incomplete daily step; previously completed days remain. Every earlier rules pack is preserved with its original definitions and behavior. Private policy lifecycle events carry an owned programme ID and recorded stage. The link is independent of translated text, row position or policy names and survives filtering, retention and save/load. It grants no foreign access, cash, consent exemption or operating effects. Earlier definitions and campaigns retain their exact bytes and rules. The authored 100-seat election rule allocates remaining seats across opposition parties in ascending stable party-ID order. The largest opposition party leads a successor coalition; equal seat totals choose the lowest stable party ID. Display names and input row order do not settle these choices. Older rules retain their original ordering. This is a reproducible game abstraction, not a claim about national electoral laws. Aurora has three authored parties with opening seats 60/20/20; the third party has explicitly unknown fiscal positions. Older review observations are retained as calendar-year sample summaries after leaving the 120-review recent window. This changes statistical retention only; it grants no resources or authority. All earlier rules packs keep their original behavior. Authored statutory prototype: higher new service programmes require a paid, consented and implemented legal authority. This is an original scenario rule, not a historical statement of national legislation. Stable live holder references and separately identified simulated successor bodies. Opening people and offices remain source references; future source terms do not force campaign outcomes. Authored stable identities for modeled governing routes and submission context. These are gameplay institutions, without claims about historical names, membership, founding dates or votes. Optional authored demographic exercise: every country uses the same coarse birth, mortality, age-split, family-formation and statistical-capacity assumptions. These are not historical national vital statistics, census quality rankings or migration estimates. Aggregate household units create no dwellings or wealth. Working age is not employment. Production and import capacity remain tied to opening physical need; new residents increase civilian demand without creating capacity. GDP remains an opening calibration. Migration moves residents between country/cohort stocks, without transferring pooled group cash, assets or arrears. Pooled claims and already-funded local financial obligations remain payable even if a cohort becomes empty; those transfers do not certify staffing or actual service delivery. Regional placement, housing constraints, individual labor mobility, inheritance and endogenous fertility remain unfinished. Authored cross-sectional joint membership profiles, not historical national prevalence, individual identity histories or records about real residents. Disjoint age/employment scopes prevent double-counting people. The employment membership reproduces existing modeled jobs; membership grants no cash, votes, powers or programme exemptions. Joint shares are explicitly configured, without assuming independent memberships. Parent/carer membership uses the model's 15+ bands, not a claim about legal adulthood. Union membership in this exercise is limited to modeled employed residents; retiree/other union membership and longitudinal joining/leaving remain unfinished. These common assumptions are shared across countries and economic cohorts. Authored auxiliary infrastructure network, not historical national sector output, deposits, asset holdings or productivity observations. Agriculture supplies industrial biomass; extraction supplies finite-deposit feedstocks and industrial fuel; manufacturing supplies tools and materials; construction supplies storable prefabricated assembly packages, not stored worker-hours; services supply nonstorable contracted inputs. These goods are distinct from national civilian Food/Energy. Paid programmes consume packages and funded public/maintenance services require actual inputs. A bounded share of live employed workers is reserved for this network and limited by actual private income paid; remaining workers belong to the older abstract civilian economy. Common stock targets, recipes, productivity and opening maintained-equipment readiness are scenario assumptions. Broader labor, private investment and product markets remain unfinished. Authored public auxiliary equipment investment, not historical industry ownership, national capital stocks or returns. Each paid programme commissions one country-specific build step after ordinary authority, consent, preparation, construction and actual assembly packages. Added batches and matching capital become available the following day and depend on previously settled physical maintenance readiness. Each installed level owes 10 basis points of opening annual GDP per 365 days in maintenance cash, with exact fractional carry, and needs one country maintenance unit per day. There are at most three additions per sector. These common calibrations do not create jobs, wages or GDP; private investment, profitability, depreciation and closures remain unfinished. Authored public auxiliary equipment retirement, not historical closures, private profitability or salvage values. A paid 20 basis point opening-GDP programme, with at least 30 days preparation and ordinary consent, retires one previously commissioned addition. Capacity and new maintenance obligations fall from the following day. Opening equipment cannot be retired. Sunk investment costs, existing arrears and fractional creditor claims remain; there are no cash proceeds or returned construction packages. Three additions per sector may operate simultaneously; retired additions may be replaced through ordinary paid investment. These common calibrations are gameplay assumptions, not national engineering estimates. Private firms, profits, depreciation and insolvency remain unfinished. Authored public auxiliary-inventory import and export contracts, not historical national trade volumes or private firm profits. Prices quote basis points of opening annual GDP per ten country-specific production lots. Ask prices exceed bids. Import contracts reserve their full quoted cash; all orders pay a nonrefundable one-basis-point administration fee. Ordinary authority and consent precede at most 30 daily fills. Imports arrive after production and before storage, and can support later construction delivery. Exports protect current domestic service use and packages needed by funded construction due that day. External supply and demand have separate per-good daily limits; exports also require actual counterparty cash. No bank credit, cash, wages or GDP is created. Purchase payments round up and sale receipts down on cumulative delivered quantities. Small interim fills can round to zero whole credits. Imported stocks remain subject to the same storage losses. Cancellation retains sunk administration, goods already delivered and payments already settled. Closed contracts remain in campaign history; only simultaneous open orders are limited. Export receipts are recorded separately from recurring tax revenue and are not forecast as guaranteed income. Bilateral trade, private ownership and profit-led firms remain unfinished. Authored household-owned aggregate civilian business cash exercise, not historical ownership or national profit accounts. Each existing Firms account represents one enterprise cohort; existing public industrial stocks and equipment remain public. Household groups own fixed shares in proportion to their authored opening savings weights, without individual ownership records. Every 30 elapsed campaign days, businesses autonomously distribute up to 25% of positive undistributed operating cash, while protecting actual trailing 30-day business payments. Household and external receipts add to earned cash; all business payments, including past distributions, subtract. Opening capital and every Treasury receipt are excluded. A missing owning population cohort suspends payouts without reallocating ownership. Payments enter household income before ordinary withholding. This transfers existing cash and creates no GDP, jobs, wages or new money. The government cannot order a private payout. Cash generation is not accrual profit; commodity cost valuation, public/mixed/cooperative ownership, conversions, insolvency and investment remain unfinished. Authored batch household settlement, not historical retail transactions. Desired basket spending, cash-limited planned budget, affordable food demand and physically delivered food remain distinct. The food part of the essential basket uses the actual settled food price and configured food budget share; spending above the essential basket is abstract other consumption. Households retain the quoted food budget corresponding to missing deliveries. Only delivered food is charged, rounded down within whole million-credit reporting units; the rounding discount is less than one reporting unit per group/day. The other basket component remains abstract, without an additional physical product market. Plans clear once per day in a single batch; retained cash is available for later days, without a same-day second auction or borrowing. Actual payments transfer existing household cash to businesses and enter ordinary business cash reconciliation. No cash, food, wages, jobs or GDP is created. Public industrial assets, private ownership weights and ordinary government authority remain unchanged. Accrual profit and production-cost valuation remain unfinished. Authored aggregate civilian business cost accounts, not historical firm financial statements. Actual private household factor payments are allocated 35% to domestic food production and 15% to domestic energy production; these direct cost shares round down, with remaining payments and idle production allocations expensed today. All preexisting factor payments remain actual transfers, not added payroll or employment. Moving weighted-average carrying costs pool opening stock cost, actual domestic factor costs and actual import payments. Closing stock value rounds down; removed cost is split between delivered use and spoilage, with the remainder charged to spoilage. An import payment delivering no whole quantity is expensed rather than capitalized. Opening civilian stocks are zero; public reserve releases have zero business acquisition cost and remain identified as public in-kind supplies. Energy use is a common period production expense; it is not added again to food inventory. Public auxiliary industrial stocks and equipment are excluded from private inventories and assets. Government policy contracts earn the standard 10% administration component at proposal, including immediate-consent routes; paid capital is deferred until actual delivery or recognized separately as retained termination income upon funded withdrawal. Amendment fees are earned administrative receipts. Existing unpaid maintenance claims are receivables, not repeated sales when collected. The modeled business result, including separately identified retained termination income, reconciles exactly to cash change, owner distributions, stock carrying costs, receivables and deferred contract receipts. Owner distributions are equity payments, never operating expenses. No cash, goods, wages, jobs, GDP or ownership conversion is created by valuation. Private fixed-asset depreciation, contractual unpaid payroll, corporate tax, firm investment and insolvency remain unfinished; the corporate cash distribution rule is preserved and does not pretend this cost account is a complete solvency or payout policy.",
+  "sources": [
+    {
+      "id": "synthetic-original",
+      "quality": "authored_synthetic_fixture",
+      "description": "Original fictional content for repeatable rules tests; no historical claims."
+    },
+    {
+      "id": "authored-temporary-cash-retention-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original bounded temporary protection of actual national cash for a future decision. Deferring operating payments creates arrears; unpaid principal remains debt. This is not a historical cash-management or legal-priority claim."
+    },
+    {
+      "id": "authored-interest-carry-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original fixed 400-basis-point actual/365 principal-day accrual. Fractional reporting credits carry until a whole unit becomes due. No historical debt pricing, currency precision, compounding or legal settlement convention is claimed."
+    },
+    {
+      "id": "authored-technology-eligibility-v1",
+      "quality": "authored_scenario_model",
+      "description": "Original fictional scenario prerequisites for programme commissioning. Dates and eligible countries are authored restrictions, not historical scientific discovery, adoption, research progress or future innovation predictions."
+    },
+    {
+      "id": "authored-sovereignty-reference-v1",
+      "quality": "authored_synthetic_fixture",
+      "description": "Original fictional territory claims, administration, occupation and bilateral recognition. Separate from government, regime, map outlines and campaign outcomes; not historical or legal assertions."
+    },
+    {
+      "id": "authored-party-policy-preferences-v1",
+      "quality": "authored_synthetic_fixture",
+      "description": "Original fictional economic policy positions and bounded governing-party alignment pressure. No historical party platforms, roll-call votes, ideology-label bonuses or additional legal powers are asserted."
+    },
+    {
+      "id": "authored-national-reserve-contracts-v1",
+      "quality": "authored_synthetic_fixture",
+      "description": "Original costed fixed-price commodity import contracts, spare civilian import capacity, national buffers and automatic shortage releases. Quantities are authored game equivalents, not historical fuel stocks, tonnes, MWh or electricity storage technologies."
+    },
+    {
+      "id": "authored-event-reference-contract-v1",
+      "quality": "authored_synthetic_fixture",
+      "description": "Original technical fixture for country-scoped monotonically assigned event references, bounded retained history, private lookup and transactional ID exhaustion. References are software identities, not historical facts or new resources."
+    },
+    {
+      "id": "authored-project-event-contract-v1",
+      "quality": "authored_synthetic_fixture",
+      "description": "Original technical fixture for typed, country-scoped links from policy lifecycle events to programme records, including same-day decisions, refusal, withdrawal, operation and observed review."
+    },
+    {
+      "id": "authored-stable-party-order-v1",
+      "quality": "authored_synthetic_fixture",
+      "description": "Original deterministic party-ID ordering for the simplified 100-seat election model, covering remainder seats, equal-seat successor leadership and coalition membership order. This does not represent historical electoral law."
+    },
+    {
+      "id": "authored-statistical-retention-v1",
+      "quality": "authored_synthetic_fixture",
+      "description": "Original bounded retention rule: retain 120 recent review observations and summarize older samples by calendar year. Means are floor-rounded review-sample means, not annual accounts or time-weighted daily statistics. Coverage remains explicit; private treasury values are never foreign public data."
+    },
+    {
+      "id": "authored-statutory-authority",
+      "quality": "Authored institutional prototype",
+      "description": "Original paid statutory workflow and service-commissioning prerequisite; not historical legal text. Preserved input SHA-256 5eb42770561dccbbb80ffdc62096331d107e25d90167fece8cc5d62c4db14e57"
+    },
+    {
+      "id": "authored-live-executive-identities",
+      "quality": "Authored identity-continuity prototype",
+      "description": "Original stable holder/body continuity and generated successor identities, without invented historical tenure or membership. Preserved input SHA-256 ba30ce1022f37eeb825ab9f01ec1bf3357cb24a31a1ba544e78f54446874b591"
+    },
+    {
+      "id": "authored-governing-institutions",
+      "quality": "Authored institution identity prototype",
+      "description": "Original modeled governing institution identities and route bindings. Preserved input SHA-256 f7700dfb83154ed2863a30089a3f00cd389d018e820eed53f03e6d9202b44353"
+    },
+    {
+      "id": "authored-demographic-balances",
+      "quality": "Authored demographic and measurement prototype",
+      "description": "Optional authored demographic exercise: every country uses the same coarse birth, mortality, age-split, family-formation and statistical-capacity assumptions. These are not historical national vital statistics, census quality rankings or migration estimates. Aggregate household units create no dwellings or wealth. Working age is not employment. Production and import capacity remain tied to opening physical need; new residents increase civilian demand without creating capacity. GDP remains an opening calibration. Migration moves residents between country/cohort stocks, without transferring pooled group cash, assets or arrears. Pooled claims and already-funded local financial obligations remain payable even if a cohort becomes empty; those transfers do not certify staffing or actual service delivery. Regional placement, housing constraints, individual labor mobility, inheritance and endogenous fertility remain unfinished. Preserved governing-pack input SHA-256 5672f9cfe7b1759c53de329acad48922c59f4305a491f78e764193fe82407b3d"
+    },
+    {
+      "id": "authored-overlapping-memberships",
+      "quality": "Authored joint-membership prototype",
+      "description": "Authored cross-sectional joint membership profiles, not historical national prevalence, individual identity histories or records about real residents. Disjoint age/employment scopes prevent double-counting people. The employment membership reproduces existing modeled jobs; membership grants no cash, votes, powers or programme exemptions. Joint shares are explicitly configured, without assuming independent memberships. Parent/carer membership uses the model's 15+ bands, not a claim about legal adulthood. Union membership in this exercise is limited to modeled employed residents; retiree/other union membership and longitudinal joining/leaving remain unfinished. These common assumptions are shared across countries and economic cohorts. Preserved population-pack input SHA-256 b0f576c12034b5dc3944061df2563212e32755f9659c198015a07c8e06b75e8f"
+    },
+    {
+      "id": "authored-auxiliary-production",
+      "quality": "Authored auxiliary production prototype",
+      "description": "Authored auxiliary infrastructure network, not historical national sector output, deposits, asset holdings or productivity observations. Agriculture supplies industrial biomass; extraction supplies finite-deposit feedstocks and industrial fuel; manufacturing supplies tools and materials; construction supplies storable prefabricated assembly packages, not stored worker-hours; services supply nonstorable contracted inputs. These goods are distinct from national civilian Food/Energy. Paid programmes consume packages and funded public/maintenance services require actual inputs. A bounded share of live employed workers is reserved for this network and limited by actual private income paid; remaining workers belong to the older abstract civilian economy. Common stock targets, recipes, productivity and opening maintained-equipment readiness are scenario assumptions. Broader labor, private investment and product markets remain unfinished. Preserved social-membership pack SHA-256 5feee17c87984523aadf8f8d553aade0532e2308c67aa838116fd2ebc983841b"
+    },
+    {
+      "id": "authored-public-industry-investment",
+      "quality": "Authored public investment exercise",
+      "description": "Authored public auxiliary equipment investment, not historical industry ownership, national capital stocks or returns. Each paid programme commissions one country-specific build step after ordinary authority, consent, preparation, construction and actual assembly packages. Added batches and matching capital become available the following day and depend on previously settled physical maintenance readiness. Each installed level owes 10 basis points of opening annual GDP per 365 days in maintenance cash, with exact fractional carry, and needs one country maintenance unit per day. There are at most three additions per sector. These common calibrations do not create jobs, wages or GDP; private investment, profitability, depreciation and closures remain unfinished. Preserved production pack SHA-256 f42dc8ecff96f67576442d8d1f71da4c4132486c9ee98c440d327929372fd4c1"
+    },
+    {
+      "id": "authored-public-industry-retirement",
+      "quality": "Authored public retirement exercise",
+      "description": "Authored public auxiliary equipment retirement, not historical closures, private profitability or salvage values. A paid 20 basis point opening-GDP programme, with at least 30 days preparation and ordinary consent, retires one previously commissioned addition. Capacity and new maintenance obligations fall from the following day. Opening equipment cannot be retired. Sunk investment costs, existing arrears and fractional creditor claims remain; there are no cash proceeds or returned construction packages. Three additions per sector may operate simultaneously; retired additions may be replaced through ordinary paid investment. These common calibrations are gameplay assumptions, not national engineering estimates. Private firms, profits, depreciation and insolvency remain unfinished. Preserved investment pack SHA-256 7c52650b3928a64636aa02d2fcbd5a455723b7e7f68bfe52fe270c590a6409d2"
+    },
+    {
+      "id": "authored-industrial-trade",
+      "quality": "Authored bounded industrial trade exercise",
+      "description": "Authored public auxiliary-inventory import and export contracts, not historical national trade volumes or private firm profits. Prices quote basis points of opening annual GDP per ten country-specific production lots. Ask prices exceed bids. Import contracts reserve their full quoted cash; all orders pay a nonrefundable one-basis-point administration fee. Ordinary authority and consent precede at most 30 daily fills. Imports arrive after production and before storage, and can support later construction delivery. Exports protect current domestic service use and packages needed by funded construction due that day. External supply and demand have separate per-good daily limits; exports also require actual counterparty cash. No bank credit, cash, wages or GDP is created. Purchase payments round up and sale receipts down on cumulative delivered quantities. Small interim fills can round to zero whole credits. Imported stocks remain subject to the same storage losses. Cancellation retains sunk administration, goods already delivered and payments already settled. Closed contracts remain in campaign history; only simultaneous open orders are limited. Export receipts are recorded separately from recurring tax revenue and are not forecast as guaranteed income. Bilateral trade, private ownership and profit-led firms remain unfinished. Preserved lifecycle pack SHA-256 bc85a40e992a1d0b5ca851eb4360c7c0e8a9a69d2b0d751cc7894de58b8fff19"
+    },
+    {
+      "id": "authored-household-businesses",
+      "quality": "Authored business ownership exercise",
+      "description": "Authored household-owned aggregate civilian business cash exercise, not historical ownership or national profit accounts. Each existing Firms account represents one enterprise cohort; existing public industrial stocks and equipment remain public. Household groups own fixed shares in proportion to their authored opening savings weights, without individual ownership records. Every 30 elapsed campaign days, businesses autonomously distribute up to 25% of positive undistributed operating cash, while protecting actual trailing 30-day business payments. Household and external receipts add to earned cash; all business payments, including past distributions, subtract. Opening capital and every Treasury receipt are excluded. A missing owning population cohort suspends payouts without reallocating ownership. Payments enter household income before ordinary withholding. This transfers existing cash and creates no GDP, jobs, wages or new money. The government cannot order a private payout. Cash generation is not accrual profit; commodity cost valuation, public/mixed/cooperative ownership, conversions, insolvency and investment remain unfinished. Preserved trade pack SHA-256 d900cc0bd1ebafa5af47b9c286e5a265c7882769353864ec7b2c884b7535dce2"
+    },
+    {
+      "id": "authored-delivered-consumption",
+      "quality": "Authored delivered consumption exercise",
+      "description": "Authored batch household settlement, not historical retail transactions. Desired basket spending, cash-limited planned budget, affordable food demand and physically delivered food remain distinct. The food part of the essential basket uses the actual settled food price and configured food budget share; spending above the essential basket is abstract other consumption. Households retain the quoted food budget corresponding to missing deliveries. Only delivered food is charged, rounded down within whole million-credit reporting units; the rounding discount is less than one reporting unit per group/day. The other basket component remains abstract, without an additional physical product market. Plans clear once per day in a single batch; retained cash is available for later days, without a same-day second auction or borrowing. Actual payments transfer existing household cash to businesses and enter ordinary business cash reconciliation. No cash, food, wages, jobs or GDP is created. Public industrial assets, private ownership weights and ordinary government authority remain unchanged. Accrual profit and production-cost valuation remain unfinished. Preserved business pack SHA-256 9755ca762512024608746c4c33052a1bc8dc6f574134e5247faa7e2728af40fc"
+    },
+    {
+      "id": "authored-business-production-costs",
+      "quality": "Authored production-cost accounting exercise",
+      "description": "Authored aggregate civilian business cost accounts, not historical firm financial statements. Actual private household factor payments are allocated 35% to domestic food production and 15% to domestic energy production; these direct cost shares round down, with remaining payments and idle production allocations expensed today. All preexisting factor payments remain actual transfers, not added payroll or employment. Moving weighted-average carrying costs pool opening stock cost, actual domestic factor costs and actual import payments. Closing stock value rounds down; removed cost is split between delivered use and spoilage, with the remainder charged to spoilage. An import payment delivering no whole quantity is expensed rather than capitalized. Opening civilian stocks are zero; public reserve releases have zero business acquisition cost and remain identified as public in-kind supplies. Energy use is a common period production expense; it is not added again to food inventory. Public auxiliary industrial stocks and equipment are excluded from private inventories and assets. Government policy contracts earn the standard 10% administration component at proposal, including immediate-consent routes; paid capital is deferred until actual delivery or recognized separately as retained termination income upon funded withdrawal. Amendment fees are earned administrative receipts. Existing unpaid maintenance claims are receivables, not repeated sales when collected. The modeled business result, including separately identified retained termination income, reconciles exactly to cash change, owner distributions, stock carrying costs, receivables and deferred contract receipts. Owner distributions are equity payments, never operating expenses. No cash, goods, wages, jobs, GDP or ownership conversion is created by valuation. Private fixed-asset depreciation, contractual unpaid payroll, corporate tax, firm investment and insolvency remain unfinished; the corporate cash distribution rule is preserved and does not pretend this cost account is a complete solvency or payout policy. Preserved consumption pack SHA-256 927b927c1ad4c99440cdbb0344f3ae4ddb619edc5d709b9e838411105de6e80d"
+    }
+  ],
+  "facts": [],
+  "countries": [
+    {
+      "id": "AUR",
+      "name": "Aurora Republic (fictional)",
+      "capital": "Aurora Republic test capital",
+      "regime": "parliamentary",
+      "executive": "Fictional delegate AUR-1",
+      "office": "Fictional AUR governing office",
+      "currency": "TEST",
+      "population": 1000000,
+      "gdp": 100000,
+      "tax": 24,
+      "services": 9,
+      "welfare": 4,
+      "energy": 80,
+      "food": 80,
+      "capacity": 70,
+      "approval": 55,
+      "longitude": 0,
+      "latitude": 30,
+      "ruling_party": "AUR-1",
+      "coalition": [
+        "AUR-1"
+      ],
+      "parties": [
+        {
+          "id": "AUR-1",
+          "name": "Aurora Republic body 1",
+          "leader": "Fictional delegate AUR-1",
+          "ideology": "Authored test profile",
+          "seats": 60
+        },
+        {
+          "id": "AUR-2",
+          "name": "Aurora Republic body 2",
+          "leader": "Fictional delegate AUR-2",
+          "ideology": "Authored test profile",
+          "seats": 20
+        },
+        {
+          "id": "AUR-3",
+          "name": "Aurora alternative three",
+          "leader": "Fictional delegate three",
+          "ideology": "Authored test profile",
+          "seats": 20
+        }
+      ],
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "legislature",
+        "threshold": 51,
+        "consent_days": 14,
+        "council_threshold": 0,
+        "leadership_review_days": null
+      },
+      "quality": "authored_synthetic_fixture",
+      "identity_source": "synthetic-original",
+      "economic_source": "synthetic-original",
+      "governing_office": "office:AUR:governing-reference"
+    },
+    {
+      "id": "BOR",
+      "name": "Boreal Union (fictional)",
+      "capital": "Boreal Union test capital",
+      "regime": "single_party",
+      "executive": "Unknown incumbent",
+      "office": "Fictional BOR governing office",
+      "currency": "TEST",
+      "population": 1000000,
+      "gdp": 100000,
+      "tax": 24,
+      "services": 9,
+      "welfare": 4,
+      "energy": 80,
+      "food": 80,
+      "capacity": 70,
+      "approval": 55,
+      "longitude": 40,
+      "latitude": 30,
+      "ruling_party": "BOR-1",
+      "coalition": [
+        "BOR-1"
+      ],
+      "parties": [
+        {
+          "id": "BOR-1",
+          "name": "Boreal Union body 1",
+          "leader": "Fictional delegate BOR-1",
+          "ideology": "Authored test profile",
+          "seats": 60
+        },
+        {
+          "id": "BOR-2",
+          "name": "Boreal Union body 2",
+          "leader": "Fictional delegate BOR-2",
+          "ideology": "Authored test profile",
+          "seats": 40
+        }
+      ],
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "party_council",
+        "threshold": 55,
+        "council_threshold": 50,
+        "consent_days": 21,
+        "leadership_review_days": 180
+      },
+      "quality": "authored_synthetic_fixture",
+      "identity_source": "synthetic-original",
+      "economic_source": "synthetic-original"
+    },
+    {
+      "id": "COR",
+      "name": "Coral Crown (fictional)",
+      "capital": "Coral Crown test capital",
+      "regime": "absolute_monarchy",
+      "executive": "Fictional Coral stewardship council",
+      "office": "Fictional COR governing office",
+      "currency": "TEST",
+      "population": 1000000,
+      "gdp": 100000,
+      "tax": 24,
+      "services": 9,
+      "welfare": 4,
+      "energy": 80,
+      "food": 80,
+      "capacity": 70,
+      "approval": 55,
+      "longitude": 80,
+      "latitude": 30,
+      "ruling_party": "COR-1",
+      "coalition": [
+        "COR-1"
+      ],
+      "parties": [
+        {
+          "id": "COR-1",
+          "name": "Coral Crown body 1",
+          "leader": "Fictional delegate COR-1",
+          "ideology": "Authored test profile",
+          "seats": 60
+        },
+        {
+          "id": "COR-2",
+          "name": "Coral Crown body 2",
+          "leader": "Fictional delegate COR-2",
+          "ideology": "Authored test profile",
+          "seats": 40
+        }
+      ],
+      "households": [
+        {
+          "id": "workers",
+          "name": "Working households",
+          "population_share": 55,
+          "income_share": 65,
+          "savings_share": 45,
+          "working_age_share": 70
+        },
+        {
+          "id": "public",
+          "name": "Public-service households",
+          "population_share": 15,
+          "income_share": 10,
+          "savings_share": 15,
+          "working_age_share": 65
+        },
+        {
+          "id": "vulnerable",
+          "name": "Transfer-dependent households",
+          "population_share": 20,
+          "income_share": 10,
+          "savings_share": 10,
+          "working_age_share": 40
+        },
+        {
+          "id": "owners",
+          "name": "Asset-owning households",
+          "population_share": 10,
+          "income_share": 15,
+          "savings_share": 30,
+          "working_age_share": 55
+        }
+      ],
+      "government": {
+        "route": "royal_decree",
+        "threshold": 50,
+        "consent_days": 0,
+        "council_threshold": 45,
+        "leadership_review_days": 360
+      },
+      "quality": "authored_synthetic_fixture",
+      "identity_source": "synthetic-original",
+      "economic_source": "synthetic-original",
+      "governing_office": "office:COR:governing-reference"
+    }
+  ],
+  "policies": [
+    {
+      "id": "income_tax",
+      "name": "Standard private-income marginal rate",
+      "min": 10,
+      "max": 45,
+      "days": 30,
+      "cost_bps": 2,
+      "description": "Set the standard marginal reference rate for authored private-income bands. Withholding uses actual private income, representative cohort means and collection capacity; benefits and public/local wages remain outside this base. Full tax filing law and other bases are not modeled.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "services",
+      "name": "Public service budget",
+      "min": 4,
+      "max": 18,
+      "days": 60,
+      "cost_bps": 8,
+      "description": "Authorize annual service spending as a GDP percentage.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "welfare",
+      "name": "Household safety net",
+      "min": 0,
+      "max": 12,
+      "days": 30,
+      "cost_bps": 3,
+      "description": "Authorize targeted transfers as a GDP percentage.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "energy",
+      "name": "Energy capacity program",
+      "min": 1,
+      "max": 1,
+      "days": 90,
+      "cost_bps": 50,
+      "description": "Add 15 energy capacity points after implementation.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "agriculture",
+      "name": "Food resilience program",
+      "min": 1,
+      "max": 1,
+      "days": 120,
+      "cost_bps": 35,
+      "description": "Add 15 food capacity points after implementation.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "administration",
+      "name": "Civil service modernization",
+      "min": 1,
+      "max": 1,
+      "days": 180,
+      "cost_bps": 40,
+      "description": "Add 8 administration points after implementation.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "coalition",
+      "name": "Negotiate governing support",
+      "min": 1,
+      "max": 1,
+      "days": 45,
+      "cost_bps": 10,
+      "description": "Negotiate support through the configured governing route.",
+      "groups": "Fictional household and governing groups"
+    },
+    {
+      "id": "industry_agriculture",
+      "name": "Industrial biomass cultivation · capacity investment",
+      "min": 1,
+      "max": 1,
+      "days": 90,
+      "cost_bps": 100,
+      "description": "Fund one country-specific auxiliary production build step. Ordinary consent, paid construction and actual assembly packages determine operation. Added equipment works from the following day, needs maintenance and creates no extra wages or GDP.",
+      "groups": "Treasury, auxiliary producers and public service users"
+    },
+    {
+      "id": "industry_construction",
+      "name": "Prefabricated package construction · capacity investment",
+      "min": 1,
+      "max": 1,
+      "days": 90,
+      "cost_bps": 100,
+      "description": "Fund one country-specific auxiliary production build step. Ordinary consent, paid construction and actual assembly packages determine operation. Added equipment works from the following day, needs maintenance and creates no extra wages or GDP.",
+      "groups": "Treasury, auxiliary producers and public service users"
+    },
+    {
+      "id": "industry_extraction",
+      "name": "Feedstock extraction · capacity investment",
+      "min": 1,
+      "max": 1,
+      "days": 90,
+      "cost_bps": 100,
+      "description": "Fund one country-specific auxiliary production build step. Ordinary consent, paid construction and actual assembly packages determine operation. Added equipment works from the following day, needs maintenance and creates no extra wages or GDP.",
+      "groups": "Treasury, auxiliary producers and public service users"
+    },
+    {
+      "id": "industry_manufacturing",
+      "name": "Tools and material manufacture · capacity investment",
+      "min": 1,
+      "max": 1,
+      "days": 90,
+      "cost_bps": 100,
+      "description": "Fund one country-specific auxiliary production build step. Ordinary consent, paid construction and actual assembly packages determine operation. Added equipment works from the following day, needs maintenance and creates no extra wages or GDP.",
+      "groups": "Treasury, auxiliary producers and public service users"
+    },
+    {
+      "id": "industry_services",
+      "name": "Contracted public and maintenance inputs · capacity investment",
+      "min": 1,
+      "max": 1,
+      "days": 90,
+      "cost_bps": 100,
+      "description": "Fund one country-specific auxiliary production build step. Ordinary consent, paid construction and actual assembly packages determine operation. Added equipment works from the following day, needs maintenance and creates no extra wages or GDP.",
+      "groups": "Treasury, auxiliary producers and public service users"
+    },
+    {
+      "id": "retire_industry_agriculture",
+      "name": "Industrial biomass cultivation · retire added capacity",
+      "min": 1,
+      "max": 1,
+      "days": 30,
+      "cost_bps": 20,
+      "description": "Pay to retire one commissioned auxiliary equipment addition after ordinary consent and preparation. Capacity and maintenance fall the following day. No cash proceeds, refunds or returned packages; existing claims remain due. Opening equipment is protected.",
+      "groups": "Treasury, auxiliary producers and public service users"
+    },
+    {
+      "id": "retire_industry_construction",
+      "name": "Prefabricated package construction · retire added capacity",
+      "min": 1,
+      "max": 1,
+      "days": 30,
+      "cost_bps": 20,
+      "description": "Pay to retire one commissioned auxiliary equipment addition after ordinary consent and preparation. Capacity and maintenance fall the following day. No cash proceeds, refunds or returned packages; existing claims remain due. Opening equipment is protected.",
+      "groups": "Treasury, auxiliary producers and public service users"
+    },
+    {
+      "id": "retire_industry_extraction",
+      "name": "Feedstock extraction · retire added capacity",
+      "min": 1,
+      "max": 1,
+      "days": 30,
+      "cost_bps": 20,
+      "description": "Pay to retire one commissioned auxiliary equipment addition after ordinary consent and preparation. Capacity and maintenance fall the following day. No cash proceeds, refunds or returned packages; existing claims remain due. Opening equipment is protected.",
+      "groups": "Treasury, auxiliary producers and public service users"
+    },
+    {
+      "id": "retire_industry_manufacturing",
+      "name": "Tools and material manufacture · retire added capacity",
+      "min": 1,
+      "max": 1,
+      "days": 30,
+      "cost_bps": 20,
+      "description": "Pay to retire one commissioned auxiliary equipment addition after ordinary consent and preparation. Capacity and maintenance fall the following day. No cash proceeds, refunds or returned packages; existing claims remain due. Opening equipment is protected.",
+      "groups": "Treasury, auxiliary producers and public service users"
+    },
+    {
+      "id": "retire_industry_services",
+      "name": "Contracted public and maintenance inputs · retire added capacity",
+      "min": 1,
+      "max": 1,
+      "days": 30,
+      "cost_bps": 20,
+      "description": "Pay to retire one commissioned auxiliary equipment addition after ordinary consent and preparation. Capacity and maintenance fall the following day. No cash proceeds, refunds or returned packages; existing claims remain due. Opening equipment is protected.",
+      "groups": "Treasury, auxiliary producers and public service users"
+    }
+  ],
+  "rules": 37,
+  "markets": {
+    "food_budget_share_bps": 4000,
+    "source": "synthetic-original",
+    "source_version": "authored-market-v1",
+    "goods": [
+      {
+        "id": "test:power",
+        "kind": "energy",
+        "name": "Fictional energy",
+        "unit": "modeled energy unit",
+        "minimum_price_bps": 5000,
+        "maximum_price_bps": 20000,
+        "adjustment_bps": 250,
+        "import_limit_bps": 2500,
+        "storage_days": 3,
+        "loss_bps": 0
+      },
+      {
+        "id": "test:staple",
+        "kind": "food",
+        "name": "Fictional essential food",
+        "unit": "modeled food-basket unit",
+        "minimum_price_bps": 5000,
+        "maximum_price_bps": 20000,
+        "adjustment_bps": 250,
+        "import_limit_bps": 3500,
+        "storage_days": 11,
+        "loss_bps": 100
+      }
+    ]
+  },
+  "finance": {
+    "source": "authored-interest-carry-v1",
+    "source_version": "authored-interest-carry-v1",
+    "authorities": [
+      {
+        "id": "borrowing:legislature",
+        "label": "Legislative borrowing consent",
+        "route": "legislature",
+        "consent_days": 14
+      },
+      {
+        "id": "borrowing:party_council",
+        "label": "Party council borrowing consent",
+        "route": "party_council",
+        "consent_days": 21
+      },
+      {
+        "id": "borrowing:royal_decree",
+        "label": "Royal borrowing decree",
+        "route": "royal_decree",
+        "consent_days": 0
+      },
+      {
+        "id": "borrowing:religious_council",
+        "label": "Religious council borrowing consent",
+        "route": "religious_council",
+        "consent_days": 30
+      },
+      {
+        "id": "borrowing:military_council",
+        "label": "Military council borrowing consent",
+        "route": "military_council",
+        "consent_days": 7
+      },
+      {
+        "id": "borrowing:executive_decree",
+        "label": "Executive borrowing decree",
+        "route": "executive_decree",
+        "consent_days": 0
+      }
+    ],
+    "emergency": {
+      "council_threshold": 65,
+      "approval_cost": 15,
+      "legislative_cost": 20,
+      "elite_cost": 10,
+      "council_cost": 20,
+      "cooldown_days": 180
+    },
+    "maturity_days": 180,
+    "interest_accrual": "actual_365_carry"
+  },
+  "constitutions": {
+    "templates": [
+      {
+        "regime": "parliamentary",
+        "title": "parliamentary cabinet",
+        "government": {
+          "route": "legislature",
+          "threshold": 51,
+          "council_threshold": 0,
+          "consent_days": 14,
+          "leadership_review_days": null
+        }
+      },
+      {
+        "regime": "presidential",
+        "title": "presidential cabinet",
+        "government": {
+          "route": "legislature",
+          "threshold": 51,
+          "council_threshold": 0,
+          "consent_days": 21,
+          "leadership_review_days": null
+        }
+      },
+      {
+        "regime": "semi_presidential",
+        "title": "semi-presidential cabinet",
+        "government": {
+          "route": "legislature",
+          "threshold": 51,
+          "council_threshold": 0,
+          "consent_days": 21,
+          "leadership_review_days": null
+        }
+      },
+      {
+        "regime": "single_party",
+        "title": "party council",
+        "government": {
+          "route": "party_council",
+          "threshold": 55,
+          "council_threshold": 50,
+          "consent_days": 21,
+          "leadership_review_days": 180
+        }
+      },
+      {
+        "regime": "absolute_monarchy",
+        "title": "royal court",
+        "government": {
+          "route": "royal_decree",
+          "threshold": 50,
+          "council_threshold": 45,
+          "consent_days": 0,
+          "leadership_review_days": 90
+        }
+      },
+      {
+        "regime": "theocracy",
+        "title": "religious council",
+        "government": {
+          "route": "religious_council",
+          "threshold": 55,
+          "council_threshold": 55,
+          "consent_days": 30,
+          "leadership_review_days": 180
+        }
+      },
+      {
+        "regime": "personalist",
+        "title": "executive council",
+        "government": {
+          "route": "executive_decree",
+          "threshold": 50,
+          "council_threshold": 45,
+          "consent_days": 0,
+          "leadership_review_days": 90
+        }
+      },
+      {
+        "regime": "military",
+        "title": "military council",
+        "government": {
+          "route": "military_council",
+          "threshold": 55,
+          "council_threshold": 55,
+          "consent_days": 7,
+          "leadership_review_days": 90
+        }
+      }
+    ],
+    "source": "synthetic-original",
+    "source_version": "authored-transitions-v1",
+    "cooldown_days": 180,
+    "ai_targets": {
+      "BOR": "parliamentary",
+      "COR": "single_party"
+    },
+    "lawful": {
+      "days": 90,
+      "cost_bps": 50,
+      "upfront_bps": 2000,
+      "legislative_threshold": 67,
+      "elite_threshold": 75,
+      "council_threshold": 65,
+      "approval_threshold": 55,
+      "approval_cost": 3,
+      "legislative_cost": 5,
+      "elite_cost": 10,
+      "council_cost": 5
+    },
+    "contested": {
+      "days": 14,
+      "cost_bps": 100,
+      "upfront_bps": 10000,
+      "legislative_threshold": 0,
+      "elite_threshold": 80,
+      "council_threshold": 80,
+      "approval_threshold": 0,
+      "approval_cost": 20,
+      "legislative_cost": 25,
+      "elite_cost": 15,
+      "council_cost": 20
+    }
+  },
+  "commitments": {
+    "amendment_fee_bps": 1000,
+    "maximum_amendments": 3,
+    "evaluation_days": 30,
+    "source": "synthetic-original",
+    "source_version": "authored-commitments-v1"
+  },
+  "cabinet": {
+    "portfolios": [
+      {
+        "id": "portfolio:AUR:finance",
+        "country": "AUR",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:AUR:supply",
+        "country": "AUR",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture",
+          "industry_agriculture",
+          "industry_construction",
+          "industry_extraction",
+          "industry_manufacturing",
+          "industry_services",
+          "retire_industry_agriculture",
+          "retire_industry_construction",
+          "retire_industry_extraction",
+          "retire_industry_manufacturing",
+          "retire_industry_services"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:AUR:administration",
+        "country": "AUR",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:BOR:finance",
+        "country": "BOR",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:BOR:supply",
+        "country": "BOR",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture",
+          "industry_agriculture",
+          "industry_construction",
+          "industry_extraction",
+          "industry_manufacturing",
+          "industry_services",
+          "retire_industry_agriculture",
+          "retire_industry_construction",
+          "retire_industry_extraction",
+          "retire_industry_manufacturing",
+          "retire_industry_services"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:BOR:administration",
+        "country": "BOR",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:COR:finance",
+        "country": "COR",
+        "title": "Finance ministry",
+        "policies": [
+          "income_tax",
+          "services",
+          "welfare"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:COR:supply",
+        "country": "COR",
+        "title": "Supply ministry",
+        "policies": [
+          "energy",
+          "agriculture",
+          "industry_agriculture",
+          "industry_construction",
+          "industry_extraction",
+          "industry_manufacturing",
+          "industry_services",
+          "retire_industry_agriculture",
+          "retire_industry_construction",
+          "retire_industry_extraction",
+          "retire_industry_manufacturing",
+          "retire_industry_services"
+        ],
+        "minimum_skill": 50
+      },
+      {
+        "id": "portfolio:COR:administration",
+        "country": "COR",
+        "title": "Cabinet administration",
+        "policies": [
+          "administration"
+        ],
+        "minimum_skill": 50
+      }
+    ],
+    "candidates": [
+      {
+        "person": "generated:AUR:finance:professional",
+        "office": "portfolio:AUR:finance",
+        "name": "Generated AUR finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:AUR:finance:consensus",
+        "office": "portfolio:AUR:finance",
+        "name": "Generated AUR finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:AUR:supply:professional",
+        "office": "portfolio:AUR:supply",
+        "name": "Generated AUR supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:AUR:supply:consensus",
+        "office": "portfolio:AUR:supply",
+        "name": "Generated AUR supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:AUR:administration:professional",
+        "office": "portfolio:AUR:administration",
+        "name": "Generated AUR administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:AUR:administration:consensus",
+        "office": "portfolio:AUR:administration",
+        "name": "Generated AUR administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:BOR:finance:professional",
+        "office": "portfolio:BOR:finance",
+        "name": "Generated BOR finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:BOR:finance:consensus",
+        "office": "portfolio:BOR:finance",
+        "name": "Generated BOR finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:BOR:supply:professional",
+        "office": "portfolio:BOR:supply",
+        "name": "Generated BOR supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:BOR:supply:consensus",
+        "office": "portfolio:BOR:supply",
+        "name": "Generated BOR supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:BOR:administration:professional",
+        "office": "portfolio:BOR:administration",
+        "name": "Generated BOR administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:BOR:administration:consensus",
+        "office": "portfolio:BOR:administration",
+        "name": "Generated BOR administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:COR:finance:professional",
+        "office": "portfolio:COR:finance",
+        "name": "Generated COR finance professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:COR:finance:consensus",
+        "office": "portfolio:COR:finance",
+        "name": "Generated COR finance consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:COR:supply:professional",
+        "office": "portfolio:COR:supply",
+        "name": "Generated COR supply professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:COR:supply:consensus",
+        "office": "portfolio:COR:supply",
+        "name": "Generated COR supply consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      },
+      {
+        "person": "generated:COR:administration:professional",
+        "office": "portfolio:COR:administration",
+        "name": "Generated COR administration professional nominee",
+        "skill": 85,
+        "acceptability": 40
+      },
+      {
+        "person": "generated:COR:administration:consensus",
+        "office": "portfolio:COR:administration",
+        "name": "Generated COR administration consensus nominee",
+        "skill": 55,
+        "acceptability": 85
+      }
+    ],
+    "appointment_cost_bps": 2,
+    "dismissal_cost_bps": 1,
+    "cooldown_days": 90,
+    "vacancy_preparation_days": 30,
+    "source": "synthetic-original",
+    "source_version": "authored-cabinet-v1"
+  },
+  "elections": {
+    "mandates": [
+      {
+        "authority": "authority:AUR:elections",
+        "country": "AUR",
+        "title": "AUR electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:BOR:elections",
+        "country": "BOR",
+        "title": "BOR electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      },
+      {
+        "authority": "authority:COR:elections",
+        "country": "COR",
+        "title": "COR electoral authority",
+        "snap_forms": [
+          "parliamentary",
+          "semi_presidential"
+        ]
+      }
+    ],
+    "decision_days": 7,
+    "campaign_days": 60,
+    "minimum_interval_days": 365,
+    "regular_term_years": 4,
+    "administration_cost_bps": 5,
+    "source": "synthetic-original",
+    "source_version": "authored-electoral-mandates-v1"
+  },
+  "subnational": {
+    "charters": [
+      {
+        "country": "AUR",
+        "form": "decentralized_unitary",
+        "regions": [
+          {
+            "id": "region:AUR:province",
+            "authority": "authority:AUR:province",
+            "name": "Fictional AUR provincial authority",
+            "tier": "autonomous_jurisdiction",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1500,
+            "autonomous_services": true,
+            "service_level": 2
+          },
+          {
+            "id": "region:AUR:city",
+            "authority": "authority:AUR:city",
+            "name": "Fictional AUR municipal authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 500,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "BOR",
+        "form": "federation",
+        "regions": [
+          {
+            "id": "region:BOR:province",
+            "authority": "authority:BOR:province",
+            "name": "Fictional BOR provincial authority",
+            "tier": "autonomous_jurisdiction",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1500,
+            "autonomous_services": true,
+            "service_level": 2
+          },
+          {
+            "id": "region:BOR:city",
+            "authority": "authority:BOR:city",
+            "name": "Fictional BOR municipal authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 500,
+            "autonomous_services": true,
+            "service_level": 2
+          }
+        ]
+      },
+      {
+        "country": "COR",
+        "form": "delegated_unitary",
+        "regions": [
+          {
+            "id": "region:COR:province",
+            "authority": "authority:COR:province",
+            "name": "Fictional COR provincial authority",
+            "tier": "region",
+            "population_share_bps": 6000,
+            "tax_entitlement_bps": 1500,
+            "autonomous_services": false,
+            "service_level": 2
+          },
+          {
+            "id": "region:COR:city",
+            "authority": "authority:COR:city",
+            "name": "Fictional COR municipal authority",
+            "tier": "municipality",
+            "population_share_bps": 4000,
+            "tax_entitlement_bps": 500,
+            "autonomous_services": false,
+            "service_level": 2
+          }
+        ]
+      }
+    ],
+    "grant_review_days": 14,
+    "cooldown_days": 90,
+    "administration_cost_bps": 2,
+    "absorption_days": 180,
+    "source": "synthetic-original",
+    "source_version": "authored-territorial-charters-v1"
+  },
+  "territorial": {
+    "templates": [
+      {
+        "form": "federation",
+        "tax_pool_bps": 3000
+      },
+      {
+        "form": "decentralized_unitary",
+        "tax_pool_bps": 2000
+      },
+      {
+        "form": "delegated_unitary",
+        "tax_pool_bps": 1000
+      }
+    ],
+    "lawful": {
+      "days": 90,
+      "cost_bps": 50,
+      "upfront_bps": 2000,
+      "legislative_threshold": 67,
+      "elite_threshold": 75,
+      "council_threshold": 65,
+      "approval_threshold": 55,
+      "approval_cost": 3,
+      "legislative_cost": 5,
+      "elite_cost": 10,
+      "council_cost": 5
+    },
+    "contested": {
+      "days": 14,
+      "cost_bps": 100,
+      "upfront_bps": 10000,
+      "legislative_threshold": 0,
+      "elite_threshold": 80,
+      "council_threshold": 80,
+      "approval_threshold": 0,
+      "approval_cost": 20,
+      "legislative_cost": 25,
+      "elite_cost": 15,
+      "council_cost": 20
+    },
+    "cooldown_days": 180,
+    "local_consent_approval": 65,
+    "compensation_bps": 50,
+    "requisition": {
+      "administration_cost_bps": 25,
+      "elite_threshold": 80,
+      "council_threshold": 80,
+      "approval_cost": 20,
+      "legislative_cost": 20,
+      "elite_cost": 15,
+      "council_cost": 20,
+      "cooldown_days": 180
+    },
+    "ai_targets": {
+      "AUR": "federation",
+      "BOR": "decentralized_unitary",
+      "COR": "decentralized_unitary"
+    },
+    "source": "synthetic-original",
+    "source_version": "authored-territorial-reforms-v1"
+  },
+  "undertakings": {
+    "cooldown_days": 180,
+    "maximum_open": 3,
+    "source": "synthetic-original",
+    "source_version": "authored-undertakings-v1",
+    "templates": [
+      {
+        "id": "energy-pledge",
+        "name": "Public energy delivery pledge",
+        "kind": "public_pledge",
+        "policy": "energy",
+        "direction": "at_least",
+        "delta": 15,
+        "review_days": 7,
+        "deadline_days": 180,
+        "administration_cost_bps": 2,
+        "minimum_credibility": 0,
+        "elite_threshold": 0,
+        "council_threshold": 0,
+        "acceptance": {
+          "approval": 3,
+          "legislative": 0,
+          "elite": 0,
+          "council": 0
+        },
+        "breach": {
+          "approval": -8,
+          "legislative": 0,
+          "elite": 0,
+          "council": -3
+        }
+      },
+      {
+        "id": "service-agreement",
+        "name": "Governing support for a service commitment",
+        "kind": "support_agreement",
+        "policy": "services",
+        "direction": "at_least",
+        "delta": 1,
+        "review_days": 14,
+        "deadline_days": 180,
+        "administration_cost_bps": 5,
+        "minimum_credibility": 40,
+        "elite_threshold": 30,
+        "council_threshold": 30,
+        "acceptance": {
+          "approval": 0,
+          "legislative": 12,
+          "elite": 12,
+          "council": 12
+        },
+        "breach": {
+          "approval": -5,
+          "legislative": -18,
+          "elite": -18,
+          "council": -18
+        }
+      },
+      {
+        "id": "project-deadline",
+        "name": "Public deadline for an existing policy project",
+        "kind": "project_deadline",
+        "policy": null,
+        "direction": "at_least",
+        "delta": 0,
+        "review_days": 7,
+        "deadline_days": 180,
+        "administration_cost_bps": 1,
+        "minimum_credibility": 0,
+        "elite_threshold": 0,
+        "council_threshold": 0,
+        "acceptance": {
+          "approval": 0,
+          "legislative": 0,
+          "elite": 0,
+          "council": 0
+        },
+        "breach": {
+          "approval": -3,
+          "legislative": 0,
+          "elite": 0,
+          "council": 0
+        }
+      }
+    ]
+  },
+  "fiscal_plans": {
+    "review_days": 14,
+    "cooldown_days": 30,
+    "annual_window_days": 180,
+    "administration_cost_bps": 3,
+    "source": "synthetic-original",
+    "source_version": "authored-fiscal-plans-v1"
+  },
+  "income_taxes": {
+    "annualisation_days": 365,
+    "bands": [
+      {
+        "id": "exempt",
+        "lower_gdp_per_resident_bps": 0,
+        "rate_multiplier_bps": 0
+      },
+      {
+        "id": "standard",
+        "lower_gdp_per_resident_bps": 1000,
+        "rate_multiplier_bps": 10000
+      },
+      {
+        "id": "upper",
+        "lower_gdp_per_resident_bps": 7500,
+        "rate_multiplier_bps": 15000
+      },
+      {
+        "id": "top",
+        "lower_gdp_per_resident_bps": 15000,
+        "rate_multiplier_bps": 20000
+      }
+    ],
+    "source": "synthetic-original",
+    "source_version": "authored-private-income-bands-v1"
+  },
+  "cash_management": {
+    "max_target_bps": 100,
+    "max_days": 90,
+    "cooldown_days": 90,
+    "approval_cost": 3,
+    "source": "authored-temporary-cash-retention-v1",
+    "source_version": "authored-retention-v1"
+  },
+  "technologies": {
+    "definitions": [
+      {
+        "id": "grid_planning",
+        "name": "Grid planning",
+        "available_from": "2000-01-31",
+        "eligible_countries": [
+          "AUR",
+          "BOR",
+          "COR"
+        ],
+        "source": "authored-technology-eligibility-v1",
+        "source_version": "fictional-eligibility-v1"
+      },
+      {
+        "id": "agronomy",
+        "name": "Agronomic planning",
+        "available_from": "1990-01-01",
+        "eligible_countries": [
+          "AUR",
+          "BOR",
+          "COR"
+        ],
+        "source": "authored-technology-eligibility-v1",
+        "source_version": "fictional-eligibility-v1"
+      }
+    ],
+    "policy_requirements": [
+      {
+        "policy": "energy",
+        "technologies": [
+          "grid_planning"
+        ]
+      },
+      {
+        "policy": "agriculture",
+        "technologies": [
+          "agronomy"
+        ]
+      }
+    ]
+  },
+  "sovereignty": {
+    "territories": [
+      {
+        "id": "aurora_home",
+        "name": "Aurora mainland",
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "boreal_home",
+        "name": "Boreal mainland",
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "coral_home",
+        "name": "Coral mainland",
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "strait",
+        "name": "Fictional Strait Islands",
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "unrecorded",
+        "name": "Unrecorded test territory",
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      }
+    ],
+    "references": [
+      {
+        "id": "aurora_home_opening",
+        "territory": "aurora_home",
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": null
+        },
+        "sovereignty": {
+          "kind": "sovereign",
+          "country": "AUR"
+        },
+        "control": {
+          "kind": "civil_administration",
+          "country": "AUR"
+        },
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "boreal_home_opening",
+        "territory": "boreal_home",
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": null
+        },
+        "sovereignty": {
+          "kind": "sovereign",
+          "country": "BOR"
+        },
+        "control": {
+          "kind": "civil_administration",
+          "country": "BOR"
+        },
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "coral_home_opening",
+        "territory": "coral_home",
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": null
+        },
+        "sovereignty": {
+          "kind": "sovereign",
+          "country": "COR"
+        },
+        "control": {
+          "kind": "civil_administration",
+          "country": "COR"
+        },
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "strait_opening",
+        "territory": "strait",
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": "2001-01-01"
+        },
+        "sovereignty": {
+          "kind": "sovereign",
+          "country": "AUR"
+        },
+        "control": {
+          "kind": "occupation",
+          "occupier": "BOR"
+        },
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "strait_later",
+        "territory": "strait",
+        "validity": {
+          "valid_from": "2001-01-01",
+          "valid_to": null
+        },
+        "sovereignty": {
+          "kind": "disputed",
+          "claimants": [
+            "AUR",
+            "BOR"
+          ]
+        },
+        "control": {
+          "kind": "civil_administration",
+          "country": "COR"
+        },
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "unrecorded_opening",
+        "territory": "unrecorded",
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": null
+        },
+        "sovereignty": {
+          "kind": "unknown"
+        },
+        "control": {
+          "kind": "unknown"
+        },
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      }
+    ],
+    "recognition": [
+      {
+        "id": "cor_aur",
+        "observer": "COR",
+        "subject": "AUR",
+        "position": "recognized",
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": null
+        },
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "bor_aur_opening",
+        "observer": "BOR",
+        "subject": "AUR",
+        "position": "not_recognized",
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": "2001-01-01"
+        },
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "bor_aur_later",
+        "observer": "BOR",
+        "subject": "AUR",
+        "position": "recognized",
+        "validity": {
+          "valid_from": "2001-01-01",
+          "valid_to": null
+        },
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "aur_bor",
+        "observer": "AUR",
+        "subject": "BOR",
+        "position": "unknown",
+        "validity": {
+          "valid_from": "1990-01-01",
+          "valid_to": null
+        },
+        "source": "authored-sovereignty-reference-v1",
+        "source_version": "fictional-reference-v1",
+        "quality": "authored"
+      }
+    ]
+  },
+  "party_preferences": {
+    "profiles": [
+      {
+        "country": "AUR",
+        "party": "AUR-1",
+        "positions": [
+          {
+            "policy": "income_tax",
+            "importance": 3,
+            "preferred": {
+              "min": 24,
+              "max": 30
+            }
+          },
+          {
+            "policy": "services",
+            "importance": 2,
+            "preferred": {
+              "min": 7,
+              "max": 11
+            }
+          },
+          {
+            "policy": "welfare",
+            "importance": 2,
+            "preferred": {
+              "min": 3,
+              "max": 6
+            }
+          }
+        ],
+        "source": "authored-party-policy-preferences-v1",
+        "source_version": "fictional-positions-v1",
+        "quality": "authored"
+      },
+      {
+        "country": "AUR",
+        "party": "AUR-2",
+        "positions": [
+          {
+            "policy": "income_tax",
+            "importance": 3,
+            "preferred": {
+              "min": 10,
+              "max": 18
+            }
+          },
+          {
+            "policy": "services",
+            "importance": 2,
+            "preferred": {
+              "min": 4,
+              "max": 8
+            }
+          },
+          {
+            "policy": "welfare",
+            "importance": 2,
+            "preferred": {
+              "min": 0,
+              "max": 3
+            }
+          }
+        ],
+        "source": "authored-party-policy-preferences-v1",
+        "source_version": "fictional-positions-v1",
+        "quality": "authored"
+      },
+      {
+        "country": "BOR",
+        "party": "BOR-1",
+        "positions": [
+          {
+            "policy": "income_tax",
+            "importance": 3,
+            "preferred": {
+              "min": 24,
+              "max": 30
+            }
+          },
+          {
+            "policy": "services",
+            "importance": 2,
+            "preferred": {
+              "min": 7,
+              "max": 11
+            }
+          },
+          {
+            "policy": "welfare",
+            "importance": 2,
+            "preferred": {
+              "min": 3,
+              "max": 6
+            }
+          }
+        ],
+        "source": "authored-party-policy-preferences-v1",
+        "source_version": "fictional-positions-v1",
+        "quality": "authored"
+      },
+      {
+        "country": "BOR",
+        "party": "BOR-2",
+        "positions": [
+          {
+            "policy": "income_tax",
+            "importance": 3,
+            "preferred": null
+          },
+          {
+            "policy": "services",
+            "importance": 2,
+            "preferred": null
+          },
+          {
+            "policy": "welfare",
+            "importance": 2,
+            "preferred": null
+          }
+        ],
+        "source": "authored-party-policy-preferences-v1",
+        "source_version": "fictional-positions-v1",
+        "quality": "unknown"
+      },
+      {
+        "country": "COR",
+        "party": "COR-1",
+        "positions": [
+          {
+            "policy": "income_tax",
+            "importance": 3,
+            "preferred": {
+              "min": 24,
+              "max": 30
+            }
+          },
+          {
+            "policy": "services",
+            "importance": 2,
+            "preferred": {
+              "min": 7,
+              "max": 11
+            }
+          },
+          {
+            "policy": "welfare",
+            "importance": 2,
+            "preferred": {
+              "min": 3,
+              "max": 6
+            }
+          }
+        ],
+        "source": "authored-party-policy-preferences-v1",
+        "source_version": "fictional-positions-v1",
+        "quality": "authored"
+      },
+      {
+        "country": "COR",
+        "party": "COR-2",
+        "positions": [
+          {
+            "policy": "income_tax",
+            "importance": 3,
+            "preferred": {
+              "min": 10,
+              "max": 18
+            }
+          },
+          {
+            "policy": "services",
+            "importance": 2,
+            "preferred": {
+              "min": 4,
+              "max": 8
+            }
+          },
+          {
+            "policy": "welfare",
+            "importance": 2,
+            "preferred": null
+          }
+        ],
+        "source": "authored-party-policy-preferences-v1",
+        "source_version": "fictional-positions-v1",
+        "quality": "authored"
+      },
+      {
+        "country": "AUR",
+        "party": "AUR-3",
+        "positions": [
+          {
+            "policy": "income_tax",
+            "importance": 3,
+            "preferred": null
+          },
+          {
+            "policy": "services",
+            "importance": 2,
+            "preferred": null
+          },
+          {
+            "policy": "welfare",
+            "importance": 2,
+            "preferred": null
+          }
+        ],
+        "source": "authored-party-policy-preferences-v1",
+        "source_version": "fictional-positions-v1",
+        "quality": "authored"
+      }
+    ],
+    "influences": [
+      {
+        "country": "AUR",
+        "legislative_max_penalty": 20,
+        "party_leadership_max_penalty": 0
+      },
+      {
+        "country": "BOR",
+        "legislative_max_penalty": 20,
+        "party_leadership_max_penalty": 15
+      },
+      {
+        "country": "COR",
+        "legislative_max_penalty": 0,
+        "party_leadership_max_penalty": 0
+      }
+    ],
+    "source": "authored-party-policy-preferences-v1",
+    "source_version": "fictional-influence-v1"
+  },
+  "reserves": {
+    "capacity_days": 3,
+    "order_days": 90,
+    "fee_bps": 1,
+    "ai_target_days": 1,
+    "source": "authored-national-reserve-contracts-v1",
+    "source_version": "fictional-reserve-contracts-v1"
+  },
+  "legislation": {
+    "definitions": [
+      {
+        "id": "high_service_authority",
+        "name": "High-service appropriation authority",
+        "description": "New service programmes at 14% of opening GDP or higher need this enacted permission. Existing operating services are retained. Enactment grants no services, cash or physical capacity; programme funding and implementation are separate.",
+        "available_from": "2000-01-01",
+        "eligible_countries": [
+          "AUR",
+          "BOR",
+          "COR"
+        ],
+        "source": "authored-statutory-authority",
+        "source_version": "authored-statutory-v1"
+      }
+    ],
+    "policy_requirements": [
+      {
+        "policy": "services",
+        "minimum_value": 14,
+        "laws": [
+          "high_service_authority"
+        ]
+      }
+    ],
+    "cost_bps": 2,
+    "upfront_bps": 2500,
+    "implementation_days": 7,
+    "cooldown_days": 30,
+    "ai_targets": {
+      "AUR": [
+        "high_service_authority"
+      ],
+      "BOR": [
+        "high_service_authority"
+      ],
+      "COR": [
+        "high_service_authority"
+      ]
+    }
+  },
+  "identities": {
+    "people": [
+      {
+        "id": "person:AUR:opening-executive",
+        "name": "Fictional delegate AUR-1",
+        "source": "authored-live-executive-identities",
+        "source_version": "live-executive-identities-v1",
+        "quality": "authored"
+      }
+    ],
+    "offices": [
+      {
+        "id": "office:AUR:governing-reference",
+        "country": "AUR",
+        "title": "Fictional AUR governing office",
+        "role": "head_of_government",
+        "required": true,
+        "validity": {
+          "valid_from": "2000-01-01",
+          "valid_to": null
+        },
+        "source": "authored-live-executive-identities",
+        "source_version": "live-executive-identities-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "office:BOR:governing-reference",
+        "country": "BOR",
+        "title": "Fictional BOR governing office",
+        "role": "head_of_government",
+        "required": false,
+        "validity": {
+          "valid_from": "2000-01-01",
+          "valid_to": null
+        },
+        "source": "authored-live-executive-identities",
+        "source_version": "live-executive-identities-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "office:COR:governing-reference",
+        "country": "COR",
+        "title": "Fictional COR governing office",
+        "role": "council",
+        "required": true,
+        "validity": {
+          "valid_from": "2000-01-01",
+          "valid_to": null
+        },
+        "source": "authored-live-executive-identities",
+        "source_version": "live-executive-identities-v1",
+        "quality": "authored"
+      }
+    ],
+    "terms": [
+      {
+        "id": "term:AUR:opening-executive",
+        "office": "office:AUR:governing-reference",
+        "holder": {
+          "kind": "person",
+          "person": "person:AUR:opening-executive"
+        },
+        "validity": {
+          "valid_from": "2000-01-01",
+          "valid_to": null
+        },
+        "source": "authored-live-executive-identities",
+        "source_version": "live-executive-identities-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "term:COR:opening-executive",
+        "office": "office:COR:governing-reference",
+        "holder": {
+          "kind": "collective",
+          "name": "Fictional Coral stewardship council",
+          "members": []
+        },
+        "validity": {
+          "valid_from": "2000-01-01",
+          "valid_to": null
+        },
+        "source": "authored-live-executive-identities",
+        "source_version": "live-executive-identities-v1",
+        "quality": "authored"
+      }
+    ],
+    "currencies": []
+  },
+  "executive_identities": {
+    "opening_offices": {
+      "AUR": "office:AUR:governing-reference",
+      "BOR": "office:BOR:governing-reference",
+      "COR": "office:COR:governing-reference"
+    },
+    "initial_collectives": {
+      "COR": "reference:COR:opening-governing-body"
+    },
+    "retained_closed_tenures": 128,
+    "source": "authored-live-executive-identities",
+    "source_version": "live-executive-identities-v1"
+  },
+  "governing_institutions": {
+    "institutions": [
+      {
+        "id": "institution:AUR:legislature",
+        "country": "AUR",
+        "name": "Modeled national legislature · Aurora Republic (fictional)",
+        "role": "legislature",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:AUR:party_council",
+        "country": "AUR",
+        "name": "Modeled party leadership council · Aurora Republic (fictional)",
+        "role": "party_council",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:AUR:royal_decree",
+        "country": "AUR",
+        "name": "Modeled royal authority · Aurora Republic (fictional)",
+        "role": "royal_decree",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:AUR:religious_council",
+        "country": "AUR",
+        "name": "Modeled religious council · Aurora Republic (fictional)",
+        "role": "religious_council",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:AUR:military_council",
+        "country": "AUR",
+        "name": "Modeled military council · Aurora Republic (fictional)",
+        "role": "military_council",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:AUR:executive_decree",
+        "country": "AUR",
+        "name": "Modeled executive authority · Aurora Republic (fictional)",
+        "role": "executive_decree",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:AUR:consultative_council",
+        "country": "AUR",
+        "name": "Modeled consultative council · Aurora Republic (fictional)",
+        "role": "consultative_council",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:BOR:legislature",
+        "country": "BOR",
+        "name": "Modeled national legislature · Boreal Union (fictional)",
+        "role": "legislature",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:BOR:party_council",
+        "country": "BOR",
+        "name": "Modeled party leadership council · Boreal Union (fictional)",
+        "role": "party_council",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:BOR:royal_decree",
+        "country": "BOR",
+        "name": "Modeled royal authority · Boreal Union (fictional)",
+        "role": "royal_decree",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:BOR:religious_council",
+        "country": "BOR",
+        "name": "Modeled religious council · Boreal Union (fictional)",
+        "role": "religious_council",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:BOR:military_council",
+        "country": "BOR",
+        "name": "Modeled military council · Boreal Union (fictional)",
+        "role": "military_council",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:BOR:executive_decree",
+        "country": "BOR",
+        "name": "Modeled executive authority · Boreal Union (fictional)",
+        "role": "executive_decree",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:BOR:consultative_council",
+        "country": "BOR",
+        "name": "Modeled consultative council · Boreal Union (fictional)",
+        "role": "consultative_council",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:COR:legislature",
+        "country": "COR",
+        "name": "Modeled national legislature · Coral Crown (fictional)",
+        "role": "legislature",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:COR:party_council",
+        "country": "COR",
+        "name": "Modeled party leadership council · Coral Crown (fictional)",
+        "role": "party_council",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:COR:royal_decree",
+        "country": "COR",
+        "name": "Modeled royal authority · Coral Crown (fictional)",
+        "role": "royal_decree",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:COR:religious_council",
+        "country": "COR",
+        "name": "Modeled religious council · Coral Crown (fictional)",
+        "role": "religious_council",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:COR:military_council",
+        "country": "COR",
+        "name": "Modeled military council · Coral Crown (fictional)",
+        "role": "military_council",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:COR:executive_decree",
+        "country": "COR",
+        "name": "Modeled executive authority · Coral Crown (fictional)",
+        "role": "executive_decree",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      },
+      {
+        "id": "institution:COR:consultative_council",
+        "country": "COR",
+        "name": "Modeled consultative council · Coral Crown (fictional)",
+        "role": "consultative_council",
+        "source": "authored-governing-institutions",
+        "source_version": "governing-institutions-v1",
+        "quality": "authored"
+      }
+    ],
+    "bindings": [
+      {
+        "country": "AUR",
+        "route": "legislature",
+        "primary": "institution:AUR:legislature",
+        "council": "institution:AUR:consultative_council"
+      },
+      {
+        "country": "AUR",
+        "route": "party_council",
+        "primary": "institution:AUR:party_council",
+        "council": "institution:AUR:consultative_council"
+      },
+      {
+        "country": "AUR",
+        "route": "royal_decree",
+        "primary": "institution:AUR:royal_decree",
+        "council": "institution:AUR:consultative_council"
+      },
+      {
+        "country": "AUR",
+        "route": "religious_council",
+        "primary": "institution:AUR:religious_council",
+        "council": "institution:AUR:consultative_council"
+      },
+      {
+        "country": "AUR",
+        "route": "military_council",
+        "primary": "institution:AUR:military_council",
+        "council": "institution:AUR:consultative_council"
+      },
+      {
+        "country": "AUR",
+        "route": "executive_decree",
+        "primary": "institution:AUR:executive_decree",
+        "council": "institution:AUR:consultative_council"
+      },
+      {
+        "country": "BOR",
+        "route": "legislature",
+        "primary": "institution:BOR:legislature",
+        "council": "institution:BOR:consultative_council"
+      },
+      {
+        "country": "BOR",
+        "route": "party_council",
+        "primary": "institution:BOR:party_council",
+        "council": "institution:BOR:consultative_council"
+      },
+      {
+        "country": "BOR",
+        "route": "royal_decree",
+        "primary": "institution:BOR:royal_decree",
+        "council": "institution:BOR:consultative_council"
+      },
+      {
+        "country": "BOR",
+        "route": "religious_council",
+        "primary": "institution:BOR:religious_council",
+        "council": "institution:BOR:consultative_council"
+      },
+      {
+        "country": "BOR",
+        "route": "military_council",
+        "primary": "institution:BOR:military_council",
+        "council": "institution:BOR:consultative_council"
+      },
+      {
+        "country": "BOR",
+        "route": "executive_decree",
+        "primary": "institution:BOR:executive_decree",
+        "council": "institution:BOR:consultative_council"
+      },
+      {
+        "country": "COR",
+        "route": "legislature",
+        "primary": "institution:COR:legislature",
+        "council": "institution:COR:consultative_council"
+      },
+      {
+        "country": "COR",
+        "route": "party_council",
+        "primary": "institution:COR:party_council",
+        "council": "institution:COR:consultative_council"
+      },
+      {
+        "country": "COR",
+        "route": "royal_decree",
+        "primary": "institution:COR:royal_decree",
+        "council": "institution:COR:consultative_council"
+      },
+      {
+        "country": "COR",
+        "route": "religious_council",
+        "primary": "institution:COR:religious_council",
+        "council": "institution:COR:consultative_council"
+      },
+      {
+        "country": "COR",
+        "route": "military_council",
+        "primary": "institution:COR:military_council",
+        "council": "institution:COR:consultative_council"
+      },
+      {
+        "country": "COR",
+        "route": "executive_decree",
+        "primary": "institution:COR:executive_decree",
+        "council": "institution:COR:consultative_council"
+      }
+    ]
+  },
+  "demographics": {
+    "source": "authored-demographic-balances",
+    "source_version": "demographic-balances-v1",
+    "description": "Optional authored demographic exercise: every country uses the same coarse birth, mortality, age-split, family-formation and statistical-capacity assumptions. These are not historical national vital statistics, census quality rankings or migration estimates. Aggregate household units create no dwellings or wealth. Working age is not employment. Production and import capacity remain tied to opening physical need; new residents increase civilian demand without creating capacity. GDP remains an opening calibration. Migration moves residents between country/cohort stocks, without transferring pooled group cash, assets or arrears. Pooled claims and already-funded local financial obligations remain payable even if a cohort becomes empty; those transfers do not certify staffing or actual service delivery. Regional placement, housing constraints, individual labor mobility, inheritance and endogenous fertility remain unfinished.",
+    "profiles": {
+      "AUR": {
+        "workers": {
+          "rates": {
+            "birth_per_working_age_bps": 300,
+            "young_mortality_bps": 50,
+            "working_mortality_bps": 60,
+            "older_mortality_bps": 450,
+            "household_target_bps": 6500,
+            "household_formation_bps": 800,
+            "household_dissolution_bps": 600
+          },
+          "young_share_of_dependants_bps": 6000,
+          "initial_households_per_person_bps": 3000
+        },
+        "public": {
+          "rates": {
+            "birth_per_working_age_bps": 300,
+            "young_mortality_bps": 50,
+            "working_mortality_bps": 60,
+            "older_mortality_bps": 450,
+            "household_target_bps": 6500,
+            "household_formation_bps": 800,
+            "household_dissolution_bps": 600
+          },
+          "young_share_of_dependants_bps": 6000,
+          "initial_households_per_person_bps": 3000
+        },
+        "vulnerable": {
+          "rates": {
+            "birth_per_working_age_bps": 300,
+            "young_mortality_bps": 50,
+            "working_mortality_bps": 60,
+            "older_mortality_bps": 450,
+            "household_target_bps": 6500,
+            "household_formation_bps": 800,
+            "household_dissolution_bps": 600
+          },
+          "young_share_of_dependants_bps": 6000,
+          "initial_households_per_person_bps": 3000
+        },
+        "owners": {
+          "rates": {
+            "birth_per_working_age_bps": 300,
+            "young_mortality_bps": 50,
+            "working_mortality_bps": 60,
+            "older_mortality_bps": 450,
+            "household_target_bps": 6500,
+            "household_formation_bps": 800,
+            "household_dissolution_bps": 600
+          },
+          "young_share_of_dependants_bps": 6000,
+          "initial_households_per_person_bps": 3000
+        }
+      },
+      "BOR": {
+        "workers": {
+          "rates": {
+            "birth_per_working_age_bps": 300,
+            "young_mortality_bps": 50,
+            "working_mortality_bps": 60,
+            "older_mortality_bps": 450,
+            "household_target_bps": 6500,
+            "household_formation_bps": 800,
+            "household_dissolution_bps": 600
+          },
+          "young_share_of_dependants_bps": 6000,
+          "initial_households_per_person_bps": 3000
+        },
+        "public": {
+          "rates": {
+            "birth_per_working_age_bps": 300,
+            "young_mortality_bps": 50,
+            "working_mortality_bps": 60,
+            "older_mortality_bps": 450,
+            "household_target_bps": 6500,
+            "household_formation_bps": 800,
+            "household_dissolution_bps": 600
+          },
+          "young_share_of_dependants_bps": 6000,
+          "initial_households_per_person_bps": 3000
+        },
+        "vulnerable": {
+          "rates": {
+            "birth_per_working_age_bps": 300,
+            "young_mortality_bps": 50,
+            "working_mortality_bps": 60,
+            "older_mortality_bps": 450,
+            "household_target_bps": 6500,
+            "household_formation_bps": 800,
+            "household_dissolution_bps": 600
+          },
+          "young_share_of_dependants_bps": 6000,
+          "initial_households_per_person_bps": 3000
+        },
+        "owners": {
+          "rates": {
+            "birth_per_working_age_bps": 300,
+            "young_mortality_bps": 50,
+            "working_mortality_bps": 60,
+            "older_mortality_bps": 450,
+            "household_target_bps": 6500,
+            "household_formation_bps": 800,
+            "household_dissolution_bps": 600
+          },
+          "young_share_of_dependants_bps": 6000,
+          "initial_households_per_person_bps": 3000
+        }
+      },
+      "COR": {
+        "workers": {
+          "rates": {
+            "birth_per_working_age_bps": 300,
+            "young_mortality_bps": 50,
+            "working_mortality_bps": 60,
+            "older_mortality_bps": 450,
+            "household_target_bps": 6500,
+            "household_formation_bps": 800,
+            "household_dissolution_bps": 600
+          },
+          "young_share_of_dependants_bps": 6000,
+          "initial_households_per_person_bps": 3000
+        },
+        "public": {
+          "rates": {
+            "birth_per_working_age_bps": 300,
+            "young_mortality_bps": 50,
+            "working_mortality_bps": 60,
+            "older_mortality_bps": 450,
+            "household_target_bps": 6500,
+            "household_formation_bps": 800,
+            "household_dissolution_bps": 600
+          },
+          "young_share_of_dependants_bps": 6000,
+          "initial_households_per_person_bps": 3000
+        },
+        "vulnerable": {
+          "rates": {
+            "birth_per_working_age_bps": 300,
+            "young_mortality_bps": 50,
+            "working_mortality_bps": 60,
+            "older_mortality_bps": 450,
+            "household_target_bps": 6500,
+            "household_formation_bps": 800,
+            "household_dissolution_bps": 600
+          },
+          "young_share_of_dependants_bps": 6000,
+          "initial_households_per_person_bps": 3000
+        },
+        "owners": {
+          "rates": {
+            "birth_per_working_age_bps": 300,
+            "young_mortality_bps": 50,
+            "working_mortality_bps": 60,
+            "older_mortality_bps": 450,
+            "household_target_bps": 6500,
+            "household_formation_bps": 800,
+            "household_dissolution_bps": 600
+          },
+          "young_share_of_dependants_bps": 6000,
+          "initial_households_per_person_bps": 3000
+        }
+      }
+    },
+    "corridors": [
+      {
+        "id": "authored-aur-bor",
+        "origin": {
+          "country": "AUR",
+          "group": "workers"
+        },
+        "destination": {
+          "country": "BOR",
+          "group": "workers"
+        },
+        "annual_people": 120
+      },
+      {
+        "id": "authored-bor-aur",
+        "origin": {
+          "country": "BOR",
+          "group": "workers"
+        },
+        "destination": {
+          "country": "AUR",
+          "group": "workers"
+        },
+        "annual_people": 120
+      }
+    ],
+    "statistical_capacities": {
+      "AUR": 90,
+      "BOR": 90,
+      "COR": 90
+    },
+    "census_days": 30,
+    "maximum_capacity": 400
+  },
+  "social_memberships": {
+    "source": "authored-overlapping-memberships",
+    "source_version": "overlapping-memberships-v1",
+    "description": "Authored cross-sectional joint membership profiles, not historical national prevalence, individual identity histories or records about real residents. Disjoint age/employment scopes prevent double-counting people. The employment membership reproduces existing modeled jobs; membership grants no cash, votes, powers or programme exemptions. Joint shares are explicitly configured, without assuming independent memberships. Parent/carer membership uses the model's 15+ bands, not a claim about legal adulthood. Union membership in this exercise is limited to modeled employed residents; retiree/other union membership and longitudinal joining/leaving remain unfinished. These common assumptions are shared across countries and economic cohorts.",
+    "catalogue": {
+      "groups": {
+        "employment": {
+          "id": "employment",
+          "name": "Employed residents",
+          "description": "All residents holding a modeled job, exactly matching existing paid employment. This grants no additional income or votes."
+        },
+        "parents": {
+          "id": "parents",
+          "name": "Parents and carers (15+ model)",
+          "description": "An authored parent/carer overlay in the model's 15+ bands, without claims about legal adulthood, individual relationships or national prevalence."
+        },
+        "union": {
+          "id": "union",
+          "name": "Union members",
+          "description": "An authored overlay among modeled employed residents. It grants no organisation powers, legal recognition, votes or programme exemptions."
+        },
+        "faith": {
+          "id": "faith",
+          "name": "Faith community members",
+          "description": "An authored nonexclusive overlay across age bands, without claims about one unified religious organisation or historical national prevalence."
+        }
+      },
+      "eligibility": {
+        "employment": "employed_resident",
+        "parents": "age_fifteen_plus",
+        "union": "employed_resident",
+        "faith": "any_resident"
+      },
+      "employment_group": "employment"
+    },
+    "profiles": {
+      "AUR": {
+        "workers": {
+          "young": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 5000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 5000
+              }
+            ]
+          },
+          "working_employed": {
+            "cells": [
+              {
+                "id": "job_only",
+                "memberships": [
+                  "employment"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_parent",
+                "memberships": [
+                  "employment",
+                  "parents"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_union",
+                "memberships": [
+                  "employment",
+                  "union"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_faith",
+                "memberships": [
+                  "employment",
+                  "faith"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_parent_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "union"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_parent_union",
+                "memberships": [
+                  "employment",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              },
+              {
+                "id": "job_parent_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              }
+            ]
+          },
+          "working_other": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2500
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 2500
+              }
+            ]
+          },
+          "older": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2000
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 3000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 3000
+              }
+            ]
+          }
+        },
+        "public": {
+          "young": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 5000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 5000
+              }
+            ]
+          },
+          "working_employed": {
+            "cells": [
+              {
+                "id": "job_only",
+                "memberships": [
+                  "employment"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_parent",
+                "memberships": [
+                  "employment",
+                  "parents"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_union",
+                "memberships": [
+                  "employment",
+                  "union"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_faith",
+                "memberships": [
+                  "employment",
+                  "faith"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_parent_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "union"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_parent_union",
+                "memberships": [
+                  "employment",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              },
+              {
+                "id": "job_parent_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              }
+            ]
+          },
+          "working_other": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2500
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 2500
+              }
+            ]
+          },
+          "older": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2000
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 3000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 3000
+              }
+            ]
+          }
+        },
+        "vulnerable": {
+          "young": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 5000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 5000
+              }
+            ]
+          },
+          "working_employed": {
+            "cells": [
+              {
+                "id": "job_only",
+                "memberships": [
+                  "employment"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_parent",
+                "memberships": [
+                  "employment",
+                  "parents"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_union",
+                "memberships": [
+                  "employment",
+                  "union"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_faith",
+                "memberships": [
+                  "employment",
+                  "faith"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_parent_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "union"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_parent_union",
+                "memberships": [
+                  "employment",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              },
+              {
+                "id": "job_parent_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              }
+            ]
+          },
+          "working_other": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2500
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 2500
+              }
+            ]
+          },
+          "older": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2000
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 3000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 3000
+              }
+            ]
+          }
+        },
+        "owners": {
+          "young": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 5000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 5000
+              }
+            ]
+          },
+          "working_employed": {
+            "cells": [
+              {
+                "id": "job_only",
+                "memberships": [
+                  "employment"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_parent",
+                "memberships": [
+                  "employment",
+                  "parents"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_union",
+                "memberships": [
+                  "employment",
+                  "union"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_faith",
+                "memberships": [
+                  "employment",
+                  "faith"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_parent_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "union"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_parent_union",
+                "memberships": [
+                  "employment",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              },
+              {
+                "id": "job_parent_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              }
+            ]
+          },
+          "working_other": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2500
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 2500
+              }
+            ]
+          },
+          "older": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2000
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 3000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 3000
+              }
+            ]
+          }
+        }
+      },
+      "BOR": {
+        "workers": {
+          "young": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 5000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 5000
+              }
+            ]
+          },
+          "working_employed": {
+            "cells": [
+              {
+                "id": "job_only",
+                "memberships": [
+                  "employment"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_parent",
+                "memberships": [
+                  "employment",
+                  "parents"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_union",
+                "memberships": [
+                  "employment",
+                  "union"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_faith",
+                "memberships": [
+                  "employment",
+                  "faith"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_parent_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "union"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_parent_union",
+                "memberships": [
+                  "employment",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              },
+              {
+                "id": "job_parent_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              }
+            ]
+          },
+          "working_other": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2500
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 2500
+              }
+            ]
+          },
+          "older": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2000
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 3000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 3000
+              }
+            ]
+          }
+        },
+        "public": {
+          "young": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 5000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 5000
+              }
+            ]
+          },
+          "working_employed": {
+            "cells": [
+              {
+                "id": "job_only",
+                "memberships": [
+                  "employment"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_parent",
+                "memberships": [
+                  "employment",
+                  "parents"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_union",
+                "memberships": [
+                  "employment",
+                  "union"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_faith",
+                "memberships": [
+                  "employment",
+                  "faith"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_parent_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "union"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_parent_union",
+                "memberships": [
+                  "employment",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              },
+              {
+                "id": "job_parent_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              }
+            ]
+          },
+          "working_other": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2500
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 2500
+              }
+            ]
+          },
+          "older": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2000
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 3000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 3000
+              }
+            ]
+          }
+        },
+        "vulnerable": {
+          "young": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 5000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 5000
+              }
+            ]
+          },
+          "working_employed": {
+            "cells": [
+              {
+                "id": "job_only",
+                "memberships": [
+                  "employment"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_parent",
+                "memberships": [
+                  "employment",
+                  "parents"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_union",
+                "memberships": [
+                  "employment",
+                  "union"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_faith",
+                "memberships": [
+                  "employment",
+                  "faith"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_parent_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "union"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_parent_union",
+                "memberships": [
+                  "employment",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              },
+              {
+                "id": "job_parent_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              }
+            ]
+          },
+          "working_other": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2500
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 2500
+              }
+            ]
+          },
+          "older": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2000
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 3000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 3000
+              }
+            ]
+          }
+        },
+        "owners": {
+          "young": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 5000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 5000
+              }
+            ]
+          },
+          "working_employed": {
+            "cells": [
+              {
+                "id": "job_only",
+                "memberships": [
+                  "employment"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_parent",
+                "memberships": [
+                  "employment",
+                  "parents"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_union",
+                "memberships": [
+                  "employment",
+                  "union"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_faith",
+                "memberships": [
+                  "employment",
+                  "faith"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_parent_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "union"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_parent_union",
+                "memberships": [
+                  "employment",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              },
+              {
+                "id": "job_parent_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              }
+            ]
+          },
+          "working_other": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2500
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 2500
+              }
+            ]
+          },
+          "older": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2000
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 3000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 3000
+              }
+            ]
+          }
+        }
+      },
+      "COR": {
+        "workers": {
+          "young": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 5000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 5000
+              }
+            ]
+          },
+          "working_employed": {
+            "cells": [
+              {
+                "id": "job_only",
+                "memberships": [
+                  "employment"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_parent",
+                "memberships": [
+                  "employment",
+                  "parents"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_union",
+                "memberships": [
+                  "employment",
+                  "union"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_faith",
+                "memberships": [
+                  "employment",
+                  "faith"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_parent_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "union"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_parent_union",
+                "memberships": [
+                  "employment",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              },
+              {
+                "id": "job_parent_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              }
+            ]
+          },
+          "working_other": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2500
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 2500
+              }
+            ]
+          },
+          "older": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2000
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 3000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 3000
+              }
+            ]
+          }
+        },
+        "public": {
+          "young": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 5000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 5000
+              }
+            ]
+          },
+          "working_employed": {
+            "cells": [
+              {
+                "id": "job_only",
+                "memberships": [
+                  "employment"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_parent",
+                "memberships": [
+                  "employment",
+                  "parents"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_union",
+                "memberships": [
+                  "employment",
+                  "union"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_faith",
+                "memberships": [
+                  "employment",
+                  "faith"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_parent_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "union"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_parent_union",
+                "memberships": [
+                  "employment",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              },
+              {
+                "id": "job_parent_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              }
+            ]
+          },
+          "working_other": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2500
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 2500
+              }
+            ]
+          },
+          "older": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2000
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 3000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 3000
+              }
+            ]
+          }
+        },
+        "vulnerable": {
+          "young": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 5000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 5000
+              }
+            ]
+          },
+          "working_employed": {
+            "cells": [
+              {
+                "id": "job_only",
+                "memberships": [
+                  "employment"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_parent",
+                "memberships": [
+                  "employment",
+                  "parents"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_union",
+                "memberships": [
+                  "employment",
+                  "union"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_faith",
+                "memberships": [
+                  "employment",
+                  "faith"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_parent_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "union"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_parent_union",
+                "memberships": [
+                  "employment",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              },
+              {
+                "id": "job_parent_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              }
+            ]
+          },
+          "working_other": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2500
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 2500
+              }
+            ]
+          },
+          "older": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2000
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 3000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 3000
+              }
+            ]
+          }
+        },
+        "owners": {
+          "young": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 5000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 5000
+              }
+            ]
+          },
+          "working_employed": {
+            "cells": [
+              {
+                "id": "job_only",
+                "memberships": [
+                  "employment"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_parent",
+                "memberships": [
+                  "employment",
+                  "parents"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "job_union",
+                "memberships": [
+                  "employment",
+                  "union"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_faith",
+                "memberships": [
+                  "employment",
+                  "faith"
+                ],
+                "share": 1500
+              },
+              {
+                "id": "job_parent_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "union"
+                ],
+                "share": 1000
+              },
+              {
+                "id": "job_parent_union",
+                "memberships": [
+                  "employment",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              },
+              {
+                "id": "job_parent_union_faith",
+                "memberships": [
+                  "employment",
+                  "faith",
+                  "parents",
+                  "union"
+                ],
+                "share": 500
+              }
+            ]
+          },
+          "working_other": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2500
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2500
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 2500
+              }
+            ]
+          },
+          "older": {
+            "cells": [
+              {
+                "id": "unaffiliated",
+                "memberships": [],
+                "share": 2000
+              },
+              {
+                "id": "parents",
+                "memberships": [
+                  "parents"
+                ],
+                "share": 3000
+              },
+              {
+                "id": "faith",
+                "memberships": [
+                  "faith"
+                ],
+                "share": 2000
+              },
+              {
+                "id": "parents_faith",
+                "memberships": [
+                  "faith",
+                  "parents"
+                ],
+                "share": 3000
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "production": {
+    "source": "authored-auxiliary-production",
+    "source_version": "auxiliary-production-v1",
+    "description": "Authored auxiliary infrastructure network, not historical national sector output, deposits, asset holdings or productivity observations. Agriculture supplies industrial biomass; extraction supplies finite-deposit feedstocks and industrial fuel; manufacturing supplies tools and materials; construction supplies storable prefabricated assembly packages, not stored worker-hours; services supply nonstorable contracted inputs. These goods are distinct from national civilian Food/Energy. Paid programmes consume packages and funded public/maintenance services require actual inputs. A bounded share of live employed workers is reserved for this network and limited by actual private income paid; remaining workers belong to the older abstract civilian economy. Common stock targets, recipes, productivity and opening maintained-equipment readiness are scenario assumptions. Broader labor, private investment and product markets remain unfinished.",
+    "framework": {
+      "source": "authored-auxiliary-production",
+      "source_version": "auxiliary-production-v1",
+      "description": "Authored auxiliary infrastructure network, not historical national sector output, deposits, asset holdings or productivity observations. Agriculture supplies industrial biomass; extraction supplies finite-deposit feedstocks and industrial fuel; manufacturing supplies tools and materials; construction supplies storable prefabricated assembly packages, not stored worker-hours; services supply nonstorable contracted inputs. These goods are distinct from national civilian Food/Energy. Paid programmes consume packages and funded public/maintenance services require actual inputs. A bounded share of live employed workers is reserved for this network and limited by actual private income paid; remaining workers belong to the older abstract civilian economy. Common stock targets, recipes, productivity and opening maintained-equipment readiness are scenario assumptions. Broader labor, private investment and product markets remain unfinished.",
+      "goods": {
+        "deposits": {
+          "name": "Mineral feedstock deposits",
+          "unit": "authored deposits unit"
+        },
+        "biomass": {
+          "name": "Industrial biomass",
+          "unit": "authored biomass unit"
+        },
+        "industrial_fuel": {
+          "name": "Industrial fuel",
+          "unit": "authored industrial fuel unit"
+        },
+        "raw_materials": {
+          "name": "Raw materials",
+          "unit": "authored raw materials unit"
+        },
+        "tools": {
+          "name": "Consumable tool supplies",
+          "unit": "authored tools unit"
+        },
+        "construction_materials": {
+          "name": "Construction materials",
+          "unit": "authored construction materials unit"
+        },
+        "assembly_packages": {
+          "name": "Prefabricated assembly packages",
+          "unit": "authored assembly packages unit"
+        },
+        "contracted_services": {
+          "name": "Contracted service inputs",
+          "unit": "authored contracted services unit"
+        }
+      },
+      "capital_kinds": [
+        "equipment"
+      ],
+      "sectors": {
+        "agriculture": {
+          "name": "Industrial biomass cultivation",
+          "industry": "agriculture",
+          "priority": 3,
+          "labor_per_batch": 1,
+          "capital_per_batch": {
+            "equipment": 1
+          },
+          "inputs_per_batch": {
+            "industrial_fuel": 1,
+            "tools": 1
+          },
+          "outputs_per_batch": {
+            "biomass": 10
+          }
+        },
+        "extraction": {
+          "name": "Feedstock extraction",
+          "industry": "extraction",
+          "priority": 1,
+          "labor_per_batch": 1,
+          "capital_per_batch": {
+            "equipment": 1
+          },
+          "inputs_per_batch": {
+            "deposits": 1,
+            "industrial_fuel": 1,
+            "tools": 1
+          },
+          "outputs_per_batch": {
+            "raw_materials": 10,
+            "industrial_fuel": 10
+          }
+        },
+        "manufacturing": {
+          "name": "Tools and material manufacture",
+          "industry": "manufacturing",
+          "priority": 2,
+          "labor_per_batch": 1,
+          "capital_per_batch": {
+            "equipment": 1
+          },
+          "inputs_per_batch": {
+            "biomass": 1,
+            "raw_materials": 1,
+            "industrial_fuel": 1
+          },
+          "outputs_per_batch": {
+            "tools": 10,
+            "construction_materials": 10
+          }
+        },
+        "construction": {
+          "name": "Prefabricated package construction",
+          "industry": "construction",
+          "priority": 4,
+          "labor_per_batch": 1,
+          "capital_per_batch": {
+            "equipment": 1
+          },
+          "inputs_per_batch": {
+            "construction_materials": 1,
+            "tools": 1,
+            "industrial_fuel": 1
+          },
+          "outputs_per_batch": {
+            "assembly_packages": 10
+          }
+        },
+        "services": {
+          "name": "Contracted public and maintenance inputs",
+          "industry": "services",
+          "priority": 0,
+          "labor_per_batch": 1,
+          "capital_per_batch": {
+            "equipment": 1
+          },
+          "inputs_per_batch": {
+            "tools": 1,
+            "industrial_fuel": 1
+          },
+          "outputs_per_batch": {
+            "contracted_services": 10
+          }
+        }
+      }
+    },
+    "assembly_good": "assembly_packages",
+    "service_good": "contracted_services",
+    "service_sector": "services",
+    "worker_share": 2000,
+    "construction_policy_weights": {
+      "energy": 100,
+      "agriculture": 80,
+      "administration": 40,
+      "industry_agriculture": 20,
+      "industry_construction": 20,
+      "industry_extraction": 20,
+      "industry_manufacturing": 20,
+      "industry_services": 20
+    },
+    "countries": {
+      "AUR": {
+        "labor_requirement_multiplier": 6946,
+        "installed": {
+          "agriculture": 1,
+          "extraction": 1,
+          "manufacturing": 1,
+          "construction": 1,
+          "services": 4
+        },
+        "capital": {
+          "equipment": 8
+        },
+        "stocks": {
+          "deposits": 365250000,
+          "biomass": 200,
+          "industrial_fuel": 200,
+          "raw_materials": 200,
+          "tools": 200,
+          "construction_materials": 200,
+          "assembly_packages": 0,
+          "contracted_services": 0
+        },
+        "storage": {
+          "deposits": {
+            "capacity": 365250000,
+            "loss_bps": 0
+          },
+          "biomass": {
+            "capacity": 300,
+            "loss_bps": 100
+          },
+          "industrial_fuel": {
+            "capacity": 300,
+            "loss_bps": 0
+          },
+          "raw_materials": {
+            "capacity": 300,
+            "loss_bps": 0
+          },
+          "tools": {
+            "capacity": 300,
+            "loss_bps": 50
+          },
+          "construction_materials": {
+            "capacity": 300,
+            "loss_bps": 0
+          },
+          "assembly_packages": {
+            "capacity": 300,
+            "loss_bps": 0
+          },
+          "contracted_services": {
+            "capacity": 0,
+            "loss_bps": 0
+          }
+        },
+        "service_units_per_percent": 1,
+        "maintenance_units_per_step": 1,
+        "construction_unit": 1
+      },
+      "BOR": {
+        "labor_requirement_multiplier": 6946,
+        "installed": {
+          "agriculture": 1,
+          "extraction": 1,
+          "manufacturing": 1,
+          "construction": 1,
+          "services": 4
+        },
+        "capital": {
+          "equipment": 8
+        },
+        "stocks": {
+          "deposits": 365250000,
+          "biomass": 200,
+          "industrial_fuel": 200,
+          "raw_materials": 200,
+          "tools": 200,
+          "construction_materials": 200,
+          "assembly_packages": 0,
+          "contracted_services": 0
+        },
+        "storage": {
+          "deposits": {
+            "capacity": 365250000,
+            "loss_bps": 0
+          },
+          "biomass": {
+            "capacity": 300,
+            "loss_bps": 100
+          },
+          "industrial_fuel": {
+            "capacity": 300,
+            "loss_bps": 0
+          },
+          "raw_materials": {
+            "capacity": 300,
+            "loss_bps": 0
+          },
+          "tools": {
+            "capacity": 300,
+            "loss_bps": 50
+          },
+          "construction_materials": {
+            "capacity": 300,
+            "loss_bps": 0
+          },
+          "assembly_packages": {
+            "capacity": 300,
+            "loss_bps": 0
+          },
+          "contracted_services": {
+            "capacity": 0,
+            "loss_bps": 0
+          }
+        },
+        "service_units_per_percent": 1,
+        "maintenance_units_per_step": 1,
+        "construction_unit": 1
+      },
+      "COR": {
+        "labor_requirement_multiplier": 6946,
+        "installed": {
+          "agriculture": 1,
+          "extraction": 1,
+          "manufacturing": 1,
+          "construction": 1,
+          "services": 4
+        },
+        "capital": {
+          "equipment": 8
+        },
+        "stocks": {
+          "deposits": 365250000,
+          "biomass": 200,
+          "industrial_fuel": 200,
+          "raw_materials": 200,
+          "tools": 200,
+          "construction_materials": 200,
+          "assembly_packages": 0,
+          "contracted_services": 0
+        },
+        "storage": {
+          "deposits": {
+            "capacity": 365250000,
+            "loss_bps": 0
+          },
+          "biomass": {
+            "capacity": 300,
+            "loss_bps": 100
+          },
+          "industrial_fuel": {
+            "capacity": 300,
+            "loss_bps": 0
+          },
+          "raw_materials": {
+            "capacity": 300,
+            "loss_bps": 0
+          },
+          "tools": {
+            "capacity": 300,
+            "loss_bps": 50
+          },
+          "construction_materials": {
+            "capacity": 300,
+            "loss_bps": 0
+          },
+          "assembly_packages": {
+            "capacity": 300,
+            "loss_bps": 0
+          },
+          "contracted_services": {
+            "capacity": 0,
+            "loss_bps": 0
+          }
+        },
+        "service_units_per_percent": 1,
+        "maintenance_units_per_step": 1,
+        "construction_unit": 1
+      }
+    }
+  },
+  "industry": {
+    "source": "authored-public-industry-investment",
+    "source_version": "public-industry-investment-v1",
+    "description": "Authored public auxiliary equipment investment, not historical industry ownership, national capital stocks or returns. Each paid programme commissions one country-specific build step after ordinary authority, consent, preparation, construction and actual assembly packages. Added batches and matching capital become available the following day and depend on previously settled physical maintenance readiness. Each installed level owes 10 basis points of opening annual GDP per 365 days in maintenance cash, with exact fractional carry, and needs one country maintenance unit per day. There are at most three additions per sector. These common calibrations do not create jobs, wages or GDP; private investment, profitability, depreciation and closures remain unfinished. Authored public auxiliary equipment retirement, not historical closures, private profitability or salvage values. A paid 20 basis point opening-GDP programme, with at least 30 days preparation and ordinary consent, retires one previously commissioned addition. Capacity and new maintenance obligations fall from the following day. Opening equipment cannot be retired. Sunk investment costs, existing arrears and fractional creditor claims remain; there are no cash proceeds or returned construction packages. Three additions per sector may operate simultaneously; retired additions may be replaced through ordinary paid investment. These common calibrations are gameplay assumptions, not national engineering estimates. Private firms, profits, depreciation and insolvency remain unfinished.",
+    "policies": {
+      "industry_agriculture": "agriculture",
+      "industry_construction": "construction",
+      "industry_extraction": "extraction",
+      "industry_manufacturing": "manufacturing",
+      "industry_services": "services"
+    },
+    "maximum_levels": 3,
+    "maintenance_bps_per_level": 10,
+    "countries": {
+      "AUR": {
+        "agriculture": 1,
+        "extraction": 1,
+        "manufacturing": 1,
+        "construction": 1,
+        "services": 4
+      },
+      "BOR": {
+        "agriculture": 1,
+        "extraction": 1,
+        "manufacturing": 1,
+        "construction": 1,
+        "services": 4
+      },
+      "COR": {
+        "agriculture": 1,
+        "extraction": 1,
+        "manufacturing": 1,
+        "construction": 1,
+        "services": 4
+      }
+    },
+    "retirement": {
+      "source": "authored-public-industry-retirement",
+      "source_version": "public-industry-retirement-v1",
+      "description": "Authored public auxiliary equipment retirement, not historical closures, private profitability or salvage values. A paid 20 basis point opening-GDP programme, with at least 30 days preparation and ordinary consent, retires one previously commissioned addition. Capacity and new maintenance obligations fall from the following day. Opening equipment cannot be retired. Sunk investment costs, existing arrears and fractional creditor claims remain; there are no cash proceeds or returned construction packages. Three additions per sector may operate simultaneously; retired additions may be replaced through ordinary paid investment. These common calibrations are gameplay assumptions, not national engineering estimates. Private firms, profits, depreciation and insolvency remain unfinished.",
+      "policies": {
+        "retire_industry_agriculture": "agriculture",
+        "retire_industry_construction": "construction",
+        "retire_industry_extraction": "extraction",
+        "retire_industry_manufacturing": "manufacturing",
+        "retire_industry_services": "services"
+      }
+    }
+  },
+  "industrial_trade": {
+    "source": "authored-industrial-trade",
+    "source_version": "industrial-trade-v1",
+    "description": "Authored public auxiliary-inventory import and export contracts, not historical national trade volumes or private firm profits. Prices quote basis points of opening annual GDP per ten country-specific production lots. Ask prices exceed bids. Import contracts reserve their full quoted cash; all orders pay a nonrefundable one-basis-point administration fee. Ordinary authority and consent precede at most 30 daily fills. Imports arrive after production and before storage, and can support later construction delivery. Exports protect current domestic service use and packages needed by funded construction due that day. External supply and demand have separate per-good daily limits; exports also require actual counterparty cash. No bank credit, cash, wages or GDP is created. Purchase payments round up and sale receipts down on cumulative delivered quantities. Small interim fills can round to zero whole credits. Imported stocks remain subject to the same storage losses. Cancellation retains sunk administration, goods already delivered and payments already settled. Closed contracts remain in campaign history; only simultaneous open orders are limited. Export receipts are recorded separately from recurring tax revenue and are not forecast as guaranteed income. Bilateral trade, private ownership and profit-led firms remain unfinished.",
+    "order_days": 30,
+    "fee_bps": 1,
+    "price_lots": 10,
+    "maximum_orders": 128,
+    "goods": {
+      "assembly_packages": {
+        "ask_bps": 10,
+        "bid_bps": 9,
+        "import_lots_per_day": 5,
+        "export_lots_per_day": 1
+      },
+      "biomass": {
+        "ask_bps": 2,
+        "bid_bps": 1,
+        "import_lots_per_day": 5,
+        "export_lots_per_day": 1
+      },
+      "construction_materials": {
+        "ask_bps": 5,
+        "bid_bps": 4,
+        "import_lots_per_day": 5,
+        "export_lots_per_day": 1
+      },
+      "industrial_fuel": {
+        "ask_bps": 4,
+        "bid_bps": 3,
+        "import_lots_per_day": 5,
+        "export_lots_per_day": 1
+      },
+      "raw_materials": {
+        "ask_bps": 3,
+        "bid_bps": 2,
+        "import_lots_per_day": 5,
+        "export_lots_per_day": 1
+      },
+      "tools": {
+        "ask_bps": 5,
+        "bid_bps": 4,
+        "import_lots_per_day": 5,
+        "export_lots_per_day": 1
+      }
+    }
+  },
+  "businesses": {
+    "source": "authored-household-businesses",
+    "source_version": "household-businesses-v1",
+    "description": "Authored household-owned aggregate civilian business cash exercise, not historical ownership or national profit accounts. Each existing Firms account represents one enterprise cohort; existing public industrial stocks and equipment remain public. Household groups own fixed shares in proportion to their authored opening savings weights, without individual ownership records. Every 30 elapsed campaign days, businesses autonomously distribute up to 25% of positive undistributed operating cash, while protecting actual trailing 30-day business payments. Household and external receipts add to earned cash; all business payments, including past distributions, subtract. Opening capital and every Treasury receipt are excluded. A missing owning population cohort suspends payouts without reallocating ownership. Payments enter household income before ordinary withholding. This transfers existing cash and creates no GDP, jobs, wages or new money. The government cannot order a private payout. Cash generation is not accrual profit; commodity cost valuation, public/mixed/cooperative ownership, conversions, insolvency and investment remain unfinished.",
+    "distribution_bps": 2500
+  },
+  "consumption": {
+    "source": "authored-delivered-consumption",
+    "source_version": "delivered-consumption-v1",
+    "description": "Authored batch household settlement, not historical retail transactions. Desired basket spending, cash-limited planned budget, affordable food demand and physically delivered food remain distinct. The food part of the essential basket uses the actual settled food price and configured food budget share; spending above the essential basket is abstract other consumption. Households retain the quoted food budget corresponding to missing deliveries. Only delivered food is charged, rounded down within whole million-credit reporting units; the rounding discount is less than one reporting unit per group/day. The other basket component remains abstract, without an additional physical product market. Plans clear once per day in a single batch; retained cash is available for later days, without a same-day second auction or borrowing. Actual payments transfer existing household cash to businesses and enter ordinary business cash reconciliation. No cash, food, wages, jobs or GDP is created. Public industrial assets, private ownership weights and ordinary government authority remain unchanged. Accrual profit and production-cost valuation remain unfinished."
+  },
+  "business_costs": {
+    "source": "authored-business-production-costs",
+    "source_version": "business-costs-v1",
+    "description": "Authored aggregate civilian business cost accounts, not historical firm financial statements. Actual private household factor payments are allocated 35% to domestic food production and 15% to domestic energy production; these direct cost shares round down, with remaining payments and idle production allocations expensed today. All preexisting factor payments remain actual transfers, not added payroll or employment. Moving weighted-average carrying costs pool opening stock cost, actual domestic factor costs and actual import payments. Closing stock value rounds down; removed cost is split between delivered use and spoilage, with the remainder charged to spoilage. An import payment delivering no whole quantity is expensed rather than capitalized. Opening civilian stocks are zero; public reserve releases have zero business acquisition cost and remain identified as public in-kind supplies. Energy use is a common period production expense; it is not added again to food inventory. Public auxiliary industrial stocks and equipment are excluded from private inventories and assets. Government policy contracts earn the standard 10% administration component at proposal, including immediate-consent routes; paid capital is deferred until actual delivery or recognized separately as retained termination income upon funded withdrawal. Amendment fees are earned administrative receipts. Existing unpaid maintenance claims are receivables, not repeated sales when collected. The modeled business result, including separately identified retained termination income, reconciles exactly to cash change, owner distributions, stock carrying costs, receivables and deferred contract receipts. Owner distributions are equity payments, never operating expenses. No cash, goods, wages, jobs, GDP or ownership conversion is created by valuation. Private fixed-asset depreciation, contractual unpaid payroll, corporate tax, firm investment and insolvency remain unfinished; the corporate cash distribution rule is preserved and does not pretend this cost account is a complete solvency or payout policy.",
+    "food_factor_bps": 3500,
+    "energy_factor_bps": 1500
+  }
+}
