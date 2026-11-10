@@ -206,6 +206,8 @@ impl BusinessCostDay {
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BusinessProfitTotals {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub private_capital: Option<PrivateCapitalTotals>,
     pub sales: Money,
     pub public_cash: Money,
     pub deferred_capital: Money,
@@ -220,6 +222,38 @@ pub struct BusinessProfitTotals {
     pub cash_change: Money,
 }
 impl BusinessProfitTotals {
+    pub(crate) fn validate_checkpoint(&self) -> Result<(), String> {
+        if let Some(a) = &self.private_capital {
+            a.validate()?;
+        }
+        if [
+            self.sales,
+            self.public_cash,
+            self.deferred_capital,
+            self.receivables,
+            self.period_factors,
+            self.food_sold_cost,
+            self.energy_used_cost,
+            self.food_spoiled_cost,
+            self.unstocked_import_cost,
+            self.inventory_value,
+            self.distributions,
+        ]
+        .iter()
+        .any(|m| !(0..=1_000_000_000_000_000_000).contains(&m.0))
+            || self.deferred_capital.0 > self.public_cash.0
+            || i128::from(self.result()?.0)
+                != i128::from(self.cash_change.0)
+                    + i128::from(self.distributions.0)
+                    + i128::from(self.inventory_value.0)
+                    + i128::from(self.receivables.0)
+                    - i128::from(self.deferred_capital.0)
+                    + i128::from(self.private_capital.as_ref().map_or(0, |a| a.net_assets.0))
+        {
+            return Err("Business earnings checkpoint is invalid".into());
+        }
+        Ok(())
+    }
     pub fn revenue(&self) -> Result<Money, String> {
         money(
             i128::from(self.sales.0) + i128::from(self.public_cash.0)
@@ -229,7 +263,11 @@ impl BusinessProfitTotals {
     }
     pub fn expenses(&self) -> Result<Money, String> {
         money(
-            i128::from(self.period_factors.0)
+            i128::from(
+                self.private_capital
+                    .as_ref()
+                    .map_or(0, |a| a.depreciation.0),
+            ) + i128::from(self.period_factors.0)
                 + i128::from(self.food_sold_cost.0)
                 + i128::from(self.energy_used_cost.0)
                 + i128::from(self.food_spoiled_cost.0)
@@ -241,6 +279,11 @@ impl BusinessProfitTotals {
     }
     pub fn change_since(&self, a: &Self) -> Result<Self, String> {
         Ok(Self {
+            private_capital: match (&self.private_capital, &a.private_capital) {
+                (None, None) => None,
+                (Some(now), Some(old)) => Some(now.change_since(old)),
+                _ => return Err("Business capital checkpoint version mismatch".into()),
+            },
             sales: money(i128::from(self.sales.0) - i128::from(a.sales.0))?,
             public_cash: money(i128::from(self.public_cash.0) - i128::from(a.public_cash.0))?,
             deferred_capital: money(
@@ -372,6 +415,11 @@ impl Country {
             return Err("Deferred public capital exceeds actual business receipts".into());
         }
         let t = BusinessProfitTotals {
+            private_capital: self
+                .private_investment
+                .as_ref()
+                .map(|a| a.totals())
+                .transpose()?,
             sales: b.operating_receipts,
             public_cash: b.public_receipts,
             deferred_capital: deferred,
@@ -385,7 +433,8 @@ impl Country {
             distributions: b.distributions,
             cash_change: money(i128::from(self.accounts.firms.0) - i128::from(b.opening_cash.0))?,
         };
-        let bridge = i128::from(t.cash_change.0)
+        let bridge = i128::from(t.private_capital.as_ref().map_or(0, |a| a.net_assets.0))
+            + i128::from(t.cash_change.0)
             + i128::from(t.distributions.0)
             + i128::from(t.inventory_value.0)
             + i128::from(t.receivables.0)
@@ -482,6 +531,7 @@ impl World {
         Ok(())
     }
     pub(crate) fn validate_business_costs(&self, content: &Content) -> Result<(), String> {
+        self.validate_private_investment(content)?;
         for (id, c) in &self.countries {
             let Some(book) = &c.business_costs else {
                 if content.business_costs.is_some() {
@@ -493,10 +543,16 @@ impl World {
                 .business_costs
                 .as_ref()
                 .ok_or("Unexpected business cost book")?;
-            if !matches!(self.rules, 37..=38) {
-                return Err("Business costs require rules 37 or 38".into());
+            if !matches!(self.rules, 37..=39) {
+                return Err("Business costs require rules 37 through 39".into());
             }
             book.costs.validate()?;
+            if let Some(a) = &book.day_opening.private_capital {
+                a.validate()?;
+            }
+            if book.day_opening.private_capital.is_some() != content.private_investment.is_some() {
+                return Err("Business capital checkpoint does not match content".into());
+            }
             self.validate_commitments(content, id)?;
             c.validate_business_cash(self, content)?;
             let o = &book.day_opening;
@@ -519,7 +575,8 @@ impl World {
                     .contains(&o.cash_change.0)
                 || o.deferred_capital.0 > o.public_cash.0
                 || i128::from(o.result()?.0)
-                    != i128::from(o.cash_change.0)
+                    != i128::from(o.private_capital.as_ref().map_or(0, |a| a.net_assets.0))
+                        + i128::from(o.cash_change.0)
                         + i128::from(o.distributions.0)
                         + i128::from(o.inventory_value.0)
                         + i128::from(o.receivables.0)
@@ -533,7 +590,13 @@ impl World {
                 .as_ref()
                 .ok_or("Missing costed business sector")?;
             if i128::from(b.payments.0) - i128::from(b.distributions.0)
-                != i128::from(book.costs.factors_paid.0)
+                != i128::from(
+                    c.private_investment
+                        .as_ref()
+                        .map(|a| a.totals())
+                        .transpose()?
+                        .map_or(0, |a| a.acquisitions.0),
+                ) + i128::from(book.costs.factors_paid.0)
                     + i128::from(book.costs.food_imports.0)
                     + i128::from(book.costs.energy_imports.0)
             {
@@ -542,7 +605,15 @@ impl World {
             match &book.last {
                 None if self.day == content.start_day()?
                     && book.costs == BusinessCosts::default()
-                    && book.day_opening == BusinessProfitTotals::default() => {}
+                    && book.day_opening
+                        == BusinessProfitTotals {
+                            private_capital: c
+                                .private_investment
+                                .as_ref()
+                                .map(|s| s.totals())
+                                .transpose()?,
+                            ..BusinessProfitTotals::default()
+                        } => {}
                 Some(day) if day.day == self.day && self.day > content.start_day()? => {
                     day.before.validate()?;
                     if !(0..=1_000_000_000_000).contains(&day.factors_paid.0) {
@@ -598,6 +669,14 @@ impl World {
                     }
                     // Public receipts and receivables can legitimately move both
                     // ways today. Opening cumulative operating costs cannot.
+                    if book.day_opening.private_capital
+                        != c.private_investment
+                            .as_ref()
+                            .map(|s| s.totals_at(CampaignDay::new(self.day.units() - 1)))
+                            .transpose()?
+                    {
+                        return Err("Private opening asset checkpoint does not reconcile".into());
+                    }
                     if book.day_opening.distributions.0 > b.distributions.0
                         || book.day_opening.sales.0 > b.operating_receipts.0
                         || book.day_opening.public_cash.0 > b.public_receipts.0

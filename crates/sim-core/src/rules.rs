@@ -186,6 +186,7 @@ impl World {
                 let external = matches!(origin, CommandOrigin::Player | CommandOrigin::Developer);
                 if external {
                     world.validate_business_costs(content)?;
+                    world.validate_private_investment(content)?;
                     if content.business_finance.is_some() {
                         world.validate_business_accounts(content)?;
                     }
@@ -193,6 +194,7 @@ impl World {
                 world.apply_inner(content, command, origin)?;
                 if external {
                     world.validate_business_costs(content)?;
+                    world.validate_private_investment(content)?;
                     if content.business_finance.is_some() {
                         world.validate_business_accounts(content)?;
                     }
@@ -514,6 +516,7 @@ impl World {
         self.validate_business_accounts(content)?;
         self.validate_consumption(content)?;
         self.validate_business_costs(content)?;
+        self.validate_private_investment(content)?;
         if content.rules >= 33 {
             self.validate_industry(content)?;
         }
@@ -546,6 +549,7 @@ impl World {
                 .day
                 .checked_add(DaySpan::new(1))
                 .ok_or("Campaign clock overflow")?;
+            self.date_private_equipment();
             if content.demographics.is_some() {
                 for id in &ids {
                     self.review_budget(content, id);
@@ -585,6 +589,7 @@ impl World {
                 if content.production.is_some() {
                     self.complete_projects(content, id, true)?;
                 }
+                self.review_private_investment(content, id)?;
                 self.evaluate_commitments(id);
                 self.evaluate_undertakings(content, id);
                 if content.fiscal_plans.is_none() {
@@ -621,6 +626,7 @@ impl World {
             self.validate_business_accounts(content)?;
             self.validate_consumption(content)?;
             self.validate_business_costs(content)?;
+            self.validate_private_investment(content)?;
             self.ledger
                 .retain(|e| e.day.units() + 30 >= self.day.units());
             if self.day.units() >= (review_day).units() && !self.milestone_reported {
@@ -847,7 +853,12 @@ impl World {
         } else {
             energy_capacity_basis
         })
-        .scaled(i64::from((maintained_energy - shock).max(0)), 100)
+        .scaled(
+            i64::from(
+                (maintained_energy + c.private_capacity(content, GoodKind::Energy) - shock).max(0),
+            ),
+            100,
+        )
         .expect("bounded capacity")
         .min(
             energy_capacity_basis
@@ -863,7 +874,12 @@ impl World {
         } else {
             food_capacity_basis
         })
-        .scaled(i64::from((maintained_food - shock).max(0)), 100)
+        .scaled(
+            i64::from(
+                (maintained_food + c.private_capacity(content, GoodKind::Food) - shock).max(0),
+            ),
+            100,
+        )
         .expect("bounded capacity")
         .min(
             food_capacity_basis

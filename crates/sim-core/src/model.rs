@@ -142,6 +142,8 @@ pub struct Observation {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Country {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub private_investment: Option<crate::PrivateInvestmentState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub business_costs: Option<crate::BusinessCostBook>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub business: Option<crate::BusinessSector>,
@@ -519,10 +521,20 @@ impl World {
                 (
                     d.id.clone(),
                     Country {
-                        business_costs: content
-                            .business_costs
+                        private_investment: content
+                            .private_investment
                             .as_ref()
-                            .map(|_| BusinessCostBook::default()),
+                            .map(|_| PrivateInvestmentState::opening(start_day)),
+                        business_costs: content.business_costs.as_ref().map(|_| BusinessCostBook {
+                            day_opening: BusinessProfitTotals {
+                                private_capital: content
+                                    .private_investment
+                                    .as_ref()
+                                    .map(|_| PrivateCapitalTotals::default()),
+                                ..BusinessProfitTotals::default()
+                            },
+                            ..BusinessCostBook::default()
+                        }),
                         business: content
                             .businesses
                             .as_ref()
@@ -835,6 +847,7 @@ impl World {
             return Err("Rules or content pack mismatch".into());
         }
         self.validate_business_costs(content)?;
+        self.validate_private_investment(content)?;
         let start_day = content.start_day()?;
         if self.day.units() < (start_day).units()
             || self.day.units() > MAX_DAY

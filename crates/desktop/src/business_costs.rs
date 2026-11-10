@@ -100,7 +100,13 @@ fn body(
     bar(ui, revenue, scale, Color32::from_rgb(45, 180, 140));
     ui.label(format!("Current-day production expenses {expenses}m"));
     bar(ui, expenses, scale, Color32::from_rgb(220, 170, 65));
-    ui.label(format!("Cash/profit bridge since opening: cash change {}m + owner payments {}m + inventory {}m + receivables {}m − deferred capital {}m = business result {}m",all.cash_change.0,all.distributions.0,all.inventory_value.0,all.receivables.0,all.deferred_capital.0,all.result()?.0));
+    let fixed = all.private_capital.as_ref().map_or(String::new(), |a| {
+        format!(" + net private fixed assets {}m", a.net_assets.0)
+    });
+    ui.label(format!("Cash/profit bridge since opening: cash change {}m + owner payments {}m + inventory {}m + receivables {}m − deferred capital {}m{} = business result {}m",all.cash_change.0,all.distributions.0,all.inventory_value.0,all.receivables.0,all.deferred_capital.0,fixed,all.result()?.0));
+    if let Some(capital) = &all.private_capital {
+        ui.label(format!("Equipment acquisitions {}m are capital outlays; accumulated depreciation {}m is included in expenses.",capital.acquisitions.0,capital.depreciation.0));
+    }
     ui.small("Owner payments reduce equity, not profit. Inventory carrying values are acquisition costs, not cash or market prices. Public industrial stocks and equipment remain public and are excluded.");
     ui.collapsing(
         "Stock costs and public contract obligations",
@@ -138,7 +144,12 @@ fn body(
     .transpose()?;
     let d = content.business_costs.as_ref().expect("cost definition");
     ui.small(format!("Authored direct factor allocation: food {} basis points, energy {}; remaining and idle allocations are expensed today. Shares round down. Stock value uses a moving weighted average; whole-credit rounding is explicit.",d.food_factor_bps.units(),d.energy_factor_bps.units()));
-    ui.small("Public reserve releases have zero business acquisition cost. Policy administration earns the standard 10% at proposal; paid capital stays deferred until actual delivery or funded withdrawal. Outstanding maintenance claims are receivables. Private fixed-asset depreciation, unpaid contractual payroll, corporate tax, investment and insolvency remain unfinished.");
+    ui.small("Public reserve releases have zero business acquisition cost. Policy administration earns the standard 10% at proposal; paid capital stays deferred until actual delivery or funded withdrawal. Outstanding maintenance claims are receivables.");
+    if content.private_investment.is_some() {
+        ui.small("Private equipment is capitalized and depreciated over its finite service life. Unpaid contractual payroll, corporate tax and formal insolvency remain unfinished.");
+    } else {
+        ui.small("Private fixed-asset depreciation, unpaid contractual payroll, corporate tax, investment and insolvency remain unfinished.");
+    }
     if content.business_finance.is_some() {
         ui.small("Current payout policy uses prior closed-day retained earnings and protects both recent payments and unfinished client advances; inspect Business receipts, wages & cash below.");
     } else {

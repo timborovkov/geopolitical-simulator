@@ -31,6 +31,7 @@ mod markets;
 mod navigation;
 mod new_game;
 mod party_preferences;
+mod private_investment;
 mod production;
 mod reserves;
 mod settings;
@@ -1525,6 +1526,7 @@ impl GameApp {
             return;
         };
         let c = &w.countries[&self.selected];
+        private_investment::show(ui, &self.content, w, &self.selected);
         business_costs::show(ui, &self.content, w, &self.selected);
         business_statement::show(ui, &self.content, w, &self.selected);
         let industrial_trade_action = industrial_trade::show(ui, &self.content, w, &self.selected);

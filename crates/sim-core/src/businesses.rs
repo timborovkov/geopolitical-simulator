@@ -72,6 +72,9 @@ impl BusinessEarningsProtection {
     ) -> Result<(), String> {
         let a = &self.checkpoint;
         let expenses = a.expenses()?;
+        if let Some(capital) = &a.private_capital {
+            capital.validate()?;
+        }
         let result = a.result()?;
         let fields = [
             a.sales,
@@ -96,11 +99,13 @@ impl BusinessEarningsProtection {
             || a.sales.0 > decision.operating_receipts_before.0
             || a.public_cash.0 > decision.public_receipts_before.0
             || a.deferred_capital.0 > a.public_cash.0
-            || i128::from(expenses.0)
+            || (i128::from(expenses.0)
+                - i128::from(a.private_capital.as_ref().map_or(0, |x| x.depreciation.0)))
                 > i128::from(decision.payments_before.0) - i128::from(a.distributions.0)
             || i128::from(business.opening_cash.0) + i128::from(a.cash_change.0) < 0
             || i128::from(result.0)
-                != i128::from(a.cash_change.0)
+                != i128::from(a.private_capital.as_ref().map_or(0, |x| x.net_assets.0))
+                    + i128::from(a.cash_change.0)
                     + i128::from(a.distributions.0)
                     + i128::from(a.inventory_value.0)
                     + i128::from(a.receivables.0)
@@ -230,7 +235,7 @@ impl Country {
             };
         };
         if content.businesses.is_none()
-            || !matches!(world.rules, 35..=38)
+            || !matches!(world.rules, 35..=39)
             || b.id != BusinessId(format!("{}:civilian-enterprises", self.id.0))
             || [
                 b.opening_cash,
@@ -285,6 +290,18 @@ impl Country {
                     match (&decision.earnings_protection, &content.business_finance) {
                         (Some(protection), Some(_)) => {
                             protection.validate(decision, b)?;
+                            if protection.checkpoint.private_capital
+                                != self
+                                    .private_investment
+                                    .as_ref()
+                                    .map(|s| s.totals_at(protection.closed_day))
+                                    .transpose()?
+                            {
+                                return Err(
+                                    "Payout fixed assets differ from closed equipment history"
+                                        .into(),
+                                );
+                            }
                             (protection.retained_earnings, protection.available_cash)
                         }
                         (None, None) => (
@@ -368,6 +385,7 @@ impl World {
         Ok(())
     }
     pub(crate) fn validate_business_accounts(&self, content: &Content) -> Result<(), String> {
+        self.validate_private_investment(content)?;
         for country in self.countries.values() {
             country.validate_business(self, content)?;
         }

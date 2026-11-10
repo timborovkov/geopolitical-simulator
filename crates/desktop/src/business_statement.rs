@@ -287,7 +287,9 @@ fn show_ownership(ui: &mut egui::Ui, content: &Content, world: &World, country: 
         let elapsed = world.day.units()-content.start_day().expect("bookmark").units();
         if content.business_finance.is_some() {
             ui.label(format!("Autonomous review every 30 elapsed days · next {} · at most {:.0}% of prior closed-day retained modeled earnings",date(CampaignDay::new(world.day.units()+30-elapsed%30)),f64::from(definition.distribution_bps.units())/100.));
-            ui.small("Cash also retains the trailing payment buffer plus all undelivered client capital. The buffer is a cash policy, not an insolvency test. Private investment and insolvency remain unfinished.");
+            ui.small("Cash also retains the trailing payment buffer plus all undelivered client capital. The buffer is a cash policy, not an insolvency test.");
+            if content.private_investment.is_some() {ui.small("Cash-funded equipment investment and depreciation are available under Private equipment & investment. Formal insolvency remains unfinished.");}
+            else {ui.small("Private investment and insolvency remain unfinished.");}
         } else {
             ui.label(format!("Autonomous review every 30 elapsed days · next {} · share at most {:.0}% of positive earned cash, while retaining trailing 30-day payments",date(CampaignDay::new(world.day.units()+30-elapsed%30)), f64::from(definition.distribution_bps.units())/100.));
         }
