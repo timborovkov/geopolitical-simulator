@@ -300,7 +300,7 @@ pub struct BusinessProfitReport {
     pub owned: Option<BusinessProfitDetail>,
 }
 impl Country {
-    fn business_capital(
+    pub(crate) fn business_capital(
         &self,
         content: &Content,
     ) -> Result<(Vec<BusinessCapitalAdvance>, Money, Money), String> {
@@ -493,8 +493,8 @@ impl World {
                 .business_costs
                 .as_ref()
                 .ok_or("Unexpected business cost book")?;
-            if self.rules != 37 {
-                return Err("Business costs require rules 37".into());
+            if !matches!(self.rules, 37..=38) {
+                return Err("Business costs require rules 37 or 38".into());
             }
             book.costs.validate()?;
             self.validate_commitments(content, id)?;

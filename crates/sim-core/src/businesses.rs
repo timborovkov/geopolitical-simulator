@@ -32,6 +32,94 @@ impl BusinessDefinition {
         Ok(())
     }
 }
+/// Attributed earnings-based payout policy. The distribution rate remains in
+/// BusinessDefinition; no government action can order a private distribution.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BusinessFinanceDefinition {
+    pub source: String,
+    pub source_version: String,
+    pub description: String,
+}
+impl BusinessFinanceDefinition {
+    pub(crate) fn validate(&self, content: &Content) -> Result<(), String> {
+        if self.source_version.is_empty()
+            || self.description.is_empty()
+            || !content.sources.iter().any(|s| s.id == self.source)
+        {
+            return Err("Business finance requires attributed payout assumptions".into());
+        }
+        Ok(())
+    }
+}
+/// A completed-day earnings checkpoint and the actual cash constraints at review.
+/// Retained earnings and cash availability are deliberately separate quantities.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BusinessEarningsProtection {
+    pub closed_day: CampaignDay,
+    pub checkpoint: BusinessProfitTotals,
+    pub retained_earnings: Money,
+    pub client_advances: Money,
+    pub available_cash: Money,
+}
+impl BusinessEarningsProtection {
+    fn available(cash: Money, buffer: Money, advances: Money) -> Money {
+        Money((i128::from(cash.0) - i128::from(buffer.0) - i128::from(advances.0)).max(0) as i64)
+    }
+    fn validate(
+        &self,
+        decision: &BusinessDistribution,
+        business: &BusinessSector,
+    ) -> Result<(), String> {
+        let a = &self.checkpoint;
+        let expenses = a.expenses()?;
+        let result = a.result()?;
+        let fields = [
+            a.sales,
+            a.public_cash,
+            a.deferred_capital,
+            a.receivables,
+            a.period_factors,
+            a.food_sold_cost,
+            a.energy_used_cost,
+            a.food_spoiled_cost,
+            a.unstocked_import_cost,
+            a.inventory_value,
+            a.distributions,
+            self.client_advances,
+            self.available_cash,
+        ];
+        if fields
+            .iter()
+            .any(|m| !(0..=1_000_000_000_000_000_000).contains(&m.0))
+            || self.closed_day.units().checked_add(1) != Some(decision.day.units())
+            || a.distributions != decision.distributions_before
+            || a.sales.0 > decision.operating_receipts_before.0
+            || a.public_cash.0 > decision.public_receipts_before.0
+            || a.deferred_capital.0 > a.public_cash.0
+            || i128::from(expenses.0)
+                > i128::from(decision.payments_before.0) - i128::from(a.distributions.0)
+            || i128::from(business.opening_cash.0) + i128::from(a.cash_change.0) < 0
+            || i128::from(result.0)
+                != i128::from(a.cash_change.0)
+                    + i128::from(a.distributions.0)
+                    + i128::from(a.inventory_value.0)
+                    + i128::from(a.receivables.0)
+                    - i128::from(a.deferred_capital.0)
+            || i128::from(self.retained_earnings.0)
+                != i128::from(result.0) - i128::from(a.distributions.0)
+            || self.client_advances.0 > decision.public_receipts_before.0
+            || self.available_cash
+                != Self::available(
+                    decision.opening_cash,
+                    decision.protected_cash,
+                    self.client_advances,
+                )
+        {
+            return Err("Business earnings checkpoint does not reconcile".into());
+        }
+        Ok(())
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BusinessOwnerPayment {
     pub group: HouseholdGroupId,
@@ -42,6 +130,8 @@ pub struct BusinessOwnerPayment {
 pub enum BusinessDistributionReason {
     Paid,
     OperatingLoss,
+    RetainedLoss,
+    ClientAdvancesProtected,
     PaymentBuffer,
     OwnersAbsent,
     WholeCreditRounding,
@@ -50,6 +140,10 @@ impl BusinessDistributionReason {
     pub fn explanation(self) -> &'static str {
         match self {
             Self::Paid => "Cash distribution paid to household owners",
+            Self::RetainedLoss => "No positive retained modeled earnings at the previous day close",
+            Self::ClientAdvancesProtected => {
+                "Cash retained for unfinished client contracts and the payment buffer"
+            }
             Self::OperatingLoss => "No positive undistributed operating cash",
             Self::PaymentBuffer => "Cash retained for the recent payment buffer",
             Self::OwnersAbsent => "An owning cohort has no residents; ownership is retained",
@@ -59,6 +153,8 @@ impl BusinessDistributionReason {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BusinessDistribution {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub earnings_protection: Option<BusinessEarningsProtection>,
     pub operating_receipts_before: Money,
     pub payments_before: Money,
     pub public_receipts_before: Money,
@@ -81,7 +177,8 @@ pub struct BusinessSector {
     pub operating_receipts: Money,
     /// All payments, including owner distributions. This is a cash account, not costs.
     pub payments: Money,
-    /// All government receipts are excluded from the distribution base, including capital.
+    /// Government cash receipts, separately tracked from household/external sales.
+    /// Legacy cash payouts exclude all; earnings payouts recognize earned services only.
     pub public_receipts: Money,
     pub distributions: Money,
     pub last_decision: Option<BusinessDistribution>,
@@ -133,7 +230,7 @@ impl Country {
             };
         };
         if content.businesses.is_none()
-            || !matches!(world.rules, 35..=37)
+            || !matches!(world.rules, 35..=38)
             || b.id != BusinessId(format!("{}:civilian-enterprises", self.id.0))
             || [
                 b.opening_cash,
@@ -152,7 +249,7 @@ impl Country {
                     .units()
                     / 2
             || b.distributions.0 > b.payments.0
-            || b.distributions.0 > b.operating_receipts.0
+            || (content.business_finance.is_none() && b.distributions.0 > b.operating_receipts.0)
             || i128::from(b.opening_cash.0)
                 + i128::from(b.operating_receipts.0)
                 + i128::from(b.public_receipts.0)
@@ -184,15 +281,26 @@ impl Country {
                         .distribution_bps
                         .units(),
                 );
-                let maximum = (i128::from(decision.undistributed_cash.0.max(0)) * i128::from(rate)
-                    / 10000)
-                    .min(i128::from(
-                        decision
-                            .opening_cash
-                            .0
-                            .saturating_sub(decision.protected_cash.0)
-                            .max(0),
-                    ));
+                let (base, available) =
+                    match (&decision.earnings_protection, &content.business_finance) {
+                        (Some(protection), Some(_)) => {
+                            protection.validate(decision, b)?;
+                            (protection.retained_earnings, protection.available_cash)
+                        }
+                        (None, None) => (
+                            decision.undistributed_cash,
+                            Money(
+                                decision
+                                    .opening_cash
+                                    .0
+                                    .saturating_sub(decision.protected_cash.0)
+                                    .max(0),
+                            ),
+                        ),
+                        _ => return Err("Business payout policy/checkpoint mismatch".into()),
+                    };
+                let maximum = (i128::from(base.0.max(0)) * i128::from(rate) / 10000)
+                    .min(i128::from(available.0));
                 let ownership_weights: Vec<_> = definition
                     .households
                     .iter()
@@ -266,9 +374,11 @@ impl World {
         Ok(())
     }
     /// Bounded enterprise agency, independent of government consent. Every 30
-    /// elapsed days, share a fraction of earned cash while retaining actual
+    /// elapsed days, share a fraction of earned cash (legacy) or prior closed-day
+    /// retained earnings (finance policy), while retaining actual
     /// trailing payments. Opening capital and every Treasury receipt stay outside
-    /// earned cash. Household transfers enter ordinary withholding this day.
+    /// earned cash in legacy rules. Finance rules also protect unfinished client
+    /// advances. Household transfers enter ordinary withholding this day.
     pub(crate) fn distribute_business_cash(
         &mut self,
         content: &Content,
@@ -314,22 +424,62 @@ impl World {
             .iter()
             .zip(&weights)
             .all(|(h, weight)| *weight == 0 || h.population.0 > 0);
+        let earnings_protection = if content.business_finance.is_some() {
+            let checkpoint = c
+                .business_costs
+                .as_ref()
+                .ok_or("Missing completed business earnings")?
+                .day_opening
+                .clone();
+            let retained =
+                i128::from(checkpoint.result()?.0) - i128::from(checkpoint.distributions.0);
+            let (pending, _, _) = c.business_capital(content)?;
+            let advances: i128 = pending.iter().map(|p| i128::from(p.amount.0)).sum();
+            let client_advances = Money(
+                i64::try_from(advances).map_err(|_| "Client advances exceed accounting range")?,
+            );
+            Some(BusinessEarningsProtection {
+                closed_day: CampaignDay::new(self.day.units() - 1),
+                checkpoint,
+                retained_earnings: Money(
+                    i64::try_from(retained)
+                        .map_err(|_| "Retained earnings exceed accounting range")?,
+                ),
+                client_advances,
+                available_cash: BusinessEarningsProtection::available(
+                    opening_cash,
+                    protected_cash,
+                    client_advances,
+                ),
+            })
+        } else {
+            None
+        };
+        let (base, available) = earnings_protection.as_ref().map_or(
+            (
+                undistributed_cash,
+                Money(opening_cash.0.saturating_sub(protected_cash.0).max(0)),
+            ),
+            |p| (p.retained_earnings, p.available_cash),
+        );
         let amount = if all_owners_present {
-            (i128::from(undistributed_cash.0.max(0))
-                * i128::from(definition.distribution_bps.units())
-                / 10000)
-                .min(i128::from(
-                    opening_cash.0.saturating_sub(protected_cash.0).max(0),
-                )) as i64
+            (i128::from(base.0.max(0)) * i128::from(definition.distribution_bps.units()) / 10000)
+                .min(i128::from(available.0)) as i64
         } else {
             0
         };
         let reason = if !all_owners_present {
             BusinessDistributionReason::OwnersAbsent
-        } else if undistributed_cash.0 <= 0 {
-            BusinessDistributionReason::OperatingLoss
+        } else if base.0 <= 0 {
+            if earnings_protection.is_some() {
+                BusinessDistributionReason::RetainedLoss
+            } else {
+                BusinessDistributionReason::OperatingLoss
+            }
         } else if opening_cash.0 <= protected_cash.0 {
             BusinessDistributionReason::PaymentBuffer
+        } else if available.0 == 0 {
+            BusinessDistributionReason::ClientAdvancesProtected
         } else if amount == 0 {
             BusinessDistributionReason::WholeCreditRounding
         } else {
@@ -359,6 +509,7 @@ impl World {
             .expect("business");
         business.distributions.0 += paid;
         business.last_decision = Some(BusinessDistribution {
+            earnings_protection,
             operating_receipts_before,
             payments_before,
             public_receipts_before,
@@ -399,7 +550,11 @@ impl World {
             .ok_or("Unknown business country")?;
         Ok(BusinessOwnershipReport {
             country: country.clone(),
-            source: content.businesses.as_ref().map(|d| d.source.clone()),
+            source: content
+                .business_finance
+                .as_ref()
+                .map(|d| d.source.clone())
+                .or_else(|| content.businesses.as_ref().map(|d| d.source.clone())),
             owned: if country == &self.player && viewer == Viewer::Government(self.player.clone()) {
                 c.business.clone()
             } else {
@@ -418,6 +573,21 @@ mod tests {
                 .unwrap();
         let world = World::new(&content, CountryId("AUR".into()), 17).unwrap();
         (content, world)
+    }
+    #[test]
+    fn liquidity_reserves_add_and_cannot_wrap_at_large_valid_amounts() {
+        assert_eq!(
+            BusinessEarningsProtection::available(Money(100), Money(35), Money(45)),
+            Money(20)
+        );
+        assert_eq!(
+            BusinessEarningsProtection::available(Money(100), Money(35), Money(75)),
+            Money(0)
+        );
+        assert_eq!(
+            BusinessEarningsProtection::available(Money(100), Money(i64::MAX), Money(i64::MAX)),
+            Money(0)
+        );
     }
     #[test]
     fn positive_earned_cash_cannot_breach_recent_payment_buffer() {

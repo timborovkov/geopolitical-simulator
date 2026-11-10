@@ -138,7 +138,12 @@ fn body(
     .transpose()?;
     let d = content.business_costs.as_ref().expect("cost definition");
     ui.small(format!("Authored direct factor allocation: food {} basis points, energy {}; remaining and idle allocations are expensed today. Shares round down. Stock value uses a moving weighted average; whole-credit rounding is explicit.",d.food_factor_bps.units(),d.energy_factor_bps.units()));
-    ui.small("Public reserve releases have zero business acquisition cost. Policy administration earns the standard 10% at proposal; paid capital stays deferred until actual delivery or funded withdrawal. Outstanding maintenance claims are receivables. Private fixed-asset depreciation, unpaid contractual payroll, corporate tax, investment and insolvency remain unfinished. Existing autonomous cash payouts use their earlier cash policy.");
+    ui.small("Public reserve releases have zero business acquisition cost. Policy administration earns the standard 10% at proposal; paid capital stays deferred until actual delivery or funded withdrawal. Outstanding maintenance claims are receivables. Private fixed-asset depreciation, unpaid contractual payroll, corporate tax, investment and insolvency remain unfinished.");
+    if content.business_finance.is_some() {
+        ui.small("Current payout policy uses prior closed-day retained earnings and protects both recent payments and unfinished client advances; inspect Business receipts, wages & cash below.");
+    } else {
+        ui.small("Existing autonomous cash payouts use their earlier cash policy.");
+    }
     Ok(())
 }
 fn bar(ui: &mut egui::Ui, value: i64, scale: f32, color: Color32) {

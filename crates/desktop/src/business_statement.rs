@@ -281,13 +281,21 @@ fn show_ownership(ui: &mut egui::Ui, content: &Content, world: &World, country: 
     };
     egui::Frame::group(ui.style()).show(ui, |ui| {
         ui.strong("Household-owned civilian businesses");
-        ui.label(format!("{} · operating receipts {}m · business payments {}m · excluded government receipts {}m", business.id.0, business.operating_receipts.0, business.payments.0, business.public_receipts.0));
+        ui.label(format!("{} · operating receipts {}m · business payments {}m · government receipts {}m", business.id.0, business.operating_receipts.0, business.payments.0, business.public_receipts.0));
         ui.label(format!("Undistributed operating cash {:+}m · owner distributions to date {}m",business.undistributed_cash().0,business.distributions.0));
         ui.small("Operating cash is household/external receipts less all payments, including distributions. Opening cash and every government receipt are excluded. This is not accrual profit. Public industrial assets remain public.");
         let elapsed = world.day.units()-content.start_day().expect("bookmark").units();
-        ui.label(format!("Autonomous review every 30 elapsed days · next {} · share at most {:.0}% of positive earned cash, while retaining trailing 30-day payments",date(CampaignDay::new(world.day.units()+30-elapsed%30)), f64::from(definition.distribution_bps.units())/100.));
+        if content.business_finance.is_some() {
+            ui.label(format!("Autonomous review every 30 elapsed days · next {} · at most {:.0}% of prior closed-day retained modeled earnings",date(CampaignDay::new(world.day.units()+30-elapsed%30)),f64::from(definition.distribution_bps.units())/100.));
+            ui.small("Cash also retains the trailing payment buffer plus all undelivered client capital. The buffer is a cash policy, not an insolvency test. Private investment and insolvency remain unfinished.");
+        } else {
+            ui.label(format!("Autonomous review every 30 elapsed days · next {} · share at most {:.0}% of positive earned cash, while retaining trailing 30-day payments",date(CampaignDay::new(world.day.units()+30-elapsed%30)), f64::from(definition.distribution_bps.units())/100.));
+        }
         if let Some(decision) = &business.last_decision {
             ui.label(format!("Last decision {}: cash {}m · protected payment buffer {}m · earned cash {:+}m · paid {}m",date(decision.day),decision.opening_cash.0,decision.protected_cash.0,decision.undistributed_cash.0,decision.paid.0));
+            if let Some(p) = &decision.earnings_protection {
+                ui.label(format!("Earnings closed {} · retained result {:+}m · unfinished client advances {}m · available cash {}m", date(p.closed_day),p.retained_earnings.0,p.client_advances.0,p.available_cash.0));
+            }
             ui.label(decision.reason.explanation());
         } else {ui.label("Awaiting the first autonomous business review.");}
         egui::ScrollArea::horizontal().id_salt("business_owners").show(ui, |ui| {
@@ -300,7 +308,7 @@ fn show_ownership(ui: &mut egui::Ui, content: &Content, world: &World, country: 
             });
         });
         ui.small("Fixed ownership uses the authored opening savings weights. Distributions stop if an owning cohort has no residents; ownership is not reassigned. Owner payments enter ordinary household income withholding. Government has no payout command.");
-        ui.collapsing("Business ownership assumptions", |ui|{ui.label(format!("{} · {}",definition.source,definition.source_version));ui.label(&definition.description);});
+        ui.collapsing("Business ownership assumptions", |ui|{ui.label(format!("{} · {}",definition.source,definition.source_version));ui.label(if content.business_finance.is_some() { "Inherited ownership assumptions (the current payout policy below supersedes their operating-cash payout base)." } else { "Ownership and payout assumptions" }); ui.label(&definition.description); if let Some(finance) = &content.business_finance { ui.separator(); ui.label(format!("Current payout policy: {} · {}",finance.source,finance.source_version)); ui.label(&finance.description); }});
     });
 }
 
@@ -360,6 +368,37 @@ mod tests {
             assert!(!foreign.contains("Ownership weight"));
         }
         assert_eq!(persistence::encode(&world, &content).unwrap(), before);
+    }
+    #[test]
+    fn finance_decision_explains_earnings_and_both_cash_reserves_at_both_scales() {
+        let content = Content::business_finance_bundled().unwrap();
+        let mut world = World::new(&content, CountryId("GBR".into()), 17).unwrap();
+        world
+            .issue(
+                &content,
+                Action::Enact {
+                    policy: "welfare".into(),
+                    value: 6,
+                },
+            )
+            .unwrap();
+        world.advance(&content, DaySpan::new(30)).unwrap();
+        let before = persistence::encode(&world, &content).unwrap();
+        for scale in [1., 1.4] {
+            let ctx = egui::Context::default();
+            ctx.set_zoom_factor(scale);
+            let mut text = String::new();
+            for _ in 0..3 {
+                text = render(&ctx, &content, &world, &world.player, vec![]).0;
+            }
+            assert!(text.contains("prior closed-day retained modeled earnings"));
+            assert!(text.contains("Earnings closed 2000-01-30"));
+            assert!(text.contains("unfinished client advances"));
+            assert!(text.contains("available cash"));
+            let (foreign, _) = render(&ctx, &content, &world, &CountryId("USA".into()), vec![]);
+            assert!(!foreign.contains("unfinished client advances"));
+        }
+        assert_eq!(before, persistence::encode(&world, &content).unwrap());
     }
     #[test]
     fn actual_period_controls_and_foreign_inspection_preserve_campaign_bytes_at_both_scales() {

@@ -186,10 +186,16 @@ impl World {
                 let external = matches!(origin, CommandOrigin::Player | CommandOrigin::Developer);
                 if external {
                     world.validate_business_costs(content)?;
+                    if content.business_finance.is_some() {
+                        world.validate_business_accounts(content)?;
+                    }
                 }
                 world.apply_inner(content, command, origin)?;
                 if external {
                     world.validate_business_costs(content)?;
+                    if content.business_finance.is_some() {
+                        world.validate_business_accounts(content)?;
+                    }
                 }
                 Ok(())
             });
