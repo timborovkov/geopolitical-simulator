@@ -287,6 +287,7 @@ fn show_ownership(ui: &mut egui::Ui, content: &Content, world: &World, country: 
         let elapsed = world.day.units()-content.start_day().expect("bookmark").units();
         if content.business_finance.is_some() {
             ui.label(format!("Autonomous review every 30 elapsed days · next {} · at most {:.0}% of prior closed-day retained modeled earnings",date(CampaignDay::new(world.day.units()+30-elapsed%30)),f64::from(definition.distribution_bps.units())/100.));
+            if content.private_payroll.is_some() { ui.small("Unpaid private wage claims are also protected before owner distributions. Inspect Private employment & payroll for assessed and paid wages."); }
             ui.small("Cash also retains the trailing payment buffer plus all undelivered client capital. The buffer is a cash policy, not an insolvency test.");
             if content.private_investment.is_some() {ui.small("Cash-funded equipment investment and depreciation are available under Private equipment & investment. Formal insolvency remains unfinished.");}
             else {ui.small("Private investment and insolvency remain unfinished.");}

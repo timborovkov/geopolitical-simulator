@@ -207,6 +207,8 @@ impl BusinessCostDay {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BusinessProfitTotals {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payroll_obligations: Option<Money>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub private_capital: Option<PrivateCapitalTotals>,
     pub sales: Money,
     pub public_cash: Money,
@@ -223,6 +225,12 @@ pub struct BusinessProfitTotals {
 }
 impl BusinessProfitTotals {
     pub(crate) fn validate_checkpoint(&self) -> Result<(), String> {
+        if self
+            .payroll_obligations
+            .is_some_and(|m| !(0..=1_000_000_000_000_000).contains(&m.0))
+        {
+            return Err("Invalid payroll checkpoint".into());
+        }
         if let Some(a) = &self.private_capital {
             a.validate()?;
         }
@@ -248,6 +256,7 @@ impl BusinessProfitTotals {
                     + i128::from(self.inventory_value.0)
                     + i128::from(self.receivables.0)
                     - i128::from(self.deferred_capital.0)
+                    - i128::from(self.payroll_obligations.map_or(0, |m| m.0))
                     + i128::from(self.private_capital.as_ref().map_or(0, |a| a.net_assets.0))
         {
             return Err("Business earnings checkpoint is invalid".into());
@@ -267,7 +276,8 @@ impl BusinessProfitTotals {
                 self.private_capital
                     .as_ref()
                     .map_or(0, |a| a.depreciation.0),
-            ) + i128::from(self.period_factors.0)
+            ) + i128::from(self.payroll_obligations.map_or(0, |m| m.0))
+                + i128::from(self.period_factors.0)
                 + i128::from(self.food_sold_cost.0)
                 + i128::from(self.energy_used_cost.0)
                 + i128::from(self.food_spoiled_cost.0)
@@ -279,6 +289,11 @@ impl BusinessProfitTotals {
     }
     pub fn change_since(&self, a: &Self) -> Result<Self, String> {
         Ok(Self {
+            payroll_obligations: match (self.payroll_obligations, a.payroll_obligations) {
+                (Some(now), Some(old)) => Some(money(i128::from(now.0) - i128::from(old.0))?),
+                (None, None) => None,
+                _ => return Err("Payroll checkpoint version mismatch".into()),
+            },
             private_capital: match (&self.private_capital, &a.private_capital) {
                 (None, None) => None,
                 (Some(now), Some(old)) => Some(now.change_since(old)),
@@ -415,6 +430,11 @@ impl Country {
             return Err("Deferred public capital exceeds actual business receipts".into());
         }
         let t = BusinessProfitTotals {
+            payroll_obligations: self
+                .private_payroll
+                .as_ref()
+                .map(|s| s.unpaid())
+                .transpose()?,
             private_capital: self
                 .private_investment
                 .as_ref()
@@ -438,7 +458,8 @@ impl Country {
             + i128::from(t.distributions.0)
             + i128::from(t.inventory_value.0)
             + i128::from(t.receivables.0)
-            - i128::from(t.deferred_capital.0);
+            - i128::from(t.deferred_capital.0)
+            - i128::from(t.payroll_obligations.map_or(0, |m| m.0));
         if i128::from(t.result()?.0) != bridge {
             return Err(
                 "Business profit, cash, inventory, receivables and advances do not reconcile"
@@ -490,15 +511,22 @@ impl World {
             .ok_or("Missing energy settlement")?
             .clone();
         let wages = c.report.wages;
+        let current_factors = c
+            .private_payroll
+            .as_ref()
+            .and_then(|s| s.last.as_ref())
+            .map(|day| day.current_factors_paid())
+            .transpose()?
+            .unwrap_or(wages);
         let food_factor = Money(if f.production == Food::ZERO {
             0
         } else {
-            (i128::from(wages.0) * i128::from(d.food_factor_bps.units()) / 10000) as i64
+            (i128::from(current_factors.0) * i128::from(d.food_factor_bps.units()) / 10000) as i64
         });
         let energy_factor = Money(if e.production == Energy::ZERO {
             0
         } else {
-            (i128::from(wages.0) * i128::from(d.energy_factor_bps.units()) / 10000) as i64
+            (i128::from(current_factors.0) * i128::from(d.energy_factor_bps.units()) / 10000) as i64
         });
         let day = BusinessCostDay {
             day: self.day,
@@ -532,6 +560,7 @@ impl World {
     }
     pub(crate) fn validate_business_costs(&self, content: &Content) -> Result<(), String> {
         self.validate_private_investment(content)?;
+        self.validate_private_payroll(content)?;
         for (id, c) in &self.countries {
             let Some(book) = &c.business_costs else {
                 if content.business_costs.is_some() {
@@ -543,8 +572,8 @@ impl World {
                 .business_costs
                 .as_ref()
                 .ok_or("Unexpected business cost book")?;
-            if !matches!(self.rules, 37..=39) {
-                return Err("Business costs require rules 37 through 39".into());
+            if !matches!(self.rules, 37..=40) {
+                return Err("Business costs require rules 37 through 40".into());
             }
             book.costs.validate()?;
             if let Some(a) = &book.day_opening.private_capital {
@@ -581,6 +610,7 @@ impl World {
                         + i128::from(o.inventory_value.0)
                         + i128::from(o.receivables.0)
                         - i128::from(o.deferred_capital.0)
+                        - i128::from(o.payroll_obligations.map_or(0, |m| m.0))
                 || !(0..=1_000_000_000_000).contains(&c.arrears_firms.0)
             {
                 return Err("Invalid opening business income account".into());
@@ -607,6 +637,11 @@ impl World {
                     && book.costs == BusinessCosts::default()
                     && book.day_opening
                         == BusinessProfitTotals {
+                            payroll_obligations: c
+                                .private_payroll
+                                .as_ref()
+                                .map(|s| s.unpaid())
+                                .transpose()?,
                             private_capital: c
                                 .private_investment
                                 .as_ref()
@@ -625,15 +660,29 @@ impl World {
                     let fc = Money(if f.production == Food::ZERO {
                         0
                     } else {
-                        (i128::from(day.factors_paid.0)
-                            * i128::from(definition.food_factor_bps.units())
+                        (i128::from(
+                            c.private_payroll
+                                .as_ref()
+                                .and_then(|s| s.last.as_ref())
+                                .map(|r| r.current_factors_paid())
+                                .transpose()?
+                                .unwrap_or(day.factors_paid)
+                                .0,
+                        ) * i128::from(definition.food_factor_bps.units())
                             / 10000) as i64
                     });
                     let ec = Money(if e.production == Energy::ZERO {
                         0
                     } else {
-                        (i128::from(day.factors_paid.0)
-                            * i128::from(definition.energy_factor_bps.units())
+                        (i128::from(
+                            c.private_payroll
+                                .as_ref()
+                                .and_then(|s| s.last.as_ref())
+                                .map(|r| r.current_factors_paid())
+                                .transpose()?
+                                .unwrap_or(day.factors_paid)
+                                .0,
+                        ) * i128::from(definition.energy_factor_bps.units())
                             / 10000) as i64
                     });
                     if f.day != self.day

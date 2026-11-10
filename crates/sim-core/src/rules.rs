@@ -187,6 +187,7 @@ impl World {
                 if external {
                     world.validate_business_costs(content)?;
                     world.validate_private_investment(content)?;
+                    world.validate_private_payroll(content)?;
                     if content.business_finance.is_some() {
                         world.validate_business_accounts(content)?;
                     }
@@ -195,6 +196,7 @@ impl World {
                 if external {
                     world.validate_business_costs(content)?;
                     world.validate_private_investment(content)?;
+                    world.validate_private_payroll(content)?;
                     if content.business_finance.is_some() {
                         world.validate_business_accounts(content)?;
                     }
@@ -517,6 +519,7 @@ impl World {
         self.validate_consumption(content)?;
         self.validate_business_costs(content)?;
         self.validate_private_investment(content)?;
+        self.validate_private_payroll(content)?;
         if content.rules >= 33 {
             self.validate_industry(content)?;
         }
@@ -627,6 +630,7 @@ impl World {
             self.validate_consumption(content)?;
             self.validate_business_costs(content)?;
             self.validate_private_investment(content)?;
+            self.validate_private_payroll(content)?;
             self.ledger
                 .retain(|e| e.day.units() + 30 >= self.day.units());
             if self.day.units() >= (review_day).units() && !self.milestone_reported {
@@ -988,13 +992,20 @@ impl World {
             "Service exports: external demand capped at 15% of realized output",
         );
         let income_weights = self.demographic_income_weights(content, id);
-        let wages = self.pay_income(
-            id,
-            Firms,
-            output * 70 / 100,
-            &income_weights,
-            "Private household income",
-        );
+        let (wages, current_factors) = if content.private_payroll.is_some() {
+            let (paid, current) =
+                self.settle_private_payroll(content, id, Money(output), &income_weights)?;
+            (paid.0, current.0)
+        } else {
+            let paid = self.pay_income(
+                id,
+                Firms,
+                output * 70 / 100,
+                &income_weights,
+                "Private household income",
+            );
+            (paid, paid)
+        };
         self.distribute_business_cash(content, id)?;
         let c = &self.countries[id];
         let standard_rate = c.tax;
@@ -1236,6 +1247,9 @@ impl World {
             .as_ref()
             .map(|_| crate::households::initial_households(d, Money(0)));
         for (index, (h, definition)) in c.households.iter_mut().zip(&d.households).enumerate() {
+            if content.private_payroll.is_some() {
+                continue;
+            }
             let (paid, planned) = if h.id == "public" {
                 (
                     wages * definition.income_share / 100 + service_pay,
@@ -1252,11 +1266,12 @@ impl World {
                 h.working_age.0 * 90 / 100 * paid as u64 / planned.max(1) as u64
             };
         }
+        self.private_employment_counts(content, id, Money(services_due), Money(service_pay));
         let service_input_percent = self.settle_production(
             content,
             id,
             ProductionFunding {
-                private_income_paid: Money(wages),
+                private_income_paid: Money(current_factors),
                 service_due: Money(services_due),
                 service_paid: Money(service_pay),
                 maintenance_due: Money(maintenance_due),

@@ -23,6 +23,7 @@ pub fn show(ui: &mut egui::Ui, content: &Content, world: &World, country: &Count
                 let candidate=match review.good {Some(GoodKind::Food)=>"Food",Some(GoodKind::Energy)=>"Energy",None=>"No eligible equipment"};
                 ui.label(format!("Candidate {candidate} · equipment price {}m · conditional daily import saving {}m",review.price.0,review.expected_daily_saving.0));
                 ui.label(format!("Retained earnings after dividends {}m · cash available after reserves {}m", review.retained_earnings.0,review.available_cash.0));
+                if let Some(creditors)=review.payroll_creditors {ui.label(format!("Protected unpaid wage claims {}m",creditors.0));}
                 ui.label(format!("Protected recent payments {}m + unfinished client advances {}m",review.payment_buffer.0,review.client_advances.0));
             } else { ui.label("First investment review follows 30 elapsed days of actual operation."); }
             ui.collapsing("Equipment receipts & service life", |ui| {

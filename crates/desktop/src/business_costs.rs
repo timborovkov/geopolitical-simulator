@@ -38,7 +38,7 @@ fn body(
             ui.strong("Current day");
             ui.strong("Since opening");
             ui.end_row();
-            let rows = [
+            let mut rows = vec![
                 ("Household and external sales", today.sales, all.sales),
                 ("Public cash receipts", today.public_cash, all.public_cash),
                 (
@@ -84,6 +84,30 @@ fn body(
                 ),
                 ("Modeled business result", today.result()?, all.result()?),
             ];
+            let expense_total = rows.len() - 2;
+            if let Some(capital) = &all.private_capital {
+                rows.insert(
+                    expense_total,
+                    (
+                        "Equipment depreciation",
+                        today
+                            .private_capital
+                            .as_ref()
+                            .map_or(Money(0), |a| a.depreciation),
+                        capital.depreciation,
+                    ),
+                );
+            }
+            if let Some(unpaid) = all.payroll_obligations {
+                rows.insert(
+                    expense_total,
+                    (
+                        "Change in unpaid wage claims",
+                        today.payroll_obligations.unwrap_or(Money(0)),
+                        unpaid,
+                    ),
+                );
+            }
             for (label, t, a) in rows {
                 ui.label(label);
                 ui.label(t.0.to_string());
@@ -103,7 +127,10 @@ fn body(
     let fixed = all.private_capital.as_ref().map_or(String::new(), |a| {
         format!(" + net private fixed assets {}m", a.net_assets.0)
     });
-    ui.label(format!("Cash/profit bridge since opening: cash change {}m + owner payments {}m + inventory {}m + receivables {}m − deferred capital {}m{} = business result {}m",all.cash_change.0,all.distributions.0,all.inventory_value.0,all.receivables.0,all.deferred_capital.0,fixed,all.result()?.0));
+    let payroll = all
+        .payroll_obligations
+        .map_or(String::new(), |m| format!(" − unpaid wage claims {}m", m.0));
+    ui.label(format!("Cash/profit bridge since opening: cash change {}m + owner payments {}m + inventory {}m + receivables {}m − deferred capital {}m{}{} = business result {}m",all.cash_change.0,all.distributions.0,all.inventory_value.0,all.receivables.0,all.deferred_capital.0,fixed,payroll,all.result()?.0));
     if let Some(capital) = &all.private_capital {
         ui.label(format!("Equipment acquisitions {}m are capital outlays; accumulated depreciation {}m is included in expenses.",capital.acquisitions.0,capital.depreciation.0));
     }
@@ -145,7 +172,9 @@ fn body(
     let d = content.business_costs.as_ref().expect("cost definition");
     ui.small(format!("Authored direct factor allocation: food {} basis points, energy {}; remaining and idle allocations are expensed today. Shares round down. Stock value uses a moving weighted average; whole-credit rounding is explicit.",d.food_factor_bps.units(),d.energy_factor_bps.units()));
     ui.small("Public reserve releases have zero business acquisition cost. Policy administration earns the standard 10% at proposal; paid capital stays deferred until actual delivery or funded withdrawal. Outstanding maintenance claims are receivables.");
-    if content.private_investment.is_some() {
+    if content.private_payroll.is_some() {
+        ui.small("Private equipment is capitalized and depreciated. Unpaid contractual wages are period expenses and household claims, protected before owner payouts and investment. Corporate tax and formal insolvency remain unfinished.");
+    } else if content.private_investment.is_some() {
         ui.small("Private equipment is capitalized and depreciated over its finite service life. Unpaid contractual payroll, corporate tax and formal insolvency remain unfinished.");
     } else {
         ui.small("Private fixed-asset depreciation, unpaid contractual payroll, corporate tax, investment and insolvency remain unfinished.");

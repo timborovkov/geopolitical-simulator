@@ -436,7 +436,14 @@ impl World {
             };
             let funding = &last.funding;
             if last.physical.day != self.day
-                || funding.private_income_paid != country.report.wages
+                || funding.private_income_paid
+                    != country
+                        .private_payroll
+                        .as_ref()
+                        .and_then(|s| s.last.as_ref())
+                        .map(|day| day.current_factors_paid())
+                        .transpose()?
+                        .unwrap_or(country.report.wages)
                 || funding.private_income_paid.0 < 0
                 || funding.service_due.0 < 0
                 || funding.service_paid.0 < 0

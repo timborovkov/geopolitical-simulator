@@ -55,6 +55,8 @@ impl BusinessFinanceDefinition {
 /// Retained earnings and cash availability are deliberately separate quantities.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BusinessEarningsProtection {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payroll_creditors: Option<Money>,
     pub closed_day: CampaignDay,
     pub checkpoint: BusinessProfitTotals,
     pub retained_earnings: Money,
@@ -64,6 +66,23 @@ pub struct BusinessEarningsProtection {
 impl BusinessEarningsProtection {
     fn available(cash: Money, buffer: Money, advances: Money) -> Money {
         Money((i128::from(cash.0) - i128::from(buffer.0) - i128::from(advances.0)).max(0) as i64)
+    }
+    fn available_with_payroll(
+        cash: Money,
+        buffer: Money,
+        advances: Money,
+        payroll: Option<Money>,
+    ) -> Money {
+        if payroll.is_none() {
+            return Self::available(cash, buffer, advances);
+        }
+        Money(
+            (i128::from(cash.0)
+                - i128::from(buffer.0)
+                - i128::from(advances.0)
+                - i128::from(payroll.map_or(0, |m| m.0)))
+            .max(0) as i64,
+        )
     }
     fn validate(
         &self,
@@ -91,16 +110,20 @@ impl BusinessEarningsProtection {
             self.client_advances,
             self.available_cash,
         ];
-        if fields
-            .iter()
-            .any(|m| !(0..=1_000_000_000_000_000_000).contains(&m.0))
+        if self
+            .payroll_creditors
+            .is_some_and(|m| !(0..=1_000_000_000_000_000).contains(&m.0))
+            || fields
+                .iter()
+                .any(|m| !(0..=1_000_000_000_000_000_000).contains(&m.0))
             || self.closed_day.units().checked_add(1) != Some(decision.day.units())
             || a.distributions != decision.distributions_before
             || a.sales.0 > decision.operating_receipts_before.0
             || a.public_cash.0 > decision.public_receipts_before.0
             || a.deferred_capital.0 > a.public_cash.0
             || (i128::from(expenses.0)
-                - i128::from(a.private_capital.as_ref().map_or(0, |x| x.depreciation.0)))
+                - i128::from(a.private_capital.as_ref().map_or(0, |x| x.depreciation.0))
+                - i128::from(a.payroll_obligations.map_or(0, |m| m.0)))
                 > i128::from(decision.payments_before.0) - i128::from(a.distributions.0)
             || i128::from(business.opening_cash.0) + i128::from(a.cash_change.0) < 0
             || i128::from(result.0)
@@ -110,14 +133,16 @@ impl BusinessEarningsProtection {
                     + i128::from(a.inventory_value.0)
                     + i128::from(a.receivables.0)
                     - i128::from(a.deferred_capital.0)
+                    - i128::from(a.payroll_obligations.map_or(0, |m| m.0))
             || i128::from(self.retained_earnings.0)
                 != i128::from(result.0) - i128::from(a.distributions.0)
             || self.client_advances.0 > decision.public_receipts_before.0
             || self.available_cash
-                != Self::available(
+                != Self::available_with_payroll(
                     decision.opening_cash,
                     decision.protected_cash,
                     self.client_advances,
+                    self.payroll_creditors,
                 )
         {
             return Err("Business earnings checkpoint does not reconcile".into());
@@ -235,7 +260,7 @@ impl Country {
             };
         };
         if content.businesses.is_none()
-            || !matches!(world.rules, 35..=39)
+            || !matches!(world.rules, 35..=40)
             || b.id != BusinessId(format!("{}:civilian-enterprises", self.id.0))
             || [
                 b.opening_cash,
@@ -290,6 +315,28 @@ impl Country {
                     match (&decision.earnings_protection, &content.business_finance) {
                         (Some(protection), Some(_)) => {
                             protection.validate(decision, b)?;
+                            if protection.checkpoint.payroll_obligations.is_some()
+                                != content.private_payroll.is_some()
+                            {
+                                return Err("Payout payroll checkpoint version mismatch".into());
+                            }
+                            let creditors = self
+                                .private_payroll
+                                .as_ref()
+                                .map(|s| s.unpaid())
+                                .transpose()?;
+                            if protection.payroll_creditors.is_some() != creditors.is_some()
+                                || protection
+                                    .payroll_creditors
+                                    .is_some_and(|m| !(0..=1_000_000_000_000_000).contains(&m.0))
+                                || (decision.day == world.day
+                                    && protection.payroll_creditors != creditors)
+                            {
+                                return Err(
+                                    "Payout payroll protection differs from wage claims".into()
+                                );
+                            }
+
                             if protection.checkpoint.private_capital
                                 != self
                                     .private_investment
@@ -386,6 +433,7 @@ impl World {
     }
     pub(crate) fn validate_business_accounts(&self, content: &Content) -> Result<(), String> {
         self.validate_private_investment(content)?;
+        self.validate_private_payroll(content)?;
         for country in self.countries.values() {
             country.validate_business(self, content)?;
         }
@@ -463,11 +511,13 @@ impl World {
                     i64::try_from(retained)
                         .map_err(|_| "Retained earnings exceed accounting range")?,
                 ),
+                payroll_creditors: c.private_payroll.as_ref().map(|s| s.unpaid()).transpose()?,
                 client_advances,
-                available_cash: BusinessEarningsProtection::available(
+                available_cash: BusinessEarningsProtection::available_with_payroll(
                     opening_cash,
                     protected_cash,
                     client_advances,
+                    c.private_payroll.as_ref().map(|s| s.unpaid()).transpose()?,
                 ),
             })
         } else {

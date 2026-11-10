@@ -163,6 +163,8 @@ impl PrivateImportObservation {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PrivateInvestmentReview {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payroll_creditors: Option<Money>,
     pub day: CampaignDay,
     pub reason: PrivateInvestmentReason,
     pub good: Option<GoodKind>,
@@ -296,7 +298,17 @@ impl Country {
             GoodKind::Energy => definition.energy_factor_bps,
         };
         let paid = costs.map_or(0, |b| {
-            (i128::from(b.factors_paid.0) * i128::from(share.units()) / 10000) as i64
+            (i128::from(
+                b.factors_paid.0
+                    - self
+                        .private_payroll
+                        .as_ref()
+                        .and_then(|s| s.last.as_ref())
+                        .map_or(0, |day| {
+                            day.arrears_paid().expect("validated payroll receipt").0
+                        }),
+            ) * i128::from(share.units())
+                / 10000) as i64
         });
         let required = (c.country(&self.id).expect("country").gdp.units() / 365 / 100).max(1);
         let readiness = (paid.min(required).max(0) * 100 / required) as i32;
@@ -363,11 +375,21 @@ impl World {
         let (pending, _, _) = c.business_capital(content)?;
         let advances = Money(pending.iter().map(|p| p.amount.0).sum());
         let available = Money(
-            (i128::from(c.accounts.firms.0) - i128::from(buffer.0) - i128::from(advances.0)).max(0)
-                as i64,
+            (i128::from(c.accounts.firms.0)
+                - i128::from(buffer.0)
+                - i128::from(advances.0)
+                - i128::from(
+                    c.private_payroll
+                        .as_ref()
+                        .map(|s| s.unpaid())
+                        .transpose()?
+                        .map_or(0, |m| m.0),
+                ))
+            .max(0) as i64,
         );
         let basis = (content.country(id).expect("country").population.0 / 1000) as i64;
         let mut review = PrivateInvestmentReview {
+            payroll_creditors: c.private_payroll.as_ref().map(|s| s.unpaid()).transpose()?,
             day: self.day,
             reason: PrivateInvestmentReason::NoObservedImports,
             good: None,
@@ -445,7 +467,7 @@ impl World {
         for (id, c) in &self.countries {
             match (&content.private_investment, &c.private_investment) {
                 (None, None) => continue,
-                (Some(d), Some(s)) if self.rules == 39 => {
+                (Some(d), Some(s)) if (39..=40).contains(&self.rules) => {
                     if s.as_of != self.day || s.equipment.len() > 256 {
                         return Err("Private equipment date or count is invalid".into());
                     }
@@ -536,7 +558,8 @@ impl World {
                             } else {
                                 0
                             };
-                            if r.checkpoint != payout.checkpoint
+                            if r.payroll_creditors != payout.payroll_creditors
+                                || r.checkpoint != payout.checkpoint
                                 || r.checkpoint.private_capital
                                     != Some(s.totals_at(CampaignDay::new(r.day.units() - 1))?)
                                 || r.distributions_before != b.distributions
@@ -557,7 +580,8 @@ impl World {
                                 || i128::from(r.available_cash.0)
                                     != (i128::from(r.opening_cash.0)
                                         - i128::from(r.payment_buffer.0)
-                                        - i128::from(r.client_advances.0))
+                                        - i128::from(r.client_advances.0)
+                                        - i128::from(r.payroll_creditors.map_or(0, |m| m.0)))
                                     .max(0)
                                 || s.equipment.iter().any(|e| e.acquired == r.day)
                                     != (r.reason == PrivateInvestmentReason::Purchased)
