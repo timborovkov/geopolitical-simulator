@@ -13,6 +13,8 @@ pub struct HouseholdDefinition {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Household {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delivery: Option<crate::HouseholdConsumption>,
     pub id: HouseholdGroupId,
     pub population: Population,
     pub working_age: Population,
@@ -63,6 +65,7 @@ pub(crate) fn initial_households(d: &CountryDefinition, cash: Money) -> Vec<Hous
         .iter()
         .enumerate()
         .map(|(i, h)| Household {
+            delivery: None,
             id: h.id.clone(),
             population: Population(population[i] as u64),
             working_age: Population((population[i] * h.working_age_share / 100) as u64),
@@ -146,6 +149,9 @@ impl World {
         };
         if content.demographics.is_some() && weights.iter().all(|w| *w == 0) {
             for h in &mut self.countries.get_mut(id).expect("country").households {
+                if self.rules >= 36 {
+                    h.delivery = Some(HouseholdConsumption::empty(self.day));
+                }
                 h.basket_cost = Money(0);
                 h.food_coverage = 100;
             }
@@ -160,6 +166,15 @@ impl World {
         };
         let baskets = apportion(basket_total.max(1), &weights);
         let needs = apportion(demand.units(), &weights);
+        if self.rules >= 36 {
+            return self.settle_delivered_consumption(
+                content,
+                id,
+                food_available,
+                &baskets,
+                &needs,
+            );
+        }
         let mut affordable = Vec::new();
         let mut consumption = 0;
         for (index, basket) in baskets.iter().enumerate() {

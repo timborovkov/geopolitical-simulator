@@ -497,6 +497,7 @@ impl World {
         self.validate_event_references_for_content(content, content_hash)?;
         self.validate_industrial_trade(content)?;
         self.validate_business_accounts(content)?;
+        self.validate_consumption(content)?;
         if content.rules >= 33 {
             self.validate_industry(content)?;
         }
@@ -601,6 +602,7 @@ impl World {
                 }
             }
             self.validate_business_accounts(content)?;
+            self.validate_consumption(content)?;
             self.ledger
                 .retain(|e| e.day.units() + 30 >= self.day.units());
             if self.day.units() >= (review_day).units() && !self.milestone_reported {

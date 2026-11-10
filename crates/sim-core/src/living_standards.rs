@@ -137,6 +137,7 @@ mod tests {
     use super::*;
     fn group(people: u64, income: i64) -> Household {
         Household {
+            delivery: None,
             id: "test".into(),
             population: Population(people),
             working_age: Population(people),

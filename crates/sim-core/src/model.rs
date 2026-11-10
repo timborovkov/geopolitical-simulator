@@ -1219,6 +1219,7 @@ impl World {
                 return Err("Household creditor claims do not reconcile".into());
             }
             c.validate_business(self, content)?;
+            self.validate_country_consumption(content, id)?;
             if c.households.len() != d.households.len()
                 || c.households
                     .iter()

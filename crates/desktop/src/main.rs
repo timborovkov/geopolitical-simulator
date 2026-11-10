@@ -10,6 +10,7 @@ mod charts;
 mod chronicle;
 mod commitments;
 mod constitutions;
+mod consumption;
 mod demographics;
 mod elections;
 mod executive_identity;
@@ -1369,6 +1370,7 @@ impl GameApp {
         }
 
         if let Some(world) = &self.world {
+            consumption::show(ui, &self.content, world, &self.selected);
             self.social_panel
                 .show(ui, &self.content, world, &self.selected);
             demographics::show(
