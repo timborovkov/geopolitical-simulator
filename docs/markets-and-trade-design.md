@@ -108,6 +108,6 @@ The market view should show price history, stock, production, affordable demand,
 
 ## Deferred scope and readiness
 
-FX, bank credit, speculation, detailed merchant companies, smuggling, seasonal harvests, variable travel times and physical convoys are outside the first regional prototype. Existing storage/spoilage rules remain where applicable. Broader diplomacy, war logistics and customs institutions remain in the 341-requirement register.
+FX, bank credit, speculation, detailed merchant companies, smuggling, seasonal harvests, variable travel times and physical convoys are outside the first regional prototype. Existing storage/spoilage rules remain where applicable. Broader diplomacy, war logistics and customs institutions remain in the requirement register.
 
 **Ready now:** implement the specification and scenario preparation tasks. **Not yet ready:** integrate an assumed complete regional market system into the default campaign. Resolve steps 1–3 before core implementation; demonstrate step 4 before interface expansion. Government control and the daily tick are already decided by this repository. Formula inputs, money circulation, production response, route allocation and compatibility still need the explicit outputs above.
