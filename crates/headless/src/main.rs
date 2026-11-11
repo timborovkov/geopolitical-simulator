@@ -1,3 +1,4 @@
+mod diplomacy;
 use sim_core::{persistence, *};
 use std::{
     io::{self, Write},
@@ -21,6 +22,16 @@ fn print_event(event: &Event) {
     }
     if let Some(EventContext::Commitment { request, stage }) = event.context {
         println!("Programme #{request} · recorded stage {stage:?} · inspect: commitment {request}");
+    }
+    if let Some(EventContext::Treaty {
+        agreement,
+        milestone,
+    }) = event.context
+    {
+        println!(
+            "Pact #{} · milestone {} · inspect: treaties",
+            agreement.0, milestone.0
+        );
     }
 }
 
@@ -172,6 +183,7 @@ fn play(
                     if content.finance.as_ref().is_some_and(|rules|rules.maturity_days.is_some()) {
                         println!("The five-year objective also requires zero overdue loan principal; inspect finance for contractual dates.");
                     }
+                    println!("Diplomacy: treaties [COUNTRY] | pact-preview offer|counter|sign|ratify|reject|withdraw|notice ... | pact-offer COUNTRY DURATION_DAYS NOTICE_DAYS | pact-counter ID REVISION DURATION_DAYS NOTICE_DAYS | pact-sign|pact-ratify|pact-reject|pact-withdraw|pact-notice ID REVISION");
                     if developer {
                         println!(
                             "dev-fields | dev-inspect COUNTRY | dev-ai-log COUNTRY [LIMIT] | dev COUNTRY FIELD VALUE (explicit developer edits)\ndev-trace-replay NEWFILE | dev-compare-traces REFERENCE ACTUAL (read-only replay evidence)"
@@ -325,13 +337,14 @@ fn play(
                         "Developer edit accepted. Campaign permanently marked developer-modified."
                     );
                 }
+                "treaties" | "pact-preview" | "pact-offer" | "pact-counter" | "pact-sign" | "pact-ratify" | "pact-reject" | "pact-withdraw" | "pact-notice" => diplomacy::handle(world, content, &words)?,
                 "status" => status(world, content),
                 "countries" => {
                     for d in &content.countries {
                         let report = world.public_report(content, &d.id)?;
                         println!(
-                            "{} · {} · {:?} · {}",
-                            d.id.0, d.name, report.regime, report.executive
+                            "{} · {} · {} · {}",
+                            d.id.0, d.name, report.regime.label(), report.executive
                         );
                     }
                 }
@@ -534,8 +547,8 @@ fn play(
                         .as_ref()
                         .ok_or("No territorial reform workflow")?;
                     println!(
-                        "Current settlement {:?}",
-                        world.territorial_form_at(content, &world.player, world.day)?
+                        "Current settlement {}",
+                        world.territorial_form_at(content, &world.player, world.day)?.label()
                     );
                     println!(
                         "{}",
@@ -797,27 +810,28 @@ fn play(
                         .as_ref()
                         .ok_or("Missing constitution")?;
                     println!(
-                        "Current {:?} since {} · next request {}",
-                        state.regime,
+                        "Current {} since {} · next request {}",
+                        state.regime.label(),
                         date(state.since),
                         date(state.next_request_day)
                     );
                     for template in &rules.templates {
                         println!(
-                            "{} · {} · {}",
+                            "{} · {} · {} · {}",
                             serde_json::to_value(&template.regime)
                                 .map_err(|error| error.to_string())?
                                 .as_str()
                                 .unwrap_or("unknown"),
+                            template.regime.label(),
                             template.title,
                             template.government.label()
                         );
                     }
                     if let Some(request) = &state.pending {
                         println!(
-                            "Pending #{} to {:?} · contested {} · decision {} · paid {}m, reserved {}m",
+                            "Pending #{} to {} · contested {} · decision {} · paid {}m, reserved {}m",
                             request.id.0,
-                            request.target,
+                            request.target.label(),
                             request.contested,
                             date(request.decision_day),
                             request.upfront.0,
@@ -826,10 +840,10 @@ fn play(
                     }
                     for change in &state.history {
                         println!(
-                            "{} · {:?} to {:?} · contested {} · government #{}",
+                            "{} · {} to {} · contested {} · government #{}",
                             date(change.day),
-                            change.from,
-                            change.to,
+                            change.from.label(),
+                            change.to.label(),
                             change.contested,
                             change.government_number
                         );
@@ -856,8 +870,8 @@ fn play(
                             contested,
                         )?;
                         println!(
-                            "{:?} · contested {} · decision {} · {}m total: {}m upfront, {}m reserved · approval/legislature/elite/council costs {}/{}/{}/{} if enacted. Cancellation/refusal retains paid costs and cooldown.",
-                            target,
+                            "{} · contested {} · decision {} · {}m total: {}m upfront, {}m reserved · approval/legislature/elite/council costs {}/{}/{}/{} if enacted. Cancellation/refusal retains paid costs and cooldown.",
+                            target.label(),
                             contested,
                             date(preview.decision_day),
                             preview.cost.0,
@@ -1208,6 +1222,12 @@ fn play(
                         println!(
                             "Group means exclude within-group inequality. Income pressure is not a poverty headcount: savings can fund food; food supply can fail despite income."
                         );
+                        if let Some(distribution) = group_income_distribution(&c.households)? {
+                            println!("Cohort-mean income distribution · cumulative population and disposable-income shares from lowest to highest per-resident mean; within-group inequality is unobserved.");
+                            for point in distribution.boundaries {
+                                println!("{}: cumulative residents {} ({:.2}%) · disposable income {}m/day ({:.2}%)",point.group.0,point.cumulative_population.0,f64::from(point.population_share.units())/100.0,point.cumulative_income.0,f64::from(point.income_share.units())/100.0);
+                            }
+                        }
                     }
                     for (h, definition) in c.households.iter().zip(&d.households) {
                         println!(

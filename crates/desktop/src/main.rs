@@ -13,6 +13,7 @@ mod commitments;
 mod constitutions;
 mod consumption;
 mod demographics;
+mod diplomacy;
 mod elections;
 mod executive_identity;
 mod financing;
@@ -22,9 +23,11 @@ mod geometry;
 mod governing_institutions;
 mod help;
 mod hydrology;
+mod income_distribution;
 mod income_taxes;
 mod industrial_trade;
 mod inspector;
+mod launch_check;
 mod legislation;
 mod map;
 mod map_gpu;
@@ -63,6 +66,7 @@ enum Tab {
     Analysis,
     Settings,
     Politics,
+    Diplomacy,
     Chronicle,
     Guide,
     Inspector,
@@ -88,6 +92,7 @@ struct GameApp {
     cash_management: cash_management::Panel,
     funding_chart: charts::Chart,
     constitution_panel: constitutions::Panel,
+    diplomacy_panel: diplomacy::Panel,
     commitment_panel: commitments::Panel,
     undertaking_panel: undertakings::Panel,
     fiscal_panel: fiscal_plans::Panel,
@@ -167,6 +172,7 @@ impl GameApp {
             cash_management: cash_management::Panel::default(),
             funding_chart: charts::Chart::default(),
             constitution_panel: constitutions::Panel::default(),
+            diplomacy_panel: diplomacy::Panel::default(),
             commitment_panel: commitments::Panel::default(),
             undertaking_panel: undertakings::Panel::default(),
             fiscal_panel: fiscal_plans::Panel::default(),
@@ -380,6 +386,7 @@ impl GameApp {
                 self.legislation_panel = legislation::Panel::default();
                 self.social_panel = social_memberships::Panel::default();
                 self.walkthrough = walkthrough::Panel::default();
+                self.diplomacy_panel = diplomacy::Panel::default();
                 self.cash_management = cash_management::Panel::default();
                 self.event_browser = chronicle::Panel::default();
                 self.status = match self.content.rules {
@@ -497,6 +504,7 @@ impl GameApp {
         self.inspector = inspector::Inspector::default();
         self.help = help::Help::default();
         self.walkthrough = walkthrough::Panel::default();
+        self.diplomacy_panel = diplomacy::Panel::default();
         self.cash_management = cash_management::Panel::default();
         self.event_browser = chronicle::Panel::default();
         self.status = archive.map_or_else(
@@ -708,6 +716,7 @@ impl GameApp {
                     (Tab::Treasury, "Treasury"),
                     (Tab::Analysis, "Analysis"),
                     (Tab::Politics, "Government"),
+                    (Tab::Diplomacy, "Diplomacy"),
                     (Tab::Chronicle, "Chronicle"),
                     (Tab::Guide, "Guide"),
                 ] {
@@ -847,9 +856,12 @@ impl GameApp {
             .as_ref()
             .and_then(|world| world.public_report(&self.content, &self.selected).ok());
         ui.label(format!(
-            "{} · {:?} · {} {}",
+            "{} · {} · {} {}",
             d.capital,
-            report.as_ref().map_or(&d.regime, |report| &report.regime),
+            report
+                .as_ref()
+                .map_or(&d.regime, |report| &report.regime)
+                .label(),
             report
                 .as_ref()
                 .map_or(d.office.as_str(), |report| report.government_title.as_str()),
@@ -960,7 +972,7 @@ impl GameApp {
         if let Some(w) = &self.world {
             let c = &w.countries[&self.selected];
             ui.horizontal_wrapped(|ui| {
-                metric(ui, "Treasury", format!("{}m", c.accounts.treasury.0));
+                metric(ui, "Available cash", format!("{}m", c.available_cash().0));
                 metric(
                     ui,
                     "Debt / opening GDP",
@@ -1057,7 +1069,7 @@ impl GameApp {
             .as_ref()
             .and_then(|state| state.pending.as_ref())
         {
-            ui.label(format!("Pending {} constitutional decision: {:?}, due {}. Reserved administration {}m; approval is not guaranteed.", if request.contested { "CONTESTED" } else { "lawful" }, request.target, date(request.decision_day), request.reserved.0));
+            ui.label(format!("Pending {} constitutional decision: {}, due {}. Reserved administration {}m; approval is not guaranteed.", if request.contested { "CONTESTED" } else { "lawful" }, request.target.label(), date(request.decision_day), request.reserved.0));
             if ui.button("Review constitutional decision").clicked() {
                 self.tab = Tab::Politics;
             }
@@ -1161,8 +1173,8 @@ impl GameApp {
             report.opening_gdp.0
         ));
         ui.label(format!(
-            "Current governing form {:?} · {} · {}",
-            report.regime,
+            "Current governing form {} · {} · {}",
+            report.regime.label(),
             report.government_title,
             report.government.label()
         ));
@@ -1210,8 +1222,8 @@ impl GameApp {
         }
         if let Some(territory) = &report.territorial {
             ui.label(format!(
-                "Current territorial settlement: {:?}",
-                territory.form
+                "Current territorial settlement: {}",
+                territory.form.label()
             ));
             if let Some(change) = &territory.last_change {
                 ui.label(format!(
@@ -1344,8 +1356,8 @@ impl GameApp {
                 egui::Frame::group(ui.style()).show(ui, |ui| {
                     ui.strong("Decision preview · forecast");
                     ui.label(format!(
-                        "Cash now: {}m · delivery: {} days · annual consolidated net expenditure change: {:+}m",
-                        preview.cost.0, preview.delay.units(), preview.annual_budget_change.0
+                        "Total commitment cost: {}m · available national cash: {}m · delivery: {} days · annual consolidated net expenditure change: {:+}m",
+                        preview.cost.0, c.available_cash().0, preview.delay.units(), preview.annual_budget_change.0
                     ));
                     if self.policy == "coalition" {
                         ui.label("Authority: Direct governing negotiation; backing changes after delivery.");
@@ -1527,6 +1539,7 @@ impl GameApp {
                     });
                     ui.label(format!("Disposable income {}m/day · essential basket {}m/day · remaining household cash {}m.", indicators.disposable_income.0, indicators.essential_basket.0, indicators.cash.0));
                     ui.small("These are disjoint group means, not individual poverty estimates. Savings can fund a basket when daily income is low; sufficient income does not guarantee food supply. The Gini excludes inequality within groups and is undefined when total income is zero or group means cannot be represented.");
+                    income_distribution::show(ui, &self.content, w, &self.selected);
                 }
                 Err(error) => {
                     ui.colored_label(Color32::LIGHT_YELLOW, error);
@@ -1616,14 +1629,25 @@ impl GameApp {
             return;
         };
         let c = &w.countries[&self.selected];
-        private_payroll::show(ui, &self.content, w, &self.selected);
-        private_investment::show(ui, &self.content, w, &self.selected);
-        business_costs::show(ui, &self.content, w, &self.selected);
-        business_statement::show(ui, &self.content, w, &self.selected);
-        let industrial_trade_action = industrial_trade::show(ui, &self.content, w, &self.selected);
-        production::show(ui, &self.content, w, &self.selected);
-        self.cashflows.show(ui, &self.content, w, &self.selected);
-        markets::show(ui, &self.content, w, &self.selected);
+        ui.horizontal_wrapped(|ui| {
+            metric(
+                ui,
+                "Available national cash",
+                format!("{}m", c.available_cash().0),
+            );
+            metric(ui, "Public debt", format!("{}m", c.debt.0));
+            metric(ui, "Unpaid public obligations", format!("{}m", c.arrears.0));
+            metric(
+                ui,
+                "Last-day fiscal balance",
+                format!(
+                    "{:+}m",
+                    c.report.revenue.0 - c.report.spending.0 - c.report.interest.0
+                ),
+            );
+        });
+        ui.small(format!("Public cash {}m includes reserved policy capital {}m, protected local funds {}m and retained cash {}m. Only available national cash can fund a new decision.",c.accounts.treasury.0,c.committed_cash.0,c.regional_protected_cash().0,c.retained_cash().0));
+        let lending_action = financing::show(ui, &self.content, w, &mut self.money);
         let d = self
             .content
             .country(&self.selected)
@@ -1654,7 +1678,6 @@ impl GameApp {
         };
         let reserve_action = reserves::show(ui, &self.content, w);
         let budget_action = self.fiscal_panel.show(ui, &self.content, w);
-        let lending_action = financing::show(ui, &self.content, w, &mut self.money);
         let mut finance_action = cash_action
             .or(reserve_action)
             .or(budget_action)
@@ -1814,6 +1837,17 @@ impl GameApp {
                 ));
             }
         }
+        let w = self.world.as_ref().expect("world");
+        ui.separator();
+        ui.heading("Businesses, industry & markets");
+        private_payroll::show(ui, &self.content, w, &self.selected);
+        private_investment::show(ui, &self.content, w, &self.selected);
+        business_costs::show(ui, &self.content, w, &self.selected);
+        business_statement::show(ui, &self.content, w, &self.selected);
+        let industrial_trade_action = industrial_trade::show(ui, &self.content, w, &self.selected);
+        production::show(ui, &self.content, w, &self.selected);
+        self.cashflows.show(ui, &self.content, w, &self.selected);
+        markets::show(ui, &self.content, w, &self.selected);
         if let Some(action) = industrial_trade_action {
             self.issue(action);
         }
@@ -1877,7 +1911,12 @@ impl GameApp {
             .as_ref()
             .and_then(|world| world.governing_rules(&self.content, &self.selected).ok())
             .unwrap_or(&d.government);
-        ui.label(format!("{} · {:?}\n{}", d.name, regime, government.label()));
+        ui.label(format!(
+            "{} · {}\n{}",
+            d.name,
+            regime.label(),
+            government.label()
+        ));
         ui.label("All seats, political preferences and election cycles are scenario approximations. The 100-seat assembly is a game abstraction; it is not a historical parliament.");
         let c = self.world.as_ref().map(|w| &w.countries[&self.selected]);
         if let Some(c) = c {
@@ -2199,6 +2238,7 @@ impl GameApp {
                         self.legislation_panel = legislation::Panel::default();
                         self.social_panel = social_memberships::Panel::default();
                         self.walkthrough = walkthrough::Panel::default();
+                        self.diplomacy_panel = diplomacy::Panel::default();
                         self.cash_management = cash_management::Panel::default();
                         self.event_browser = chronicle::Panel::default();
                         self.recovery.clear();
@@ -2239,6 +2279,16 @@ impl GameApp {
                         .show(ui, &self.content, self.world.as_ref(), &mut self.selected)
                 }
                 Tab::Politics => self.politics(ui),
+                Tab::Diplomacy => {
+                    if let Some(action) = self.diplomacy_panel.show(
+                        ui,
+                        &self.content,
+                        self.world.as_ref(),
+                        &self.selected,
+                    ) {
+                        self.issue(action);
+                    }
+                }
                 Tab::Chronicle => self.chronicle(ui),
                 Tab::Guide => self.guide(ui),
                 Tab::Settings => self.preferences.show(ui),
@@ -2308,10 +2358,18 @@ fn main() -> eframe::Result {
     let mut args = std::env::args().skip(1);
     let mut content_path = None;
     let mut developer_mode = false;
-    let usage = "Usage: desktop [--content pack.json] [--developer]";
+    let mut launch_report = None;
+    let usage = "Usage: desktop [--content pack.json] [--developer] [--native-launch-check NEW_REPORT.json (requires --developer)]";
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--developer" => developer_mode = true,
+            "--native-launch-check" if launch_report.is_none() => {
+                launch_report = args.next().map(PathBuf::from);
+                if launch_report.is_none() {
+                    eprintln!("{usage}");
+                    std::process::exit(1);
+                }
+            }
             "--content" if content_path.is_none() => {
                 content_path = args.next();
                 if content_path.is_none() {
@@ -2325,6 +2383,12 @@ fn main() -> eframe::Result {
             }
         }
     }
+    if let Some(path) = &launch_report
+        && (!developer_mode || path.exists())
+    {
+        eprintln!("Native launch checks require --developer and a new report path. {usage}");
+        std::process::exit(1);
+    }
     let bundled_catalog = content_path.is_none();
     let content = if let Some(path) = content_path {
         std::fs::read_to_string(path)
@@ -2337,6 +2401,9 @@ fn main() -> eframe::Result {
         eprintln!("Cannot start: {error}");
         std::process::exit(1)
     });
+    let outcome = std::sync::Arc::new(std::sync::Mutex::new(launch_check::Outcome::default()));
+    let launch_outcome = outcome.clone();
+    let checking_launch = launch_report.is_some();
     eframe::run_native(
         "Statecraft · A New Century",
         eframe::NativeOptions {
@@ -2347,19 +2414,173 @@ fn main() -> eframe::Result {
             ..Default::default()
         },
         Box::new(move |cc| {
-            Ok(Box::new(GameApp::new(
-                cc,
-                content,
-                developer_mode,
-                bundled_catalog,
-            )))
+            if checking_launch {
+                // A launch check never reads or writes player preferences or saves.
+                let app =
+                    GameApp::from_context(&cc.egui_ctx, content, settings::Preferences::default());
+                Ok(Box::new(launch_check::LaunchCheck::new(
+                    app,
+                    cc,
+                    launch_outcome,
+                )?))
+            } else {
+                Ok(Box::new(GameApp::new(
+                    cc,
+                    content,
+                    developer_mode,
+                    bundled_catalog,
+                )))
+            }
         }),
-    )
+    )?;
+    if let Some(path) = launch_report {
+        let write_report = || -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            let state = outcome
+                .lock()
+                .map_err(|_| std::io::Error::other("Launch outcome poisoned"))?;
+            if let Some(error) = &state.error {
+                return Err(std::io::Error::other(error.clone()).into());
+            }
+            let report = state.report.as_ref().ok_or_else(|| {
+                std::io::Error::other("Native window closed before screenshot readback")
+            })?;
+            let file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(path)?;
+            serde_json::to_writer_pretty(file, report)?;
+            Ok(())
+        };
+        write_report().map_err(eframe::Error::AppCreation)?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
 mod interface_tests {
     use super::*;
+    #[test]
+    fn treasury_prioritizes_usable_cash_and_borrowing_without_exposing_foreign_accounts() {
+        for content in [
+            Content::recommended_bundled().unwrap(),
+            Content::private_payroll_bundled().unwrap(),
+        ] {
+            let mut world = World::new_scenario(
+                &content,
+                CountryId("CHN".into()),
+                17,
+                Scenario::FiscalSupplyCrisis,
+            )
+            .unwrap();
+            world.advance(&content, DaySpan::new(1)).unwrap();
+            world
+                .issue(
+                    &content,
+                    Action::Enact {
+                        policy: "energy".into(),
+                        value: 1,
+                    },
+                )
+                .unwrap();
+            let before = persistence::encode(&world, &content).unwrap();
+            let available = world.player_country().available_cash().0;
+            assert!(available < world.player_country().accounts.treasury.0);
+            for scale in [1.0, 1.4] {
+                let ctx = egui::Context::default();
+                let mut app =
+                    GameApp::from_context(&ctx, content.clone(), settings::Preferences::default());
+                app.selected = world.player.clone();
+                app.world = Some(world.clone());
+                ctx.set_zoom_factor(scale);
+                let mut draw = |treasury: bool| {
+                    let mut labels = Vec::new();
+                    for _ in 0..3 {
+                        let output = ctx.run(
+                            egui::RawInput {
+                                screen_rect: Some(egui::Rect::from_min_size(
+                                    egui::Pos2::ZERO,
+                                    egui::vec2(1280.0 / scale, 800.0 / scale),
+                                )),
+                                ..Default::default()
+                            },
+                            |ctx| {
+                                egui::CentralPanel::default().show(ctx, |ui| {
+                                    egui::ScrollArea::vertical().show(ui, |ui| {
+                                        if treasury {
+                                            app.treasury(ui);
+                                        } else {
+                                            app.policies(ui);
+                                        }
+                                    });
+                                });
+                            },
+                        );
+                        labels = output
+                            .shapes
+                            .iter()
+                            .filter_map(|shape| match &shape.shape {
+                                egui::Shape::Text(text) if text.pos.y < 800.0 / scale => {
+                                    Some(text.galley.text().to_string())
+                                }
+                                _ => None,
+                            })
+                            .collect();
+                    }
+                    labels.join("\n")
+                };
+                let treasury = draw(true);
+                assert!(
+                    treasury.contains("Available national cash"),
+                    "{scale}: {treasury}"
+                );
+                assert!(
+                    treasury.contains(&format!("{available}m")),
+                    "{scale}: {treasury}"
+                );
+                assert!(
+                    treasury.contains("Borrowing authority & debt"),
+                    "{scale}: {treasury}"
+                );
+                assert!(!treasury.contains("Business production costs & earnings"));
+                drop(draw);
+                app.policy = "agriculture".into();
+                app.value = 1;
+                let output = ctx.run(egui::RawInput::default(), |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| app.policies(ui));
+                });
+                let policy = output
+                    .shapes
+                    .iter()
+                    .filter_map(|shape| match &shape.shape {
+                        egui::Shape::Text(text) => Some(text.galley.text()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                assert!(policy.contains("Total commitment cost:"));
+                assert!(policy.contains(&format!("available national cash: {available}m")));
+                app.selected = CountryId("USA".into());
+                let output = ctx.run(egui::RawInput::default(), |ctx| {
+                    egui::CentralPanel::default().show(ctx, |ui| app.treasury(ui));
+                });
+                let foreign = output
+                    .shapes
+                    .iter()
+                    .filter_map(|shape| match &shape.shape {
+                        egui::Shape::Text(text) => Some(text.galley.text()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                assert!(!foreign.contains("Available national cash"));
+                assert!(!foreign.contains("Borrowing authority & debt"));
+                assert_eq!(
+                    persistence::encode(app.world.as_ref().unwrap(), &content).unwrap(),
+                    before
+                );
+            }
+        }
+    }
     #[test]
     fn first_launch_start_is_visible_and_starts_the_combined_default_at_two_scales() {
         for scale in [1., 1.4] {

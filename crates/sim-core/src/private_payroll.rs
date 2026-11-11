@@ -360,7 +360,7 @@ impl World {
         for (id, c) in &self.countries {
             match (&content.private_payroll, &c.private_payroll) {
                 (None, None) => continue,
-                (Some(definition), Some(s)) if self.rules == 40 => {
+                (Some(definition), Some(s)) if matches!(self.rules, 40..=41) => {
                     let opening = content.country(id).ok_or("Unknown employment country")?;
                     let opening_households =
                         crate::households::initial_households(opening, Money(0));

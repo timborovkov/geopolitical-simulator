@@ -772,7 +772,7 @@ impl WorldMap {
             let division_label = division_hover.map_or(String::new(), |division| {
                 format!("{}\n\n", division.description(content))
             });
-            response.clone().on_hover_text(format!("{division_label}{} · {:?}\n{executive}\n{stamp}{overlay}\nClick a country outline or its marker to inspect. Search covers islands omitted at this scale.",country.name,report.as_ref().map_or(&country.regime, |report| &report.regime)));
+            response.clone().on_hover_text(format!("{division_label}{} · {}\n{executive}\n{stamp}{overlay}\nClick a country outline or its marker to inspect. Search covers islands omitted at this scale.",country.name,report.as_ref().map_or(&country.regime, |report| &report.regime).label()));
         }
         painter.text(
             rect.left_bottom() + Vec2::new(12.0, -12.0),

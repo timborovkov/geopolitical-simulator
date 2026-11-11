@@ -9,6 +9,8 @@ import subprocess
 import sys
 from urllib.parse import unquote, urlsplit
 
+from parallel_recovery import Result, is_recovery, run_recovery_batch
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -75,11 +77,16 @@ def check_documents():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--docs-only", action="store_true", help="skip Rust checks")
+    parser.add_argument("--recovery-workers", type=int, choices=range(1, 5), default=4, help="parallel independent replay commands (1..4; default 4)")
     args = parser.parse_args()
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     check_documents()
     commands = [["git", "diff", "--check"]]
     if not args.docs_only:
         commands += [
+            [sys.executable, "scripts/test_parallel_recovery.py"],
+            [sys.executable, "scripts/test_native_launch.py"],
             [sys.executable, "scripts/test_reference_data.py"],
             [sys.executable, "scripts/test_hydrology.py"],
             [sys.executable, "scripts/test_map_atlas.py"],
@@ -100,6 +107,7 @@ def main():
             [sys.executable, "scripts/build_business_finance_world.py", "--check"],
             [sys.executable, "scripts/build_private_investment_world.py", "--check"],
             [sys.executable, "scripts/build_private_payroll_world.py", "--check"],
+            [sys.executable, "scripts/build_bilateral_agreements_world.py", "--check"],
             [sys.executable, "scripts/import_country_geometry.py", "--validate"],
             [sys.executable, "scripts/import_hydrology.py", "--validate"],
             [sys.executable, "scripts/import_administrative_geometry.py", "--validate"],
@@ -109,6 +117,8 @@ def main():
             ["cargo", "doc", "--workspace", "--no-deps", "--locked"],
             ["cargo", "build", "--workspace", "--release", "--locked"],
             ["cargo", "run", "-p", "headless", "--release", "--locked", "--", "--verify"],
+            ['cargo', 'run', '-p', 'headless', '--example', 'recovery', '--release', '--locked', '--', '--content', 'data/synthetic-bilateral-agreements-test.json'],
+            ['cargo', 'run', '-p', 'headless', '--example', 'recovery', '--release', '--locked', '--', '--content', 'data/synthetic-bilateral-agreements-test.json', '--contested-transition'],
             ['cargo', 'run', '-p', 'headless', '--example', 'recovery', '--release', '--locked', '--', '--content', 'data/initial-2000-private-payroll.json'],
             ['cargo', 'run', '-p', 'headless', '--example', 'recovery', '--release', '--locked', '--', '--content', 'data/initial-2000-private-payroll.json', '--contested-transition'],
             ['cargo', 'run', '-p', 'headless', '--example', 'recovery', '--release', '--locked', '--', '--content', 'data/synthetic-private-payroll-test.json'],
@@ -251,9 +261,28 @@ def main():
             ["cargo", "run", "-p", "headless", "--example", "recovery", "--release", "--locked", "--", "--content", "data/synthetic-undertakings-test.json", "--contested-transition"],
         ]
     env = dict(os.environ, RUSTDOCFLAGS="-D warnings")
+    independent = []
     for command in commands:
-        print(f"+ {' '.join(command)}", flush=True)
-        subprocess.run(command, cwd=ROOT, env=env, check=True)
+        if is_recovery(command):
+            independent.append(command)
+        else:
+            if independent:
+                raise ValueError("Recovery examples must follow all dependent validation commands")
+            print(f"+ {' '.join(command)}", flush=True)
+            subprocess.run(command, cwd=ROOT, env=env, check=True)
+
+    def execute(command):
+        result = subprocess.run(command, cwd=ROOT, env=env, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, encoding="utf-8", errors="replace", check=False)
+        return Result(tuple(command), result.returncode, result.stdout)
+
+    def emit(result):
+        print(f"+ {' '.join(result.command)}", flush=True)
+        print(result.output, end="" if result.output.endswith("\n") else "\n", flush=True)
+
+    if independent:
+        print(f"Checking {len(independent)} independent recovery commands with {args.recovery_workers} workers; all command/output blocks are retained in input order.", flush=True)
+        run_recovery_batch(independent, args.recovery_workers, execute, emit)
 
 
 if __name__ == "__main__":

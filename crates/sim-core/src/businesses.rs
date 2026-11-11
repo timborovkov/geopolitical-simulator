@@ -260,7 +260,7 @@ impl Country {
             };
         };
         if content.businesses.is_none()
-            || !matches!(world.rules, 35..=40)
+            || !matches!(world.rules, 35..=41)
             || b.id != BusinessId(format!("{}:civilian-enterprises", self.id.0))
             || [
                 b.opening_cash,

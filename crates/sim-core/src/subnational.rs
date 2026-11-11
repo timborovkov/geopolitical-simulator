@@ -24,6 +24,16 @@ pub enum TerritorialForm {
     DecentralizedUnitary,
     DelegatedUnitary,
 }
+impl TerritorialForm {
+    /// Display wording is independent of the archived definition/save identifiers.
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::Federation => "Federation",
+            Self::DecentralizedUnitary => "Decentralized unitary state",
+            Self::DelegatedUnitary => "Unitary state with delegated powers",
+        }
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RegionalMandate {
     pub id: RegionId,

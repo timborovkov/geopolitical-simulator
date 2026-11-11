@@ -243,6 +243,9 @@ impl Country {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Action {
+    Diplomacy {
+        action: TreatyAction,
+    },
     OrderIndustrialTrade {
         good: GoodId,
         direction: IndustrialTradeDirection,
@@ -431,6 +434,8 @@ impl Scenario {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct World {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub diplomacy: Option<crate::DiplomacyState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub production: Option<crate::NationalProduction>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -683,6 +688,10 @@ impl World {
             })
             .collect();
         let mut world = Self {
+            diplomacy: content
+                .diplomacy
+                .as_ref()
+                .map(|_| crate::DiplomacyState::default()),
             production: None,
             demographics: None,
             rules: content.rules,
@@ -854,6 +863,7 @@ impl World {
         if self.rules != content.rules || self.content_hash != content.hash() {
             return Err("Rules or content pack mismatch".into());
         }
+        self.validate_treaties(content)?;
         self.validate_business_costs(content)?;
         self.validate_private_investment(content)?;
         self.validate_private_payroll(content)?;
@@ -876,6 +886,9 @@ impl World {
             self.validate_governing_context(content, entry)?;
             let command = &entry.command;
             let valid_action = match &command.action {
+                Action::Diplomacy { action } => {
+                    self.valid_treaty_command_shape(content, &command.issuer, action)
+                }
                 Action::OrderIndustrialTrade { good, quantity, .. } => {
                     content
                         .industrial_trade

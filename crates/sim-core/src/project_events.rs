@@ -6,6 +6,10 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum EventContext {
     General,
+    Treaty {
+        agreement: TreatyId,
+        milestone: TreatyMilestoneId,
+    },
     Commitment {
         request: CommitmentId,
         stage: CommitmentStage,
@@ -44,6 +48,13 @@ impl World {
         }
         match event.context {
             Some(EventContext::General) => Ok(None),
+            Some(EventContext::Treaty {
+                agreement,
+                milestone,
+            }) => {
+                self.validate_treaty_event(event, agreement, milestone)?;
+                Ok(None)
+            }
             Some(EventContext::Commitment { request, stage }) => {
                 if !matches!(
                     stage,

@@ -119,8 +119,8 @@ impl Panel {
             ui.label("Lawful changes require national backing. Loss of local autonomy or tax rights also needs the authored public-service household consent proxy and funded compensation. This proxy does not model regional voting. Contested changes use effective-power backing and incur political costs.");
             ui.small("Build national backing through Policies & delivery → Negotiate governing support. Inspect the public-service group under Households & needs for the consent proxy.");
             let target=self.territorial_target.get_or_insert(TerritorialForm::Federation);
-            egui::ComboBox::from_id_salt("territorial-target").selected_text(format!("{target:?}")).show_ui(ui,|ui| {
-                for template in &rules.templates {ui.selectable_value(target,template.form.clone(),format!("{:?} · {}% collected tax",template.form,template.tax_pool_bps.units_i64()/100));}
+            egui::ComboBox::from_id_salt("territorial-target").selected_text(target.label()).show_ui(ui,|ui| {
+                for template in &rules.templates {ui.selectable_value(target,template.form.clone(),format!("{} · {}% collected tax",template.form.label(),template.tax_pool_bps.units_i64()/100));}
             });
             ui.checkbox(&mut self.contested_territorial,"Use contested effective-power route");
             let route=rules.route(self.contested_territorial);
@@ -129,7 +129,7 @@ impl Panel {
                 Ok(p)=>{ui.label(format!("Pay {}m now; reserve {}m. Total administration {}m; local compensation {}m across {} authorities. Review {}. Existing local cash and accepted grant terms continue.",p.upfront.0,p.reserved.0,p.admin_cost.0,p.compensations.iter().map(|r|r.amount.0).sum::<i64>(),p.compensations.len(),date(p.decision_day)));if ui.button("Submit territorial reform").clicked(){action=Some(Action::ReformTerritory{target:target.clone(),contested:self.contested_territorial});}}
                 Err(reason)=>{ui.label(format!("Cannot reform: {reason}"));}
             }
-            for record in state.reforms.iter().rev(){ui.label(format!("#{} · {:?} → {:?} · {:?} · review {} · paid/reserved {}/{}m",record.id.0,record.from,record.target,record.status,date(record.decision_day),record.paid_admin.0,record.reserved.0));if record.status==TerritorialReformStatus::Pending&&ui.button(format!("Withdraw territorial request #{}",record.id.0)).clicked(){action=Some(Action::WithdrawTerritorialReform{request:record.id});}}
+            for record in state.reforms.iter().rev(){ui.label(format!("#{} · {} → {} · {:?} · review {} · paid/reserved {}/{}m",record.id.0,record.from.label(),record.target.label(),record.status,date(record.decision_day),record.paid_admin.0,record.reserved.0));if record.status==TerritorialReformStatus::Pending&&ui.button(format!("Withdraw territorial request #{}",record.id.0)).clicked(){action=Some(Action::WithdrawTerritorialReform{request:record.id});}}
             for claim in state.requisitions.iter().rev(){ui.label(format!("{} · contested claim #{} · {} · {}m base funds · {}m administration",date(claim.day),claim.id.0,claim.region.0,claim.amount.0,claim.fee.0));}
         });
         action
