@@ -185,6 +185,9 @@ P23-05,23,Diplomacy and binding agreements,"AI proposal generation, counteroffer
 P23-06,23,Diplomacy and binding agreements,"Credibility, reputation and domestic approval constraints; secret terms stored in restricted information views.",proposed
 P23-07,23,Diplomacy and binding agreements,Summits and multilateral bargaining use the same proposal/commitment framework.,proposed
 P23-08,23,Diplomacy and binding agreements,Foreign influence emerges from concrete dependencies and relationships; no universal percentage that automatically buys another country.,proposed
+P23-09,23,Diplomacy and binding agreements,"Explicit non-aggression, defensive/offensive alliance, guarantee and neutrality clauses with triggers, calls to arms, notice, exceptions, conflicting obligations and breach consequences.",proposed
+P23-10,23,Diplomacy and binding agreements,"Coercive demands and crises with concrete pressure, deadlines, counteroffers, mediation, withdrawal and explicitly authorized escalation; expired ultimatums do not automatically declare war.",proposed
+P23-11,23,Diplomacy and binding agreements,"Diplomatic AI and shared client workflows explain observed acceptance/refusal reasons, preserve secret information and validate treaty, coercion and alliance lifecycles through deterministic scenarios.",proposed
 P24-01,24,"International organizations, unions and blocs","Generic organization engine: charter, members/observers, accession, suspension, withdrawal, offices, councils, voting, budget and mandate.",proposed
 P24-02,24,"International organizations, unions and blocs","UN General Assembly/Security Council, vetoes, rotating seats, recognition/admission, resolutions, sanctions and peacekeeping authorization.",proposed
 P24-03,24,"International organizations, unions and blocs","IMF/World Bank-style lending, conditions and development projects; WTO-style trade commitments and disputes.",proposed
@@ -212,6 +215,7 @@ P26-06,26,Conventional warfare and operational AI,"Drones, unmanned surface/subs
 P26-07,26,Conventional warfare and operational AI,"Casualties, displaced civilians, infrastructure damage, war expenditure, public support and war exhaustion.",proposed
 P26-08,26,Conventional warfare and operational AI,Orders to military staff with objectives and constraints; manual interventions coexist with operational delegation.,proposed
 P26-09,26,Conventional warfare and operational AI,"Tactical city encounters and street fighting remain an optional later presentation of these rules, not a separate incompatible simulation.",proposed
+P26-10,26,Conventional warfare and operational AI,"Coalition participation, delegated command, reinforcement, retreat, surrender and battle reporting reconcile personnel, equipment, supply, civilian impacts and separate-peace authority.",proposed
 P27-01,27,"Peace, occupation and territorial transitions","Ceasefires, armistices, peace conferences and third-party mediation.",proposed
 P27-02,27,"Peace, occupation and territorial transitions","Negotiated territory, demilitarization, reparations, resource rights, neutrality, guarantees, prisoner exchange and force limits.",proposed
 P27-03,27,"Peace, occupation and territorial transitions","Occupation administration, resistance, civilian services, reconstruction and withdrawal.",proposed
@@ -220,6 +224,11 @@ P27-05,27,"Peace, occupation and territorial transitions","Atomic transfer rules
 P27-06,27,"Peace, occupation and territorial transitions","Legality, control and recognition tracked separately; unresolved claims survive a map recolor.",proposed
 P27-07,27,"Peace, occupation and territorial transitions","Enforcement, monitoring, violations and renewed conflict require explicit conditions.",proposed
 P27-08,27,"Peace, occupation and territorial transitions",AI accepts limited settlements when appropriate instead of requiring total conquest.,proposed
+P27-09,27,"Peace, occupation and territorial transitions","Subject relationships with associated-state, protectorate, tributary, client, puppet and dependency presets define delegated powers, fiscal and defense obligations, autonomy, succession, integration and independence.",proposed
+P27-10,27,"Peace, occupation and territorial transitions","Voluntary release of selected owned territory as an independent state or subject supports restored/new identities, institutions, citizenship, local consent or contestation, and viable asset/liability allocation.",proposed
+P27-11,27,"Peace, occupation and territorial transitions","Peaceful territorial purchase, sale, gift and exchange treaties define ratification, valuation, actual payment, escrow, closing and creditor rights; simultaneous transfers are atomic and installment default has explicit remedies.",proposed
+P27-12,27,"Peace, occupation and territorial transitions","Territorial leases, base rights and resource concessions retain separate sovereignty, administration and use rights with duration, renewal, termination and evacuation rules.",proposed
+P27-13,27,"Peace, occupation and territorial transitions","Integrated settlement, release, liberation and subject workflows preserve claims, private rights, third-party obligations and recognition; AI and both clients exercise conservation, privacy, rollback and replay acceptance scenarios.",proposed
 P28-01,28,"Intelligence, covert action and cyber","Agencies, budgets, staff, foreign networks, collection priorities and counterintelligence.",proposed
 P28-02,28,"Intelligence, covert action and cyber","Estimates with confidence, age, source quality and possible deception; fog of war applies to economics and politics too.",proposed
 P28-03,28,"Intelligence, covert action and cyber","Reconnaissance, industrial/technical espionage, influence operations, sabotage and support to foreign factions.",proposed

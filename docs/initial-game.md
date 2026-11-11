@@ -1,6 +1,6 @@
 # Initial playable game and governing-term milestone
 
-This is an initial game with a differentiated governing-term loop, not completion of the [341-requirement roadmap](implementation-order.md). Requirements retain their original IDs and priority order. The [audited register](implementation-register.csv) records **9 complete, 102 partial and 230 proposed** requirements. `partial` identifies touched requirements; it does not claim every clause is complete. `complete` applies to the verified stated scope of an individual requirement. The overall kernel, persistence system and full game remain incomplete.
+This is an initial game with a differentiated governing-term loop, not completion of the [350-requirement roadmap](implementation-order.md). Requirements retain their original IDs and priority order. The [audited register](implementation-register.csv) records **9 complete, 102 partial and 239 proposed** requirements. `partial` identifies touched requirements; it does not claim every clause is complete. `complete` applies to the verified stated scope of an individual requirement. The overall kernel, persistence system and full game remain incomplete.
 
 ## Playable result
 
