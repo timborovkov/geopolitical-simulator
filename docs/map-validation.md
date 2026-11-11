@@ -5,6 +5,19 @@ This checkpoint concerns the native desktop presentation on
 hardware performance baseline. The approved contract is in
 [map presentation](map-presentation.md).
 
+## PR integration checkpoint
+
+[PR #3](https://github.com/timborovkov/geopolitical-simulator/pull/3) integrates
+main through `daf4d4d`, preserving financial inspection, bilateral agreements and
+the native launch checks. Diplomacy remains accessible in the compact strip.
+The detailed 170-command record below describes the original presentation
+checkpoint before that integration; it is not a result for the merged source.
+Integrated validation and three-platform hosted checks are running.
+
+The first Windows hosted run exposed locale-dependent JSON reads in the atlas
+compiler and tests. These now explicitly decode UTF-8, preserving international
+place names on Windows. Generated asset bytes are unchanged.
+
 ## Assets and simulation separation
 
 - The packaged atlas is approximately 80.3 MB: 258 country/territory reference

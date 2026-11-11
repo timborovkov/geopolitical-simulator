@@ -28,7 +28,7 @@ def write(path, value):
 
 
 def validate(directory=OUT):
-    manifest = json.loads((directory/'manifest.json').read_text())
+    manifest = json.loads((directory/'manifest.json').read_text(encoding='utf-8'))
     if manifest['version'] != 1:
         raise ValueError('Unsupported atlas version')
     size = 0
@@ -41,7 +41,7 @@ def validate(directory=OUT):
         size += path.stat().st_size
     if size > 250_000_000:
         raise ValueError('Atlas exceeds 250 MB')
-    atlas = json.loads((directory/'atlas.json').read_text())
+    atlas = json.loads((directory/'atlas.json').read_text(encoding='utf-8'))
     ids = [c['id'] for c in atlas['countries']]
     if len(ids) != len(set(ids)) or len(ids) < 200:
         raise ValueError('Invalid global country identities')
@@ -73,7 +73,7 @@ def build(source, output):
     Image.MAX_IMAGE_PIXELS = 250_000_000
     lock=ROOT/'data/map-atlas-sources.json'
     if lock.exists():
-        for name, expected in json.loads(lock.read_text()).items():
+        for name, expected in json.loads(lock.read_text(encoding='utf-8')).items():
             if digest(source/name)!=expected: raise ValueError(f'Unpinned source: {name}')
     output.mkdir(parents=True, exist_ok=True)
     source_hashes = {}
@@ -168,7 +168,7 @@ def build(source, output):
                 name=f'{level}-{x}-{y}.jpg';tile.save(output/name,quality=85,subsampling=0,optimize=False)
                 tiles.append(dict(level=level,x=x,y=y,file=name))
     lock=ROOT/'data/map-atlas-sources.json'
-    if lock.exists() and json.loads(lock.read_text())!=source_hashes:
+    if lock.exists() and json.loads(lock.read_text(encoding='utf-8'))!=source_hashes:
         raise ValueError('Source checksums differ from pinned inputs')
     files={p.name:digest(p) for p in sorted(output.iterdir()) if p.name!='manifest.json'}
     write(output/'manifest.json',dict(version=1,vector_revision=VECTOR_REVISION,raster_revision=RASTER_REVISION,

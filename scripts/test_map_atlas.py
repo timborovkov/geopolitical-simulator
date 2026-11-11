@@ -8,7 +8,7 @@ from build_map_atlas import OUT, validate, digest
 class AtlasTests(unittest.TestCase):
     def test_global_assets(self):
         validate()
-        data=json.loads((OUT/'atlas.json').read_text())
+        data=json.loads((OUT/'atlas.json').read_text(encoding='utf-8'))
         self.assertGreater(len(data['cities']),7000)
         holes = 0
         def area(ring):
@@ -24,13 +24,13 @@ class AtlasTests(unittest.TestCase):
         self.assertGreater(holes, 0, 'Real enclave/lake holes must survive triangulation')
         self.assertEqual({x['kind'] for x in data['lines']},{'rivers','lakes','urban','roads','rail'})
         self.assertEqual(len({x['id'] for x in data['cities']}),len(data['cities']))
-        manifest=json.loads((OUT/'manifest.json').read_text())
+        manifest=json.loads((OUT/'manifest.json').read_text(encoding='utf-8'))
         self.assertEqual({t['level'] for t in manifest['tiles']},set(range(5)))
         for level in range(5):
             self.assertEqual(sum(t['level']==level for t in manifest['tiles']),2*4**level)
 
     def test_invalid_coordinate_and_triangle_index_fail(self):
-        original=json.loads((OUT/'atlas.json').read_text())
+        original=json.loads((OUT/'atlas.json').read_text(encoding='utf-8'))
         mesh=original['countries'][0]['lods'][0][0]
         countries=[dict(c, lods=[[],[],[]]) for c in original['countries']]
         countries[0]['lods'][0]=[mesh]

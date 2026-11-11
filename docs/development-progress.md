@@ -4,6 +4,16 @@ The goal is the full documented game. The current implementation is a playable f
 
 Current audited register: **10 complete, 105 partial and 235 proposed**. Completion applies to the stated scope of an individual requirement; the overall kernel and full roadmap remain incomplete.
 
+## Map PR integration
+
+[PR #3](https://github.com/timborovkov/geopolitical-simulator/pull/3) integrates the
+global map with main through `daf4d4d`, including the finance and bilateral
+agreement screens. The compact navigation retains Diplomacy. Integrated standard
+validation and hosted Linux/macOS/Windows checks are running. Windows exposed
+locale-dependent atlas JSON reads; explicit UTF-8 decoding fixes that failure
+without modifying asset bytes. Original presentation evidence remains identified
+as a pre-integration checkpoint in [map validation](map-validation.md).
+
 ## Native build and launch milestone
 
 Published commit `9a7c014` passes [hosted run 42975579676](https://github.com/timborovkov/geopolitical-simulator/actions/runs/42975579676) on Linux, macOS and Windows. Each platform completes standard validation and an actual native wgpu viewport readback, reports nonuniform pixels without starting a campaign, and exits the event loop cleanly. Observed renderers are Linux Vulkan/llvmpipe (1440×940), macOS Metal/Apple Paravirtual device (1024×700), and Windows DirectX 12/Microsoft Basic Render Driver (1024×768). The reports retain their distinct executable hashes. Their five/six app updates are not a presentation or performance measure.
