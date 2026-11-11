@@ -63,6 +63,8 @@ Supplier receipts, cargo cost, transport receipts, tariff receipts, current prod
 
 The [household-demand candidate](regional-market-household-demand.md) works through a common cash quote, actual affordability and partial-delivery charges. Its budget, domestic allocation and price-input decisions remain open.
 
+The [commercial-clearing candidate](regional-market-clearing.md) specifies shared reservations, stable route priority, bounded whole-quantity search and all-or-nothing staging. It includes a nonmonotone rounded-margin example; domestic allocation and full economic readiness remain open.
+
 ## Remaining MT-02 exit conditions
 
 Still specify and test: monetary quote formation for each connected good; actual household/producer payment rules; production recipes and shared paid-labor allocation; utilization response and funded inputs; wages assessed versus paid once; working-stock targets and price-pressure inputs; merchant entry, target changes, shutdown and re-entry; retained earnings and protected liquidity; deterministic route/demand allocation; physical transport operation/maintenance; and legal delayed policy/upgrade effects. The full fixture must predeclare baseline tolerances and shock comparisons before simulation runs. The worked arithmetic above closes none of those empirical or integration gates by itself.
