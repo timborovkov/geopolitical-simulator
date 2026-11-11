@@ -80,6 +80,7 @@ impl View {
         self.tab == other.tab
             && self.country == other.country
             && self.policy == other.policy
+            && self.map.same_reference(&other.map)
             && (self.tab != Tab::Guide || self.reference == other.reference)
     }
 }

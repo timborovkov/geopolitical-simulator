@@ -584,3 +584,25 @@ Daily receipts retain wage assessment, opening claims, actual cash allocation, p
 Unpaid wages are period expense and a separate business liability/household receivable. Actual factor payments plus the outstanding liability produce the accrued cost; the liability subtracts from the cash-to-result bridge. Old wage repayments are excluded from current productive readiness and current stock-cost allocations, preventing a second production contribution or capitalized cost. Payout and equipment decisions protect payroll creditors in addition to recent payments and unfinished public contract advances. The five-year arrears target continues to cover government obligations; private wage claims are reported separately. Private banking, corporate taxation, mergers and formal insolvency remain unfinished.
 
 All 86 predecessor JSON files retain their bytes, and predecessor optional payroll fields stay absent. The catalogue adds a 39th exact-hash bundle while the recommended campaign remains finance rules 38. Focused tests cover actual wage-debt buildup and repayment, cash/profit reconciliation, save/replay identity, unchanged legacy opening bytes, foreign privacy and twenty atomic refusal cases. Final native Linux/Xvfb/software-Vulkan checks retain 39 byte-exact comparisons over 17 states at 100%/140%, including a developer-marked supply collapse, repayment and final wage settlement. Final inspection caught omitted non-cash expense component rows despite correct totals; only that desktop file changed during core regression checks, followed by strict workspace linting, all 118 desktop checks and a release rebuild. Earlier native probes and an incorrect automation coordinate for the wrapped developer header are retained separately and excluded. All 169 original standard validation commands pass: 721 unique Rust checks (118 desktop, 70 compile-fail contracts), 10 Python checks, strict lints, Rust documentation, release builds and 1296 recovery/replay campaigns. All 1260 predecessor hashes remain unchanged; all 36 new ordinary/contested campaigns meet the five-year objective and replay exactly. The successful 29-command serial prefix and actual exit 0 of its active recovery command are retained; remaining independent memory-only commands use four total workers, with all original arguments/results recorded and no uninterrupted-run elapsed-time claim. Final hashes cover 214 Rust files, 31 build/validation inputs and 88 JSON files, including all 86 unchanged predecessors. Final native Linux/Xvfb/software-Vulkan checks complete 39 exact-byte comparisons over 17 states, 20 at 100% and 19 at 140%. Actual controls cover the default finance starter, the real chooser into payroll, paid wages, monthly reviews, funded client advances, commissioning/depreciation, foreign USA privacy, explicit pinned content and cancel. A permanently developer-marked synthetic supply collapse carries 6032m of unpaid wages on day 900; actual steps verify repayment and final settlement on day 979. The expense table separately shows the wage-claim adjustment and depreciation, including the reconciled cash/profit bridge. Prior finance manual-save and permanent-archive bytes remain unchanged. All owned clients/displays close; 100% scaling, default shortcuts and focus pausing are restored, with important-event pausing retained. Eighty-four final standalone CLI inspection/replay/resave cases preserve 16 new and all 68 archived references byte-exactly. Targeted repeats are not additional unique checks. Other native platforms and hosted results remain unconfirmed, and the full game remains incomplete.
+
+## Global map renderer implementation
+
+The [map presentation contract](map-presentation.md) describes the current visual
+overhaul. The desktop adds a custom wgpu paint callback with three precompiled
+country mesh levels, resident vertex/index buffers, a camera uniform and a compact
+country-color uniform buffer. Terrain is a five-level 512-pixel tile pyramid with
+one-pixel gutters and runtime-generated mipmaps. A background worker checks each
+tile checksum and decodes it; a four-result queue plus worker/upload buffers keeps
+decoded tile storage below 10 MiB, stricter than the 64 MiB target. The 88-tile GPU cache stays below 128 MiB
+for image storage, with coarse tiles retained while finer tiles arrive. Meshes and
+source geography are separate memory costs.
+
+Assets resolve from `STATECRAFT_MAP_ASSETS`, an executable-adjacent `map-atlas`
+directory, or the development checkout. Manifest version, bounded tile keys, complete
+pyramid membership, atlas checksum and mesh indices are checked before use. Tile errors are surfaced; unavailable fine tiles
+retain coarse imagery. Unavailable atlases or missing/corrupt base tiles retain
+the original simplified map. Raster detail accounts for physical pixel density,
+while label/vector detail follows projected geographic scale.
+Display IDs and settlement IDs are separate from `CountryId`; no rules or save
+format changes are introduced. Native and performance evidence is recorded in
+[development progress](development-progress.md).

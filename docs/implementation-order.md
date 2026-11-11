@@ -4,7 +4,7 @@ Research snapshot: **2 November 2026**. Target: **Rust; macOS, Linux, Windows; o
 
 This is an ordered build specification, not a schedule or workload estimate. Numbered systems are in recommended dependency order. Each system includes the things to implement inside it; later additions remain in the catalogue rather than being silently dropped. The player governs a country through its institutions. Firms, parties, unions, courts and foreign governments have their own agency.
 
-**341 proposed requirements across 42 ordered systems.** The [CSV implementation register](implementation-register.csv) provides stable requirement IDs for tracking. The [source register](source-register.csv) records 81 references and coverage-gap entries; its evidence statuses distinguish reviewed descriptions from broader source citations and inaccessible material.
+**341 proposed requirements across 42 ordered systems.** The [CSV implementation register](implementation-register.csv) provides stable requirement IDs for tracking. The [source register](source-register.csv) records 83 references and coverage-gap entries; its evidence statuses distinguish reviewed descriptions from broader source citations and inaccessible material.
 
 The central design requirement is **a playable, inspectable simulation**: every significant choice has constraints, affected groups, costs, implementation time, consequences and an explanation. A large collection of disconnected sliders does not satisfy this requirement.
 

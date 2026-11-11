@@ -4,6 +4,53 @@ The goal is the full documented game. The current implementation is a playable f
 
 Current audited register: **9 complete, 102 partial and 230 proposed**. Completion applies to the stated scope of an individual requirement; the overall kernel and full roadmap remain incomplete.
 
+## Global terrain map and compact campaign interface
+
+The approved [map presentation contract](map-presentation.md) is implemented on
+the visual-overhaul branch: global offline Natural Earth reference geography,
+shaded terrain tiles, persistent GPU country meshes, ranked settlement labels,
+optional reference infrastructure, reference-only inspectors and compact campaign
+controls. The original simulation packs, rules and saves are unchanged. Global
+reference coverage does not expand the fifteen-country playable roster.
+
+The atlas contains 258 reference country/territory features and 7,325 settlements
+in approximately 80.3 MB of packaged assets. An isolated rebuild from pinned
+inputs reproduces its manifest and output checksums exactly. Source and compiler
+instructions are in the data notes. Missing/corrupt atlas assets retain simplified
+cartography; missing fine terrain tiles retain coarser imagery and show errors.
+
+Final presentation validation passes **124 desktop tests**, strict workspace
+Clippy, Cargo formatting, release compilation, Rust documentation and three atlas
+pipeline checks. The standard validator's full workspace test command completed
+with exit 0 (725 checks on its initial presentation snapshot); the final desktop
+rerun adds the date-line and reference-navigation checks, for **727 unique Rust
+checks** across the unchanged core and final presentation. All **170 standard
+validation commands** pass, including **13 Python checks** and all **1,296 recovery/
+replay campaigns**. The serial prefix and exact remaining arguments/results were
+retained; an environment restart required resuming unfinished commands with four
+workers. Late presentation and asset corrections received final tests, lints,
+documentation, release, regeneration and native checks. No uninterrupted-run
+elapsed time is claimed. The [machine-readable record](map-validation-results.json)
+contains command outcomes, replay hashes, final source hashes and benchmark data.
+
+Native Linux/llvmpipe OpenGL checks cover Europe, East Asia, North America, the
+world and Fiji across the date line; 1280×800, 1920×1080 and 3840×2160 at 200% UI
+scaling; city/reference-only inspection, infrastructure, search, analytical return,
+statistical mode, and missing-atlas/base-tile/fine-tile diagnostics. Actual saved campaign
+bytes are preserved. GPU validation caught and resolved use of a fragment storage
+buffer unsupported by eframe defaults; the renderer now uses a uniform palette.
+New-campaign reset preserves installed atlas resources, and reference selections
+create presentation-history visits. Existing editor assertions remain intact.
+
+The final 1440×940 software-GPU route measured p50 136.39 ms, p95 183.16 ms and
+maximum 234.01 ms under concurrent replay load. Its 88 resident terrain tiles use
+at most 123,995,989 image bytes. This establishes bounded software rendering, not
+the 60 FPS hardware target. Full commands, native cases and acceptance gaps are
+recorded in [map validation](map-validation.md), with an actual native screenshot.
+Hardware performance, macOS/Windows native behavior and hosted CI remain
+unconfirmed. No requirement status or completion count is advanced by visual
+reference infrastructure.
+
 ## Private employment and payroll
 
 An optional rules-40/snapshot-41 campaign separates authored employment contracts and wage claims from other private factor income. Positions are bounded by opening contracts and current working-age residents; public positions remain a separate service-funding estimate in the same population partition. Daily receipts distinguish wages assessed, current payments and repayments of prior claims. Unpaid claims reduce business earnings but cannot be spent as household cash. Payouts and equipment investment protect payroll creditors. Paying old wages neither funds current production nor adds current inventory acquisition costs. Government inspection is private; it does not order employment or private payouts. Recruitment, dismissals, wage bargaining, private debt and formal insolvency remain unfinished. No requirement status or completion count is advanced.

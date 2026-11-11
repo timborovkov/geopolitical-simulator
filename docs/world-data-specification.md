@@ -237,3 +237,17 @@ source files + provenance
 ```
 
 Store the transformation rules and review decisions alongside the content. Rebuilding the same source versions should produce the same content hash. New source releases create reviewed content updates; they do not silently modify a player’s running campaign.
+
+## Global reference atlas boundary
+
+The [map presentation contract](map-presentation.md) adds display-only Natural
+Earth feature and settlement identities. Country features retain source `NE_ID`
+and `ADM0_A3`; only explicit code matches to the loaded scenario enable country
+reports or actions. Unmatched features are reference-only. Settlement membership
+is source attribution, not sovereign recognition or a simulation population link.
+
+The manifest records source revisions, input/output SHA-256, public-domain
+licensing and historical limitations. Global geometry, transport and settlement
+locations are not certified for 2000. Infrastructure is optional reference
+cartography and contributes no capacities, routes, production or authority.
+The original scenario packs and content hashes remain unchanged.
