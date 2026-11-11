@@ -4,9 +4,11 @@ Research snapshot: **2 November 2026**. Target: **Rust; macOS, Linux, Windows; o
 
 This is an ordered build specification, not a schedule or workload estimate. Numbered systems are in recommended dependency order. Each system includes the things to implement inside it; later additions remain in the catalogue rather than being silently dropped. The player governs a country through its institutions. Firms, parties, unions, courts and foreign governments have their own agency.
 
-**341 proposed requirements across 42 ordered systems.** The [CSV implementation register](implementation-register.csv) provides stable requirement IDs for tracking. The [source register](source-register.csv) records 81 references and coverage-gap entries; its evidence statuses distinguish reviewed descriptions from broader source citations and inaccessible material.
+**350 proposed requirements across 42 ordered systems.** The [CSV implementation register](implementation-register.csv) provides stable requirement IDs for tracking. The [source register](source-register.csv) records 81 references and coverage-gap entries; its evidence statuses distinguish reviewed descriptions from broader source citations and inaccessible material.
 
 The central design requirement is **a playable, inspectable simulation**: every significant choice has constraints, affected groups, costs, implementation time, consequences and an explanation. A large collection of disconnected sliders does not satisfy this requirement.
+
+The [war and diplomacy design](war-and-diplomacy-design.md) specifies treaties, coercion, combat, subjects, releases and territorial purchases, with ordered implementation todos and acceptance gates. All remain proposed.
 
 ## How to use the research
 
@@ -297,6 +299,9 @@ The references are capability research, not proof that the games implement their
 - Credibility, reputation and domestic approval constraints; secret terms stored in restricted information views.
 - Summits and multilateral bargaining use the same proposal/commitment framework.
 - Foreign influence emerges from concrete dependencies and relationships; no universal percentage that automatically buys another country.
+- Explicit non-aggression, defensive/offensive alliance, guarantee and neutrality clauses with triggers, calls to arms, notice, exceptions, conflicting obligations and breach consequences.
+- Coercive demands and crises with concrete pressure, deadlines, counteroffers, mediation, withdrawal and explicitly authorized escalation; expired ultimatums do not automatically declare war.
+- Diplomatic AI and shared client workflows explain observed acceptance/refusal reasons, preserve secret information and validate treaty, coercion and alliance lifecycles through deterministic scenarios.
 
 ## Priority 24 — International organizations, unions and blocs
 
@@ -333,6 +338,7 @@ The references are capability research, not proof that the games implement their
 - Casualties, displaced civilians, infrastructure damage, war expenditure, public support and war exhaustion.
 - Orders to military staff with objectives and constraints; manual interventions coexist with operational delegation.
 - Tactical city encounters and street fighting remain an optional later presentation of these rules, not a separate incompatible simulation.
+- Coalition participation, delegated command, reinforcement, retreat, surrender and battle reporting reconcile personnel, equipment, supply, civilian impacts and separate-peace authority.
 
 ## Priority 27 — Peace, occupation and territorial transitions
 
@@ -344,6 +350,11 @@ The references are capability research, not proof that the games implement their
 - Legality, control and recognition tracked separately; unresolved claims survive a map recolor.
 - Enforcement, monitoring, violations and renewed conflict require explicit conditions.
 - AI accepts limited settlements when appropriate instead of requiring total conquest.
+- Subject relationships with associated-state, protectorate, tributary, client, puppet and dependency presets define delegated powers, fiscal and defense obligations, autonomy, succession, integration and independence.
+- Voluntary release of selected owned territory as an independent state or subject supports restored/new identities, institutions, citizenship, local consent or contestation, and viable asset/liability allocation.
+- Peaceful territorial purchase, sale, gift and exchange treaties define ratification, valuation, actual payment, escrow, closing and creditor rights; simultaneous transfers are atomic and installment default has explicit remedies.
+- Territorial leases, base rights and resource concessions retain separate sovereignty, administration and use rights with duration, renewal, termination and evacuation rules.
+- Integrated settlement, release, liberation and subject workflows preserve claims, private rights, third-party obligations and recognition; AI and both clients exercise conservation, privacy, rollback and replay acceptance scenarios.
 
 ## Priority 28 — Intelligence, covert action and cyber
 
