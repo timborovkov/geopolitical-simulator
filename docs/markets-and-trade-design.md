@@ -22,6 +22,8 @@ Every important movement should expose what changed, who is affected and which a
 
 The recommended default is finance rules 38. Optional payroll uses rules 40 and snapshot 41. The first engineering decision must name the parent ruleset and dependencies; neither optional systems nor new markets become the default implicitly. Older packs and save/replay outcomes must remain supported according to existing compatibility policy.
 
+The [regional integration contract](regional-market-integration.md) selects optional rules 40 as the parent for the proposed connected-market slice and records ownership, cross-border accounting, settlement barriers and compatibility boundaries. It reserves a future format; it does not implement or enable it. Exact economic rules and the reproducible fixture remain prerequisites.
+
 ## Proposed market model
 
 A region groups owner-held local inventories and orders under regional prices. Settlements within it are aggregated initially. A transport graph links regions through roads, rivers and ports. Links have daily capacity, unit transport costs and availability. Customs membership controls permissions and tariffs, not a single frictionless price for all members.
