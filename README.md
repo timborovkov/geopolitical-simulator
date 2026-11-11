@@ -8,6 +8,8 @@ The [requirement audit](docs/development-progress.md) records **9 complete, 102 
 
 The [war and diplomacy design](docs/war-and-diplomacy-design.md) covers planned warfare, treaties, coercion, alliances, subjects, liberation and territorial purchases, including implementation todos and acceptance gates. These systems remain unimplemented.
 
+The proposed [markets and trade design](docs/markets-and-trade-design.md) and [implementation todo list](docs/development-progress.md#markets-and-trade-todo) describe the next regional-market extension, its prerequisites and acceptance gates. This is planned work, not a completed feature.
+
 ## Play
 
 Install [Rust through rustup](https://rustup.rs/) and a native linker: Xcode Command Line Tools on macOS, a C compiler/linker on Linux, or Visual Studio Build Tools with Desktop development with C++ on Windows. The committed toolchain selects Rust 1.99.1, rustfmt and Clippy. Linux desktop play needs an X11/Wayland session, libxkbcommon and a Vulkan or OpenGL-capable graphics driver; the simulation and terminal game need no graphics stack.
