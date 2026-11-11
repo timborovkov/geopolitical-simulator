@@ -1,8 +1,12 @@
 # Development progress
 
-The goal is the full documented game. The current implementation is a playable foundation; it is **not complete**. The [requirement register](implementation-register.csv) retains all 341 original requirements and their IDs. No unimplemented system is silently excluded. There are no delivery dates or workload estimates here.
+The goal is the full documented game. The current implementation is a playable foundation; it is **not complete**. The [requirement register](implementation-register.csv) retains all 341 original requirements and their IDs, plus nine proposed war/diplomacy additions (350 total). No unimplemented system is silently excluded. There are no delivery dates or workload estimates here.
 
-Current audited register: **9 complete, 102 partial and 230 proposed**. Completion applies to the stated scope of an individual requirement; the overall kernel and full roadmap remain incomplete.
+Current audited register: **9 complete, 102 partial and 239 proposed**. Completion applies to the stated scope of an individual requirement; the overall kernel and full roadmap remain incomplete.
+
+## War and diplomacy planning — 11 November 2026
+
+The [design document](war-and-diplomacy-design.md) defines pacts, coercive crises, military operations, negotiated peace, occupation, subject presets and lifecycles, voluntary release, liberation, purchases, exchanges and leases. It records shared state/transaction boundaries, AI and interface behavior, implementation dependencies and scenario acceptance gates. The first implementation todo is a fictional bilateral non-aggression agreement lifecycle; regional simulation gates territorial actions, while military logistics and forces gate battles and credible military coercion. P23-09–11, P26-10 and P27-09–13 add nine proposed requirements; all previous IDs, text and statuses remain unchanged. Priorities 23–27 remain proposed. This is planning only: no game code, content, saves or playable features change. Historical audit entries below retain their counts at the time.
 
 ## Private employment and payroll
 
@@ -815,11 +819,11 @@ Native Linux/software-Vulkan play at 100%/140% verified Tony Blair's opening pro
 | 20 | Unions, civil society, media and domestic power | 0 / 8 | Proposed |
 | 21 | Civil rights, justice and social legislation | 0 / 8 | Proposed |
 | 22 | Migration, citizenship and integration | 0 / 7 | Proposed |
-| 23 | Diplomacy and binding agreements | 0 / 8 | Proposed |
+| 23 | Diplomacy and binding agreements | 0 / 11 | Proposed |
 | 24 | International organizations, unions and blocs | 0 / 9 | Proposed |
 | 25 | Military establishment, procurement and logistics | 0 / 9 | Proposed |
-| 26 | Conventional warfare and operational AI | 0 / 9 | Proposed |
-| 27 | Peace, occupation and territorial transitions | 0 / 8 | Proposed |
+| 26 | Conventional warfare and operational AI | 0 / 10 | Proposed |
+| 27 | Peace, occupation and territorial transitions | 0 / 13 | Proposed |
 | 28 | Intelligence, covert action and cyber | 0 / 8 | Proposed |
 | 29 | Organized crime, insurgency and internal conflict | 0 / 8 | Proposed |
 | 30 | Climate, ecology, agriculture and disasters | 0 / 9 | Proposed |

@@ -2,9 +2,11 @@
 
 An initial playable Rust geopolitical strategy game for macOS, Linux and Windows, starting on **1 January 2000**. Govern one of 15 countries through its institutions, fund public services, expand energy and food supply, manage debt and survive political transitions. Other governments act through the same command rules.
 
-This is a connected initial game slice of the research roadmap, originally defined as **341 proposed requirements across 42 ordered systems**. It does not implement the full catalogue. See the [initial-game scope](docs/initial-game.md) for implemented loops, simplifications and remaining work.
+This is a connected initial game slice of the research roadmap, now tracked as **350 proposed requirements across 42 ordered systems**. It does not implement the full catalogue. See the [initial-game scope](docs/initial-game.md) for implemented loops, simplifications and remaining work.
 
-The [requirement audit](docs/development-progress.md) records **9 complete, 102 partial and 230 proposed**. Completed requirements cover clock/time controls (P01-01), deterministic tick/stream/hash contracts (P01-04), shared command validation and recorded outcomes (P01-05/P01-06), government/observer projections (P01-07), the headless runner (P01-08), save-conversion policy (P03-03), state/ledger/AI and first-divergence inspection (P03-04), and separately flagged developer commands with base-game inspection (P03-07). The overall systems and full game remain incomplete.
+The [requirement audit](docs/development-progress.md) records **9 complete, 102 partial and 239 proposed**. Completed requirements cover clock/time controls (P01-01), deterministic tick/stream/hash contracts (P01-04), shared command validation and recorded outcomes (P01-05/P01-06), government/observer projections (P01-07), the headless runner (P01-08), save-conversion policy (P03-03), state/ledger/AI and first-divergence inspection (P03-04), and separately flagged developer commands with base-game inspection (P03-07). The overall systems and full game remain incomplete.
+
+The [war and diplomacy design](docs/war-and-diplomacy-design.md) covers planned warfare, treaties, coercion, alliances, subjects, liberation and territorial purchases, including implementation todos and acceptance gates. These systems remain unimplemented.
 
 The proposed [markets and trade design](docs/markets-and-trade-design.md) and [implementation todo list](docs/development-progress.md#markets-and-trade-todo) describe the next regional-market extension, its prerequisites and acceptance gates. This is planned work, not a completed feature.
 
