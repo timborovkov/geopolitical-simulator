@@ -6,6 +6,8 @@ This is a connected initial game slice of the research roadmap, originally defin
 
 The [requirement audit](docs/development-progress.md) records **9 complete, 102 partial and 230 proposed**. Completed requirements cover clock/time controls (P01-01), deterministic tick/stream/hash contracts (P01-04), shared command validation and recorded outcomes (P01-05/P01-06), government/observer projections (P01-07), the headless runner (P01-08), save-conversion policy (P03-03), state/ledger/AI and first-divergence inspection (P03-04), and separately flagged developer commands with base-game inspection (P03-07). The overall systems and full game remain incomplete.
 
+The proposed [markets and trade design](docs/markets-and-trade-design.md) and [implementation todo list](docs/development-progress.md#markets-and-trade-todo) describe the next regional-market extension, its prerequisites and acceptance gates. This is planned work, not a completed feature.
+
 ## Play
 
 Install [Rust through rustup](https://rustup.rs/) and a native linker: Xcode Command Line Tools on macOS, a C compiler/linker on Linux, or Visual Studio Build Tools with Desktop development with C++ on Windows. The committed toolchain selects Rust 1.99.1, rustfmt and Clippy. Linux desktop play needs an X11/Wayland session, libxkbcommon and a Vulkan or OpenGL-capable graphics driver; the simulation and terminal game need no graphics stack.

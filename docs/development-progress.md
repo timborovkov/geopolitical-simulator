@@ -841,3 +841,16 @@ Native Linux/software-Vulkan play at 100%/140% verified Tony Blair's opening pro
 Continue closing the earliest requirements: typed identities/units and inspection, date-effective content and historical institutions, sovereign/administrative map geometry and picking, production/cohort depth, legal powers and meaningful political preferences. Then extend energy, construction and public services through their real resource/accounting constraints. Later priorities remain in the register, including diplomacy, organizations, warfare, intelligence, climate, technology, historical completion, editors, deeper AI and multiplayer.
 
 Each feature needs a validated player action, costs/commitments, delayed consequences, usable feedback, an AI response and relevant invariants. Tests and a passing executable establish consistency; they do not certify historical accuracy, economic calibration, enjoyment for every player or untested platform behavior.
+
+### Markets and trade todo
+
+The [markets and trade implementation plan](markets-and-trade-design.md) reconciles the Victoria 3-inspired discussion with existing daily settlement, industrial contracts and private-business accounts. This is proposed work under existing P07/P18 and related requirements; it changes no audit status or count. Tasks are dependency-ordered within this feature and do not displace earlier global requirements.
+
+- [ ] **MT-01 — Integration contract:** choose the parent ruleset; specify region/owner IDs, typed state, existing settlement hooks, protected funds, authority/privacy, versioning and rollback (plan step 1).
+- [ ] **MT-02 — Executable rules:** fix price inputs/rounding, utilisation and recipes, household budgets/allocation, merchant money circulation and insolvency, shared capacity/ties, tariffs and in-flight closure behaviour; provide worked boundary cases (step 2).
+- [ ] **MT-03 — Scenario data:** author a reproducible three-region fixture with a closed goods/input chain, opening balances, transport weights/costs, an alternate route and shocks; reconcile every opening account (step 3).
+- [ ] **MT-04 — Headless proof:** extend the existing runner and versioned core; validate baseline stability, supply failure, road closure/reopening, tariffs, conservation, competition, replay and archived compatibility with predeclared tolerances (step 4).
+- [ ] **MT-05 — Controls and AI:** add legal, funded, delayed tariff/infrastructure/access actions and AI responses through shared commands (step 5).
+- [ ] **MT-06 — Player inspection:** add market/route feedback, conditional previews, private/public projections and native comprehension/interaction checks after core acceptance (step 6).
+
+First milestone: a stable three-region economy whose food shortage after a road closure is understandable and addressable. No regional market implementation, calibration result or completed requirement is claimed by this planning update.

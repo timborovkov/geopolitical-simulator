@@ -92,6 +92,8 @@ The references are capability research, not proof that the games implement their
 
 ## Priority 07 — Production, consumption and domestic markets
 
+Implementation detail: [markets and trade plan](markets-and-trade-design.md), with dependency-ordered tasks in the [development backlog](development-progress.md#markets-and-trade-todo). These elaborate the existing requirements; they do not change their status.
+
 - Data-driven goods and services with units, substitutability, storage, perishability and essential-use priority.
 - Sectors with labor, capital, energy and intermediate-input requirements; output limited by actual bottlenecks.
 - Agriculture, extraction, manufacturing, construction and services represented by the same framework where appropriate.
