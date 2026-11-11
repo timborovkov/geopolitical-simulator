@@ -30,7 +30,7 @@ jobs:
         run: rustup show active-toolchain
       - name: Install Linux native render support
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y xvfb xauth libvulkan1 mesa-vulkan-drivers
+        run: sudo apt-get update && sudo apt-get install -y xvfb xauth libvulkan1 mesa-vulkan-drivers libxkbcommon-x11-0
       - name: Validate documents, formatting, lints, tests, Rust docs and release runner
         run: python scripts/validate.py
       - name: Check native Linux window and renderer

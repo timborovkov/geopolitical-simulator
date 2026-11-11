@@ -12,7 +12,11 @@ The proposed [markets and trade design](docs/markets-and-trade-design.md) and [i
 
 ## Play
 
-Install [Rust through rustup](https://rustup.rs/) and a native linker: Xcode Command Line Tools on macOS, a C compiler/linker on Linux, or Visual Studio Build Tools with Desktop development with C++ on Windows. The committed toolchain selects Rust 1.99.1, rustfmt and Clippy. Linux desktop play needs an X11/Wayland session, libxkbcommon and a Vulkan or OpenGL-capable graphics driver; the simulation and terminal game need no graphics stack.
+**Treasury & accounts** opens with nationally available cash, public debt, unpaid public obligations and the last-day fiscal balance, followed by borrowing controls. Protected local funds, policy reservations and retained cash stay separate from spendable money. Private-business and industrial reports remain available below the government accounts. Policy previews show total commitment cost alongside available national cash; the overview uses the same available-cash measure.
+
+After the first settlement, **Households & needs → Income distribution · cohort means** opens a Lorenz curve of realized disposable income. Hover over a marked cohort boundary to inspect cumulative population and income, or read the same figures below the chart. It uses the existing population-weighted group-mean Gini and excludes inequality within each cohort. These daily simulated flows are not a national household survey or a wealth distribution. Terminal `households` also lists the cumulative shares. No campaign rules, default pack or save format change.
+
+Install [Rust through rustup](https://rustup.rs/) and a native linker: Xcode Command Line Tools on macOS, a C compiler/linker on Linux, or Visual Studio Build Tools with Desktop development with C++ on Windows. The committed toolchain selects Rust 1.99.1, rustfmt and Clippy. Linux desktop play needs an X11/Wayland session, libxkbcommon (including the X11 runtime, `libxkbcommon-x11-0` on Debian/Ubuntu) and a Vulkan or OpenGL-capable graphics driver; the simulation and terminal game need no graphics stack.
 
 Launch the native desktop game:
 

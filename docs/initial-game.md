@@ -34,6 +34,10 @@ The crisis option is an authored overlay on the selected country: 40% domestic f
 
 ## Household and market mechanics
 
+Treasury's first view prioritizes national financial decisions: available cash, debt, unpaid public obligations, daily fiscal balance and borrowing. Consolidated public cash, protected local funds, reserved policy capital and retained cash remain separately inspectable. Programme previews label total commitment cost separately from available national cash; the overview also shows the available amount.
+
+The expandable **Households & needs → Income distribution · cohort means** chart plots cumulative residents against realized disposable income, ordered by mean income per resident. Markers support hover inspection and the same figures appear in visible rows. The existing group-mean Gini excludes within-group variation; zero total income, negative group income or unsupported group means leave the measure undefined. The chart reports current daily simulated flows, not wealth or an individual household survey. Terminal `households` supplies the cumulative counts and shares. This inspection changes no policy, cash, population, rules, data or saved state.
+
 Household groups are **working**, **public-service**, **transfer-dependent** and **asset-owning** households. They are disjoint household classifications, not overlapping counts of workers, pensioners or party membership. Country profiles are authored. Largest-remainder allocation preserves exact population and cash sums with stable ordering for ties.
 
 Private income follows authored shares. Public-service payments reach public-service households; welfare goes 80% to transfer-dependent households and 20% to working households. Each group pays collected tax on private income from its own cash. Public-service payments and welfare are not included in the current wage-tax base. Disposable income and savings limit affordable consumption; available food is rationed among affordable needs. Basket spending also represents nonfood goods/services; this is a coarse real-welfare model, not an explicit food price solver.

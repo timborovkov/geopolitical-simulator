@@ -1208,6 +1208,12 @@ fn play(
                         println!(
                             "Group means exclude within-group inequality. Income pressure is not a poverty headcount: savings can fund food; food supply can fail despite income."
                         );
+                        if let Some(distribution) = group_income_distribution(&c.households)? {
+                            println!("Cohort-mean income distribution · cumulative population and disposable-income shares from lowest to highest per-resident mean; within-group inequality is unobserved.");
+                            for point in distribution.boundaries {
+                                println!("{}: cumulative residents {} ({:.2}%) · disposable income {}m/day ({:.2}%)",point.group.0,point.cumulative_population.0,f64::from(point.population_share.units())/100.0,point.cumulative_income.0,f64::from(point.income_share.units())/100.0);
+                            }
+                        }
                     }
                     for (h, definition) in c.households.iter().zip(&d.households) {
                         println!(
