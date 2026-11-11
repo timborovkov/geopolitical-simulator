@@ -25,14 +25,14 @@ impl Panel {
         let mut action = None;
         ui.separator();
         ui.heading("Constitutional change");
-        ui.label(format!("Current form {:?} · recorded in this campaign since {}. Country identity, accounts and existing debt continue across a change of government.", state.regime, date(state.since)));
+        ui.label(format!("Current form {} · recorded in this campaign since {}. Country identity, accounts and existing debt continue across a change of government.", state.regime.label(), date(state.since)));
         ui.small("These routes and templates are authored scenario rules. Council/elite backing is a simplified effective-power model, not a complete military, court or faction simulation.");
         if let Some(request) = &state.pending {
             ui.label(format!(
-                "Pending #{} · {:?} to {:?} · {} · decision {} · sponsor cabinet #{}",
+                "Pending #{} · {} to {} · {} · decision {} · sponsor cabinet #{}",
                 request.id.0,
-                request.from,
-                request.target,
+                request.from.label(),
+                request.target.label(),
                 if request.contested {
                     "CONTESTED"
                 } else {
@@ -53,13 +53,13 @@ impl Panel {
             date(state.next_request_day)
         ));
         egui::ComboBox::from_label("Proposed governing form")
-            .selected_text(format!("{:?}", self.target))
+            .selected_text(self.target.label())
             .show_ui(ui, |ui| {
                 for template in &rules.templates {
                     ui.selectable_value(
                         &mut self.target,
                         template.regime.clone(),
-                        format!("{:?} · {}", template.regime, template.title),
+                        format!("{} · {}", template.regime.label(), template.title),
                     );
                 }
             });
@@ -121,10 +121,10 @@ impl Panel {
             }
             for change in state.history.iter().rev() {
                 ui.label(format!(
-                    "{} · {:?} to {:?} · {} · cabinet #{}",
+                    "{} · {} to {} · {} · cabinet #{}",
                     date(change.day),
-                    change.from,
-                    change.to,
+                    change.from.label(),
+                    change.to.label(),
                     if change.contested {
                         "CONTESTED"
                     } else {

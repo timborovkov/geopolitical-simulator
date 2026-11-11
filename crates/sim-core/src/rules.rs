@@ -192,7 +192,9 @@ impl World {
                         world.validate_business_accounts(content)?;
                     }
                 }
+                world.validate_treaties(content)?;
                 world.apply_inner(content, command, origin)?;
+                world.validate_treaties(content)?;
                 if external {
                     world.validate_business_costs(content)?;
                     world.validate_private_investment(content)?;
@@ -264,6 +266,9 @@ impl World {
             .and_then(|sequences| sequences.get(&outcome_country))
             .copied();
         match &command.action {
+            Action::Diplomacy { action } => {
+                self.apply_treaty_action(content, &id, command.id, action)?
+            }
             Action::OrderIndustrialTrade {
                 good,
                 direction,
@@ -520,6 +525,7 @@ impl World {
         self.validate_business_costs(content)?;
         self.validate_private_investment(content)?;
         self.validate_private_payroll(content)?;
+        self.validate_treaties(content)?;
         if content.rules >= 33 {
             self.validate_industry(content)?;
         }
@@ -559,6 +565,7 @@ impl World {
                 }
                 self.step_demographics(content)?;
             }
+            self.review_treaties(content)?;
             for id in &ids {
                 // Fiscal-plan campaigns close the prior calendar year before any
                 // January decisions, delivery payments or recurring settlement.
@@ -626,6 +633,9 @@ impl World {
                     }
                 }
             }
+            self.lapse_treaty_sponsorship()?;
+            self.treaty_ai_turn(content)?;
+            self.validate_treaties(content)?;
             self.validate_business_accounts(content)?;
             self.validate_consumption(content)?;
             self.validate_business_costs(content)?;

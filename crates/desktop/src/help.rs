@@ -20,6 +20,7 @@ struct Entry {
 }
 fn entries(content: &Content) -> Vec<Entry> {
     let mut entries: Vec<_> = [
+        ("Non-aggression agreements and domestic ratification", "The fictional diplomacy exercise supports offers, counteroffers, two signatures, separate domestic ratifications, scheduled activation, expiry and termination notice. Review an order before explicitly submitting it. Immediate administration is paid and retained. Pending sponsorship lapses after government succession; active state obligations survive. Unaccepted negotiations are private; signed agreements have a public inspector. Military actions are not available in this exercise.", Tab::Diplomacy),
         ("Food, affordability and shortages", "Households need both affordable baskets and delivered food. Domestic capacity, shocks, bounded imports and inventory constrain supply. Food imports require business cash. Welfare changes recipients' purchasing power; agriculture expands capacity after implementation. The household screen identifies groups with poor delivery.", Tab::Society),
         ("Household income, savings and group-mean inequality", "The household screen compares income after tax with each group's modeled essential basket and remaining cash buffer. Income below basket cost is financial pressure, not an individual poverty headcount: savings can fund consumption. Delivered food is a separate physical measure. The population-weighted Gini uses group-mean disposable income and excludes within-group inequality; zero total income or unsupported group means make it undefined. Expand Income distribution for the cohort-mean Lorenz curve. Hover over the chart for the nearest cohort boundary; all cumulative population and income shares are also listed below it.", Tab::Society),
         ("Energy and production", "Delivered energy constrains output. Domestic capacity, supply shocks, paid imports and stored energy determine availability. A capacity program takes time to implement. Compare domestic capacity with realized delivery; they are different measures.", Tab::Treasury),
@@ -116,7 +117,7 @@ fn entries(content: &Content) -> Vec<Entry> {
     }));
     entries.extend(content.countries.iter().map(|country| Entry {
         title: format!("Country · {} ({})", country.name, country.id.0),
-        body: format!("Opening reference at {}: capital {}; executive {} ({}); currency {}; {:?}. {} Data quality: {}. These are bookmark definitions; the overview shows campaign developments and source records.", content.start, country.capital, country.executive, country.office, country.currency, country.regime, country.government.label(), country.quality),
+        body: format!("Opening reference at {}: capital {}; executive {} ({}); currency {}; {}. {} Data quality: {}. These are bookmark definitions; the overview shows campaign developments and source records.", content.start, country.capital, country.executive, country.office, country.currency, country.regime.label(), country.government.label(), country.quality),
         destination: Destination { tab: Tab::Overview, country: Some(country.id.clone()), policy: None },
     }));
     entries.extend(bookmark_entries(content));

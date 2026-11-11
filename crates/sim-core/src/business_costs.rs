@@ -572,7 +572,7 @@ impl World {
                 .business_costs
                 .as_ref()
                 .ok_or("Unexpected business cost book")?;
-            if !matches!(self.rules, 37..=40) {
+            if !matches!(self.rules, 37..=41) {
                 return Err("Business costs require rules 37 through 40".into());
             }
             book.costs.validate()?;

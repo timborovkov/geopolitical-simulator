@@ -2,11 +2,25 @@
 
 The goal is the full documented game. The current implementation is a playable foundation; it is **not complete**. The [requirement register](implementation-register.csv) retains all 341 original requirements and their IDs, plus nine proposed war/diplomacy additions (350 total). No unimplemented system is silently excluded. There are no delivery dates or workload estimates here.
 
-Current audited register: **9 complete, 102 partial and 239 proposed**. Completion applies to the stated scope of an individual requirement; the overall kernel and full roadmap remain incomplete.
+Current audited register: **10 complete, 105 partial and 235 proposed**. Completion applies to the stated scope of an individual requirement; the overall kernel and full roadmap remain incomplete.
 
-## War and diplomacy planning — 11 November 2026
+## Native build and launch milestone
 
-The [design document](war-and-diplomacy-design.md) defines pacts, coercive crises, military operations, negotiated peace, occupation, subject presets and lifecycles, voluntary release, liberation, purchases, exchanges and leases. It records shared state/transaction boundaries, AI and interface behavior, implementation dependencies and scenario acceptance gates. The first implementation todo is a fictional bilateral non-aggression agreement lifecycle; regional simulation gates territorial actions, while military logistics and forces gate battles and credible military coercion. P23-09–11, P26-10 and P27-09–13 add nine proposed requirements; all previous IDs, text and statuses remain unchanged. Priorities 23–27 remain proposed. This is planning only: no game code, content, saves or playable features change. Historical audit entries below retain their counts at the time.
+Published commit `9a7c014` passes [hosted run 42975579676](https://github.com/timborovkov/geopolitical-simulator/actions/runs/42975579676) on Linux, macOS and Windows. Each platform completes standard validation and an actual native wgpu viewport readback, reports nonuniform pixels without starting a campaign, and exits the event loop cleanly. Observed renderers are Linux Vulkan/llvmpipe (1440×940), macOS Metal/Apple Paravirtual device (1024×700), and Windows DirectX 12/Microsoft Basic Render Driver (1024×768). The reports retain their distinct executable hashes. Their five/six app updates are not a presentation or performance measure.
+
+P04-01 is complete for native builds and startup/readback checks on the three supported operating systems. Packaging and broader native interaction coverage remain in the roadmap. The agreement slice below is later source with separate local evidence and has passed its full local gate. Earlier milestone paragraphs retain the observations available at those times.
+
+## Playable fictional bilateral agreements
+
+Optional rules 41 / snapshot 42 add the fictional three-country non-aggression agreement lifecycle described in the [slice contract](bilateral-agreement-slice.md). Offers and counteroffers retain typed treaty/revision identities, invalidate obsolete signatures, and charge actual earned administration through the existing government and business accounts. Two signatures precede separate domestic ratifications, followed by next-day scheduled activation. Pair cooldowns, submission deadlines, notice and natural expiry are explicit. Pending government sponsorship lapses on succession; active state obligations survive. No cash, borders, forces or GDP are created by agreement, and military enforcement remains unfinished.
+
+Basic three-day response AI uses the shared command handler and its own legal/cash conditions. The native diplomacy desk and terminal commands consume the same participant/public views and exact-revision previews. Public inspectors omit unaccepted negotiations, earlier counteroffer history and private finances; private or unknown treaty-ID probes share the same unavailable response. Consequential native orders require review followed by explicit submission. Government and territorial forms use readable labels while persisted identifiers, command tokens and archived event text retain their representations.
+
+The reproducible exercise preserves all 88 earlier JSON packs byte for byte. The recommended starter remains finance rules 38. The frozen integrated source passes 743 Rust checks (121 desktop and 72 compile-fail contracts), 20 Python checks, strict workspace linting and Rust documentation. Fourteen focused core cases cover paid lifecycle/replay, actual budget/cash reconciliation, counteroffers, authority refusal, succession, deadline ties, privacy, real archive/revision bounds, malformed state and transactional allocator failure. Workspace and standalone release CLI builds each pass 26 replay-verified checkpoints with identical saved bytes; two additional standalone checkpoints verify refusal and withdrawal with retained fees. Actual Linux/Xvfb play at 100%/140% follows offer, AI response, ratification, pending reload, scheduled activation, active operation, notice and termination, preserving 42 exact reference comparisons. At 140%, normal CLI received-counteroffer saves also exercise native counteroffer, signature, refusal and withdrawal; drafts and reviews remain read-only. Foreign inspectors omit private finances/actions and hide unsigned negotiations. The native startup probe returns real nonuniform OpenGL/llvmpipe readback and exits cleanly without starting a campaign; its app-update count is not a presentation/FPS measure. Owned interaction clients/display are closed and isolated preferences restored. All 174 standard validation commands pass against frozen source: 222 Rust files, 89 JSON packs and 36 build/validation inputs. All 1302 recovery/replay campaigns pass, including six new fictional cases; all 1296 predecessor hashes are unchanged. P23-03/P23-05/P23-09/P23-11 are partial for the implemented agreement, bounded response AI and shared client lifecycle only. The audit is 10 complete, 105 partial and 235 proposed. Hosted validation for this later source remains pending; the full game remains incomplete.
+
+## Original war and diplomacy planning — 11 November 2026
+
+At the planning checkpoint before the agreement implementation above, the [design document](war-and-diplomacy-design.md) defined pacts, coercive crises, military operations, negotiated peace, occupation, subject presets and lifecycles, voluntary release, liberation, purchases, exchanges and leases. It records shared state/transaction boundaries, AI and interface behavior, implementation dependencies and scenario acceptance gates. The first implementation todo is a fictional bilateral non-aggression agreement lifecycle; regional simulation gates territorial actions, while military logistics and forces gate battles and credible military coercion. P23-09–11, P26-10 and P27-09–13 add nine proposed requirements; all previous IDs, text and statuses remain unchanged. Priorities 23–27 remain proposed. This is planning only: no game code, content, saves or playable features change. Historical audit entries below retain their counts at the time.
 
 ## Government finance and household income inspection
 
@@ -814,7 +828,7 @@ Native Linux/software-rendered play at 100%/140% verified Tony Blair's opening p
 | 01 | Simulation kernel and command boundary | 8 / 8 | Partial; 6 requirements complete |
 | 02 | Content schema and historical world identity | 7 / 7 | Partial |
 | 03 | Saves, replay and simulation inspection | 7 / 7 | Partial; 3 requirements complete |
-| 04 | Native desktop shell, map and navigation | 7 / 7 | Partial |
+| 04 | Native desktop shell, map and navigation | 7 / 7 | Partial; 1 requirement complete |
 | 05 | Accounts, units and causal reporting | 7 / 7 | Partial |
 | 06 | Population, households and social groups | 4 / 7 | Partial |
 | 07 | Production, consumption and domestic markets | 7 / 7 | Partial |
@@ -833,7 +847,7 @@ Native Linux/software-rendered play at 100%/140% verified Tony Blair's opening p
 | 20 | Unions, civil society, media and domestic power | 0 / 8 | Proposed |
 | 21 | Civil rights, justice and social legislation | 0 / 8 | Proposed |
 | 22 | Migration, citizenship and integration | 0 / 7 | Proposed |
-| 23 | Diplomacy and binding agreements | 0 / 11 | Proposed |
+| 23 | Diplomacy and binding agreements | 4 / 11 | Partial |
 | 24 | International organizations, unions and blocs | 0 / 9 | Proposed |
 | 25 | Military establishment, procurement and logistics | 0 / 9 | Proposed |
 | 26 | Conventional warfare and operational AI | 0 / 10 | Proposed |

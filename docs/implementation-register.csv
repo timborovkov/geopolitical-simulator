@@ -21,7 +21,7 @@ P03-04,3,"Saves, replay and simulation inspection","Debug state inspector, econo
 P03-05,3,"Saves, replay and simulation inspection","Historical statistics with bounded retention: recent fine-grained records, older aggregates and important events preserved.",partial
 P03-06,3,"Saves, replay and simulation inspection","Save/load during construction, elections, negotiations, battles and pending legislation as those systems appear.",partial
 P03-07,3,"Saves, replay and simulation inspection",Developer sandbox commands flagged separately from normal play; inspectability is part of the base game.,complete
-P04-01,4,"Native desktop shell, map and navigation",Native builds and launch checks on all three operating systems from the beginning.,partial
+P04-01,4,"Native desktop shell, map and navigation",Native builds and launch checks on all three operating systems from the beginning.,complete
 P04-02,4,"Native desktop shell, map and navigation","Vector-derived world map: coastline, land, country and administrative boundaries, islands, lakes and rivers; pan, zoom, selection, search and tooltips.",partial
 P04-03,4,"Native desktop shell, map and navigation","Separate display geometry from simulation regions. Selection must work for islands, enclaves and tiny states.",partial
 P04-04,4,"Native desktop shell, map and navigation","Political, terrain and administrative layers first; overlay infrastructure added by later systems.",partial
@@ -179,15 +179,15 @@ P22-06,22,"Migration, citizenship and integration","Labor-market matching, housi
 P22-07,22,"Migration, citizenship and integration","Migration preferences respond to safety, jobs, family networks and legal routes; it is not a single country attractiveness score.",proposed
 P23-01,23,Diplomacy and binding agreements,"Bilateral relations decomposed into trust, threat, disputes, dependency, ideological affinity and public opinion.",proposed
 P23-02,23,Diplomacy and binding agreements,"Recognition, embassies, diplomatic rank, meetings, state visits and negotiation agendas.",proposed
-P23-03,23,Diplomacy and binding agreements,"Treaties represented by clauses, signatories, ratification, duration, obligations, monitoring and remedies.",proposed
+P23-03,23,Diplomacy and binding agreements,"Treaties represented by clauses, signatories, ratification, duration, obligations, monitoring and remedies.",partial
 P23-04,23,Diplomacy and binding agreements,"Aid, loans, guarantees, access, bases, intelligence sharing, defense commitments and research cooperation.",proposed
-P23-05,23,Diplomacy and binding agreements,"AI proposal generation, counteroffers, reservation values and acceptance reasons.",proposed
+P23-05,23,Diplomacy and binding agreements,"AI proposal generation, counteroffers, reservation values and acceptance reasons.",partial
 P23-06,23,Diplomacy and binding agreements,"Credibility, reputation and domestic approval constraints; secret terms stored in restricted information views.",proposed
 P23-07,23,Diplomacy and binding agreements,Summits and multilateral bargaining use the same proposal/commitment framework.,proposed
 P23-08,23,Diplomacy and binding agreements,Foreign influence emerges from concrete dependencies and relationships; no universal percentage that automatically buys another country.,proposed
-P23-09,23,Diplomacy and binding agreements,"Explicit non-aggression, defensive/offensive alliance, guarantee and neutrality clauses with triggers, calls to arms, notice, exceptions, conflicting obligations and breach consequences.",proposed
+P23-09,23,Diplomacy and binding agreements,"Explicit non-aggression, defensive/offensive alliance, guarantee and neutrality clauses with triggers, calls to arms, notice, exceptions, conflicting obligations and breach consequences.",partial
 P23-10,23,Diplomacy and binding agreements,"Coercive demands and crises with concrete pressure, deadlines, counteroffers, mediation, withdrawal and explicitly authorized escalation; expired ultimatums do not automatically declare war.",proposed
-P23-11,23,Diplomacy and binding agreements,"Diplomatic AI and shared client workflows explain observed acceptance/refusal reasons, preserve secret information and validate treaty, coercion and alliance lifecycles through deterministic scenarios.",proposed
+P23-11,23,Diplomacy and binding agreements,"Diplomatic AI and shared client workflows explain observed acceptance/refusal reasons, preserve secret information and validate treaty, coercion and alliance lifecycles through deterministic scenarios.",partial
 P24-01,24,"International organizations, unions and blocs","Generic organization engine: charter, members/observers, accession, suspension, withdrawal, offices, councils, voting, budget and mandate.",proposed
 P24-02,24,"International organizations, unions and blocs","UN General Assembly/Security Council, vetoes, rotating seats, recognition/admission, resolutions, sanctions and peacekeeping authorization.",proposed
 P24-03,24,"International organizations, unions and blocs","IMF/World Bank-style lending, conditions and development projects; WTO-style trade commitments and disputes.",proposed

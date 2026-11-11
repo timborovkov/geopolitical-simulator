@@ -13,6 +13,7 @@ mod commitments;
 mod constitutions;
 mod consumption;
 mod demographics;
+mod diplomacy;
 mod elections;
 mod executive_identity;
 mod financing;
@@ -62,6 +63,7 @@ enum Tab {
     Analysis,
     Settings,
     Politics,
+    Diplomacy,
     Chronicle,
     Guide,
     Inspector,
@@ -87,6 +89,7 @@ struct GameApp {
     cash_management: cash_management::Panel,
     funding_chart: charts::Chart,
     constitution_panel: constitutions::Panel,
+    diplomacy_panel: diplomacy::Panel,
     commitment_panel: commitments::Panel,
     undertaking_panel: undertakings::Panel,
     fiscal_panel: fiscal_plans::Panel,
@@ -165,6 +168,7 @@ impl GameApp {
             cash_management: cash_management::Panel::default(),
             funding_chart: charts::Chart::default(),
             constitution_panel: constitutions::Panel::default(),
+            diplomacy_panel: diplomacy::Panel::default(),
             commitment_panel: commitments::Panel::default(),
             undertaking_panel: undertakings::Panel::default(),
             fiscal_panel: fiscal_plans::Panel::default(),
@@ -378,6 +382,7 @@ impl GameApp {
                 self.legislation_panel = legislation::Panel::default();
                 self.social_panel = social_memberships::Panel::default();
                 self.walkthrough = walkthrough::Panel::default();
+                self.diplomacy_panel = diplomacy::Panel::default();
                 self.cash_management = cash_management::Panel::default();
                 self.event_browser = chronicle::Panel::default();
                 self.status = match self.content.rules {
@@ -494,6 +499,7 @@ impl GameApp {
         self.inspector = inspector::Inspector::default();
         self.help = help::Help::default();
         self.walkthrough = walkthrough::Panel::default();
+        self.diplomacy_panel = diplomacy::Panel::default();
         self.cash_management = cash_management::Panel::default();
         self.event_browser = chronicle::Panel::default();
         self.status = archive.map_or_else(
@@ -647,9 +653,10 @@ impl GameApp {
                     (Tab::Treasury, "04  Treasury & accounts"),
                     (Tab::Analysis, "05  Trends & comparisons"),
                     (Tab::Politics, "06  Institutions & parties"),
-                    (Tab::Chronicle, "07  Chronicle & AI"),
-                    (Tab::Guide, "08  How to play"),
-                    (Tab::Settings,"09  Controls & accessibility"),
+                    (Tab::Diplomacy, "07  Diplomacy & agreements"),
+                    (Tab::Chronicle, "08  Chronicle & AI"),
+                    (Tab::Guide, "09  How to play"),
+                    (Tab::Settings,"10  Controls & accessibility"),
                 ] {
                     if ui.selectable_value(&mut self.tab, tab, label).changed()&&tab==Tab::Settings {self.pause();}
                 }
@@ -760,9 +767,12 @@ impl GameApp {
             .as_ref()
             .and_then(|world| world.public_report(&self.content, &self.selected).ok());
         ui.label(format!(
-            "{} · {:?} · {} {}",
+            "{} · {} · {} {}",
             d.capital,
-            report.as_ref().map_or(&d.regime, |report| &report.regime),
+            report
+                .as_ref()
+                .map_or(&d.regime, |report| &report.regime)
+                .label(),
             report
                 .as_ref()
                 .map_or(d.office.as_str(), |report| report.government_title.as_str()),
@@ -970,7 +980,7 @@ impl GameApp {
             .as_ref()
             .and_then(|state| state.pending.as_ref())
         {
-            ui.label(format!("Pending {} constitutional decision: {:?}, due {}. Reserved administration {}m; approval is not guaranteed.", if request.contested { "CONTESTED" } else { "lawful" }, request.target, date(request.decision_day), request.reserved.0));
+            ui.label(format!("Pending {} constitutional decision: {}, due {}. Reserved administration {}m; approval is not guaranteed.", if request.contested { "CONTESTED" } else { "lawful" }, request.target.label(), date(request.decision_day), request.reserved.0));
             if ui.button("Review constitutional decision").clicked() {
                 self.tab = Tab::Politics;
             }
@@ -1074,8 +1084,8 @@ impl GameApp {
             report.opening_gdp.0
         ));
         ui.label(format!(
-            "Current governing form {:?} · {} · {}",
-            report.regime,
+            "Current governing form {} · {} · {}",
+            report.regime.label(),
             report.government_title,
             report.government.label()
         ));
@@ -1123,8 +1133,8 @@ impl GameApp {
         }
         if let Some(territory) = &report.territorial {
             ui.label(format!(
-                "Current territorial settlement: {:?}",
-                territory.form
+                "Current territorial settlement: {}",
+                territory.form.label()
             ));
             if let Some(change) = &territory.last_change {
                 ui.label(format!(
@@ -1812,7 +1822,12 @@ impl GameApp {
             .as_ref()
             .and_then(|world| world.governing_rules(&self.content, &self.selected).ok())
             .unwrap_or(&d.government);
-        ui.label(format!("{} · {:?}\n{}", d.name, regime, government.label()));
+        ui.label(format!(
+            "{} · {}\n{}",
+            d.name,
+            regime.label(),
+            government.label()
+        ));
         ui.label("All seats, political preferences and election cycles are scenario approximations. The 100-seat assembly is a game abstraction; it is not a historical parliament.");
         let c = self.world.as_ref().map(|w| &w.countries[&self.selected]);
         if let Some(c) = c {
@@ -2134,6 +2149,7 @@ impl GameApp {
                         self.legislation_panel = legislation::Panel::default();
                         self.social_panel = social_memberships::Panel::default();
                         self.walkthrough = walkthrough::Panel::default();
+                        self.diplomacy_panel = diplomacy::Panel::default();
                         self.cash_management = cash_management::Panel::default();
                         self.event_browser = chronicle::Panel::default();
                         self.recovery.clear();
@@ -2165,6 +2181,16 @@ impl GameApp {
                         .show(ui, &self.content, self.world.as_ref(), &mut self.selected)
                 }
                 Tab::Politics => self.politics(ui),
+                Tab::Diplomacy => {
+                    if let Some(action) = self.diplomacy_panel.show(
+                        ui,
+                        &self.content,
+                        self.world.as_ref(),
+                        &self.selected,
+                    ) {
+                        self.issue(action);
+                    }
+                }
                 Tab::Chronicle => self.chronicle(ui),
                 Tab::Guide => self.guide(ui),
                 Tab::Settings => self.preferences.show(ui),

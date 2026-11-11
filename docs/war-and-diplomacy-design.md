@@ -1,6 +1,6 @@
 # War, diplomacy and territorial change
 
-Design baseline: **11 November 2026**. This is an original proposed game design, not implemented behavior or a claim about historical law. The [implementation register](implementation-register.csv) is authoritative for status; priorities 23–27 remain proposed. Existing domestic territorial charters do not implement sovereign subjects, warfare or international transfers. Historical examples such as the Alaska purchase describe a category of agreement; no historical scenario or price calibration is claimed here.
+Design baseline: **11 November 2026**. This is an original proposed game design, not implemented behavior or a claim about historical law. The [implementation register](implementation-register.csv) is authoritative for status; P23-03/P23-05/P23-09/P23-11 are partial for the first fictional agreement slice; other requirements in priorities 23–27 remain proposed. Existing domestic territorial charters do not implement sovereign subjects, warfare or international transfers. Historical examples such as the Alaska purchase describe a category of agreement; no historical scenario or price calibration is claimed here.
 
 ## Player outcomes and scope
 
@@ -119,11 +119,13 @@ The existing engine supplies deterministic time, shared command validation, outc
 
 The first implementation is a bilateral non-aggression agreement lifecycle in the fictional three-country world: offer, counteroffer, signature/ratification, activation, expiry and termination. Include institutional authority, a public treaty inspector, basic AI acceptance/refusal and pending-state save/replay. Until declarations and combat exist, this proves agreement behavior only; it cannot demonstrate military enforcement or complete P23-09.
 
+The [first-slice contract](bilateral-agreement-slice.md) now fixes typed records and commands, paid administration, the staged daily lifecycle, compatibility, visibility and bounded fictional AI. Its bounded implementation and local client verification pass; this does not complete a diplomacy or military requirement.
+
 Territorial actions require authoritative simulation regions with assigned residents, production, infrastructure, assets and obligations, plus dynamic country creation and atomic transfers. Reference polygons and national totals are insufficient. Battles require actual formations, equipment, readiness, routes and supply. Military coercion requires those capabilities to make threats meaningful.
 
 ### Implementation checklist
 
-- [ ] Define the first slice's typed Rust records, commands/events, lifecycle transitions, daily phases, content/save versioning and compatibility behavior. Specify bounded initial AI rules and a fictional acceptance fixture before marking implementation complete.
+- [x] Define the first slice's typed Rust records, commands/events, lifecycle transitions, daily phases, content/save versioning and compatibility behavior. Specify bounded initial AI rules and a fictional acceptance fixture before marking implementation complete.
 - [ ] Implement bilateral proposals, authority, ratification, visibility, expiry and termination (P23-01–08/11 and the lifecycle portion of P23-09). Verify counteroffers, government succession, public/private projections, AI/player command parity and pending-state replay in both clients.
 - [ ] Establish sovereign units, regional population/assets/obligations, new-country identities and separate title/control/recognition (P02, P04, P27-05/06). Verify islands, enclaves, disputed title, regional reconciliation and unchanged state after invalid transfers.
 - [ ] Implement atomic cash purchases, exchanges and voluntary independent release (P27-10/11/13). Verify payment and asset/liability conservation, failed ratification, stale offers, competing transactions and creditor rights.

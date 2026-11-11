@@ -467,7 +467,7 @@ impl World {
         for (id, c) in &self.countries {
             match (&content.private_investment, &c.private_investment) {
                 (None, None) => continue,
-                (Some(d), Some(s)) if (39..=40).contains(&self.rules) => {
+                (Some(d), Some(s)) if (39..=41).contains(&self.rules) => {
                     if s.as_of != self.day || s.equipment.len() > 256 {
                         return Err("Private equipment date or count is invalid".into());
                     }
