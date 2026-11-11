@@ -84,7 +84,7 @@ The remaining scenario content is original authored game data. No third-party fl
 
 `country-outlines-110m.json` contains selectable reference outlines for the 15 starter countries, compiled from Natural Earth v3.3.0, revision `aa15d45ca649047105c9fd38c5d58e95ada27fca`. The [asset manifest](country-outlines-manifest.json) pins each raw SHP/DBF/PRJ digest and URL, the compiled digest, public-domain terms, attribution, transformation and limitations. All exterior rings, islands and interior holes are preserved; coordinates are rounded to 0.001 degrees. The desktop triangulates with holes and picks geographic polygons independently of simulation state. Tests cover overseas parts, the antimeridian, omitted countries and the Lesotho hole in South Africa's outline. Marker fallback cannot select the surrounding country through that hole.
 
-This source release is **not certified as a complete 2000 boundary layer**. It assigns the Crimea sample to Ukraine and treats Taiwan separately from CHN; these checks do not validate every disputed or historical boundary. Only the 15 roster records are drawn/selectable. Other territory remains neutral land, and tiny islands omitted by the source scale remain accessible through search. Display geometry creates no legal sovereignty, occupation, recognition or simulation region. Administrative boundaries, historical date effectiveness and terrain relief remain future work; separate generalized reference lakes/rivers are available below.
+This source release is **not certified as a complete 2000 boundary layer**. It assigns the Crimea sample to Ukraine and treats Taiwan separately from CHN; these checks do not validate every disputed or historical boundary. In the simplified fallback and country overview, only the 15 roster records are drawn/selectable. Other territory there remains neutral land, and tiny islands omitted by the source scale remain accessible through search. Display geometry creates no legal sovereignty, occupation, recognition or simulation region. This fallback does not include terrain relief or date-effective historical boundaries. The current global World map and its separate reference identities are described under [Global display atlas](#global-display-atlas); administrative references and generalized lakes/rivers remain separately attributed below.
 
 Rebuild with `python3 scripts/import_country_geometry.py`. For offline rebuilding, pass `--source-dir DIRECTORY` containing the pinned `ne_110m_admin_0_countries.shp`, `.dbf` and `.prj`; byte mismatches fail. `--validate` checks committed geometry, roster, rings and manifest checksum offline without downloading or writing. The compiler uses Python's standard library. JSON uses LF endings so checksums remain stable across platforms.
 
@@ -283,3 +283,42 @@ The [private investment roster](initial-2000-private-investment.json) and [ficti
 
 
 The optional [private payroll campaign](initial-2000-private-payroll.json) and [fictional exercise](synthetic-private-payroll-test.json) add rules/content 40 and snapshot 41. Run `python3 scripts/build_private_payroll_world.py --check` to verify the attributed offline generator. Its parent equipment packs and all 86 preceding JSON files remain unchanged. Private employment shares and wage bills are authored, with stable country/cohort contracts and explicit unpaid claims. Public service employment remains a funding estimate. These definitions do not claim historical employment coverage, individual contracts, recruitment or formal insolvency. The exact-hash catalogue contains 39 bundled packs, and the recommended default remains finance rules 38.
+
+## Global display atlas
+
+`map-atlas/` contains a versioned offline Natural Earth atlas: 258 reference
+country/territory features, 7,325 settlement records, hydrology and generalized
+roads (including source ferry connections), railways and urban outlines. These are modern reference features, not
+verified year-2000 geography, simulated infrastructure or additional playable
+countries. Raster terrain uses NE2_LR_LC_SR_W, with five tiled detail levels.
+
+Sources are pinned by commit and SHA-256 in `map-atlas-sources.json` and the atlas
+manifest. Natural Earth declares its raster and vector data public domain.
+The compiler uses the exact dependencies in `scripts/map-requirements.txt`; install
+them in a virtual environment. Place the pinned vector checkout at
+`SOURCE/ne-vector` and the pinned raster TIFF at `SOURCE/terrain.tif`. Run
+`python scripts/build_map_atlas.py --source-dir SOURCE`; add `--check` for an
+isolated exact-byte rebuild. `--validate` requires only standard Python.
+
+Vector commit: `ca96624a56bd078437bca8184e78163e5039ad19` in
+[natural-earth-vector](https://github.com/nvkelso/natural-earth-vector). Raster
+commit: `f04832c819e7a203d159dffe93cd9245332d6b33` in
+[natural-earth-raster](https://github.com/nvkelso/natural-earth-raster), file
+`10m_rasters/NE2_LR_LC_SR_W/NE2_LR_LC_SR_W.tif`. Required vector source paths
+are listed in the checksum lock. Sources are not downloaded by the game.
+
+The display projection stays equirectangular: longitude increases eastward and
+latitude northward in WGS84 degrees. Country geometry is repaired with
+`make_valid`, then simplified as a shared coverage at 0.12°, 0.035° and 0.008°.
+Country rings retain holes, are rounded to five decimal places and triangulated
+with Earcut. Coastlines come from those country polygon shorelines. Reference
+linework is simplified at 0.008°; date-line-crossing line segments are split.
+Settlement priorities use source capital flags and cartographic scale ranks.
+
+The 16,200×8,100 source raster is Lanczos-resampled into five 2:1 levels, from
+1024×512 through 16,384×8,192. Tiles have 512×512 interiors plus one neighboring
+pixel on each edge, with wrapped longitude and clamped polar samples. JPEG output
+uses quality 85, no chroma subsampling and no optimizer; mipmaps are produced by
+the runtime worker. JSON uses UTF-8, LF newlines, fixed ordering and POSIX source
+paths. Exact-byte regeneration has been verified on Linux with the pinned compiler
+dependencies; other compiler platforms remain unverified.

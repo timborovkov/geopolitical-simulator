@@ -89,6 +89,7 @@ def main():
             [sys.executable, "scripts/test_native_launch.py"],
             [sys.executable, "scripts/test_reference_data.py"],
             [sys.executable, "scripts/test_hydrology.py"],
+            [sys.executable, "scripts/test_map_atlas.py"],
             [sys.executable, "scripts/test_administrative_geometry.py"],
             [sys.executable, "scripts/build_synthetic_world.py", "--check"],
             [sys.executable, "scripts/build_statutory_world.py", "--check"],

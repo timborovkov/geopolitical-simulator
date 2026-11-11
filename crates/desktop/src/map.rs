@@ -1,3 +1,5 @@
+#[path = "map_presentation.rs"]
+mod presentation;
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, Vec2};
 use sim_core::{
     Content, CountryId, PlayerView, PublicCountryReport, PublishedObservation, Viewer, World,
@@ -64,6 +66,7 @@ impl Camera {
 #[derive(Clone, Copy, PartialEq)]
 enum Layer {
     Countries,
+    Terrain,
     Approval,
     Needs,
     Debt,
@@ -76,7 +79,7 @@ enum ReportTime {
 }
 impl ReportTime {
     fn for_layer(self, layer: Layer) -> Self {
-        if layer == Layer::Countries {
+        if matches!(layer, Layer::Countries | Layer::Terrain) {
             Self::Latest
         } else {
             self
@@ -128,7 +131,8 @@ impl ReportTime {
 impl Layer {
     fn title(self) -> &'static str {
         match self {
-            Self::Countries => "Countries",
+            Self::Countries => "Political",
+            Self::Terrain => "Terrain",
             Self::Approval => "Approval",
             Self::Needs => "Needs met",
             Self::Debt => "Debt / opening GDP",
@@ -147,7 +151,7 @@ impl Layer {
         selected: &mut CountryId,
         time: ReportTime,
     ) {
-        if self == Self::Countries {
+        if matches!(self, Self::Countries | Self::Terrain) {
             return;
         }
         let (green, amber) = self.bands();
@@ -248,14 +252,14 @@ fn layer_value(
     let report = report?;
     let release = time.release(report)?;
     match layer {
-        Layer::Countries => None,
+        Layer::Countries | Layer::Terrain => None,
         Layer::Approval => Some(release.approval),
         Layer::Needs => Some(release.needs),
         Layer::Debt => Some((release.debt.0 * 100 / report.opening_gdp.0) as i32),
     }
 }
 fn layer_color(layer: Layer, active: bool, value: Option<i32>) -> Color32 {
-    if layer == Layer::Countries {
+    if matches!(layer, Layer::Countries | Layer::Terrain) {
         if active {
             Color32::from_rgb(104, 224, 186)
         } else {
@@ -304,12 +308,31 @@ pub struct View {
     camera: Camera,
     layer: Layer,
     report_time: ReportTime,
+    cities: bool,
+    infrastructure: bool,
+    reference_selection: Option<ReferenceSelection>,
     divisions: bool,
     selected_division: Option<crate::administrative::ReferenceDivisionId>,
     lakes: bool,
     rivers: bool,
 }
+impl View {
+    pub fn same_reference(&self, other: &Self) -> bool {
+        self.reference_selection == other.reference_selection
+    }
+}
+#[derive(Clone, PartialEq)]
+enum ReferenceSelection {
+    Country(crate::reference_atlas::FeatureId),
+    City(crate::reference_atlas::SettlementId),
+}
 pub struct WorldMap {
+    reference: Option<std::sync::Arc<crate::reference_atlas::Atlas>>,
+    tile_keys: Vec<crate::reference_atlas::TileKey>,
+    diagnostic: std::sync::Arc<std::sync::Mutex<Option<String>>>,
+    gpu: bool,
+    reference_query: String,
+    benchmark: Option<presentation::Benchmark>,
     land: Vec<(Vec<[f32; 2]>, Vec<usize>)>,
     atlas: crate::geometry::Atlas,
     hydrology: crate::hydrology::Hydrology,
@@ -321,6 +344,9 @@ pub struct WorldMap {
     rivers: bool,
     water_query: String,
     report_time: ReportTime,
+    cities: bool,
+    infrastructure: bool,
+    reference_selection: Option<ReferenceSelection>,
     pub camera: Camera,
     layer: Layer,
 }
@@ -330,6 +356,9 @@ impl WorldMap {
             camera: self.camera,
             layer: self.layer,
             report_time: self.report_time,
+            cities: self.cities,
+            infrastructure: self.infrastructure,
+            reference_selection: self.reference_selection.clone(),
             divisions: self.divisions,
             selected_division: self.selected_division.clone(),
             lakes: self.lakes,
@@ -340,6 +369,9 @@ impl WorldMap {
         self.camera = view.camera;
         self.layer = view.layer;
         self.report_time = view.report_time;
+        self.cities = view.cities;
+        self.infrastructure = view.infrastructure;
+        self.reference_selection = view.reference_selection;
         self.divisions = view.divisions;
         self.selected_division = view.selected_division;
         self.lakes = view.lakes;
@@ -361,6 +393,15 @@ impl WorldMap {
             })
             .collect();
         Self {
+            reference: None,
+            tile_keys: Vec::new(),
+            diagnostic: Default::default(),
+            gpu: false,
+            reference_query: String::new(),
+            benchmark: None,
+            cities: true,
+            infrastructure: false,
+            reference_selection: None,
             land,
             atlas: crate::geometry::Atlas::bundled(),
             hydrology: crate::hydrology::Hydrology::bundled(),

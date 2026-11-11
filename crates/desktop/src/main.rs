@@ -30,6 +30,7 @@ mod inspector;
 mod launch_check;
 mod legislation;
 mod map;
+mod map_gpu;
 mod markets;
 mod navigation;
 mod new_game;
@@ -37,6 +38,7 @@ mod party_preferences;
 mod private_investment;
 mod private_payroll;
 mod production;
+mod reference_atlas;
 mod reserves;
 mod settings;
 mod social_memberships;
@@ -57,6 +59,7 @@ const MUTED: Color32 = Color32::from_rgb(148, 170, 181);
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 enum Tab {
     Overview,
+    Country,
     Policies,
     Treasury,
     Society,
@@ -122,6 +125,7 @@ impl GameApp {
         bundled_catalog: bool,
     ) -> Self {
         let mut app = Self::from_context(&cc.egui_ctx, content, settings::Preferences::load());
+        app.map.install_renderer(cc);
         app.developer_mode = developer_mode;
         app.bundled_catalog = bundled_catalog;
         app
@@ -138,8 +142,8 @@ impl GameApp {
         visuals.selection.stroke = Stroke::new(1.0_f32, MINT);
         ctx.set_visuals(visuals);
         let mut style = (*ctx.style()).clone();
-        style.spacing.item_spacing = Vec2::new(10.0, 8.0);
-        style.spacing.button_padding = Vec2::new(12.0, 7.0);
+        style.spacing.item_spacing = Vec2::new(8.0, 5.0);
+        style.spacing.button_padding = Vec2::new(8.0, 4.0);
         ctx.set_style(style);
         let selected = content.countries[0].id.clone();
         let target_date = date(sim_core::CampaignDay::new(
@@ -485,7 +489,8 @@ impl GameApp {
             / 100)
             .max(1);
         self.show_ledger = false;
-        self.map = map::WorldMap::new();
+        self.map.reset_campaign_view();
+        self.map.select_country(&self.selected);
         self.analysis = analysis::Analysis::default();
         self.funding_chart = charts::Chart::default();
         self.constitution_panel = constitutions::Panel::default();
@@ -581,121 +586,205 @@ impl GameApp {
     }
     fn top(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("command_bar").show(ctx, |ui| {
+            ui.spacing_mut().button_padding = Vec2::new(7.0, 3.0);
             ui.horizontal_wrapped(|ui| {
-                ui.label(RichText::new("STATECRAFT").size(23.0).strong().color(MINT));
+                let governing = self.world.as_ref().map_or(&self.selected, |w| &w.player);
+                ui.strong(
+                    self.content
+                        .country(governing)
+                        .map_or(governing.0.as_str(), |c| c.name.as_str()),
+                );
                 if let Some(w) = &self.world {
+                    ui.label(format!(
+                        "Treasury {}m",
+                        w.player_country().accounts.treasury.0
+                    ))
+                    .on_hover_text("Current government treasury · million game reporting credits");
+                    if let Ok(report) = w.public_report(&self.content, &w.player)
+                        && let Some(release) = report.latest
+                    {
+                        ui.label(format!(
+                            "Approval {}%   Needs {}%",
+                            release.approval, release.needs
+                        ))
+                        .on_hover_text(format!("Public release {}", date(release.day)));
+                    }
+                    ui.separator();
                     ui.strong(date(w.day));
-                    ui.label(format!("Governing {} · {}", w.player.0, w.scenario.id()));
-                    ui.strong(self.playback_label());
-                    if ui.button(format!("{} [{}]", if self.speed == 0 && self.pending.is_none() { "Play" } else { "Pause" }, self.preferences.active.pause.name())).clicked() {
-                        if self.speed > 0 || self.pending.is_some() { self.pause(); } else { self.speed = 1; }
-                        self.last_tick = Instant::now();
-                    }
-                } else { ui.label(format!("{} · Offline single player", self.content.start)); }
-                if self.developer_mode { ui.colored_label(Color32::LIGHT_YELLOW, "Developer mode"); }
-                if self.world.as_ref().is_some_and(World::is_developer_modified) { ui.colored_label(Color32::LIGHT_YELLOW, "DEVELOPER-MODIFIED"); }
-                if ui.add_enabled(self.navigation.can_back() && self.new_setup.is_none() && self.recovery.is_empty(),egui::Button::new("Back")).on_hover_text("Previous inspection view [Alt+Left]. Restores the screen, country, policy draft and map view; issues no order.").clicked() { self.navigate_history(false); }
-                if ui.add_enabled(self.navigation.can_forward() && self.new_setup.is_none() && self.recovery.is_empty(),egui::Button::new("Forward")).on_hover_text("Next inspection view [Alt+Right].").clicked() { self.navigate_history(true); }
-                if ui.button("Settings [F1]").clicked() { self.pause(); self.tab = Tab::Settings; }
-                if self.world.is_some() && ui.add_enabled(self.recovery.is_empty(), egui::Button::new("New campaign")).clicked() { self.open_new_campaign(); }
-                if self.world.is_some() && ui.button("First session").clicked() {
-                    self.pause();self.selected=self.world.as_ref().unwrap().player.clone();self.help.reference=false;self.tab=Tab::Guide;
-                }
-            });
-            if self.world.is_some() {
-                ui.horizontal_wrapped(|ui| {
-                    ui.label("Automatic step:");
-                    for (days, label) in [(1, "1 day"), (7, "7 days"), (30, "30 days")] {
-                        if ui.selectable_label(self.speed == days, label).on_hover_text("Start automatic progression at this many days per step. Important events can stop it earlier.").clicked() { self.speed = days; }
-                    }
-                    for (days, label) in [(1, "+1 day"), (30, "+30 days")] {
-                        if ui.add_enabled(self.pending.is_none(), egui::Button::new(label)).clicked() { self.speed = 0; self.advance(DaySpan::new(days)); }
-                    }
-                    if ui.add_enabled(self.pending.is_none(), egui::Button::new("Next event")).clicked() {
-                        self.next_event();
-                    }
-                    ui.add(egui::TextEdit::singleline(&mut self.target_date).desired_width(95.0).hint_text("YYYY-MM-DD"));
-                    if ui.add_enabled(self.pending.is_none(), egui::Button::new("Advance to date")).clicked() {
-                        match parse_date(&self.target_date) {
-                            Ok(day) => {
-                                let current = self.world.as_ref().expect("world").day.units();
-                                if day < sim_core::CampaignDay::new(current) { self.status = "Choose a future date; load a save to return to an earlier state.".into(); }
-                                else { self.speed = 0; self.advance(DaySpan::new((day).units() - current)); }
-                            }
-                            Err(error) => self.status = error,
+                    ui.label(self.playback_label());
+                    if ui
+                        .button(if self.speed == 0 && self.pending.is_none() {
+                            "Play"
+                        } else {
+                            "Pause"
+                        })
+                        .clicked()
+                    {
+                        if self.speed > 0 || self.pending.is_some() {
+                            self.pause();
+                        } else {
+                            self.speed = 1;
+                            self.last_tick = Instant::now();
                         }
                     }
-                });
-            }
-        });
-        egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.label(RichText::new(&self.status).color(MINT));
-            });
-        });
-    }
-    fn sidebar(&mut self, ctx: &egui::Context) {
-        egui::SidePanel::left("navigation")
-            .resizable(true)
-            .default_width(230.0)
-            .width_range(190.0..=320.0)
-            .show(ctx, |ui| {
-                egui::TopBottomPanel::bottom("campaign_file_controls").show_inside(ui, |ui| {
-                    self.campaign_file_controls(ui);
-                });
-                egui::ScrollArea::vertical().id_salt("sidebar_scroll").auto_shrink([false,false]).show(ui,|ui| {
-                ui.add_space(10.0);
-                ui.label(RichText::new("GOVERNMENT DESK").color(MUTED).small());
-                for (tab, label) in [
-                    (Tab::Overview, "01  World & overview"),
-                    (Tab::Policies, "02  Policies & delivery"),
-                    (Tab::Society, "03  Households & needs"),
-                    (Tab::Treasury, "04  Treasury & accounts"),
-                    (Tab::Analysis, "05  Trends & comparisons"),
-                    (Tab::Politics, "06  Institutions & parties"),
-                    (Tab::Diplomacy, "07  Diplomacy & agreements"),
-                    (Tab::Chronicle, "08  Chronicle & AI"),
-                    (Tab::Guide, "09  How to play"),
-                    (Tab::Settings,"10  Controls & accessibility"),
-                ] {
-                    if ui.selectable_value(&mut self.tab, tab, label).changed()&&tab==Tab::Settings {self.pause();}
-                }
-                if self.developer_mode && ui.selectable_value(&mut self.tab, Tab::Inspector, "Developer inspector").changed() {self.pause();}
-                ui.separator();
-                ui.label(RichText::new("COUNTRY DIRECTORY").color(MUTED).small());
-                ui.text_edit_singleline(&mut self.search);
-                ui.checkbox(&mut self.sort_gdp, "Sort by opening GDP");
-                egui::ScrollArea::vertical()
-                    .id_salt("country_list")
-                    .max_height((ui.clip_rect().bottom()-ui.cursor().top()-16.0).clamp(80.0,200.0))
-                    .show(ui, |ui| {
-                        let mut countries: Vec<_> = self.content.countries.iter().collect();
-                        if self.sort_gdp {
-                            countries.sort_by_key(|c| std::cmp::Reverse(c.gdp.units()));
+                    for days in [1, 7, 30] {
+                        if ui
+                            .selectable_label(self.speed == days, format!("{days}d"))
+                            .on_hover_text("Days per automatic step")
+                            .clicked()
+                        {
+                            self.speed = days;
                         }
-                        let query = self.search.to_lowercase();
-                        for d in countries {
-                            if !format!("{} {} {}", d.name, d.id.0, d.executive)
-                                .to_lowercase()
-                                .contains(&query)
+                    }
+                    persistent_menu(ui, "Advance", |ui| {
+                        for (days, label) in [(1, "+1 day"), (30, "+30 days")] {
+                            if ui
+                                .add_enabled(self.pending.is_none(), egui::Button::new(label))
+                                .clicked()
                             {
-                                continue;
+                                self.speed = 0;
+                                self.advance(DaySpan::new(days));
+                                ui.close();
                             }
-                            ui.selectable_value(
-                                &mut self.selected,
-                                d.id.clone(),
-                                format!("{}  {}", d.id.0, d.name),
-                            );
+                        }
+                        if ui
+                            .add_enabled(self.pending.is_none(), egui::Button::new("Next event"))
+                            .clicked()
+                        {
+                            self.next_event();
+                            ui.close();
+                        }
+                        ui.text_edit_singleline(&mut self.target_date);
+                        if ui
+                            .add_enabled(
+                                self.pending.is_none(),
+                                egui::Button::new("Advance to date"),
+                            )
+                            .clicked()
+                        {
+                            match parse_date(&self.target_date) {
+                                Ok(day) => {
+                                    let current = self.world.as_ref().unwrap().day;
+                                    if day < current {
+                                        self.status = "Choose a future date.".into();
+                                    } else {
+                                        self.speed = 0;
+                                        self.advance(DaySpan::new(day.units() - current.units()));
+                                    }
+                                }
+                                Err(e) => self.status = e,
+                            }
                         }
                     });
-                ui.small("Sourced reference GDP/population are identified in the overview; remaining values are authored.");
+                } else {
+                    ui.label(format!("{} · New campaign", self.content.start));
+                }
+                if self.developer_mode {
+                    ui.colored_label(Color32::LIGHT_YELLOW, "Developer mode");
+                }
+                if self
+                    .world
+                    .as_ref()
+                    .is_some_and(World::is_developer_modified)
+                {
+                    ui.colored_label(Color32::LIGHT_YELLOW, "DEVELOPER-MODIFIED");
+                }
+                persistent_menu(ui, "Campaign", |ui| {
+                    if ui.button("New campaign").clicked() {
+                        self.open_new_campaign();
+                        ui.close();
+                    }
+                    self.campaign_file_controls(ui);
+                    if ui.button("Settings [F1]").clicked() {
+                        self.pause();
+                        self.tab = Tab::Settings;
+                        ui.close();
+                    }
+                    if self.developer_mode && ui.button("Developer inspector").clicked() {
+                        self.pause();
+                        self.tab = Tab::Inspector;
+                        ui.close();
+                    }
                 });
             });
+            ui.horizontal_wrapped(|ui| {
+                for (tab, label) in [
+                    (Tab::Overview, "World"),
+                    (Tab::Country, "Country"),
+                    (Tab::Policies, "Policies"),
+                    (Tab::Society, "Society"),
+                    (Tab::Treasury, "Treasury"),
+                    (Tab::Analysis, "Analysis"),
+                    (Tab::Politics, "Government"),
+                    (Tab::Diplomacy, "Diplomacy"),
+                    (Tab::Chronicle, "Chronicle"),
+                    (Tab::Guide, "Guide"),
+                ] {
+                    ui.selectable_value(&mut self.tab, tab, label);
+                }
+                persistent_menu(ui, "Find country", |ui| {
+                    ui.text_edit_singleline(&mut self.search);
+                    ui.checkbox(&mut self.sort_gdp, "Sort by opening GDP");
+                    let mut countries: Vec<_> = self.content.countries.iter().collect();
+                    if self.sort_gdp {
+                        countries.sort_by_key(|c| std::cmp::Reverse(c.gdp.units()));
+                    }
+                    egui::ScrollArea::vertical()
+                        .max_height(250.0)
+                        .show(ui, |ui| {
+                            for c in countries {
+                                if format!("{} {}", c.id.0, c.name)
+                                    .to_lowercase()
+                                    .contains(&self.search.to_lowercase())
+                                    && ui
+                                        .selectable_label(c.id == self.selected, &c.name)
+                                        .clicked()
+                                {
+                                    self.selected = c.id.clone();
+                                    self.map.select_country(&self.selected);
+                                    self.map.camera = map::Camera {
+                                        longitude: c.longitude as f32,
+                                        latitude: c.latitude as f32,
+                                        zoom: 6.0,
+                                    };
+                                    ui.close();
+                                }
+                            }
+                        });
+                });
+                if ui
+                    .add_enabled(
+                        self.navigation.can_back()
+                            && self.new_setup.is_none()
+                            && self.recovery.is_empty(),
+                        egui::Button::new("Back"),
+                    )
+                    .clicked()
+                {
+                    self.navigate_history(false);
+                }
+                if ui
+                    .add_enabled(
+                        self.navigation.can_forward()
+                            && self.new_setup.is_none()
+                            && self.recovery.is_empty(),
+                        egui::Button::new("Forward"),
+                    )
+                    .clicked()
+                {
+                    self.navigate_history(true);
+                }
+            });
+        });
+        egui::TopBottomPanel::bottom("status").show(ctx, |ui| {
+            ui.small(&self.status);
+        });
     }
     fn campaign_file_controls(&mut self, ui: &mut egui::Ui) {
         if let Some(world) = &self.world {
             if ui.button("Return to my country").clicked() {
                 self.selected = world.player.clone();
+                self.map.select_country(&self.selected);
             }
             ui.checkbox(&mut self.pause_alerts, "Pause on important events");
         }
@@ -2114,7 +2203,7 @@ impl GameApp {
             self.tab = Tab::Chronicle;
             opened_chronicle = true;
         }
-        self.sidebar(ctx);
+        // Navigation is a compact strip; the World viewport has no permanent sidebar.
         if !self.recovery.is_empty() {
             let mut chosen = None;
             let mut close = false;
@@ -2163,6 +2252,15 @@ impl GameApp {
             }
         }
         egui::CentralPanel::default().show(ctx, |ui| {
+            if self.tab == Tab::Overview && self.world.is_some() {
+                if self
+                    .map
+                    .world_screen(ui, &self.content, self.world.as_ref(), &mut self.selected)
+                {
+                    self.tab = Tab::Country;
+                }
+                return;
+            }
             let mut scroll = egui::ScrollArea::vertical().id_salt((
                 "main_scroll",
                 self.tab,
@@ -2172,7 +2270,7 @@ impl GameApp {
                 scroll = scroll.vertical_scroll_offset(0.0);
             }
             scroll.show(ui, |ui| match self.tab {
-                Tab::Overview => self.overview(ui),
+                Tab::Overview | Tab::Country => self.overview(ui),
                 Tab::Policies => self.policies(ui),
                 Tab::Treasury => self.treasury(ui),
                 Tab::Society => self.society(ui),
@@ -2244,6 +2342,17 @@ fn sparkline(ui: &mut egui::Ui, history: &[Observation]) {
         ui.painter()
             .add(egui::Shape::line(points, Stroke::new(2.0_f32, MINT)));
     }
+}
+fn persistent_menu(ui: &mut egui::Ui, label: &str, content: impl FnOnce(&mut egui::Ui)) {
+    let response = ui.button(label);
+    // Opening a menu must not leave its trigger owning Enter while an editor
+    // inside the popup claims and confirms input in the same following frame.
+    if response.clicked() {
+        response.surrender_focus();
+    }
+    egui::Popup::from_toggle_button_response(&response)
+        .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
+        .show(content);
 }
 fn main() -> eframe::Result {
     let mut args = std::env::args().skip(1);
@@ -2599,7 +2708,21 @@ mod interface_tests {
             .unwrap_or_else(|| panic!("Visible editor text missing: {label}"))
     }
     fn editor_shortcut_focus(ctx: &egui::Context, app: &mut GameApp, scale: f32, label: &str) {
-        let output = editor_shortcut_frame(ctx, app, scale, vec![]);
+        let mut output = editor_shortcut_frame(ctx, app, scale, vec![]);
+        if !output
+            .shapes
+            .iter()
+            .any(|s| matches!(&s.shape, egui::Shape::Text(t) if t.galley.text()==label))
+        {
+            egui::Popup::close_all(ctx);
+            let menu = if label == app.target_date {
+                "Advance"
+            } else {
+                "Campaign"
+            };
+            editor_shortcut_focus(ctx, app, scale, menu);
+            output = editor_shortcut_frame(ctx, app, scale, vec![]);
+        }
         let point = editor_shortcut_point(&output, label);
         for pressed in [true, false] {
             editor_shortcut_frame(
@@ -2617,7 +2740,9 @@ mod interface_tests {
                 ],
             );
         }
-        assert!(ctx.wants_keyboard_input());
+        if !matches!(label, "Campaign" | "Advance") {
+            assert!(ctx.wants_keyboard_input());
+        }
     }
     fn editor_shortcut_keys(key: egui::Key, text: Option<&str>, enter: bool) -> Vec<egui::Event> {
         let key_event = |key, pressed| egui::Event::Key {
@@ -2657,9 +2782,20 @@ mod interface_tests {
             editor_shortcut_frame(&ctx, &mut app, scale, vec![]);
             editor_shortcut_frame(&ctx, &mut app, scale, vec![]);
             app.tab = Tab::Society;
+            editor_shortcut_focus(&ctx, &mut app, scale, "Campaign");
             let output = editor_shortcut_frame(&ctx, &mut app, scale, vec![]);
             assert!(!ctx.wants_keyboard_input());
             let point = editor_shortcut_point(&output, "n");
+            // Separate the menu-opening click from the edit click: otherwise
+            // egui counts a double-click, selects the word, and replaces "n".
+            for _ in 0..40 {
+                editor_shortcut_frame(
+                    &ctx,
+                    &mut app,
+                    scale,
+                    vec![egui::Event::PointerMoved(point)],
+                );
+            }
             let mut events = vec![egui::Event::PointerMoved(point)];
             for pressed in [true, false] {
                 events.push(egui::Event::PointerButton {
@@ -2716,7 +2852,8 @@ mod interface_tests {
             events.extend(editor_shortcut_keys(egui::Key::Enter, None, false));
             editor_shortcut_frame(&ctx, &mut app, scale, events);
             assert!(app.tab == Tab::Society, "Editing must not also invoke Back");
-            // Ordinary shortcuts work on the following frame, even with the OS's text event.
+            // Ordinary shortcuts work after leaving the menu, even with the OS's text event.
+            egui::Popup::close_all(&ctx);
             app.last_tick = Instant::now();
             editor_shortcut_frame(
                 &ctx,
@@ -3532,6 +3669,7 @@ mod interface_tests {
                 };
                 let paint = |app: &mut GameApp| ctx.run(input.clone(), |ctx| app.render(ctx));
                 let _ = paint(&mut app);
+                editor_shortcut_focus(&ctx, &mut app, scale, "Campaign");
                 let output = paint(&mut app);
                 for label in [
                     "Save",
@@ -3583,6 +3721,8 @@ mod interface_tests {
                     expected
                 );
                 app.selected = CountryId("USA".into());
+                egui::Popup::close_all(&ctx);
+                editor_shortcut_focus(&ctx, &mut app, scale, "Campaign");
                 let output = paint(&mut app);
                 click(&mut app, &output, "Load");
                 assert_eq!(app.selected, expected.player);
@@ -4043,6 +4183,7 @@ mod interface_tests {
                     app.selected = CountryId(selected.unwrap_or(own).into());
                     for tab in [
                         Tab::Overview,
+                        Tab::Country,
                         Tab::Policies,
                         Tab::Society,
                         Tab::Treasury,
@@ -4112,6 +4253,7 @@ mod interface_tests {
             },
             |ctx| app.render(ctx),
         );
+        editor_shortcut_focus(&ctx, &mut app, 1.0, "Campaign");
         ctx.memory_mut(|memory| memory.request_focus(egui::Id::new("campaign_save_path")));
         let control = egui::Modifiers {
             ctrl: true,
@@ -4489,7 +4631,8 @@ mod interface_tests {
             render(&mut app, vec![]);
             assert_eq!(app.selected.0, "DEU");
             let division_map = app.map.view();
-            click(&mut app, "02  Policies & delivery");
+            click(&mut app, "Policies");
+            click(&mut app, "Campaign");
             let save_path = app.save_path.clone();
             click(&mut app, &save_path);
             render(
@@ -4501,8 +4644,11 @@ mod interface_tests {
                 "History shortcuts must leave focused text editors alone"
             );
             assert_eq!(app.selected.0, "DEU");
+            egui::Popup::close_all(&ctx);
+            click(&mut app, "Campaign");
             click(&mut app, "Return to my country");
             assert_eq!(app.selected.0, "GBR");
+            egui::Popup::close_all(&ctx);
             click(&mut app, "Back");
             assert_eq!(app.selected.0, "DEU");
             assert!(app.tab == Tab::Policies);
@@ -4522,7 +4668,7 @@ mod interface_tests {
             );
             assert_eq!(app.selected.0, "GBR");
             assert!(app.navigation.can_forward());
-            click(&mut app, "04  Treasury & accounts");
+            click(&mut app, "Treasury");
             assert!(!app.navigation.can_forward());
             assert_eq!(
                 persistence::encode(app.world.as_ref().unwrap(), &content).unwrap(),

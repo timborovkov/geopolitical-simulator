@@ -607,3 +607,25 @@ Optional rules 41 persist a separate agreement store and snapshot envelope 42. A
 The world phase resolves expiry, submission windows, due domestic authority reviews, scheduled activation and notice in stable agreement order before country settlement. A late sponsorship check follows domestic succession, while active state obligations survive it. Bounded response AI follows the country settlements and uses the same action handler; eligible command failures propagate to the current daily transaction rather than swallowing event exhaustion. Fees move actual available Treasury cash to Firms and enter one-off budget spending and earned public business receipts without deferred construction capital or new GDP. Counteroffers discard old signatures; ratification requests cannot silently attach to obsolete terms.
 
 Read-only planning builds a local proposed record and checks authority, fees, reservations, dates and exact revisions before committing. Native review and explicit submission consume this plan; terminal commands use the same handlers. Public views begin at the stable two-signature milestone, rather than comparing dates and exposing an earlier same-day counteroffer. Unknown/private ID probes and foreign Chronicle lookups do not reveal unaccepted negotiations. The integrated source passes all 743 Rust and 20 Python checks, strict linting and Rust documentation. Both release CLI feature builds replay 26 checkpoints to identical bytes, with two further standalone refusal/withdrawal checkpoints. Actual final-desktop Linux interaction at 100%/140% preserves 42 exact reference snapshots; additional 140% counter/sign/refuse/withdraw actions begin from ordinary CLI saves, without developer edits. Real startup readback reports OpenGL/llvmpipe and clean event-loop exit. All 174 standard validation commands pass against frozen runtime sources and inputs. All 1302 recovery/replay campaigns pass, including six new fictional cases, with all 1296 predecessor hashes unchanged. Hosted validation for this later source remains pending. These checks do not establish military enforcement, full strategic diplomacy, historical treaties or whole-game completion.
+
+## Global map renderer implementation
+
+The [map presentation contract](map-presentation.md) describes the current visual
+overhaul. The desktop adds a custom wgpu paint callback with three precompiled
+country mesh levels, resident vertex/index buffers, a camera uniform and a compact
+country-color uniform buffer. Terrain is a five-level 512-pixel tile pyramid with
+one-pixel gutters and runtime-generated mipmaps. A background worker checks each
+tile checksum and decodes it; a four-result queue plus worker/upload buffers keeps
+decoded tile storage below 10 MiB, stricter than the 64 MiB target. The 88-tile GPU cache stays below 128 MiB
+for image storage, with coarse tiles retained while finer tiles arrive. Meshes and
+source geography are separate memory costs.
+
+Assets resolve from `STATECRAFT_MAP_ASSETS`, an executable-adjacent `map-atlas`
+directory, or the development checkout. Manifest version, bounded tile keys, complete
+pyramid membership, atlas checksum and mesh indices are checked before use. Tile errors are surfaced; unavailable fine tiles
+retain coarse imagery. Unavailable atlases or missing/corrupt base tiles retain
+the original simplified map. Raster detail accounts for physical pixel density,
+while label/vector detail follows projected geographic scale.
+Display IDs and settlement IDs are separate from `CountryId`; no rules or save
+format changes are introduced. Native and performance evidence is recorded in
+[development progress](development-progress.md).

@@ -4,6 +4,16 @@ The goal is the full documented game. The current implementation is a playable f
 
 Current audited register: **10 complete, 105 partial and 235 proposed**. Completion applies to the stated scope of an individual requirement; the overall kernel and full roadmap remain incomplete.
 
+## Map PR integration
+
+[PR #3](https://github.com/timborovkov/geopolitical-simulator/pull/3) integrates the
+global map with main through `daf4d4d`, including the finance and bilateral
+agreement screens. The compact navigation retains Diplomacy. Integrated standard
+validation and hosted Linux/macOS/Windows checks are running. Windows exposed
+locale-dependent atlas JSON reads; explicit UTF-8 decoding fixes that failure
+without modifying asset bytes. Original presentation evidence remains identified
+as a pre-integration checkpoint in [map validation](map-validation.md).
+
 ## Native build and launch milestone
 
 Published commit `9a7c014` passes [hosted run 42975579676](https://github.com/timborovkov/geopolitical-simulator/actions/runs/42975579676) on Linux, macOS and Windows. Each platform completes standard validation and an actual native wgpu viewport readback, reports nonuniform pixels without starting a campaign, and exits the event loop cleanly. Observed renderers are Linux Vulkan/llvmpipe (1440×940), macOS Metal/Apple Paravirtual device (1024×700), and Windows DirectX 12/Microsoft Basic Render Driver (1024×768). The reports retain their distinct executable hashes. Their five/six app updates are not a presentation or performance measure.
@@ -35,6 +45,53 @@ Pre-integration checks pass strict workspace linting, six living-standard tests 
 The preceding [payroll hosted run](https://github.com/timborovkov/geopolitical-simulator/actions/runs/42857884622) cancelled on all three platforms at its 180-minute limit. The validator now runs dependent commands first, then schedules every original in-memory recovery command exactly once with four bounded workers. Complete command/output blocks retain input order; any failed command fails validation. The serial recovery option remains available. The hosted limit is 360 minutes per platform, preserving the full checks during cold builds. Six orchestration tests cover concurrency, attribution, failure propagation and ordering. All 169 preceding command argument lists are preserved, with two new Python test commands added.
 
 Priority P04-01 now has an explicit developer launch-check mode and a portable isolated launcher. Readiness requires a screenshot returned by the real wgpu viewport after initial UI updates, nonuniform visible pixels and a successful event-loop exit. The launcher rejects timeouts, failed exits, missing/invalid readback and unexpected working-directory files. It does not start a campaign or read player preferences. CI is configured to exercise the native window on Linux/Xvfb, macOS and Windows and retain the actual adapter/backend and executable hash. Configuration alone establishes no platform pass. Strict workspace linting and the Linux release build pass. An actual Linux/Xvfb launch returned a 1440×940 nonuniform frame after five app updates using wgpu’s OpenGL backend and llvmpipe, then closed cleanly without starting a campaign. Two direct CLI probes reject a missing developer capability and an existing report without overwriting bytes. Full standard validation passes all 171 commands: 721 unique Rust checks (118 desktop and 70 compile-fail contracts), 20 Python checks, strict workspace lints, Rust documentation, release builds and 1296 recovery/replay campaigns. Every predecessor replay hash matches the published payroll baseline. All 215 Rust sources, 88 JSON files and 35 build/validation inputs match recorded hashes. All 169 predecessor command argument lists are preserved; only the two orchestration/launch Python test commands are added. The one source-freeze exception changes the hosted YAML timeout from 180 to 360 minutes during local Rust tests; validator arguments, all Rust sources and data remain unchanged, and both workflow fingerprints are retained. The local validator does not execute hosted YAML. Actual hosted macOS/Windows launch results remain unconfirmed; P04-01 and the overall game remain incomplete. Earlier software-Vulkan labels described configured ICDs without recording the selected adapter/backend. Historical native results now say software-rendered; their Linux interaction and save comparisons are retained, while a specific backend is not claimed.
+
+## Global terrain map and compact campaign interface
+
+The approved [map presentation contract](map-presentation.md) is implemented on
+the visual-overhaul branch: global offline Natural Earth reference geography,
+shaded terrain tiles, persistent GPU country meshes, ranked settlement labels,
+optional reference infrastructure, reference-only inspectors and compact campaign
+controls. The original simulation packs, rules and saves are unchanged. Global
+reference coverage does not expand the fifteen-country playable roster.
+
+The atlas contains 258 reference country/territory features and 7,325 settlements
+in approximately 80.3 MB of packaged assets. An isolated rebuild from pinned
+inputs reproduces its manifest and output checksums exactly. Source and compiler
+instructions are in the data notes. Missing/corrupt atlas assets retain simplified
+cartography; missing fine terrain tiles retain coarser imagery and show errors.
+
+Final presentation validation passes **124 desktop tests**, strict workspace
+Clippy, Cargo formatting, release compilation, Rust documentation and three atlas
+pipeline checks. The standard validator's full workspace test command completed
+with exit 0 (725 checks on its initial presentation snapshot); the final desktop
+rerun adds the date-line and reference-navigation checks, for **727 unique Rust
+checks** across the unchanged core and final presentation. All **170 standard
+validation commands** pass, including **13 Python checks** and all **1,296 recovery/
+replay campaigns**. The serial prefix and exact remaining arguments/results were
+retained; an environment restart required resuming unfinished commands with four
+workers. Late presentation and asset corrections received final tests, lints,
+documentation, release, regeneration and native checks. No uninterrupted-run
+elapsed time is claimed. The [machine-readable record](map-validation-results.json)
+contains command outcomes, replay hashes, final source hashes and benchmark data.
+
+Native Linux/llvmpipe OpenGL checks cover Europe, East Asia, North America, the
+world and Fiji across the date line; 1280×800, 1920×1080 and 3840×2160 at 200% UI
+scaling; city/reference-only inspection, infrastructure, search, analytical return,
+statistical mode, and missing-atlas/base-tile/fine-tile diagnostics. Actual saved campaign
+bytes are preserved. GPU validation caught and resolved use of a fragment storage
+buffer unsupported by eframe defaults; the renderer now uses a uniform palette.
+New-campaign reset preserves installed atlas resources, and reference selections
+create presentation-history visits. Existing editor assertions remain intact.
+
+The final 1440×940 software-GPU route measured p50 136.39 ms, p95 183.16 ms and
+maximum 234.01 ms under concurrent replay load. Its 88 resident terrain tiles use
+at most 123,995,989 image bytes. This establishes bounded software rendering, not
+the 60 FPS hardware target. Full commands, native cases and acceptance gaps are
+recorded in [map validation](map-validation.md), with an actual native screenshot.
+Hardware performance, macOS/Windows native behavior and hosted CI remain
+unconfirmed. No requirement status or completion count is advanced by visual
+reference infrastructure.
 
 ## Private employment and payroll
 
