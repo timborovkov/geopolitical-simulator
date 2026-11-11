@@ -25,6 +25,7 @@ mod hydrology;
 mod income_taxes;
 mod industrial_trade;
 mod inspector;
+mod launch_check;
 mod legislation;
 mod map;
 mod markets;
@@ -2199,10 +2200,18 @@ fn main() -> eframe::Result {
     let mut args = std::env::args().skip(1);
     let mut content_path = None;
     let mut developer_mode = false;
-    let usage = "Usage: desktop [--content pack.json] [--developer]";
+    let mut launch_report = None;
+    let usage = "Usage: desktop [--content pack.json] [--developer] [--native-launch-check NEW_REPORT.json (requires --developer)]";
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--developer" => developer_mode = true,
+            "--native-launch-check" if launch_report.is_none() => {
+                launch_report = args.next().map(PathBuf::from);
+                if launch_report.is_none() {
+                    eprintln!("{usage}");
+                    std::process::exit(1);
+                }
+            }
             "--content" if content_path.is_none() => {
                 content_path = args.next();
                 if content_path.is_none() {
@@ -2216,6 +2225,12 @@ fn main() -> eframe::Result {
             }
         }
     }
+    if let Some(path) = &launch_report
+        && (!developer_mode || path.exists())
+    {
+        eprintln!("Native launch checks require --developer and a new report path. {usage}");
+        std::process::exit(1);
+    }
     let bundled_catalog = content_path.is_none();
     let content = if let Some(path) = content_path {
         std::fs::read_to_string(path)
@@ -2228,6 +2243,9 @@ fn main() -> eframe::Result {
         eprintln!("Cannot start: {error}");
         std::process::exit(1)
     });
+    let outcome = std::sync::Arc::new(std::sync::Mutex::new(launch_check::Outcome::default()));
+    let launch_outcome = outcome.clone();
+    let checking_launch = launch_report.is_some();
     eframe::run_native(
         "Statecraft · A New Century",
         eframe::NativeOptions {
@@ -2238,14 +2256,46 @@ fn main() -> eframe::Result {
             ..Default::default()
         },
         Box::new(move |cc| {
-            Ok(Box::new(GameApp::new(
-                cc,
-                content,
-                developer_mode,
-                bundled_catalog,
-            )))
+            if checking_launch {
+                // A launch check never reads or writes player preferences or saves.
+                let app =
+                    GameApp::from_context(&cc.egui_ctx, content, settings::Preferences::default());
+                Ok(Box::new(launch_check::LaunchCheck::new(
+                    app,
+                    cc,
+                    launch_outcome,
+                )?))
+            } else {
+                Ok(Box::new(GameApp::new(
+                    cc,
+                    content,
+                    developer_mode,
+                    bundled_catalog,
+                )))
+            }
         }),
-    )
+    )?;
+    if let Some(path) = launch_report {
+        let write_report = || -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            let state = outcome
+                .lock()
+                .map_err(|_| std::io::Error::other("Launch outcome poisoned"))?;
+            if let Some(error) = &state.error {
+                return Err(std::io::Error::other(error.clone()).into());
+            }
+            let report = state.report.as_ref().ok_or_else(|| {
+                std::io::Error::other("Native window closed before screenshot readback")
+            })?;
+            let file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(path)?;
+            serde_json::to_writer_pretty(file, report)?;
+            Ok(())
+        };
+        write_report().map_err(eframe::Error::AppCreation)?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]

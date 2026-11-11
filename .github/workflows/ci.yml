@@ -19,7 +19,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 180
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,5 +28,23 @@ jobs:
       - name: Install pinned Rust toolchain
         shell: bash
         run: rustup show active-toolchain
+      - name: Install Linux native render support
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb xauth libvulkan1 mesa-vulkan-drivers
       - name: Validate documents, formatting, lints, tests, Rust docs and release runner
         run: python scripts/validate.py
+      - name: Check native Linux window and renderer
+        if: runner.os == 'Linux'
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run -a -s "-screen 0 1600x1000x24" python scripts/check_native_launch.py --report "${{ runner.temp }}/native-launch.json"
+      - name: Check native macOS or Windows window and renderer
+        if: runner.os != 'Linux'
+        run: python scripts/check_native_launch.py --report "${{ runner.temp }}/native-launch.json"
+      - name: Retain native launch evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-launch-${{ matrix.os }}
+          path: ${{ runner.temp }}/native-launch.json
+          if-no-files-found: warn
