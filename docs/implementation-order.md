@@ -8,7 +8,7 @@ This is an ordered build specification, not a schedule or workload estimate. Num
 
 The central design requirement is **a playable, inspectable simulation**: every significant choice has constraints, affected groups, costs, implementation time, consequences and an explanation. A large collection of disconnected sliders does not satisfy this requirement.
 
-The [war and diplomacy design](war-and-diplomacy-design.md) specifies treaties, coercion, combat, subjects, releases and territorial purchases, with ordered implementation todos and acceptance gates. All remain proposed.
+The [war and diplomacy design](war-and-diplomacy-design.md) specifies treaties, coercion, combat, subjects, releases and territorial purchases, with ordered implementation todos and acceptance gates. The fictional bilateral-agreement slice makes P23-03/P23-05/P23-09/P23-11 partial; broader diplomacy, military and territorial requirements remain proposed. The CSV register records current status.
 
 ## How to use the research
 
